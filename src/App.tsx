@@ -1,6 +1,7 @@
 // Engram 根组件
 import React, { useState, useEffect } from 'react';
 import Layout from './views/Layout';
+import { Dashboard } from './views/Dashboard';
 import MemoryStream from './views/MemoryStream';
 import GraphView from './views/GraphView';
 import BrainView from './views/Brain';
@@ -9,7 +10,8 @@ import DevLog from './views/DevLog';
 import Settings from './views/Settings';
 
 // 简单路由映射
-const ROUTES: Record<string, React.FC> = {
+const ROUTES: Record<string, React.ComponentType<any>> = {
+    '/dashboard': Dashboard,
     '/memory': MemoryStream,
     '/graph': GraphView,
     '/brain': BrainView,
@@ -26,7 +28,7 @@ interface AppProps {
 }
 
 const App: React.FC<AppProps> = ({ onClose }) => {
-    const [currentPath, setCurrentPath] = useState('/memory');
+    const [currentPath, setCurrentPath] = useState('/dashboard');
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -53,7 +55,7 @@ const App: React.FC<AppProps> = ({ onClose }) => {
     }, [isMobile]);
 
     // 获取当前路由对应的组件
-    const CurrentView = ROUTES[currentPath] || MemoryStream;
+    const CurrentView = ROUTES[currentPath] || Dashboard;
 
     return (
         <Layout
@@ -67,7 +69,7 @@ const App: React.FC<AppProps> = ({ onClose }) => {
             isMobile={isMobile}
             onClose={onClose}
         >
-            <CurrentView />
+            <CurrentView onNavigate={setCurrentPath} />
         </Layout>
     );
 };

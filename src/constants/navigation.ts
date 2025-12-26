@@ -1,5 +1,5 @@
 // 导航配置
-import { List, Network, Brain, Key, Settings, Terminal, type LucideIcon } from 'lucide-react';
+import { List, Network, Brain, Key, Settings, Terminal, LayoutDashboard, type LucideIcon } from 'lucide-react';
 
 export interface NavItem {
     id: string;
@@ -9,6 +9,7 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
+    { id: 'dashboard', icon: LayoutDashboard, label: '仪表盘', path: '/dashboard' },
     { id: 'memory', icon: List, label: '记忆流', path: '/memory' },
     { id: 'graph', icon: Network, label: '世界图谱', path: '/graph' },
     { id: 'brain', icon: Brain, label: '记忆', path: '/brain' },
@@ -18,5 +19,5 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 // 默认路由
-export const DEFAULT_ROUTE = '/memory';
+export const DEFAULT_ROUTE = '/dashboard';
 

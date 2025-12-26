@@ -160,10 +160,11 @@
     flex-direction: column;
     width: 48px;
     min-width: 48px;
-    background: rgba(0, 0, 0, 0.2);
-    border-right: 1px solid var(--SmartThemeBorderColor, rgba(148, 163, 184, 0.2));
+    background: rgba(30, 30, 35, 0.9);
+    border-right: 1px solid rgba(148, 163, 184, 0.1);
     overflow-y: auto;
     overflow-x: hidden;
+    z-index: 50;
 }
 
 .engram-sidebar-overlay {
@@ -356,4 +357,831 @@
 .engram-tab.active {
     background: rgba(249, 115, 22, 0.2);
     color: #f97316;
+}
+
+/* ========== DevLog 终端样式 ========== */
+
+.engram-dev-log {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 12px;
+}
+
+/* 工具栏 */
+.engram-log-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.engram-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+}
+
+/* 按钮样式 */
+.engram-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.engram-btn-ghost {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--SmartThemeBodyColor, #94a3b8);
+}
+
+.engram-btn-ghost:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.engram-btn-ghost.active {
+    background: rgba(249, 115, 22, 0.2);
+    color: #f97316;
+}
+
+.engram-btn-primary {
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    color: #fff;
+}
+
+.engram-btn-primary:hover {
+    filter: brightness(1.1);
+}
+
+/* 下拉菜单 */
+.engram-dropdown {
+    position: relative;
+}
+
+.engram-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 140px;
+    padding: 4px;
+    background: rgba(30, 30, 40, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 100;
+}
+
+.engram-dropdown-menu button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #e2e8f0);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.engram-dropdown-menu button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 搜索框 */
+.engram-search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 6px;
+    flex: 1;
+    max-width: 300px;
+}
+
+.engram-search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #e2e8f0);
+    font-size: 13px;
+    outline: none;
+}
+
+.engram-search-box input::placeholder {
+    color: #64748b;
+}
+
+.engram-search-box svg {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+/* 终端区域 */
+.engram-terminal {
+    flex: 1;
+    padding: 12px;
+    background: #1a1a2e;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 8px;
+    overflow-y: auto;
+    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.engram-terminal-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: #4a5568;
+}
+
+/* 日志条目 */
+.engram-log-entry {
+    margin-bottom: 2px;
+}
+
+.engram-log-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.engram-log-line.has-data {
+    cursor: pointer;
+}
+
+.engram-log-line:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.engram-log-expand {
+    display: flex;
+    align-items: center;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.engram-log-time {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.engram-log-module {
+    color: #8b5cf6;
+    flex-shrink: 0;
+    white-space: pre;
+}
+
+.engram-log-level {
+    flex-shrink: 0;
+    white-space: pre;
+}
+
+.engram-log-message {
+    color: #e2e8f0;
+    word-break: break-word;
+}
+
+/* 日志级别颜色 */
+.log-level-debug {
+    color: #6c757d;
+}
+
+.log-level-info {
+    color: #17a2b8;
+}
+
+.log-level-success {
+    color: #28a745;
+}
+
+.log-level-warn {
+    color: #ffc107;
+}
+
+.log-level-error {
+    color: #dc3545;
+}
+
+/* 日志数据详情 */
+.engram-log-data {
+    margin-left: 32px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 2px solid #4a5568;
+    border-radius: 0 4px 4px 0;
+}
+
+.engram-log-data pre {
+    margin: 0;
+    color: #a0aec0;
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* 状态栏 */
+.engram-log-statusbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* ========== Command Palette ========== */
+
+.engram-header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 0 16px;
+    max-width: 600px;
+}
+
+.engram-command-palette {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+}
+
+/* 输入框容器 */
+.engram-cp-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 36px;
+    padding: 0 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.engram-cp-input-wrapper.active {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(249, 115, 22, 0.5);
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.1);
+}
+
+.engram-cp-icon {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+/* 输入框 */
+.engram-cp-input {
+    flex: 1;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--SmartThemeBodyColor, #e2e8f0);
+    font-size: 14px;
+    outline: none;
+}
+
+.engram-cp-input::placeholder {
+    color: #64748b;
+}
+
+/* 快捷键提示 */
+.engram-cp-shortcut {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #64748b;
+    font-size: 11px;
+    font-family: monospace;
+    pointer-events: none;
+}
+
+/* 下拉菜单 */
+.engram-cp-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(30, 30, 35, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    overflow: hidden;
+    padding: 8px;
+    animation: fadeIn 0.1s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.engram-cp-group {
+    margin-bottom: 8px;
+}
+
+.engram-cp-group:last-child {
+    margin-bottom: 0;
+}
+
+.engram-cp-label {
+    padding: 4px 8px;
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* 命令项 */
+.engram-cp-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.1s;
+}
+
+.engram-cp-item:hover,
+.engram-cp-item.selected {
+    background: rgba(249, 115, 22, 0.15);
+}
+
+.engram-cp-item-icon {
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.engram-cp-item.selected .engram-cp-item-icon {
+    color: #f97316;
+}
+
+.engram-cp-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.engram-cp-item-title {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.engram-cp-item.selected .engram-cp-item-title {
+    color: #fff;
+}
+
+.engram-cp-item-desc {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.engram-cp-item.selected .engram-cp-item-desc {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.engram-cp-enter {
+    color: #64748b;
+    opacity: 0.5;
+}
+
+.engram-cp-item.selected .engram-cp-enter {
+    color: #f97316;
+    opacity: 1;
+}
+
+/* 空状态 */
+.engram-cp-empty {
+    padding: 24px;
+    text-align: center;
+    color: #64748b;
+    font-size: 13px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* ========== Dashboard ========== */
+
+.engram-dashboard {
+    height: 100%;
+    overflow-y: auto;
+    padding: 24px;
+    scrollbar-width: none;
+}
+
+.engram-dashboard::-webkit-scrollbar {
+    display: none;
+}
+
+.engram-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 16px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .engram-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dashboard-stats-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .dashboard-stats-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dashboard-cell,
+.engram-stats-card {
+    background: rgba(30, 30, 35, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-cell:hover {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.cell-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #64748b;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mini-link {
+    margin-left: auto;
+    font-size: 10px;
+    color: #f97316;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.mini-link:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* --- Neural Core --- */
+.cell-core {
+    display: flex;
+    flex-direction: column;
+}
+
+.core-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: radial-gradient(circle at center, rgba(249, 115, 22, 0.05) 0%, transparent 70%);
+}
+
+.engram-neural-orb-wrapper {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.engram-neural-orb {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    box-shadow: 0 0 60px rgba(249, 115, 22, 0.4);
+    animation: orb-breathe 4s ease-in-out infinite;
+    z-index: 10;
+}
+
+.orb-core {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #fb923c, #c2410c);
+    filter: blur(2px);
+}
+
+.orb-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    box-shadow: 0 0 15px rgba(249, 115, 22, 0.1);
+}
+
+.ring-1 {
+    width: 180px;
+    height: 180px;
+    animation: ring-spin 10s linear infinite;
+    border-style: dashed;
+}
+
+.ring-2 {
+    width: 240px;
+    height: 240px;
+    animation: ring-spin 15s linear infinite reverse;
+    opacity: 0.5;
+    border: 1px solid rgba(249, 115, 22, 0.1);
+}
+
+.engram-neural-status {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: #f97316;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.8;
+    white-space: nowrap;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: #f97316;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #f97316;
+    animation: blink 2s infinite;
+}
+
+@keyframes orb-breathe {
+
+    0%,
+    100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+@keyframes ring-spin {
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* --- Stats Column --- */
+.dashboard-column-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: space-between;
+}
+
+.engram-stats-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+}
+
+.engram-stats-card.highlight {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.3);
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.stats-icon-wrapper {
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    color: #94a3b8;
+}
+
+.highlight .stats-icon-wrapper {
+    background: rgba(249, 115, 22, 0.2);
+    color: #f97316;
+}
+
+.stats-pulse {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #22c55e;
+}
+
+.stats-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.stats-title {
+    font-size: 11px;
+    color: #64748b;
+    font-weight: 600;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+}
+
+.stats-subtext {
+    font-size: 10px;
+    color: #475569;
+    margin-top: 2px;
+}
+
+/* --- Quick Actions --- */
+.cell-actions {
+    display: flex;
+    flex-direction: column;
+}
+
+.actions-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 16px;
+}
+
+.action-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #94a3b8;
+}
+
+.action-tile:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    color: #fff;
+}
+
+.tile-icon {
+    font-size: 24px;
+}
+
+.tile-label {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+/* --- Mini Terminal --- */
+.cell-terminal {
+    display: flex;
+    flex-direction: column;
+}
+
+.mini-terminal-content {
+    flex: 1;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+.mini-log-line {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+    opacity: 0.8;
+}
+
+.log-time {
+    color: #64748b;
+}
+
+.log-msg {
+    color: #e2e8f0;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini-log-empty {
+    color: #475569;
+    text-align: center;
+    margin-top: 20px;
+    font-style: italic;
+}
+
+/* Mini Log Level Colors */
+.level-0 {
+    color: #6c757d;
+}
+
+.level-1 {
+    color: #e2e8f0;
+}
+
+.level-2 {
+    color: #4ade80;
+}
+
+.level-3 {
+    color: #facc15;
+}
+
+.level-4 {
+    color: #f87171;
 }

@@ -2,7 +2,6 @@
 import React from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar/index';
-import SearchBar from './SearchBar';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -37,6 +36,7 @@ const Layout: React.FC<LayoutProps> = ({
                 onToggleSidebar={onToggleSidebar}
                 isMobile={isMobile}
                 onClose={onClose}
+                onNavigate={onNavigate}
             />
 
             <div className="engram-body">
@@ -52,8 +52,6 @@ const Layout: React.FC<LayoutProps> = ({
                     {children}
                 </main>
             </div>
-
-            <SearchBar />
         </div>
     );
 };

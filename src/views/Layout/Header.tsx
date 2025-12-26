@@ -1,6 +1,7 @@
 // 头部组件
 import React from 'react';
 import { Maximize2, Minimize2, Menu, X } from 'lucide-react';
+import { CommandPalette } from './CommandPalette';
 
 interface HeaderProps {
     isFullscreen: boolean;
@@ -8,6 +9,7 @@ interface HeaderProps {
     onToggleSidebar: () => void;
     isMobile: boolean;
     onClose?: () => void;
+    onNavigate: (path: string) => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -16,6 +18,7 @@ const Header: React.FC<HeaderProps> = ({
     onToggleSidebar,
     isMobile,
     onClose,
+    onNavigate,
 }) => {
     return (
         <header className="engram-header">
@@ -30,6 +33,11 @@ const Header: React.FC<HeaderProps> = ({
                     </button>
                 )}
                 <span className="engram-logo-text">Engram</span>
+            </div>
+
+            {/* Command Palette (居中) */}
+            <div className="engram-header-center">
+                <CommandPalette onNavigate={onNavigate} />
             </div>
 
             <div className="engram-header-right">

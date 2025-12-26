@@ -23,4 +23,5 @@ if (document.readyState === 'loading') {
     initializeEngram();
 }
 
-console.log('[Engram] Extension loaded - Where memories leave their trace.');
+// Engram initialization handled in STBridge
+

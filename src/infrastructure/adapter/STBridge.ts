@@ -75,8 +75,12 @@ export function getCurrentCharacter(): { name: string; id: number } | null {
 /**
  * 初始化 Engram 插件
  */
-export function initializeEngram(): void {
-    console.log('[Engram] Initializing...');
+export async function initializeEngram(): Promise<void> {
+    // 初始化日志系统
+    const { Logger } = await import('../logger');
+    await Logger.init();
+
+    Logger.info('STBridge', 'Engram 插件正在初始化...');
 
     // 优先使用顶栏按钮，找不到则使用悬浮球
     createTopBarButton();
@@ -84,7 +88,7 @@ export function initializeEngram(): void {
     // 监听 ST 事件
     setupEventListeners();
 
-    console.log('[Engram] Initialization complete.');
+    Logger.success('STBridge', 'Engram 初始化完成 - Where memories leave their trace.');
 }
 
 // 内联 SVG logo（避免路径问题）

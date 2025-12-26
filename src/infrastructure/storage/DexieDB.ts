@@ -1,12 +1,13 @@
 /**
  * DexieDB - IndexedDB 数据库封装
- * 
+ *
  * 使用 Dexie.js 管理图谱数据存储
- * 包含实体表 (EntityNode) 和记忆事件表 (EventNode)
+ * 包含实体表 (EntityNode)、记忆事件表 (EventNode) 和日志表 (LogEntry)
  */
 
 import Dexie, { Table } from 'dexie';
 import type { EntityNode, EventNode } from '../../core/types/graph';
+import type { LogEntry } from '../logger/types';
 
 /**
  * Engram 数据库实例
@@ -14,15 +15,22 @@ import type { EntityNode, EventNode } from '../../core/types/graph';
 export class EngramDatabase extends Dexie {
     entities!: Table<EntityNode, string>;
     events!: Table<EventNode, string>;
+    logs!: Table<LogEntry, string>;
 
     constructor() {
         super('EngramDB');
 
+        // 版本 1: 基础图谱存储
         this.version(1).stores({
-            // 实体表索引: id, name, type, brainId
             entities: 'id, name, type, brainId',
-            // 事件表索引: id, timestamp, significance, brainId
             events: 'id, timestamp, significance, brainId, *relatedEntities',
+        });
+
+        // 版本 2: 添加日志表
+        this.version(2).stores({
+            entities: 'id, name, type, brainId',
+            events: 'id, timestamp, significance, brainId, *relatedEntities',
+            logs: 'id, timestamp, level, module',
         });
     }
 }
