@@ -1,0 +1,50 @@
+{
+    "name": "engram",
+    "version": "0.1.0",
+    "description": "Graph RAG 记忆操作系统 for SillyTavern",
+    "type": "module",
+    "main": "src/index.tsx",
+    "scripts": {
+        "dev": "vite build --watch",
+        "dev:serve": "vite --mode development",
+        "build": "vite build",
+        "preview": "vite preview",
+        "prettify": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\""
+    },
+    "keywords": [
+        "sillytavern",
+        "extension",
+        "graph-rag",
+        "memory"
+    ],
+    "author": "",
+    "license": "GPL-3.0-only",
+    "devDependencies": {
+        "@types/jquery": "^3.5.32",
+        "@types/node": "^22.13.1",
+        "@types/react": "^19.1.11",
+        "@types/react-dom": "^19.1.8",
+        "@vitejs/plugin-react": "^4.3.4",
+        "autoprefixer": "^10.4.20",
+        "postcss": "^8.4.49",
+        "prettier": "^3.4.2",
+        "tailwindcss": "^3.4.17",
+        "typescript": "^5.7.3",
+        "vite": "^6.0.5"
+    },
+    "dependencies": {
+        "@xyflow/react": "^12.8.6",
+        "dexie": "^4.0.11",
+        "dexie-react-hooks": "^1.1.7",
+        "immer": "^10.1.1",
+        "lucide-react": "^0.562.0",
+        "rxjs": "^7.8.1",
+        "sillytavern-utils-lib": "^1.0.60",
+        "uuid": "^13.0.0",
+        "zustand": "^4.5.4"
+    },
+    "peerDependencies": {
+        "react": "^19.1.1",
+        "react-dom": "^19.1.1"
+    }
+}

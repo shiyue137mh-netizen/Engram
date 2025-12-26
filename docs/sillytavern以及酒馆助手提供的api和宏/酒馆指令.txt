@@ -1,0 +1,1290 @@
+SillyTavern 斜杠指令全集
+
+================================
+通用与帮助 (General & Help)
+--------------------------------
+/?
+  描述:
+    获取关于宏、聊天格式和命令的帮助。
+  参数:
+    - (匿名): [slash|macros|format|hotkeys] (可选)
+  返回:
+    void
+
+//
+  描述:
+    写一个注释，AI不会看到。此命令是 /comment 的别名。
+  参数:
+    - (匿名): [string] (可选)
+  返回:
+    void
+
+/comment
+  描述:
+    添加一条不属于聊天的注释/笔记消息。
+  参数:
+    - compact: [true|false] (可选) - 如果为true，消息将使用紧凑布局发送。
+    - at: [number] (可选) - 插入消息的位置索引。
+    - return: [pipe|object|toast-html|toast-text|console|none] (可选) - 指定返回消息文本的方式。
+    - raw: [true|false] (可选) - 是否按原始文本发送。
+    - (匿名): <string> (必需)
+  返回:
+    可选地返回发送消息的文本。
+
+/forcesave
+  描述:
+    强制保存当前聊天和设置。
+  参数:
+    无
+  返回:
+    void
+
+/reload-page
+  描述:
+    重新加载当前页面。此后的所有命令将不会被处理。
+  参数:
+    无
+  返回:
+    void
+
+================================
+聊天与消息管理 (Chat & Message Management)
+--------------------------------
+/newchat
+  描述:
+    与当前角色开始一个新的聊天。
+  参数:
+    - delete: [true|false] (可选) - 是否删除当前聊天。
+  返回:
+    void
+
+/renamechat
+  描述:
+    重命名当前聊天。
+  参数:
+    - (匿名): <string> (必需)
+  返回:
+    void
+
+/delchat
+  描述:
+    删除当前聊天。
+  参数:
+    无
+  返回:
+    void
+
+/send
+  描述:
+    向聊天日志添加一条用户消息，而不触发AI生成。
+  参数:
+    - compact: [true|false] (可选) - 使用紧凑布局。
+    - at: [number] (可选) - 插入位置。
+    - name: [string] (可选) - 显示的发送者名称。
+    - (匿名): <string> (必需)
+  返回:
+    可选地返回发送消息的文本。
+
+/sendas
+  描述:
+    作为特定角色发送消息。如果角色存在于角色列表中，则使用其头像。
+  参数:
+    - name: <string> (必需) - 角色名。
+    - avatar: [string] (可选) - 使用指定名称角色的头像。
+    - (匿名): <string> (必需)
+  返回:
+    可选地返回发送消息的文本。
+
+/sys
+  描述:
+    作为系统叙述者发送消息。
+  参数:
+    - name: [string] (可选) - 设置系统消息的显示名称。
+    - (匿名): <string> (必需)
+  返回:
+    可选地返回发送消息的文本。
+
+/sysname
+  描述:
+    为此聊天中的未来系统叙述者消息设置一个显示名称（仅显示）。默认为“System”。留空以重置。
+  参数:
+    - (匿名): [string] (可选)
+  返回:
+    void
+
+/del
+  描述:
+    进入消息删除模式，如果提供了数字参数，则自动删除最后N条消息。
+  参数:
+    - (匿名): [number] (可选)
+  返回:
+    被删除消息的文本。
+
+/delname
+  描述:
+    删除所有归属于指定名称的消息。
+  参数:
+    - (匿名): <string> (必需)
+  返回:
+    void
+
+/cut
+  描述:
+    从聊天中剪切指定的消息或连续的消息块。范围是包含性的。
+  参数:
+    - (匿名): <number|range>... (多个)
+  返回:
+    被剪切消息的文本，以换行符分隔。
+
+/hide
+  描述:
+    从提示中隐藏一条聊天消息。
+  参数:
+    - name: [string] (可选) - 按名称隐藏。
+    - (匿名): [number|range] (可选) - 按索引或范围隐藏。
+  返回:
+    void
+
+/unhide
+  描述:
+    取消隐藏消息，使其对提示可见。
+  参数:
+    - name: [string] (可选) - 按名称取消隐藏。
+    - (匿名): [number|range] (可选) - 按索引或范围取消隐藏。
+  返回:
+    void
+
+/messages
+  描述:
+    以字符串形式返回指定的消息或消息范围。
+  参数:
+    - names: [on|off] (可选) - 是否包含作者名称。
+    - hidden: [on|off] (可选) - 是否排除隐藏的消息。
+    - role: [system|assistant|user] (可选) - 按角色过滤消息。
+    - (匿名): <number|range> (必需)
+  返回:
+    指定的消息或消息范围的字符串。
+
+/chat-jump
+  描述:
+    将聊天视图滚动到指定的消息索引。索引从0开始。
+  参数:
+    - (匿名): <number> (必需)
+  返回:
+    void
+
+/chat-reload
+  描述:
+    重新加载当前聊天。
+  参数:
+    无
+  返回:
+    void
+
+/chat-render
+  描述:
+    在聊天窗口中渲染指定数量的消息。如果未提供参数，则显示所有消息。
+  参数:
+    - scroll: [true|false] (可选) - 是否滚动到底部。
+    - (匿名): [number] (可选)
+  返回:
+    void
+
+/lastmes
+  描述:
+    将最后一条消息的文本放入输入框中。
+  参数:
+    无
+  返回:
+    void
+
+/setinput
+  描述:
+    将用户输入设置为指定的文本，并通过管道传递给下一个命令。
+  参数:
+    - (匿名): <string> (必需)
+  返回:
+    void
+
+/input
+  描述:
+    显示一个带有输入字段的弹出窗口。
+  参数:
+    - text: [string] (可选) - 要显示的文本。
+    - default: [string] (可选) - 输入字段的默认值。
+  返回:
+    输入的文本。
+
+/trimend
+  描述:
+    将文本修剪到最后一个完整句子的末尾。
+  参数:
+    - (匿名): <string> (必需)
+  返回:
+    修剪后的文本。
+
+/trimstart
+  描述:
+    将文本修剪到第一个完整句子的开头。
+  参数:
+    - (匿名): <string> (必需)
+  返回:
+    修剪后的文本。
+
+/trimtokens
+  描述:
+    将文本的开头或结尾修剪到指定的令牌数。
+  参数:
+    - limit: <number> (必需)
+    - direction: <start|end> (必需)
+    - (匿名): [string] (可选)
+  返回:
+    修剪后的文本。
+
+================================
+API、模型与生成 (API, Model & Generation)
+--------------------------------
+/api
+  描述:
+    连接到一个API。如果未提供参数，则返回当前连接的API。
+  参数:
+    - quiet: [true|false] (可选)
+    - (匿名): [api_name] (可选)
+  返回:
+    当前API名称
+
+/api-url
+  描述:
+    为当前选定的API设置URL/服务器URL，包括端口。
+  参数:
+    - api: [custom|kobold|ooba|...] (可选)
+    - connect: [true|false] (可选)
+    - quiet: [true|false] (可选)
+    - (匿名): [string] (可选)
+  返回:
+    当前API的URL
+
+/model
+  描述:
+    为当前API设置模型。如果未提供参数，则获取当前模型名称。
+  参数:
+    - quiet: [true|false] (可选)
+    - (匿名): [string] (可选)
+  返回:
+    当前模型
+
+/preset
+  描述:
+    按名称为当前API设置预设。如果未提供名称，则获取当前预设。
+  参数:
+    - (匿名): [string] (可选)
+  返回:
+    当前预设
+
+/tokenizer
+  描述:
+    按名称选择分词器。如果未提供名称，则获取当前分词器。
+  参数:
+    - (匿名): [best_match|none|gpt2|...] (可选)
+  返回:
+    当前分词器
+
+/tokens
+  描述:
+    计算提供文本中的令牌数量。
+  参数:
+    - (匿名): <string> (必需)
+  返回:
+    令牌数量
+
+/count
+  描述:
+    计算当前聊天中的令牌数量。
+  参数:
+    无
+  返回:
+    令牌数量
+
+/gen
+  描述:
+    使用提供的提示生成文本，并通过管道传递给下一个命令。
+  参数:
+    - lock: [on|off] (可选) - 生成时锁定用户输入。
+    - name: [string] (可选) - 为指导模式设置in-prompt名称。
+    - length: [number] (可选) - 临时覆盖API响应长度。
+    - as: [system|char] (可选) - 输出提示的角色。
+    - (匿名): <string> (必需)
+  返回:
+    生成的文本
+
+/genraw
+  描述:
+    使用原始提示生成文本，不包括聊天记录或角色卡。
+  参数:
+    - lock: [on|off] (可选)
+    - instruct: [on|off] (可选) - 跳过指导格式。
+    - stop: [list] (可选) - 添加一次性自定义停止字符串。
+    - as: [system|char] (可选)
+    - system: [string] (可选) - 添加一个系统提示。
+    - length: [number] (可选)
+    - (匿名): <string> (必需)
+  返回:
+    生成的文本
+
+/continue
+  描述:
+    继续聊天中的最后一条消息，可以带有可选的附加提示。
+  参数:
+    - await: [true|false] (可选) - 等待生成完成。
+    - (匿名): [string] (可选)
+  返回:
+    void
+
+/impersonate
+  描述:
+    调用一个模拟（impersonation）响应，可以带有可选的附加提示。
+  参数:
+    - await: [true|false] (可选) - 等待模拟完成。
+    - (匿名): [string] (可选)
+  返回:
+    void
+
+/sysgen
+  描述:
+    使用指定的提示生成系统消息。
+  参数:
+    - (匿名): <string> (必需)
+  返回:
+    void
+
+/trigger
+  描述:
+    触发消息生成。在群组中，可以为指定的群组成员触发消息。
+  参数:
+    - await: [true|false] (可选) - 等待触发的生成完成。
+    - (匿名): [number|string] (可选)
+  返回:
+    void
+
+/stop
+  描述:
+    停止当前正在运行的生成和任何流式传输。
+  参数:
+    无
+  返回:
+    true/false - 表示生成是否正在运行并被停止。
+
+/fix-reply
+  描述:
+    修复最新的AI回复中的问题。
+  参数:
+    无
+  返回:
+    void
+
+/test-reply-checker
+  描述:
+    测试聊天回复检查器功能。
+  参数:
+    无
+  返回:
+    void
+
+/addswipe
+  描述:
+    为最后一条聊天消息添加一个滑动（swipe）。
+  参数:
+    - switch: [true|false] (可选) - 直接切换到新的滑动。
+    - (匿名): <string> (必需)
+  返回:
+    新的滑动ID
+
+/delswipe
+  描述:
+    从最后一条聊天消息中删除一个滑动。如果未提供滑动ID，则删除当前滑动。
+  参数:
+    - (匿名): [number] (可选)
+  返回:
+    新的、当前选择的滑动ID
+
+================================
+上下文与提示管理 (Context & Prompt Management)
+--------------------------------
+/context
+  描述:
+    按名称选择上下文模板。如果未提供名称，则获取当前模板。
+  参数:
+    - quiet: [true|false] (可选)
+    - (匿名): [string] (可选)
+  返回:
+    模板名称
+
+/instruct
+  描述:
+    按名称选择指导模式模板。如果未提供名称，则获取当前模板。
+  参数:
+    - quiet: [true|false] (可选)
+    - forceGet: [true|false] (可选)
+    - (匿名): [string] (可选)
+  返回:
+    当前模板
+
+/instruct-on
+  描述: 启用指导模式。
+  参数: 无
+  返回: void
+
+/instruct-off
+  描述: 禁用指导模式。
+  参数: 无
+  返回: void
+
+/instruct-state
+  描述: 获取或设置指导模式的状态。
+  参数: - (匿名): [true|false] (可选)
+  返回: void
+
+/sysprompt
+  描述:
+    按名称选择一个系统提示。如果未提供名称，则获取当前系统提示。
+  参数:
+    - quiet: [true|false] (可选)
+    - forceGet: [true|false] (可选)
+    - (匿名): [string] (可选)
+  返回:
+    当前系统提示
+
+/sysprompt-on
+  描述: 启用系统提示。
+  参数: 无
+  返回: void
+
+/sysprompt-off
+  描述: 禁用系统提示。
+  参数: 无
+  返回: void
+
+/sysprompt-state
+  描述: 获取或设置系统提示的状态。
+  参数: - (匿名): [true|false] (可选)
+  返回: void
+
+/note
+  描述:
+    为当前选择的聊天设置作者注释，并返回当前注释。
+  参数:
+    - (匿名): [string] (可选)
+  返回:
+    当前作者的注释
+
+/note-depth
+  描述: 设置作者注释的深度。
+  参数: - (匿名): [number] (可选)
+  返回: 当前作者的注释深度
+
+/note-frequency
+  描述: 设置作者注释的插入频率。
+  参数: - (匿名): [number] (可选)
+  返回: 当前作者的注释插入频率
+
+/note-position
+  描述: 设置作者注释的位置。
+  参数: - (匿名): [before|after|chat] (可选)
+  返回: 当前作者的注释插入位置
+
+/note-role
+  描述: 设置作者注释的聊天插入角色。
+  参数: - (匿名): [system|user|assistant] (可选)
+  返回: 当前作者的注释聊天插入角色
+
+/start-reply-with
+  描述:
+    设置“回复以...开始”的内容。如果未提供值，则获取当前值。
+  参数:
+    - force: [true|false] (可选) - 强制设置一个空值。
+    - (匿名): [string] (可选)
+  返回:
+    void
+
+/stop-strings
+  描述:
+    设置自定义停止字符串列表。如果未提供值，则获取列表。
+  参数:
+    - force: [true|false] (可选) - 强制设置一个空值。
+    - (匿名): [list] (可选) - 必须是JSON序列化的数组。
+  返回:
+    列表
+
+/inject
+  描述:
+    注入一个在每次生成时都会添加到提示中的文本片段。
+  参数:
+    - id: <string> (必需)
+    - position: [before|after|chat|none] (可选)
+    - depth: [number] (可选)
+    - ... (其他参数)
+    - (匿名): [string] (可选)
+  返回:
+    void
+
+/flushinject
+  描述:
+    为当前聊天移除脚本注入。如果未提供ID，则移除所有脚本注入。
+  参数:
+    - (匿名): [string] (可选)
+  返回:
+    void
+
+/listinjects
+  描述:
+    列出所有活动的脚本注入。
+  参数:
+    - return: [object|chat-html|...] (可选)
+    - format: [popup|chat|none] (必需)
+  返回:
+    可选地返回脚本注入的JSON对象
+
+================================
+变量与脚本 (Variables & Scripting)
+--------------------------------
+/let
+  描述: 在当前作用域中声明一个新变量。
+  参数: - [key=varname] (可选), - [varname] (可选), - [value] (可选)
+  返回: 变量值
+
+/var
+  描述: 获取或设置一个变量。
+  参数: - [key=varname] (可选), - [index=...] (可选), - [as=...] (可选), - [value] (可选)
+  返回: 变量值
+
+/setvar
+  描述: 设置一个局部变量的值，并通过管道传递下去。
+  参数: - key: <varname> (必需), - [index=...] (可选), - [as=...] (可选), - <value> (必需)
+  返回: 设置的局部变量值
+
+/getvar
+  描述: 获取一个局部变量的值，并通过管道传递下去。
+  参数: - [key=varname] (可选), - [index=...] (可选), - [varname] (可选)
+  返回: 变量值
+
+/addvar
+  描述: 给一个局部变量增加一个值。
+  参数: - key: <varname> (必需), - <number|string> (必需)
+  返回: 新的变量值
+
+/incvar
+  描述: 将局部变量加1。
+  参数: - <varname> (必需)
+  返回: 新的变量值
+
+/decvar
+  描述: 将局部变量减1。
+  参数: - <varname> (必需)
+  返回: 新的变量值
+
+/flushvar
+  描述: 删除一个局部变量。
+  参数: - (匿名): [varname|closure] (可选)
+  返回: void
+
+/setglobalvar
+  描述: 设置一个全局变量的值。
+  参数: - key: <varname> (必需), - [index=...] (可选), - [as=...] (可选), - <value> (必需)
+  返回: 设置的全局变量值
+
+/getglobalvar
+  描述: 获取一个全局变量的值。
+  参数: - [key=varname] (可选), - [index=...] (可选), - [varname] (可选)
+  返回: 全局变量值
+
+/addglobalvar
+  描述: 给一个全局变量增加一个值。
+  参数: - key: <varname> (必需), - <number|string> (必需)
+  返回: 新的变量值
+
+/incglobalvar
+  描述: 将全局变量加1。
+  参数: - <varname> (必需)
+  返回: 新的变量值
+
+/decglobalvar
+  描述: 将全局变量减1。
+  参数: - <varname> (必需)
+  返回: 新的变量值
+
+/flushglobalvar
+  描述: 删除指定的全局变量。
+  参数: - (匿名): [varname|closure] (可选)
+  返回: void
+
+/if
+  描述: 条件执行命令。
+  参数: - left: <value> (必需), - [right=value] (可选), - [rule=eq|neq|...] (可选), - <subcommand> (必需)
+  返回: 命令执行的结果
+
+/while
+  描述: 当条件为真时，重复执行命令。
+  参数: - left: <value> (必需), - [right=value] (可选), - [rule=...] (可选), - [guard=on|off] (可选), - <subcommand> (必需)
+  返回: 最后执行命令的结果
+
+/times
+  描述: 重复执行命令指定的次数。
+  参数: - [guard=on|off] (可选), - <number> (必需), - <subcommand> (必需)
+  返回: 最后执行命令的结果
+
+/break
+  描述: 跳出通过 /run 或 /: 执行的循环或闭包。
+  参数: - (匿名): [any] (可选)
+  返回: void
+
+/run
+  描述: 从作用域变量或快速回复（Quick Reply）运行一个闭包。
+  参数: - [args=value]... (多个可选), - <varname|string|closure> (必需)
+  返回: 执行的闭包或QR的结果
+
+/pass
+  描述: 将文本通过管道传递给下一个命令。
+  参数: - (匿名): <value> (必需)
+  返回: 提供的值
+
+/delay
+  描述: 延迟执行下一个命令指定的毫秒数。
+  参数: - (匿名): <number> (必需)
+  返回: void
+
+/parser-flag
+  描述: 设置解析器标志。
+  参数: - <flag_name> (必需), - [on|off] (可选)
+  返回: void
+
+================================
+数学与逻辑运算 (Math & Logic)
+--------------------------------
+/add
+  描述: 将一组值相加。
+  参数: - (匿名): <number|varname|list>... (多个)
+  返回: 总和
+
+/sub
+  描述: 将一组值相减。
+  参数: - (匿名): <number|varname|list>... (多个)
+  返回: 差
+
+/mul
+  描述: 将一组值相乘。
+  参数: - (匿名): <number|varname|list>... (多个)
+  返回: 乘积
+
+/div
+  描述: 执行除法运算。
+  参数: - (匿名): <number|varname> (必需), - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/mod
+  描述: 执行模运算。
+  参数: - (匿名): <number|varname> (必需), - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/pow
+  描述: 执行幂运算。
+  参数: - (匿名): <number|varname> (必需), - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/abs
+  描述: 计算绝对值。
+  参数: - (匿名): <number|varname> (必需)
+  返回: 绝对值
+
+/round
+  描述: 四舍五入。
+  参数: - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/sin
+  描述: 正弦运算。
+  参数: - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/cos
+  描述: 余弦运算。
+  参数: - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/log
+  描述: 对数运算。
+  参数: - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/sqrt
+  描述: 平方根运算。
+  参数: - (匿名): <number|varname> (必需)
+  返回: 结果
+
+/max
+  描述: 返回最大值。
+  参数: - (匿名): <number|varname|list>... (多个)
+  返回: 最大值
+
+/min
+  描述: 返回最小值。
+  参数: - (匿名): <number|varname|list>... (多个)
+  返回: 最小值
+
+/rand
+  描述: 返回随机数。
+  参数: - from: [number] (可选), - to: [number] (可选), - round: [round|ceil|floor] (可选)
+  返回: 随机数
+
+/len
+  描述: 获取一个值的长度（字符串、列表、字典等）。
+  参数: - (匿名): <value> (必需)
+  返回: 长度
+
+/lower
+  描述: 转换为小写。
+  参数: - (匿名): <string> (必需)
+  返回: 小写字符串
+
+/upper
+  描述: 转换为大写。
+  参数: - (匿名): <string> (必需)
+  返回: 大写字符串
+
+/replace
+  描述: 替换文本。
+  参数: - [mode=literal|regex] (可选), - pattern: <string> (必需), - [replacer=string] (可选), - <string> (必需)
+  返回: 替换后的文本
+
+/match
+  描述: 检索正则表达式匹配项。
+  参数: - pattern: <string> (必需), - (匿名): <string> (必需)
+  返回: 匹配组的数组
+
+/test
+  描述: 测试文本是否与正则表达式匹配。
+  参数: - pattern: <string> (必需), - (匿名): <string> (必需)
+  返回: true | false
+
+/sort
+  描述: 对列表或字典进行升序排序。
+  参数: - [keysort=true|false] (可选), - (匿名): <value> (必需)
+  返回: 排序后的列表或字典键
+
+/fuzzy
+  描述: 对列表中的每个项目执行模糊匹配。
+  参数: - list: <list|varname> (必需), - [threshold=number] (可选), - [mode=first|best] (可选), - <string> (必需)
+  返回: 匹配的项
+
+/json-parse
+  描述: 将JSON字符串解析为对象。
+  参数: - (匿名): [string] (可选)
+  返回: 解析后的对象
+
+/json-stringify
+  描述: 将JavaScript值转换为JSON字符串。
+  参数: - (匿名): [any] (可选)
+  返回: JSON字符串
+
+================================
+世界信息与知识库 (World Info & Lorebooks)
+--------------------------------
+/world
+  描述: 设置活动的世界信息（World Info），或取消设置。
+  参数: - [state=on|off|toggle] (可选), - [silent=true|false] (可选), - (匿名): [string] (可选)
+  返回: void
+
+/createentry
+  描述: 在指定的书中创建一个新记录。
+  参数: - file: <string> (必需), - [key=string] (可选), - (匿名): [string] (可选)
+  返回: 新记录的UID
+
+/findentry
+  描述: 使用模糊匹配在指定的书中查找记录的UID。
+  参数: - file: <string> (必需), - [field=key|content|...] (可选), - (匿名): <string> (必需)
+  返回: 记录的UID
+
+/getentryfield
+  描述: 获取记录的字段值。
+  参数: - file: <string> (必需), - uid: <string> (必需), - [field=key|content|...] (可选)
+  返回: 字段值
+
+/setentryfield
+  描述: 设置记录的字段值。
+  参数: - file: <string> (必需), - uid: <string> (必需), - [field=key|content|...] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/getcharbook
+  描述: 获取角色绑定的世界信息书的名称。
+  参数: - [type=primary|additional|all] (可选), - (匿名): [number|string] (可选)
+  返回: 世界信息书的名称或列表
+
+/getchatbook
+  描述: 获取聊天绑定的世界信息书的名称。
+  参数: - [name=string] (可选)
+  返回: 世界信息书的名称
+
+/getglobalbooks
+  描述: 获取选定的全局世界信息书的名称列表。
+  参数: 无
+  返回: 世界信息书名称的列表
+
+/getpersonabook
+  描述: 获取当前角色绑定的世界信息书的名称。
+  参数: 无
+  返回: 世界信息书的名称
+
+/wi-get-timed-effect
+  描述: 获取记录的定时效果的当前状态。
+  参数: - file: <string> (必需), - effect: <string> (必需), - [format=bool|number] (可选), - <string> (必需)
+  返回: 效果的状态
+
+/wi-set-timed-effect
+  描述: 为记录设置一个定时效果。
+  参数: - file: <string> (必需), - uid: <string> (必需), - effect: <string> (必需), - <on|off|toggle> (必需)
+  返回: void
+
+================================
+角色与群组 (Character & Groups)
+--------------------------------
+/go
+  描述: 按名称打开与角色或群组的聊天。
+  参数: - (匿名): <string> (必需)
+  返回: 角色/群组名称
+
+/dupe
+  描述: 复制当前选择的角色。
+  参数: 无
+  返回: void
+
+/rename-char
+  描述: 重命名当前角色。
+  参数: - [silent=true|false] (可选), - [chats=true|false] (可选), - (匿名): <string> (必需)
+  返回: true/false - 是否重命名成功
+
+/char-find
+  描述: 搜索角色并返回其头像密钥（唯一标识符）。
+  参数: - [tag=string]... (多个可选), - [preferCurrent=true|false] (可选), - [quiet=true|false] (可选), - (匿名): [string] (可选)
+  返回: 角色的头像密钥
+
+/random
+  描述: 与一个随机角色开始新的聊天。
+  参数: - (匿名): [string] (可选) - 按标签筛选
+  返回: void
+
+/ask
+  描述: 向指定的角色卡提问。
+  参数: - name: <string> (必需), - [return=...] (可选), - (匿名): [string] (可选)
+  返回: 可选地返回发送消息的文本
+
+/persona-set
+  描述: 选择给定的角色（Persona）。
+  参数: - [mode=lookup|temp|all] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/persona-lock
+  描述: 锁定/解锁一个角色（名称和头像）到当前聊天。
+  参数: - [type=chat|character|default] (可选), - (匿名): [string] (可选)
+  返回: 给定类型的当前锁定状态
+
+/tag-add
+  描述: 给角色添加一个标签。
+  参数: - [name=string] (可选), - (匿名): <string> (必需)
+  返回: true/false - 是否添加成功
+
+/tag-exists
+  描述: 检查给定的标签是否已分配给角色。
+  参数: - [name=string] (可选), - (匿名): <string> (必需)
+  返回: true/false
+
+/tag-list
+  描述: 列出角色的所有已分配标签。
+  参数: - [name=string] (可选)
+  返回: 逗号分隔的标签列表
+
+/tag-remove
+  描述: 从角色中删除一个标签。
+  参数: - [name=string] (可选), - (匿名): <string> (必需)
+  返回: true/false - 是否删除成功
+
+/member-add
+  描述: 向群聊中添加新成员。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+/member-remove
+  描述: 从群聊中移除成员。
+  参数: - (匿名): <number|string> (必需)
+  返回: void
+
+/member-count
+  描述: 返回群聊成员的总数。
+  参数: 无
+  返回: void
+
+/member-list
+  描述: 返回群聊成员的列表。
+  参数: - [prop=name|avatar|...] (可选)
+  返回: 成员列表
+
+/member-up
+  描述: 在群聊列表中上移成员。
+  参数: - (匿名): <number|string> (必需)
+  返回: void
+
+/member-down
+  描述: 在群聊列表中下移成员。
+  参数: - (匿名): <number|string> (必需)
+  返回: void
+
+/member-mute
+  描述: 禁言某个群聊成员。
+  参数: - (匿名): <number|string> (必需)
+  返回: void
+
+/member-enable
+  描述: 启用某个群聊成员以供抽调回复。
+  参数: - (匿名): <number|string> (必需)
+  返回: void
+
+/member-disable
+  描述: 禁止某个群聊成员被抽调回复。
+  参数: - (匿名): <number|string> (必需)
+  返回: void
+
+/member-peek
+  描述: 查看群聊成员的角色卡而不切换聊天。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+================================
+界面与显示 (UI & Display)
+--------------------------------
+/theme
+  描述: 按名称设置UI主题。
+  参数: - (匿名): [string] (可选)
+  返回: void
+
+/bg
+  描述: 根据提供的文件名设置背景。
+  参数: - (匿名): [string] (可选)
+  返回: 当前背景
+
+/autobg
+  描述: 根据聊天上下文自动更改背景。
+  参数: 无
+  返回: void
+
+/lockbg
+  描述: 为当前选择的聊天锁定背景。
+  参数: 无
+  返回: void
+
+/unlockbg
+  描述: 为当前选择的聊天解锁背景。
+  参数: 无
+  返回: void
+
+/panels
+  描述: 切换UI面板的开/关。
+  参数: 无
+  返回: void
+
+/resetpanels
+  描述: 将UI面板重置为原始状态。
+  参数: 无
+  返回: void
+
+/bubble
+  描述: 将消息样式设置为气泡聊天模式。
+  参数: 无
+  返回: void
+
+/flat
+  描述: 将消息样式设置为扁平聊天模式。
+  参数: 无
+  返回: void
+
+/single
+  描述: 将消息样式设置为无名称或头像的单一文档模式。
+  参数: 无
+  返回: void
+
+/vn
+  描述: 切换视觉小说模式开/关。
+  参数: 无
+  返回: void
+
+/movingui
+  描述: 按名称激活一个movingUI预设。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+/css-var
+  描述: 在目标元素上设置CSS变量。
+  参数: - varname: <string> (必需), - [to=chat|background|...] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/echo
+  描述: 将提供的文本回显到toast消息中。
+  参数: - [title=string] (可选), - [severity=string] (可选), - ... (其他参数)
+  返回: void
+
+/popup
+  描述: 显示一个阻塞式弹出窗口。
+  参数: - [scroll=true|false] (可选), - [large=true|false] (可选), - ... (其他参数), - (匿名): <string> (必需)
+  返回: 弹出的文本
+
+/buttons
+  描述: 显示一个带有指定文本和按钮的阻塞式弹出窗口。
+  参数: - labels: <list> (必需), - (匿名): [string] (可选)
+  返回: 被点击的按钮标签
+
+/pick-icon
+  描述: 打开一个包含所有可用Font Awesome图标的弹出窗口。
+  参数: 无
+  返回: 选择的图标名称
+
+/show-gallery
+  描述: 显示画廊。
+  参数: 无
+  返回: void
+
+/list-gallery
+  描述: 列出画廊中的图片。
+  参数: - [char=string] (可选), - [group=string] (可选)
+  返回: 图片列表
+
+/variableviewer
+  描述: 显示/隐藏变量查看器面板。
+  参数: 无
+  返回: void
+
+================================
+音频与多媒体 (Audio & Multimedia)
+--------------------------------
+/audioenable
+  描述: 控制音乐播放器或音效播放器的开启与关闭。
+  参数: - type: <bgm|ambient> (必需), - [state=true|false] (可选)
+  返回: void
+
+/audioimport
+  描述: 导入音频或音乐链接。
+  参数: - type: <bgm|ambient> (必需), - [play=true|false] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/audiomode
+  描述: 设置音频播放模式。
+  参数: - type: <bgm|ambient> (必需), - mode: <repeat|random|single|stop> (必需)
+  返回: void
+
+/audioplay
+  描述: 控制音乐或音效的播放与暂停。
+  参数: - type: <bgm|ambient> (必需), - [play=true|false] (可选)
+  返回: void
+
+/audioselect
+  描述: 选择并播放音频。
+  参数: - type: <bgm|ambient> (必需), - (匿名): <string> (必需)
+  返回: void
+
+/speak
+  描述: 使用当前选定角色的声音朗读任何文本。
+  参数: - [voice=string] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/yt-script
+  描述: 从YouTube视频中提取字幕。
+  参数: - [lang=language_code] (可选), - (匿名): <string> (必需)
+  返回: 字幕文本
+
+================================
+快速回复 (Quick Replies)
+--------------------------------
+/qr
+  描述: 激活指定的快速回复。
+  参数: - (匿名): <number> (必需)
+  返回: void
+
+/qr-create
+  描述: 创建一个新的快速回复。
+  参数: - set: <string> (必需), - [label=string] (可选), - ... (其他参数), - (匿名): <string> (必需)
+  返回: void
+
+/qr-delete
+  描述: 从指定的集合中删除一个快速回复。
+  参数: - set: <string> (必需), - [label=string|id=number] (可选), - (匿名): [string] (可选)
+  返回: void
+
+/qr-update
+  描述: 更新快速回复。
+  参数: - set: <string> (必需), - [label=string|id=number] (可选), - ... (其他参数), - (匿名): [string] (可选)
+  返回: void
+
+/qr-get
+  描述: 获取快速回复的属性。
+  参数: - set: <string> (必需), - [label=string|id=number] (可选)
+  返回: 包含所有QR属性的字典
+
+/qr-list
+  描述: 获取此快速回复集中的所有快速回复的名称列表。
+  参数: - (匿名): <string> (必需)
+  返回: QR列表
+
+/qr-set
+  描述: 切换全局QR集。
+  参数: - [visible=true|false] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/qr-set-create
+  描述: 创建一个新的预设。
+  参数: - [nosend=true|false] (可选), - ... (其他参数), - (匿名): <string> (必需)
+  返回: void
+
+/qr-set-delete
+  描述: 删除一个现有的预设。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+/qr-set-update
+  描述: 更新一个现有的预设。
+  参数: - [enabled=true|false] (可选), - ... (其他参数), - (匿名): <string> (必需)
+  返回: void
+
+/qr-set-list
+  描述: 获取所有快速回复集的名称列表。
+  参数: - (匿名): [all|global|chat] (可选)
+  返回: QR集列表
+
+/qr-set-on
+  描述: 激活全局QR集。
+  参数: - [visible=true|false] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/qr-set-off
+  描述: 停用全局QR集。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+/qr-chat-set
+  描述: 切换聊天QR集。
+  参数: - [visible=true|false] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/qr-chat-set-on
+  描述: 激活聊天QR集。
+  参数: - [visible=true|false] (可选), - (匿名): <string> (必需)
+  返回: void
+
+/qr-chat-set-off
+  描述: 停用聊天QR集。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+================================
+扩展与工具 (Extensions & Tools)
+--------------------------------
+/extension-enable
+  描述: 启用指定的扩展。
+  参数: - [reload=true|false] (可选), - (匿名): <string> (必需)
+  返回: 内部扩展名
+
+/extension-disable
+  描述: 禁用指定的扩展。
+  参数: - [reload=true|false] (可选), - (匿名): <string> (必需)
+  返回: 内部扩展名
+
+/extension-toggle
+  描述: 切换指定扩展的状态。
+  参数: - [reload=true|false] (可选), - [state=true|false] (可选), - (匿名): <string> (必需)
+  返回: 内部扩展名
+
+/extension-exists
+  描述: 检查指定的扩展是否存在。
+  参数: - (匿名): <string> (必需)
+  返回: 是否存在
+
+/extension-state
+  描述: 返回指定扩展的状态（true为启用）。
+  参数: - (匿名): <string> (必需)
+  返回: 扩展的状态
+
+/regex
+  描述: 按名称运行一个Regex扩展脚本。
+  参数: - name: <string> (必需), - (匿名): [string] (可选)
+  返回: 替换后的文本
+
+/regex-toggle
+  描述: 切换指定regex脚本的状态。
+  参数: - [state=on|off|toggle] (可选), - [quiet=true|false] (可选), - (匿名): <string> (必需)
+  返回: 被切换的脚本名称
+
+/tools-register
+  描述: 注册一个新工具。
+  参数: - name: <string> (必需), - description: <string> (必需), - parameters: <dictionary> (必需), - (匿名): <closure> (必需)
+  返回: void
+
+/tools-unregister
+  描述: 从工具注册表中注销一个工具。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+/tools-list
+  描述: 列出所有已注册的工具。
+  参数: - [return=pipe|object|...] (可选)
+  返回: 工具列表
+
+/tools-invoke
+  描述: 按名称调用一个已注册的工具。
+  参数: - parameters: <dictionary> (必需), - (匿名): <string> (必需)
+  返回: void
+
+================================
+文件与剪贴板 (Files & Clipboard)
+--------------------------------
+/clipboard-get
+  描述: 从操作系统剪贴板检索文本。
+  参数: 无
+  返回: 剪贴板文本
+
+/clipboard-set
+  描述: 将提供的文本复制到操作系统剪贴板。
+  参数: - (匿名): <string> (必需)
+  返回: void
+
+================================
+检查点与分支 (Checkpoints & Branches)
+--------------------------------
+/branch-create
+  描述: 从选定的消息创建一个新的分支。
+  参数: - (匿名): [number] (可选)
+  返回: 新分支的名称
+
+/checkpoint-create
+  描述: 为选定的消息创建一个新的检查点。
+  参数: - [mes=number] (可选), - (匿名): [string] (可选)
+  返回: void
+
+/checkpoint-exit
+  描述: 退出检查点聊天。
+  参数: 无
+  返回: 退出的聊天的名称
+
+/checkpoint-get
+  描述: 获取链接到选定消息的检查点名称。
+  参数: - (匿名): [number] (可选)
+  返回: 聊天的名称
+
+/checkpoint-go
+  描述: 打开链接到选定消息的检查点。
+  参数: - (匿名): [number] (可选)
+  返回: 检查点的名称
+
+/checkpoint-list
+  描述: 列出此聊天中的所有现有检查点。
+  参数: - [links=true|false] (可选)
+  返回: 所有检查点的JSON数组
+
+/checkpoint-parent
+  描述: 获取此检查点的父聊天名称。
+  参数: 无
+  返回: 父聊天的名称

@@ -1,0 +1,93 @@
+**系统范围的替换宏 (按评估顺序):**
+
+*   `{{pipe}}` – 仅适用于斜线命令批处理。替换为上一个命令的返回结果。
+*   `{{newline}}` – 仅插入一个换行符。
+*   `{{trim}}` – 修剪此宏周围的换行符。
+*   `{{noop}}` – 没有操作，只是一个空字符串。
+*   `{{original}}` – API 设置中定义的全局提示。仅在高级定义提示覆盖中有效。
+*   `{{input}}` – 用户输入
+*   `{{lastGenerationType}}` - 上次排队生成请求的类型。如果尚未执行任何生成或切换了活动聊天，则为空。可能的值："normal"、"impersonate"、"regenerate"、"quiet"、"swipe"、"continue"。
+*   `{{charPrompt}}` – 角色的主提示覆盖
+*   `{{charInstruction}}` – 角色越狱提示覆盖
+*   `{{description}}` – 角色描述
+*   `{{personality}}` – 人物性格
+*   `{{scenario}}` – 角色场景
+*   `{{persona}}` – 您当前的角色描述
+*   `{{mesExamples}}` – 角色对话示例
+*   `{{mesExamplesRaw}}` – 未格式化的对话示例
+*   `{{summary}}` – “Summarize”扩展生成的最新聊天摘要（如果有）。
+*   `{{user}}` – 您当前的用户角色名称
+*   `{{char}}` – 角色的名字
+*   `{{version}}` – 角色的版本号
+*   `{{charDepthPrompt}}` – 角色的@深度注释
+*   `{{group}}` – 以逗号分隔的群成员名称列表或单人聊天中的角色名称。别名：{{charIfNotGroup}}
+*   `{{groupNotMuted}}` – 与 {{group}} 相同，但排除被禁言的成员
+*   `{{model}}` – 当前选定的 API 的文本生成模型名称。**不一定准确！**
+*   `{{lastMessage}}` – 最新聊天消息的文本。
+*   `{{lastUserMessage}}` – 最后的用户聊天消息文本。
+*   `{{lastCharMessage}}` – 最后的角色聊天消息文本。
+*   `{{lastMessageId}}` – 最新聊天消息的索引号。对于斜线命令批处理很有用。
+*   `{{firstIncludedMessageId}}` – 上下文中包含的第一条消息的 ID。要求在当前会话中至少运行一次生成。
+*   `{{firstDisplayedMessageId}}` – 第一条载入可见聊天的消息的ID
+*   `{{currentSwipeId}}` – 最后一条聊天消息中当前滑动的 ID（以 1 为基数）。如果最后一条消息是用户或提示隐藏的，则为空字符串。
+*   `{{lastSwipeId}}` – 最后一条聊天消息中的滑动次数。如果最后一条消息是用户隐藏或提示隐藏的，则为空字符串。
+*   `{{reverse:(content)}}` – 反转宏的内容。
+*   `{{// (note)}}` – 您可以在此处留言，宏将被替换为空白内容。AI 看不到。
+*   `{{time}}` – 当前时间
+*   `{{date}}` – 当前日期
+*   `{{weekday}}` – 当前工作日
+*   `{{isotime}}` – 当前 ISO 时间（24 小时制）
+*   `{{isodate}}` – 当前 ISO 日期 (YYYY-MM-DD)
+*   `{{datetimeformat …}}` – 指定格式的当前日期/时间，例如德国日期/时间：`{{datetimeformat DD.MM.YYYY HH:mm}}`
+*   `{{time_UTC±#}}` – 指定 UTC 时区偏移量的当前时间，例如 UTC-4 或 UTC+2
+*   `{{timeDiff::(time1)::(time2)}}` – time1 和 time2 之间的时间差。接受时间和日期宏。（例如：`{{timeDiff::{{isodate}} {{time}}::2024/5/11 12:30:00}}`）
+*   `{{idle_duration}}` – 距离上次用户消息发送的时间
+*   `{{bias "text here"}}` – 为 AI 设置行为偏差，直到下一个用户输入。文本周围的引号很重要。
+*   `{{roll:(formula)}}` – 掷骰子。（例如：`{{roll:1d6}}` 将掷一个 6 面骰子并返回 1 到 6 之间的数字）
+*   `{{random:(args)}}` – 从列表中返回一个随机项目。（例如：`{{random:1,2,3,4}}` 将随机返回 4 个数字中的 1 个。也适用于文本列表。
+*   `{{random::(arg1)::(arg2)}}` – 随机的替代语法允许在列表项中使用逗号。
+*   `{{pick::(args)}}` – 从列表中随机挑选一项。工作原理与 {{random}} 相同，具有相同的语法选项，但一旦挑选，挑选将一直持续到本次聊天，不会在连续消息和提示处理中重新滚动。
+*   `{{banned "text here"}}` – 如果使用文本生成 WebUI 后端，则动态地将引号中的文本添加到禁用单词序列中。对其他后端不执行任何操作。可以在任何地方使用（角色描述、WI、AN 等）。文本周围的引号很重要。
+*   `{{isMobile}}` – 当为移动端时为"true"，反之为"false"
+
+**指导模式和上下文模板宏：**
+（在高级格式设置中启用）
+
+*   `{{maxPrompt}}` – 令牌中允许的最大提示长度 = （上下文长度 - 响应长度）
+*   `{{exampleSeparator}}` – 上下文模板示例对话分隔符
+*   `{{chatStart}}` – 上下文模板聊天开始行
+*   `{{systemPrompt}}` – 主系统提示（如果选择，则覆盖字符提示，或 instructSystemPrompt）
+*   `{{defaultSystemPrompt}}` – 指示系统提示
+*   `{{instructSystemPromptPrefix}}` – 指示系统提示前缀序列
+*   `{{instructSystemPromptSuffix}}` – 指示系统提示后缀序列
+*   `{{instructUserPrefix}}` – 指示用户前缀序列
+*   `{{instructUserSuffix}}` – 指示用户后缀序列
+*   `{{instructAssistantPrefix}}` – 指导助理前缀序列
+*   `{{instructAssistantSuffix}}` – 指导助理后缀序列
+*   `{{instructFirstAssistantPrefix}}` – 指导助理第一个输出序列
+*   `{{instructLastAssistantPrefix}}` – 指导助手最后输出序列
+*   `{{instructSystemPrefix}}` – 指示系统消息前缀序列
+*   `{{instructSystemSuffix}}` – 指示系统消息后缀序列
+*   `{{instructSystemInstructionPrefix}}` – 指示系统指令前缀
+*   `{{instructUserFiller}}` – 指示第一个用户消息填充器
+*   `{{instructStop}}` – 指示停止顺序
+*   `{{instructFirstUserPrefix}}` – 指示用户第一个输入序列
+*   `{{instructLastUserPrefix}}` – 指示用户最后输入序列
+
+**聊天变量宏：**
+局部变量 = 当前聊天所独有
+全局变量 = 适用于任何角色的任何聊天
+范围变量 = 在 STscript 中有效
+
+*   `{{getvar::name}}` – 替换为局部变量“name”的值
+*   `{{setvar::name::value}}` – 替换为空字符串，将局部变量“name”设置为“value”
+*   `{{addvar::name::increment}}` – 替换为空字符串，将“increment”的数值添加到局部变量“name”
+*   `{{incvar::name}}` – 替换为变量“name”的值增加 1 的结果
+*   `{{decvar::name}}` – 替换为变量“name”的值减 1 的结果
+*   `{{getglobalvar::name}}` – 替换为全局变量“name”的值
+*   `{{setglobalvar::name::value}}` – 替换为空字符串，将全局变量“name”设置为“value”
+*   `{{addglobalvar::name::value}}` – 替换为空字符串，将“increment”的数值添加到全局变量“name”
+*   `{{incglobalvar::name}}` – 替换为全局变量“name”的值增加 1 的结果
+*   `{{decglobalvar::name}}` – 替换为全局变量“name”的值减 1 的结果
+*   `{{var::name}}` – 替换为范围变量“name”的值
+*   `{{var::name::index}}` – 用范围变量“name”的索引处的项目值（对于数组/列表或对象/字典）替换

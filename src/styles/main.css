@@ -1,0 +1,359 @@
+/* Engram 主样式入口 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Engram 顶栏 SVG 图标样式（继承 ST drawer-icon 样式） */
+#engram-drawer .drawer-icon svg {
+    /* 放大 1.5 倍 */
+    width: 1.2em;
+    height: 1.2em;
+    /* 向上偏移对齐其他图标 */
+    position: relative;
+    top: -2px;
+    display: inline-block;
+}
+
+/* 悬浮球样式（备用） */
+.engram-orb {
+    @apply eg-fixed eg-bottom-5 eg-right-5 eg-w-12 eg-h-12 eg-rounded-full eg-cursor-pointer eg-z-[9999];
+    @apply eg-flex eg-items-center eg-justify-center;
+    @apply eg-transition-transform eg-duration-200 eg-ease-out;
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+}
+
+.engram-orb:hover {
+    @apply eg-scale-110;
+    box-shadow: 0 0 30px rgba(249, 115, 22, 0.7);
+}
+
+.engram-orb svg {
+    width: 28px;
+    height: 28px;
+    color: white;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.3));
+}
+
+/* 面板头部 logo */
+.engram-header-logo {
+    @apply eg-h-6;
+    width: auto;
+}
+
+/* 主面板样式 */
+.engram-panel {
+    @apply eg-fixed eg-top-1/2 eg-left-1/2 -eg-translate-x-1/2 -eg-translate-y-1/2;
+    @apply eg-w-[80vw] eg-max-w-[1200px] eg-h-[70vh];
+    @apply eg-rounded-2xl eg-overflow-hidden eg-z-[10000];
+    @apply eg-flex eg-flex-col;
+    background: theme('colors.panel.DEFAULT');
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.engram-panel-header {
+    @apply eg-flex eg-items-center eg-justify-between eg-px-5 eg-py-4;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.engram-panel-header h2 {
+    @apply eg-m-0 eg-text-lg eg-text-slate-200;
+    @apply eg-flex eg-items-center eg-gap-2;
+}
+
+.engram-panel-content {
+    @apply eg-flex-1 eg-overflow-auto eg-p-5;
+}
+
+.engram-panel-close {
+    @apply eg-bg-transparent eg-border-none eg-text-slate-400 eg-text-2xl eg-cursor-pointer eg-px-2 eg-py-1;
+}
+
+.engram-panel-close:hover {
+    @apply eg-text-slate-200;
+}
+
+/* ========== Layout 布局系统 ========== */
+
+.engram-layout {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: var(--SmartThemeBlurTintColor, rgba(30, 30, 35, 0.95));
+    color: var(--SmartThemeBodyColor, #e2e8f0);
+}
+
+.engram-body {
+    display: flex;
+    flex: 1;
+    overflow: visible;
+    position: relative;
+}
+
+.engram-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    min-width: 0;
+}
+
+/* ========== Header 头部 ========== */
+
+.engram-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 48px;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(148, 163, 184, 0.2));
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.engram-header-left,
+.engram-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.engram-logo-text {
+    font-size: 18px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.engram-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #94a3b8);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.engram-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.engram-close-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* ========== Sidebar 侧边栏 ========== */
+
+.engram-sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 48px;
+    min-width: 48px;
+    background: rgba(0, 0, 0, 0.2);
+    border-right: 1px solid var(--SmartThemeBorderColor, rgba(148, 163, 184, 0.2));
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.engram-sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+}
+
+.engram-sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(148, 163, 184, 0.2));
+}
+
+.engram-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+}
+
+.engram-nav-item {
+    margin: 2px 0;
+}
+
+.engram-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 40px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #94a3b8);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.engram-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.engram-nav-btn.active {
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+}
+
+/* ========== SearchBar 搜索栏 ========== */
+
+.engram-searchbar {
+    padding: 8px 12px;
+    border-top: 1px solid var(--SmartThemeBorderColor, rgba(148, 163, 184, 0.2));
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.engram-search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--SmartThemeBorderColor, rgba(148, 163, 184, 0.2));
+    border-radius: 8px;
+}
+
+.engram-search-icon {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.engram-search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #e2e8f0);
+    font-size: 14px;
+    outline: none;
+}
+
+.engram-search-input::placeholder {
+    color: #64748b;
+}
+
+/* ========== 全屏模式 ========== */
+
+.engram-layout.eg-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+}
+
+/* 全屏时父容器 panel 也要占满 */
+.engram-panel:has(.eg-fullscreen) {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    transform: none !important;
+    top: 0 !important;
+    left: 0 !important;
+}
+
+/* ========== 移动端适配 ========== */
+
+@media (max-width: 767px) {
+    .engram-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 240px;
+        z-index: 100;
+        transform: translateX(-100%);
+    }
+
+    .engram-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .engram-layout.eg-fullscreen .engram-panel {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+    }
+}
+
+/* ========== 页面通用样式 ========== */
+
+.engram-page-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(148, 163, 184, 0.2));
+}
+
+.engram-page-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.engram-page-content {
+    flex: 1;
+}
+
+.engram-placeholder {
+    color: #64748b;
+    font-style: italic;
+}
+
+/* ========== 二级标签 ========== */
+
+.engram-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.engram-tab {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--SmartThemeBodyColor, #94a3b8);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.engram-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.engram-tab.active {
+    background: rgba(249, 115, 22, 0.2);
+    color: #f97316;
+}

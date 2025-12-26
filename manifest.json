@@ -1,0 +1,14 @@
+{
+    "display_name": "Engram",
+    "loading_order": 500,
+    "requires": [],
+    "optional": [
+        "embeddings"
+    ],
+    "js": "dist/index.js",
+    "css": "dist/style.css",
+    "author": "Your Name",
+    "version": "0.1.0",
+    "homePage": "https://github.com/your-repo/engram",
+    "description": "Graph RAG 记忆操作系统 - Where memories leave their trace."
+}
