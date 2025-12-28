@@ -152,40 +152,40 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                         {/* 状态统计卡片 */}
                         <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-foreground m-0">状态统计</h3>
+                                <h3 className="text-sm font-medium text-foreground m-0">状态统计</h3>
                                 <button
-                                    className="p-1.5 rounded-md hover:bg-muted transition-colors"
+                                    className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                                     onClick={loadStatus}
                                     title="刷新状态"
                                 >
-                                    <RefreshCw size={16} className="text-muted-foreground" />
+                                    <RefreshCw size={14} />
                                 </button>
                             </div>
 
                             {status ? (
-                                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                    <div className="flex flex-col gap-1 p-3 bg-muted/30 rounded-lg">
-                                        <span className="text-muted-foreground text-xs">运行状态</span>
-                                        <span className={`flex items-center gap-1 text-sm font-medium ${status.running ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                    <div className="flex flex-col gap-1 p-3 bg-muted/50 rounded-lg border border-border/50">
+                                        <span className="text-muted-foreground text-[10px] uppercase tracking-wider">运行状态</span>
+                                        <span className={`flex items-center gap-1.5 text-sm font-medium ${status.running ? 'text-green-500' : 'text-muted-foreground'}`}>
                                             {status.running ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
                                             {status.running ? '运行中' : '已停止'}
                                         </span>
                                     </div>
-                                    <div className="flex flex-col gap-1 p-3 bg-muted/30 rounded-lg">
-                                        <span className="text-muted-foreground text-xs">当前楼层</span>
-                                        <span className="text-primary font-mono text-sm font-medium">{status.currentFloor}</span>
+                                    <div className="flex flex-col gap-1 p-3 bg-muted/50 rounded-lg border border-border/50">
+                                        <span className="text-muted-foreground text-[10px] uppercase tracking-wider">当前楼层</span>
+                                        <span className="text-foreground font-mono text-sm font-medium">{status.currentFloor}</span>
                                     </div>
-                                    <div className="flex flex-col gap-1 p-3 bg-muted/30 rounded-lg">
-                                        <span className="text-muted-foreground text-xs">待处理</span>
-                                        <span className="text-yellow-500 font-mono text-sm font-medium">{status.pendingFloors}</span>
+                                    <div className="flex flex-col gap-1 p-3 bg-muted/50 rounded-lg border border-border/50">
+                                        <span className="text-muted-foreground text-[10px] uppercase tracking-wider">待处理</span>
+                                        <span className="text-amber-500 font-mono text-sm font-medium">{status.pendingFloors}</span>
                                     </div>
-                                    <div className="flex flex-col gap-1 p-3 bg-muted/30 rounded-lg">
-                                        <span className="text-muted-foreground text-xs">总结次数</span>
+                                    <div className="flex flex-col gap-1 p-3 bg-muted/50 rounded-lg border border-border/50">
+                                        <span className="text-muted-foreground text-[10px] uppercase tracking-wider">总结次数</span>
                                         <span className="text-foreground font-mono text-sm font-medium">{status.historyCount}</span>
                                     </div>
-                                    <div className="flex flex-col gap-1 p-3 bg-muted/30 rounded-lg">
-                                        <span className="text-muted-foreground text-xs">世界书 Token</span>
-                                        <span className="text-orange-400 font-mono text-sm font-medium">{worldbookTokens.toLocaleString()}</span>
+                                    <div className="flex flex-col gap-1 p-3 bg-muted/50 rounded-lg border border-border/50">
+                                        <span className="text-muted-foreground text-[10px] uppercase tracking-wider">世界书 Token</span>
+                                        <span className="text-primary font-mono text-sm font-medium">{worldbookTokens.toLocaleString()}</span>
                                     </div>
                                 </div>
                             ) : (
@@ -228,9 +228,9 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
 
                         {/* 总结设置 */}
                         <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
-                            <h3 className="text-lg font-semibold text-foreground mb-4">总结设置</h3>
+                            <h3 className="text-sm font-medium text-foreground mb-4">总结设置</h3>
 
-                            <div className="space-y-4">
+                            <div className="space-y-6">
                                 {/* 自动总结开关 */}
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -240,21 +240,21 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                                     <button
                                         type="button"
                                         onClick={() => setSettings(s => ({ ...s, autoEnabled: !s.autoEnabled }))}
-                                        className={`relative w-11 h-6 rounded-full transition-colors ${settings.autoEnabled ? 'bg-primary' : 'bg-muted'
+                                        className={`relative w-9 h-5 rounded-full transition-colors ${settings.autoEnabled ? 'bg-primary' : 'bg-input'
                                             }`}
                                     >
                                         <span
-                                            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${settings.autoEnabled ? 'translate-x-5' : ''
+                                            className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${settings.autoEnabled ? 'translate-x-4' : 'translate-x-0'
                                                 }`}
                                         />
                                     </button>
                                 </div>
 
                                 {/* 楼层间隔滑块 */}
-                                <div className={settings.autoEnabled ? '' : 'opacity-50'}>
+                                <div className={settings.autoEnabled ? '' : 'opacity-50 grayscale pointer-events-none'}>
                                     <div className="flex items-center justify-between mb-2">
-                                        <span className="text-sm font-medium text-foreground">楼层间隔</span>
-                                        <span className="text-sm font-mono text-primary">{settings.floorInterval}</span>
+                                        <span className="text-xs font-medium text-muted-foreground">楼层间隔</span>
+                                        <span className="text-xs font-mono text-primary bg-primary/10 px-1.5 py-0.5 rounded">{settings.floorInterval}</span>
                                     </div>
                                     <input
                                         type="range"
@@ -263,9 +263,9 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                                         value={settings.floorInterval}
                                         onChange={(e) => setSettings(s => ({ ...s, floorInterval: Number(e.target.value) }))}
                                         disabled={!settings.autoEnabled}
-                                        className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+                                        className="w-full h-1.5 bg-muted rounded-lg appearance-none cursor-pointer accent-primary hover:accent-primary/90"
                                     />
-                                    <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1 font-mono">
                                         <span>1</span>
                                         <span>25</span>
                                         <span>50</span>
@@ -275,7 +275,8 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                         </div>
 
                         {/* 精简配置 - 直接显示 */}
-                        <div className="bg-card border border-orange-500/20 rounded-lg p-4 shadow-sm">
+                        {/* 精简配置 - 直接显示 */}
+                        <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
                             <TrimConfigForm
                                 config={trimConfig}
                                 onChange={setTrimConfig}

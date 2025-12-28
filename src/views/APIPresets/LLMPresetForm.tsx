@@ -168,7 +168,7 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                         />
                         <button
                             type="button"
-                            className="h-[42px] w-[42px] min-w-[42px] flex items-center justify-center border-none rounded-md bg-hover text-secondary cursor-pointer transition-all hover:bg-active hover:text-white"
+                            className="h-[42px] w-[42px] min-w-[42px] flex items-center justify-center border-none rounded-md bg-muted text-muted-foreground cursor-pointer transition-all hover:bg-accent hover:text-foreground"
                             onClick={loadTavernProfiles}
                             disabled={isLoadingProfiles}
                             title="刷新配置列表"
@@ -178,24 +178,24 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                     </div>
 
                     {profileOptions.length === 0 && !isLoadingProfiles && (
-                        <div className="p-3 bg-primary-10 border border-dashed border-primary-30 rounded-lg text-primary text-lg text-center mt-3">
+                        <div className="p-3 bg-muted/30 border border-dashed border-border rounded-lg text-muted-foreground text-sm text-center mt-3">
                             未找到酒馆配置文件。请在酒馆中创建连接配置后刷新。
                         </div>
                     )}
 
                     {selectedProfile && (
-                        <div className="mt-4 p-3 bg-surface rounded-lg border border-border-light">
-                            <div className="flex items-center gap-2 py-1 text-lg border-b border-border-light last:border-0">
-                                <span className="text-muted min-w-[60px]">API:</span>
-                                <span className="text-primary font-mono">{selectedProfile.api || '-'}</span>
+                        <div className="mt-4 p-3 bg-card rounded-lg border border-border">
+                            <div className="flex items-center gap-2 py-1 text-sm border-b border-border last:border-0">
+                                <span className="text-muted-foreground min-w-[60px]">API:</span>
+                                <span className="text-foreground font-mono">{selectedProfile.api || '-'}</span>
                             </div>
-                            <div className="flex items-center gap-2 py-1 text-lg border-b border-border-light last:border-0">
-                                <span className="text-muted min-w-[60px]">模型:</span>
-                                <span className="text-primary font-mono">{selectedProfile.model || '-'}</span>
+                            <div className="flex items-center gap-2 py-1 text-sm border-b border-border last:border-0">
+                                <span className="text-muted-foreground min-w-[60px]">模型:</span>
+                                <span className="text-foreground font-mono">{selectedProfile.model || '-'}</span>
                             </div>
-                            <div className="flex items-center gap-2 py-1 text-lg border-b border-border-light last:border-0">
-                                <span className="text-muted min-w-[60px]">预设:</span>
-                                <span className="text-primary font-mono">{selectedProfile.preset || '-'}</span>
+                            <div className="flex items-center gap-2 py-1 text-sm border-b border-border last:border-0">
+                                <span className="text-muted-foreground min-w-[60px]">预设:</span>
+                                <span className="text-foreground font-mono">{selectedProfile.preset || '-'}</span>
                             </div>
                         </div>
                     )}

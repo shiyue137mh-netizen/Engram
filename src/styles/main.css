@@ -41,12 +41,29 @@
 }
 
 /* Reset specific ST inputs if they leak */
+/* Reset specific ST inputs if they leak */
 :where(#engram-panel-root) input[type="text"],
 :where(#engram-panel-root) textarea {
     background-color: transparent;
     color: inherit;
     border: none;
     box-shadow: none;
+}
+
+/* Strict Isolation for Engram Inputs */
+.engram-input,
+.engram-select {
+    all: unset;
+    /* Remove all inherited/browser styles */
+    display: block;
+    box-sizing: border-box;
+    font-family: var(--font-mono) !important;
+}
+
+/* Re-apply necessary base styles after unset */
+.engram-input::placeholder {
+    opacity: 0.5;
+    color: currentColor;
 }
 
 /* Animations for Dashboard - Keeping these as they are used by utility classes or inline styles */

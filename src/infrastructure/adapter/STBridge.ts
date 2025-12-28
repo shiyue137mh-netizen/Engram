@@ -112,7 +112,7 @@ export async function initializeEngram(): Promise<void> {
     ThemeManager.init();
 
     // 运行诊断
-    import('../diagnose').then(({ runDiagnostics }) => runDiagnostics());
+    // import('../diagnose').then(({ runDiagnostics }) => runDiagnostics());
 
     Logger.success('STBridge', 'Engram 初始化完成 - Where memories leave their trace.');
 }

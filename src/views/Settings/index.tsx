@@ -1,24 +1,23 @@
-// 设置页面视图
 import React from 'react';
+import { PageTitle } from '../components/PageTitle';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
 
 export const Settings: React.FC = () => {
     return (
-        <div className="engram-settings">
-            <div className="engram-page-header">
-                <SettingsIcon size={24} />
-                <h2>设置</h2>
-            </div>
-            <div className="engram-page-content">
-                <div className="space-y-6">
-                    <section className="bg-card rounded-lg p-6 border border-border shadow-sm">
-                        <ThemeSelector />
-                    </section>
+        <div className="flex flex-col h-full animate-in fade-in">
+            <PageTitle title="设置" subtitle="扩展全局选项" />
+            <div className="p-6">
+                <ThemeSelector />
+
+                {/* Future settings sections can go here */}
+                <div className="mt-8 pt-8 border-t border-border">
+                    <div className="flex flex-col items-center justify-center text-muted-foreground gap-2 py-8 opacity-50">
+                        <SettingsIcon size={32} />
+                        <p className="text-sm">更多设置开发中...</p>
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
-
-export default Settings;

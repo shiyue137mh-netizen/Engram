@@ -8,7 +8,7 @@ import { SettingsManager } from './SettingsManager';
  */
 export class ThemeManager {
     private static STORAGE_KEY = 'engram-theme';
-    private static currentTheme: ThemeName = 'default';
+    private static currentTheme: ThemeName = 'claudeDark';
 
     /**
      * 初始化主题系统
@@ -30,7 +30,7 @@ export class ThemeManager {
             }
         }
 
-        const themeToLoad = themes[saved] ? saved : 'odysseia'; // Default to Odysseia
+        const themeToLoad = themes[saved] ? saved : 'claudeDark'; // Default to Claude Dark
         this.setTheme(themeToLoad);
 
         Logger.info('ThemeManager', `主题系统初始化完成: ${themeToLoad}`);
@@ -41,8 +41,8 @@ export class ThemeManager {
      */
     public static setTheme(themeName: ThemeName) {
         if (!themes[themeName]) {
-            Logger.warn('ThemeManager', `未知主题: ${themeName}, 回退到 default`);
-            themeName = 'default';
+            Logger.warn('ThemeManager', `未知主题: ${themeName}, 回退到 claudeDark`);
+            themeName = 'claudeDark';
         }
 
         this.currentTheme = themeName;
@@ -108,7 +108,7 @@ export class ThemeManager {
         });
 
         // 3. Toggle dark mode class
-        const isDark = themeName === 'dark' || (themeName === 'sillytavern' && document.body.classList.contains('dark'));
+        const isDark = themeName !== 'paperLight';
         if (isDark) {
             root.classList.add('dark');
         } else {

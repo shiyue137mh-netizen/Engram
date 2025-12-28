@@ -12,7 +12,7 @@ interface ThemeOption {
 }
 
 export const ThemeSelector: React.FC = () => {
-    const [currentTheme, setCurrentTheme] = useState<ThemeName>('default');
+    const [currentTheme, setCurrentTheme] = useState<ThemeName>('claudeDark');
 
     useEffect(() => {
         setCurrentTheme(ThemeManager.getTheme());
@@ -30,10 +30,10 @@ export const ThemeSelector: React.FC = () => {
         let prim = theme.colors.primary;
 
         // Handle CSS variables for SillyTavern theme preview
-        if (key === 'sillytavern') {
-            bg = 'var(--SmartThemeBlurTintColor, #333)';
-            prim = 'var(--SmartThemeQuoteColor, #0af)';
-        }
+        // if (key === 'sillytavern') {
+        //     bg = 'var(--SmartThemeBlurTintColor, #333)';
+        //     prim = 'var(--SmartThemeQuoteColor, #0af)';
+        // }
 
         return {
             id: key as ThemeName,

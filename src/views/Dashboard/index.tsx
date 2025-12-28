@@ -6,16 +6,16 @@ import type { LogEntry } from '../../infrastructure/logger/types';
 import { getSTContext } from '../../infrastructure/adapter/STBridge';
 
 interface DashboardProps {
-    onNavigate: (path: string) => void;
+    onNavigate?: (path: string) => void;
 }
 
 const getLevelClass = (level: number) => {
     switch (level) {
-        case 0: return 'text-muted';
+        case 0: return 'text-muted-foreground';
         case 1: return 'text-primary';
-        case 2: return 'text-success';
-        case 3: return 'text-warning';
-        case 4: return 'text-error';
+        case 2: return 'text-green-400';
+        case 3: return 'text-yellow-400';
+        case 4: return 'text-red-400';
         default: return 'text-primary';
     }
 };
@@ -54,7 +54,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     };
 
     const characterName = stContext?.name2 || 'Unknown';
-    const userName = stContext?.name1 || 'User';
+
+    const handleNavigate = (path: string) => {
+        if (onNavigate) {
+            onNavigate(path);
+        }
+    };
 
     return (
         <div className="h-full overflow-y-auto p-6 [&::-webkit-scrollbar]:hidden">
@@ -90,19 +95,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                         <span>QUICK ACTIONS</span>
                     </div>
                     <div className="flex-1 grid grid-cols-4 gap-3 p-4">
-                        <button className="flex flex-col items-center justify-center gap-2 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-secondary-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => onNavigate('/memory')}>
+                        <button className="flex flex-col items-center justify-center gap-2 p-3 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-muted-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => handleNavigate('memory')}>
                             <span className="text-2xl">📜</span>
                             <span className="text-xs font-medium">Memory Stream</span>
                         </button>
-                        <button className="flex flex-col items-center justify-center gap-2 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-secondary-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => onNavigate('/graph')}>
+                        <button className="flex flex-col items-center justify-center gap-2 p-3 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-muted-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => handleNavigate('graph')}>
                             <span className="text-2xl">🕸️</span>
                             <span className="text-xs font-medium">Knowledge Graph</span>
                         </button>
-                        <button className="flex flex-col items-center justify-center gap-2 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-secondary-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => onNavigate('/processing')}>
+                        <button className="flex flex-col items-center justify-center gap-2 p-3 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-muted-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => handleNavigate('processing')}>
                             <span className="text-2xl">🧠</span>
                             <span className="text-xs font-medium">Brain Console</span>
                         </button>
-                        <button className="flex flex-col items-center justify-center gap-2 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-secondary-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => onNavigate('/settings')}>
+                        <button className="flex flex-col items-center justify-center gap-2 p-3 bg-background border border-border rounded-xl cursor-pointer transition-all duration-200 text-muted-foreground hover:bg-accent hover:-translate-y-0.5 hover:text-accent-foreground" onClick={() => handleNavigate('settings')}>
                             <span className="text-2xl">⚙️</span>
                             <span className="text-xs font-medium">Settings</span>
                         </button>
@@ -114,9 +119,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <div className="flex items-center gap-2 p-4 text-xs font-bold tracking-widest text-muted-foreground border-b border-border">
                         <TermIcon size={16} />
                         <span>SYSTEM LOGS</span>
-                        <button className="ml-auto text-[10px] text-primary bg-transparent border-none cursor-pointer opacity-80 hover:opacity-100 hover:underline" onClick={() => onNavigate('/dev')}>VIEW ALL</button>
+                        <button className="ml-auto text-[10px] text-primary bg-transparent border-none cursor-pointer opacity-80 hover:opacity-100 hover:underline" onClick={() => handleNavigate('devlog')}>VIEW ALL</button>
                     </div>
-                    <div className="flex-1 p-3 font-mono text-[11px] bg-muted-20 overflow-hidden">
+                    <div className="flex-1 p-3 font-mono text-[11px] bg-muted/20 overflow-hidden">
                         {logs.length === 0 ? (
                             <div className="text-muted-foreground text-center mt-5 italic">No activity recorded</div>
                         ) : (
@@ -133,3 +138,5 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
     );
 };
+
+export default Dashboard;

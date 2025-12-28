@@ -129,9 +129,9 @@ export const DevLog: React.FC = () => {
         <div className="flex flex-col h-full gap-3">
             {/* 页面标题 + Tab 切换 */}
             <div className="flex items-center gap-4 shrink-0">
-                <div className="engram-page-header">
-                    <Terminal size={24} />
-                    <h2>开发日志</h2>
+                <div className="flex items-center gap-2">
+                    <Terminal size={24} className="text-foreground" />
+                    <h2 className="text-lg font-medium text-foreground">开发日志</h2>
                 </div>
 
                 {/* Tab 切换 */}
@@ -140,8 +140,8 @@ export const DevLog: React.FC = () => {
                         <button
                             key={tab.id}
                             className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${activeTab === tab.id
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                                 }`}
                             onClick={() => setActiveTab(tab.id)}
                         >
@@ -158,17 +158,18 @@ export const DevLog: React.FC = () => {
                     {/* 工具栏 */}
                     <div className="flex items-center gap-2 flex-wrap shrink-0">
                         {/* 级别过滤 */}
-                        <div className="engram-dropdown">
+                        <div className="relative">
                             <button
-                                className="engram-btn engram-btn-ghost"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-transparent border border-border text-muted-foreground hover:bg-accent transition-colors"
                                 onClick={() => setShowLevelDropdown(!showLevelDropdown)}
                             >
                                 <Filter size={14} />
                                 {levelFilter === -1 ? '全部级别' : LogLevelConfig[levelFilter].label}
                             </button>
                             {showLevelDropdown && (
-                                <div className="engram-dropdown-menu">
+                                <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-10 min-w-[120px]">
                                     <button
+                                        className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors"
                                         onClick={() => {
                                             setLevelFilter(-1);
                                             setShowLevelDropdown(false);
@@ -179,6 +180,7 @@ export const DevLog: React.FC = () => {
                                     {Object.entries(LogLevelConfig).map(([level, config]) => (
                                         <button
                                             key={level}
+                                            className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors"
                                             onClick={() => {
                                                 setLevelFilter(Number(level) as LogLevel);
                                                 setShowLevelDropdown(false);
@@ -192,19 +194,20 @@ export const DevLog: React.FC = () => {
                         </div>
 
                         {/* 模块过滤 */}
-                        <div className="engram-dropdown">
+                        <div className="relative">
                             <button
-                                className="engram-btn engram-btn-ghost"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-transparent border border-border text-muted-foreground hover:bg-accent transition-colors"
                                 onClick={() => setShowModuleDropdown(!showModuleDropdown)}
                             >
                                 <Filter size={14} />
                                 {moduleFilter}
                             </button>
                             {showModuleDropdown && (
-                                <div className="engram-dropdown-menu">
+                                <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-10 min-w-[120px]">
                                     {MODULES.map((mod) => (
                                         <button
                                             key={mod}
+                                            className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent transition-colors"
                                             onClick={() => {
                                                 setModuleFilter(mod);
                                                 setShowModuleDropdown(false);
@@ -218,13 +221,14 @@ export const DevLog: React.FC = () => {
                         </div>
 
                         {/* 搜索框 */}
-                        <div className="engram-search-box">
-                            <Search size={14} />
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-background border border-border rounded-md">
+                            <Search size={14} className="text-muted-foreground" />
                             <input
                                 type="text"
                                 placeholder="搜索日志..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                className="bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground"
                             />
                         </div>
 
@@ -232,7 +236,7 @@ export const DevLog: React.FC = () => {
                         <div className="flex items-center gap-1 ml-auto">
                             {/* 自动滚动 */}
                             <button
-                                className={`engram-btn engram-btn-ghost ${autoScroll ? 'active' : ''}`}
+                                className={`p-1.5 rounded-md transition-colors ${autoScroll ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent'}`}
                                 onClick={() => setAutoScroll(!autoScroll)}
                                 title="自动滚动到最新"
                             >
@@ -241,7 +245,7 @@ export const DevLog: React.FC = () => {
 
                             {/* 清空 */}
                             <button
-                                className="engram-btn engram-btn-ghost"
+                                className="p-1.5 rounded-md text-muted-foreground hover:bg-accent transition-colors"
                                 onClick={handleClear}
                                 title="清空日志"
                             >
@@ -250,7 +254,7 @@ export const DevLog: React.FC = () => {
 
                             {/* 导出 */}
                             <button
-                                className="engram-btn engram-btn-primary"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
                                 onClick={handleExport}
                                 title="导出日志"
                             >
@@ -261,9 +265,9 @@ export const DevLog: React.FC = () => {
                     </div>
 
                     {/* 终端区域 */}
-                    <div className="flex-1 p-3 bg-[#1a1a2e] border border-border-default rounded-lg overflow-y-auto font-mono text-md leading-relaxed" ref={terminalRef}>
+                    <div className="flex-1 p-3 bg-card border border-border rounded-lg overflow-y-auto font-mono text-sm leading-relaxed" ref={terminalRef}>
                         {filteredLogs.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full gap-3 text-disabled">
+                            <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
                                 <Terminal size={48} strokeWidth={1} />
                                 <p>暂无日志记录</p>
                             </div>
@@ -278,7 +282,7 @@ export const DevLog: React.FC = () => {
                     </div>
 
                     {/* 状态栏 */}
-                    <div className="flex items-center gap-2 px-3 py-2 bg-elevated rounded-md text-md text-muted shrink-0">
+                    <div className="flex items-center gap-2 px-3 py-2 bg-muted rounded-md text-sm text-muted-foreground shrink-0">
                         <span>共 {logs.length} 条日志</span>
                         {filteredLogs.length !== logs.length && (
                             <span>（显示 {filteredLogs.length} 条）</span>

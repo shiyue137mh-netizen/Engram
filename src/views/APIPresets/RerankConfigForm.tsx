@@ -1,10 +1,6 @@
-/**
- * Rerank 配置表单
- */
 import React from 'react';
 import { TextField, NumberField, SwitchField, FormSection } from './FormField';
 import type { RerankConfig } from './types';
-
 
 interface RerankConfigFormProps {
     config: RerankConfig;
@@ -60,32 +56,37 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                             placeholder="输入 API 密钥（如需要）"
                         />
 
-                        <TextField
-                            label="模型名称"
-                            value={config.model}
-                            onChange={(value) => updateConfig({ model: value })}
-                            placeholder="BAAI/bge-reranker-v2-m3"
-                            description="使用的 Rerank 模型"
-                            required
-                        />
+                        <div className="flex flex-col gap-2">
+                            <TextField
+                                label="模型名称"
+                                value={config.model}
+                                onChange={(value) => updateConfig({ model: value })}
+                                placeholder="BAAI/bge-reranker-v2-m3"
+                                description="使用的 Rerank 模型"
+                                required
+                            />
 
-                        {/* 常用模型快速选择 */}
-                        <div className="mt-2">
-                            <span className="block text-md text-muted mb-2">常用模型：</span>
-                            <div className="flex flex-wrap gap-2">
-                                {COMMON_MODELS.map((model) => (
-                                    <button
-                                        key={model}
-                                        type="button"
-                                        className={`px-3 py-1 border border-border-default rounded-sm text-sm cursor-pointer transition-all hover:border-border-focus hover:text-primary ${config.model === model
-                                            ? 'bg-primary-20 border-primary text-primary'
-                                            : 'bg-transparent text-secondary'
-                                            }`}
-                                        onClick={() => updateConfig({ model })}
-                                    >
-                                        {model.split('/').pop()}
-                                    </button>
-                                ))}
+                            {/* 常用模型快速选择 */}
+                            <div>
+                                <span className="block text-[10px] text-muted-foreground mb-2">常用模型：</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {COMMON_MODELS.map((model) => (
+                                        <button
+                                            key={model}
+                                            type="button"
+                                            className={`
+                                                px-2.5 py-1 border rounded text-xs cursor-pointer transition-all 
+                                                ${config.model === model
+                                                    ? 'bg-accent border-input text-foreground'
+                                                    : 'bg-transparent border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
+                                                }
+                                            `}
+                                            onClick={() => updateConfig({ model })}
+                                        >
+                                            {model.split('/').pop()}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </FormSection>

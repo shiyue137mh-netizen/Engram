@@ -1,8 +1,5 @@
-/**
- * 提示词模板卡片组件
- */
 import React, { useRef } from 'react';
-import { FileText, Copy, Trash2, Download, Upload, Check } from 'lucide-react';
+import { FileText, Copy, Trash2, Download, Upload, Check, Power } from 'lucide-react';
 import type { PromptTemplate, PromptCategory, PromptTemplateSingleExport } from './types';
 import { PROMPT_CATEGORIES, createPromptTemplate } from './types';
 
@@ -22,15 +19,15 @@ interface PromptTemplateCardProps {
 function getCategoryColorClass(category: PromptCategory): string {
     switch (category) {
         case 'text_summary':
-            return 'bg-sky-500/20 text-sky-400';
+            return 'text-blue-500 bg-blue-500/10 border border-blue-500/20';
         case 'vector_summary':
-            return 'bg-violet-500/20 text-violet-400';
+            return 'text-purple-500 bg-purple-500/10 border border-purple-500/20';
         case 'trim':
-            return 'bg-amber-500/20 text-amber-400';
+            return 'text-orange-500 bg-orange-500/10 border border-orange-500/20';
         case 'query_enhance':
-            return 'bg-emerald-500/20 text-emerald-400';
+            return 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/20';
         default:
-            return 'bg-neutral-500/20 text-neutral-400';
+            return 'text-muted-foreground bg-muted border border-border';
     }
 }
 
@@ -122,124 +119,80 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
         }
     };
 
-    // 切换启用状态
-    const handleToggleEnabled = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onToggleEnabled?.(!template.enabled);
-    };
-
     return (
         <div
             className={`
-                group relative p-3 rounded-lg border cursor-pointer transition-all
+                group relative p-3 rounded-lg border cursor-pointer transition-all duration-200
                 ${isSelected
-                    ? 'border-primary bg-primary-5 shadow-[0_0_0_1px_rgb(var(--color-primary))]'
-                    : 'border-border-light bg-surface hover:border-border hover:bg-hover'
+                    ? 'bg-accent/50 border-input'
+                    : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
                 }
             `}
             onClick={onSelect}
         >
-            {/* 顶部：名称和操作 */}
-            <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <FileText size={16} className="text-primary flex-shrink-0" />
-                    <span className="font-medium text-primary truncate">
-                        {template.name}
-                    </span>
+            <div className="flex items-start gap-3">
+                {/* 状态图标 */}
+                <button
+                    className={`
+                        w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0
+                        ${template.enabled
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted text-muted-foreground hover:text-foreground'
+                        }
+                    `}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleEnabled?.(!template.enabled);
+                    }}
+                >
+                    <Power size={14} />
+                </button>
+
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                        <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                            {template.name}
+                        </h4>
+
+                        {/* 标签 */}
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-sm font-medium ${getCategoryColorClass(template.category)}`}>
+                                {getCategoryLabel(template.category)}
+                            </span>
+                            {template.isBuiltIn && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-muted text-muted-foreground">
+                                    BUILTIN
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground/70 font-mono">
+                        <span className="truncate max-w-[120px]">
+                            {template.boundPresetId ? `BOUND: ${template.boundPresetId}` : 'DEFAULT PRESET'}
+                        </span>
+                        <span>{template.outputFormat.toUpperCase()}</span>
+                    </div>
                 </div>
-
-                {/* 操作按钮组 */}
-                <div className="flex items-center gap-1">
-                    {/* 启用按钮 */}
-                    <button
-                        className={`p-1.5 rounded transition-colors ${template.enabled
-                            ? 'bg-emerald-500/20 text-emerald-400'
-                            : 'text-muted hover:text-primary hover:bg-hover'
-                            }`}
-                        onClick={handleToggleEnabled}
-                        title={template.enabled ? '已启用' : '点击启用'}
-                    >
-                        <Check size={14} />
-                    </button>
-
-                    {/* 导入 */}
-                    <button
-                        className="p-1.5 rounded text-muted hover:text-primary hover:bg-hover opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={handleImportClick}
-                        title="导入"
-                    >
-                        <Upload size={14} />
-                    </button>
-
-                    {/* 导出 */}
-                    <button
-                        className="p-1.5 rounded text-muted hover:text-primary hover:bg-hover opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={handleExport}
-                        title="导出"
-                    >
-                        <Download size={14} />
-                    </button>
-
-                    {/* 复制 */}
-                    {onCopy && (
-                        <button
-                            className="p-1.5 rounded text-muted hover:text-primary hover:bg-hover opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); onCopy(); }}
-                            title="复制"
-                        >
-                            <Copy size={14} />
-                        </button>
-                    )}
-
-                    {/* 删除 */}
-                    {onDelete && !template.isBuiltIn && (
-                        <button
-                            className="p-1.5 rounded text-muted hover:text-red-400 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-                            title="删除"
-                        >
-                            <Trash2 size={14} />
-                        </button>
-                    )}
-                </div>
-
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={handleImportFile}
-                    className="hidden"
-                />
             </div>
 
-            {/* 分类标签 */}
-            <div className="flex items-center gap-2 mb-2">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${getCategoryColorClass(template.category)}`}>
-                    {getCategoryLabel(template.category)}
-                </span>
-                {template.isBuiltIn && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-neutral-500/20 text-neutral-400">
-                        内置
-                    </span>
+            {/* Action Buttons - Visible on hover or selected */}
+            <div className={`mt-2 flex justify-end gap-1 ${isSelected || 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleImportClick} title="Import"><Upload size={12} /></button>
+                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleExport} title="Export"><Download size={12} /></button>
+                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => { e.stopPropagation(); onCopy?.(); }} title="Copy"><Copy size={12} /></button>
+                {!template.isBuiltIn && (
+                    <button className="p-1.5 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-colors" onClick={(e) => { e.stopPropagation(); onDelete?.(); }} title="Delete"><Trash2 size={12} /></button>
                 )}
             </div>
 
-            {/* 提示词预览 */}
-            <p className="text-xs text-muted line-clamp-2 mb-2">
-                {template.systemPrompt || '(无系统提示词)'}
-            </p>
-
-            {/* 底部：模型绑定信息 */}
-            <div className="flex items-center justify-between text-xs text-muted">
-                <span>
-                    {template.boundPresetId ? `绑定: ${template.boundPresetId}` : '使用默认预设'}
-                </span>
-                <span className="opacity-60">
-                    {template.outputFormat.toUpperCase()}
-                </span>
-            </div>
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleImportFile}
+                className="hidden"
+            />
         </div>
     );
 };
-
-export default PromptTemplateCard;

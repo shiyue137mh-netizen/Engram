@@ -1,6 +1,3 @@
-/**
- * 提示词模板列表组件
- */
 import React from 'react';
 import { Plus, FileText } from 'lucide-react';
 import { PromptTemplateCard } from './PromptTemplateCard';
@@ -77,22 +74,24 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
         <div className="flex flex-col gap-4 h-full">
             {/* 头部操作栏 */}
             <div className="flex items-center justify-between gap-2">
-                <h3 className="m-0 text-sm font-semibold text-primary">提示词模板</h3>
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">提示词模板</h3>
                 <button
-                    className="engram-btn engram-btn-ghost"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
                     onClick={handleAdd}
                 >
-                    <Plus size={14} />
-                    新建
+                    <Plus size={16} />
                 </button>
             </div>
 
             {/* 模板列表 */}
-            <div className="flex flex-col gap-4 overflow-y-auto flex-1">
+            <div className="flex flex-col gap-6 overflow-y-auto flex-1 no-scrollbar">
                 {groupedTemplates.map((group) => (
-                    <div key={group.value}>
-                        <div className="text-xs text-muted mb-2 px-1">{group.label}</div>
-                        <div className="flex flex-col gap-2">
+                    <div key={group.value} className="flex flex-col gap-2">
+                        <div className="text-[10px] items-center gap-2 text-muted-foreground font-medium px-1 uppercase tracking-wider flex">
+                            {group.label}
+                            <div className="h-px bg-border flex-1"></div>
+                        </div>
+                        <div className="flex flex-col gap-1">
                             {group.templates.map((template) => (
                                 <PromptTemplateCard
                                     key={template.id}
@@ -110,9 +109,9 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
                 ))}
 
                 {templates.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-8 text-muted gap-2">
-                        <FileText size={32} />
-                        <p className="text-sm">暂无模板</p>
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2 border border-dashed border-border rounded-lg">
+                        <FileText size={24} className="opacity-50" />
+                        <p className="text-xs">暂无模板</p>
                     </div>
                 )}
             </div>

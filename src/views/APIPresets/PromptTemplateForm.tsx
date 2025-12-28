@@ -76,33 +76,31 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
 
             {/* 提示词内容 */}
             <FormSection title="提示词内容" description="支持变量：{{chatHistory}}, {{context}}, {{char}}, {{user}}, {{userInput}}">
-                <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-primary">系统提示词</label>
-                    <textarea
-                        className="w-full min-h-[100px] p-3 rounded-lg border border-border-light bg-surface text-primary resize-y font-mono text-sm focus:border-primary focus:outline-none"
-                        value={template.systemPrompt}
-                        onChange={(e) => updateTemplate({ systemPrompt: e.target.value })}
-                        placeholder="输入系统提示词..."
-                    />
-                </div>
+                <TextField
+                    label="系统提示词"
+                    value={template.systemPrompt}
+                    onChange={(value) => updateTemplate({ systemPrompt: value })}
+                    placeholder="输入系统提示词..."
+                    multiline
+                    rows={4}
+                />
 
-                <div className="flex flex-col gap-2 mt-4">
-                    <label className="text-sm font-medium text-primary">用户提示词模板</label>
-                    <textarea
-                        className="w-full min-h-[150px] p-3 rounded-lg border border-border-light bg-surface text-primary resize-y font-mono text-sm focus:border-primary focus:outline-none"
-                        value={template.userPromptTemplate}
-                        onChange={(e) => updateTemplate({ userPromptTemplate: e.target.value })}
-                        placeholder="输入用户提示词模板..."
-                    />
-                </div>
+                <TextField
+                    label="用户提示词模板"
+                    value={template.userPromptTemplate}
+                    onChange={(value) => updateTemplate({ userPromptTemplate: value })}
+                    placeholder="输入用户提示词模板..."
+                    multiline
+                    rows={6}
+                />
             </FormSection>
 
             {/* 变量提示 */}
-            <div className="p-3 bg-surface rounded-lg border border-border-light">
-                <div className="text-xs text-muted mb-2">可用变量:</div>
+            <div className="px-3 py-2 bg-muted/30 rounded border border-border">
+                <div className="text-[10px] text-muted-foreground mb-2 font-medium uppercase tracking-wider">可用变量</div>
                 <div className="flex flex-wrap gap-2">
                     {template.availableVariables.map((v) => (
-                        <code key={v} className="px-2 py-1 bg-hover rounded text-xs text-primary font-mono">
+                        <code key={v} className="px-1.5 py-0.5 bg-muted rounded text-[10px] text-primary font-mono">
                             {v}
                         </code>
                     ))}

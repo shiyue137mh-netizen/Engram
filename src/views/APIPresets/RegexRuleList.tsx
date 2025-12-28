@@ -1,8 +1,5 @@
-/**
- * RegexRuleList - 正则规则列表组件
- */
 import React from 'react';
-import { CheckCircle, XCircle, Edit2, Trash2, Plus, RefreshCw } from 'lucide-react';
+import { Regex, Trash2, Power } from 'lucide-react';
 import type { RegexRule } from '../../core/summarizer/RegexProcessor';
 
 interface RegexRuleListProps {
@@ -24,102 +21,91 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
     onAdd,
     onReset,
 }) => {
-    const enabledCount = rules.filter(r => r.enabled).length;
-
     return (
-        <div className="flex flex-col gap-3">
-            {/* 头部 */}
+        <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-                <h3 className="m-0 text-sm font-semibold text-foreground">
-                    正则规则 ({enabledCount}/{rules.length})
-                </h3>
-                <div className="flex gap-1">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">正则规则列表</h3>
+                <div className="flex gap-2">
                     <button
-                        className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
+                        className="text-[10px] text-muted-foreground hover:text-destructive transition-colors"
                         onClick={onReset}
-                        title="重置为默认"
                     >
-                        <RefreshCw size={14} />
+                        重置默认
                     </button>
                     <button
-                        className="inline-flex items-center gap-1.5 px-2 py-1.5 rounded-md text-sm transition-colors hover:bg-accent hover:text-accent-foreground text-muted-foreground"
+                        className="text-muted-foreground hover:text-foreground transition-colors"
                         onClick={onAdd}
                     >
-                        <Plus size={14} />
-                        新建
+                        <Regex size={16} />
                     </button>
                 </div>
             </div>
 
-            {/* 规则列表 */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
                 {rules.map((rule) => (
                     <div
                         key={rule.id}
-                        className={`p-3 cursor-pointer bg-card border border-border rounded-lg transition-all duration-200 hover:border-ring-50 ${selectedId === rule.id ? 'bg-primary-5 border-primary-50' : ''
-                            }`}
+                        className={`
+                            group p-3 rounded-lg transition-all duration-200 cursor-pointer border flex items-center gap-3
+                            ${selectedId === rule.id
+                                ? 'bg-accent/50 border-input'
+                                : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
+                            }
+                        `}
                         onClick={() => onSelect(rule.id)}
                     >
-                        <div className="flex items-start gap-2">
-                            {/* 启用状态 */}
-                            <button
-                                className={`p-1 rounded transition-colors ${rule.enabled
-                                        ? 'text-green-500 hover:bg-green-500/20'
-                                        : 'text-muted-foreground hover:bg-muted'
-                                    }`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onToggle(rule.id);
-                                }}
-                                title={rule.enabled ? '已启用' : '已禁用'}
-                            >
-                                {rule.enabled ? (
-                                    <CheckCircle size={16} />
-                                ) : (
-                                    <XCircle size={16} />
-                                )}
-                            </button>
+                        {/* Status/Toggle Icon */}
+                        <button
+                            className={`
+                                w-8 h-8 flex items-center justify-center rounded-lg transition-colors
+                                ${rule.enabled
+                                    ? selectedId === rule.id ? 'bg-primary/20 text-primary' : 'bg-muted text-primary'
+                                    : 'bg-muted text-muted-foreground'
+                                }
+                            `}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggle(rule.id);
+                            }}
+                            title={rule.enabled ? "点击禁用" : "点击启用"}
+                        >
+                            <Power size={14} />
+                        </button>
 
-                            {/* 名称和描述 */}
-                            <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-foreground truncate">
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                                <h4 className={`text-sm font-medium truncate ${selectedId === rule.id ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'} ${!rule.enabled && 'opacity-50 line-through'}`}>
                                     {rule.name}
-                                </div>
-                                {rule.description && (
-                                    <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                                        {rule.description}
-                                    </div>
-                                )}
+                                </h4>
                             </div>
+                            <div className="mt-0.5 flex items-center gap-2">
+                                <code className="text-[10px] bg-muted px-1 rounded text-muted-foreground font-mono truncate max-w-[120px]">
+                                    /{rule.pattern}/{rule.flags}
+                                </code>
+                            </div>
+                        </div>
 
-                            {/* 操作按钮 */}
+                        {/* Delete Action */}
+                        <div className={`flex items-center ${selectedId === rule.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
                             <button
-                                className="p-1.5 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors text-muted-foreground opacity-0 group-hover:opacity-100"
+                                className="p-1.5 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-colors"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     onDelete(rule.id);
                                 }}
-                                title="删除"
                             >
-                                <Trash2 size={14} />
+                                <Trash2 size={12} />
                             </button>
-                        </div>
-
-                        {/* 正则预览 */}
-                        <div className="mt-2 px-2 py-1 bg-muted-20 rounded text-xs font-mono text-muted-foreground truncate">
-                            /{rule.pattern}/{rule.flags}
                         </div>
                     </div>
                 ))}
 
                 {rules.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground text-sm">
-                        暂无正则规则
+                    <div className="text-center p-8 border border-dashed border-border rounded-lg">
+                        <p className="text-xs text-muted-foreground">无规则</p>
                     </div>
                 )}
             </div>
         </div>
     );
 };
-
-export default RegexRuleList;

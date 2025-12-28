@@ -1,6 +1,3 @@
-/**
- * 预设卡片组件
- */
 import React from 'react';
 import { Edit2, Copy, Trash2, Check, Server, Cloud } from 'lucide-react';
 import type { LLMPreset } from './types';
@@ -34,74 +31,55 @@ export const PresetCard: React.FC<PresetCardProps> = ({
 
     return (
         <div
-            className={`p-3 cursor-pointer bg-card border border-border rounded-lg shadow-sm transition-all duration-200 hover:border-ring-50 hover:shadow-md ${isSelected ? 'bg-primary-5 border-primary-50' : ''
-                }`}
+            className={`
+                group p-3 rounded-lg transition-all duration-200 cursor-pointer border
+                ${isSelected
+                    ? 'bg-accent/50 border-input shadow-sm'
+                    : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
+                }
+            `}
             onClick={onSelect}
         >
-            <div className="flex items-start gap-2.5">
+            <div className="flex items-center gap-3">
                 <div
-                    className={`w-8 h-8 flex items-center justify-center rounded-md ${isSelected ? 'bg-primary-20 text-primary' : 'bg-secondary text-secondary-foreground'
-                        }`}
+                    className={`
+                        w-8 h-8 flex items-center justify-center rounded-lg transition-colors
+                        ${isSelected
+                            ? 'bg-primary/10 text-primary'
+                            : 'bg-muted text-muted-foreground group-hover:text-foreground'
+                        }
+                    `}
                 >
                     <SourceIcon size={16} />
                 </div>
+
                 <div className="flex-1 min-w-0">
-                    <h4 className="m-0 text-[14px] font-medium text-foreground flex items-center gap-2">
-                        {preset.name}
+                    <div className="flex items-center gap-2">
+                        <h4 className={`m-0 text-sm font-medium ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                            {preset.name}
+                        </h4>
                         {preset.isDefault && (
-                            <span className="px-2 py-[2px] text-[10px] bg-primary-20 text-primary rounded-sm">
-                                默认
+                            <span className="px-1.5 py-0.5 text-[10px] bg-primary/10 text-primary rounded-sm font-medium">
+                                DEFAULT
                             </span>
                         )}
-                    </h4>
-                    <p className="mt-1 text-[12px] text-muted-foreground">
-                        <span>{sourceLabel}</span>
-                        <span className="mx-1">·</span>
-                        <span>{modelName}</span>
-                    </p>
-                </div>
-                {isSelected && (
-                    <div className="text-primary">
-                        <Check size={16} />
                     </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] text-muted-foreground/70 group-hover:text-muted-foreground font-mono hidden md:inline-block">T:{preset.parameters.temperature}</span>
+                        <span className="text-[10px] text-muted-foreground/70 group-hover:text-muted-foreground truncate">{modelName}</span>
+                    </div>
+                </div>
+
+                {isSelected && <Check size={14} className="text-primary" />}
+            </div>
+
+            {/* Action Buttons - Only visible on hover or selected */}
+            <div className={`mt-2 flex justify-end gap-1 ${isSelected || 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={onEdit}><Edit2 size={12} /></button>
+                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={onCopy}><Copy size={12} /></button>
+                {!preset.isDefault && (
+                    <button className="p-1.5 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-colors" onClick={onDelete}><Trash2 size={12} /></button>
                 )}
-            </div>
-
-            <div className="flex gap-2 mt-2.5 flex-wrap">
-                <span className="px-2 py-[2px] text-[10px] bg-muted text-muted-foreground rounded-sm font-mono">
-                    T: {preset.parameters.temperature}
-                </span>
-                <span className="px-2 py-[2px] text-[10px] bg-muted text-muted-foreground rounded-sm font-mono">
-                    P: {preset.parameters.topP}
-                </span>
-                <span className="px-2 py-[2px] text-[10px] bg-muted text-muted-foreground rounded-sm font-mono">
-                    Max: {preset.parameters.maxTokens}
-                </span>
-            </div>
-
-            <div className="flex gap-1 mt-2.5 pt-2.5 border-t border-border" onClick={(e) => e.stopPropagation()}>
-                <button
-                    className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
-                    onClick={onEdit}
-                    title="编辑"
-                >
-                    <Edit2 size={14} />
-                </button>
-                <button
-                    className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
-                    onClick={onCopy}
-                    title="复制"
-                >
-                    <Copy size={14} />
-                </button>
-                <button
-                    className="p-1.5 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors text-muted-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={onDelete}
-                    title="删除"
-                    disabled={preset.isDefault}
-                >
-                    <Trash2 size={14} />
-                </button>
             </div>
         </div>
     );

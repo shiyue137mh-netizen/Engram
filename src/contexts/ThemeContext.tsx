@@ -14,7 +14,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     // Initialize state from Manager's current state
     const [theme, setThemeState] = useState<ThemeName>(ThemeManager.getTheme());
 
-    const isDarkMode = theme === 'dark';
+    const isDarkMode = theme !== 'paperLight';
 
     // Sync React state -> Manager
     const setTheme = (t: ThemeName) => {
