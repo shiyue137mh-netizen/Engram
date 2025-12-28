@@ -3,8 +3,8 @@
  */
 import React from 'react';
 import { TextField, SelectField, SwitchField, FormSection } from './FormField';
-import type { PromptTemplate, PromptCategory, LLMPreset } from './types';
-import { PROMPT_CATEGORIES } from './types';
+import type { PromptTemplate, PromptCategory, LLMPreset } from '../../../core/api/types';
+import { PROMPT_CATEGORIES } from '../../../core/api/types';
 
 interface PromptTemplateFormProps {
     template: PromptTemplate;

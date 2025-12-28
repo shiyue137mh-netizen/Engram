@@ -1,6 +1,6 @@
 import React from 'react';
 import { Edit2, Copy, Trash2, Check, Server, Cloud } from 'lucide-react';
-import type { LLMPreset } from './types';
+import type { LLMPreset } from '../../../core/api/types';
 
 interface PresetCardProps {
     preset: LLMPreset;

@@ -7,7 +7,7 @@
  * 3. Vectorizer - 向量化
  */
 
-import { EventBus } from '../../infrastructure/bus/EventBus';
+import { EventBus } from '../../infrastructure/EventBus';
 import type { EventNode, EntityNode } from '../types/graph';
 
 export interface PipelineInput {

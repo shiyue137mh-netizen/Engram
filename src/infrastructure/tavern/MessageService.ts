@@ -4,6 +4,9 @@
  * 提供聊天消息获取、楼层计数等功能
  */
 
+import { getSTContext, isSTAvailable } from '../STContext';
+import type { STMessage } from '../STContext';
+
 /** 消息角色类型 */
 export type MessageRole = 'user' | 'assistant' | 'system';
 
@@ -32,43 +35,9 @@ export interface GetMessagesOptions {
 }
 
 /**
- * 获取 SillyTavern 上下文
- */
-function getSTContext(): {
-    chat: Array<{
-        mes: string;
-        name: string;
-        is_user: boolean;
-        is_system?: boolean;
-        is_hidden?: boolean;
-        extra?: Record<string, unknown>;
-    }>;
-    characters: Array<{ name: string }>;
-    characterId: number;
-} | null {
-    try {
-        // @ts-expect-error - SillyTavern 全局对象
-        const SillyTavern = window.SillyTavern;
-        if (SillyTavern?.getContext) {
-            return SillyTavern.getContext();
-        }
-        return null;
-    } catch {
-        console.warn('[Engram] MessageService: 无法获取 SillyTavern 上下文');
-        return null;
-    }
-}
-
-/**
  * 将酒馆原始消息转换为统一格式
  */
-function convertMessage(msg: {
-    mes: string;
-    name: string;
-    is_user: boolean;
-    is_system?: boolean;
-    is_hidden?: boolean;
-}, index: number): TavernMessage {
+function convertMessage(msg: STMessage, index: number): TavernMessage {
     let role: MessageRole = 'assistant';
     if (msg.is_user) {
         role = 'user';
@@ -190,7 +159,7 @@ export class MessageService {
      * 检查 MessageService 是否可用
      */
     static isAvailable(): boolean {
-        return getSTContext() !== null;
+        return isSTAvailable();
     }
 }
 

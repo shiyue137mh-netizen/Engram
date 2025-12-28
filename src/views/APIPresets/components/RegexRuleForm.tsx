@@ -3,8 +3,8 @@
  */
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Play, Info } from 'lucide-react';
-import type { RegexRule } from '../../core/summarizer/RegexProcessor';
-import { RegexProcessor } from '../../core/summarizer/RegexProcessor';
+import type { RegexRule } from '../../../core/summarizer/RegexProcessor';
+import { RegexProcessor } from '../../../core/summarizer/RegexProcessor';
 
 interface RegexRuleFormProps {
     rule: RegexRule;

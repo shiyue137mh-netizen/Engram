@@ -7,7 +7,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles/main.css';
 import App from './App';
-import { initializeEngram, setReactRenderer } from './infrastructure/adapter/STBridge';
+import { initializeEngram, setReactRenderer } from './infrastructure/STBridge';
 
 // 设置 React 渲染器
 setReactRenderer((container: HTMLElement, onClose: () => void) => {

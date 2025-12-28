@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { TextField, SelectField, FormSection } from './FormField';
-import type { VectorConfig, VectorSource } from './types';
+import type { VectorConfig, VectorSource } from '../../../core/api/types';
 
 
 interface VectorConfigFormProps {

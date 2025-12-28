@@ -3,7 +3,7 @@ import { StatsCard } from './components/StatsCard';
 import { Database, Cpu, Server, Terminal as TermIcon, Zap } from 'lucide-react';
 import { Logger } from '../../infrastructure/logger';
 import type { LogEntry } from '../../infrastructure/logger/types';
-import { getSTContext } from '../../infrastructure/adapter/STBridge';
+import { getSTContext } from '../../infrastructure/STBridge';
 
 interface DashboardProps {
     onNavigate?: (path: string) => void;

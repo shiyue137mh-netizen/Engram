@@ -5,8 +5,8 @@
 import React, { useState, useEffect } from 'react';
 import { Cpu, Play, Pause, RefreshCw, CheckCircle2, AlertCircle, FileText, ExternalLink } from 'lucide-react';
 import { TrimConfigForm } from './TrimConfigForm';
-import type { TrimConfig } from '../APIPresets/types';
-import { DEFAULT_TRIM_CONFIG } from '../APIPresets/types';
+import type { TrimConfig } from '../../core/api/types';
+import { DEFAULT_TRIM_CONFIG } from '../../core/api/types';
 
 type ProcessingTab = 'summarize' | 'vectorize' | 'batch';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { SwitchField, FormSection } from './FormField';
-import type { WorldbookConfig } from './types';
+import type { WorldbookConfig } from '../../../core/api/types';
 
 interface WorldbookConfigFormProps {
     config: WorldbookConfig;

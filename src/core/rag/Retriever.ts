@@ -8,8 +8,8 @@
  * 4. Hybrid Reranking - 混合重排序
  */
 
-import { DexieDB } from '../../infrastructure/storage/DexieDB';
-import { EventBus } from '../../infrastructure/bus/EventBus';
+import { DexieDB } from '../../infrastructure/DexieDB';
+import { EventBus } from '../../infrastructure/EventBus';
 import type { EventNode, EntityNode } from '../types/graph';
 
 export interface RetrievalResult {

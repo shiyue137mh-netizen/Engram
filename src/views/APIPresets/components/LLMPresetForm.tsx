@@ -3,7 +3,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { TextField, NumberField, SelectField, SwitchField, FormSection } from './FormField';
-import type { LLMPreset, APISource } from './types';
+import type { LLMPreset, APISource } from '../../../core/api/types';
 import { RefreshCw } from 'lucide-react';
 
 

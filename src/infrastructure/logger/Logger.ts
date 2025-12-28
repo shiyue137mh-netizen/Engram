@@ -6,7 +6,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { Subject } from 'rxjs';
-import { EventBus, EngramEvent } from '../bus/EventBus';
+import { EventBus, EngramEvent } from '../EventBus';
 import { LogLevel, LogEntry, LoggerConfig, DEFAULT_LOGGER_CONFIG } from './types';
 
 // 日志流 Subject
@@ -19,14 +19,14 @@ let logCache: LogEntry[] = [];
 let config: LoggerConfig = { ...DEFAULT_LOGGER_CONFIG };
 
 // 数据库引用（延迟初始化，避免循环依赖）
-let dbInstance: typeof import('../storage/DexieDB').db | null = null;
+let dbInstance: typeof import('../DexieDB').db | null = null;
 
 /**
  * 获取数据库实例
  */
 async function getDB() {
     if (!dbInstance) {
-        const { db } = await import('../storage/DexieDB');
+        const { db } = await import('../DexieDB');
         dbInstance = db;
     }
     return dbInstance;

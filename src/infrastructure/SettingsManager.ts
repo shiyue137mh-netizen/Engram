@@ -1,5 +1,5 @@
 import { Logger } from './logger';
-import type { PromptTemplate, PromptCategory } from '../views/APIPresets/types';
+import type { PromptTemplate, PromptCategory } from '../core/api/types';
 
 export interface EngramSettings {
     theme: string;

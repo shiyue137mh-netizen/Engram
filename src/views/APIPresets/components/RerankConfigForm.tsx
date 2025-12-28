@@ -1,6 +1,6 @@
 import React from 'react';
 import { TextField, NumberField, SwitchField, FormSection } from './FormField';
-import type { RerankConfig } from './types';
+import type { RerankConfig } from '../../../core/api/types';
 
 interface RerankConfigFormProps {
     config: RerankConfig;

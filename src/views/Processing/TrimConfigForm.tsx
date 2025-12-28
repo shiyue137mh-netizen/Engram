@@ -4,8 +4,8 @@
  */
 import React from 'react';
 import { Scissors, Hash, Layers, Calculator } from 'lucide-react';
-import type { TrimConfig, TrimTriggerType } from '../APIPresets/types';
-import { FormSection, SwitchField, NumberField } from '../APIPresets/FormField';
+import type { TrimConfig, TrimTriggerType } from '../../core/api/types';
+import { FormSection, SwitchField, NumberField } from '../APIPresets/components/FormField';
 
 interface TrimConfigFormProps {
     config: TrimConfig;

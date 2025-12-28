@@ -1,4 +1,4 @@
-import { Theme } from '../types/theme';
+import { Theme } from './theme';
 
 // ----------------------------------------------------------------------
 // 1. Paper Light (Twitter) - Based on User Provided CSS Variables

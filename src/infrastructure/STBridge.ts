@@ -5,86 +5,25 @@
  * 所有 window.SillyTavern、jQuery、eventSource 的调用都在这里
  */
 
-import { EventBus, EngramEvent } from '../bus/EventBus';
-
-// SillyTavern 全局类型声明
-declare global {
-    interface Window {
-        SillyTavern?: {
-            getContext?: () => STContext;
-        };
-    }
-}
-
-// ST 上下文类型
-interface STContext {
-    chat: STMessage[];
-    characters: STCharacter[];
-    name1: string; // 用户名
-    name2: string; // 角色名
-    characterId: number;
-    chatId: string;
-}
-
-interface STMessage {
-    mes: string;
-    is_user: boolean;
-    name: string;
-    send_date: number;
-}
-
-interface STCharacter {
-    name: string;
-    avatar: string;
-    description: string;
-}
-
-/**
- * 获取 SillyTavern 上下文
- */
-export function getSTContext(): STContext | null {
-    try {
-        const ctx = window.SillyTavern?.getContext?.();
-        return ctx || null;
-    } catch (e) {
-        console.warn('[Engram] Failed to get ST context:', e);
-        return null;
-    }
-}
-
-/**
- * 获取当前聊天记录
- */
-export function getCurrentChat(): STMessage[] {
-    const ctx = getSTContext();
-    return ctx?.chat || [];
-}
-
-/**
- * 获取当前角色信息
- */
-export function getCurrentCharacter(): { name: string; id: number } | null {
-    const ctx = getSTContext();
-    if (!ctx) return null;
-    return {
-        name: ctx.name2,
-        id: ctx.characterId,
-    };
-}
+import { EventBus, EngramEvent } from './EventBus';
+// 使用统一的 STContext 模块
+import { getSTContext, getCurrentChat, getCurrentCharacter } from './STContext';
+export { getSTContext, getCurrentChat, getCurrentCharacter } from './STContext';
+export type { STContext, STMessage, STCharacter } from './STContext';
 
 /**
  * 初始化 Engram 插件
  */
 export async function initializeEngram(): Promise<void> {
     // 初始化日志系统
-    const { Logger } = await import('../logger');
+    const { Logger } = await import('./logger');
     await Logger.init();
 
     Logger.info('STBridge', 'Engram 插件正在初始化...');
 
     // 检查酒馆接口对接状态
     try {
-        const { checkTavernIntegration } = await import('../tavern');
+        const { checkTavernIntegration } = await import('./tavern');
         const tavernStatus = await checkTavernIntegration();
         Logger.info('TavernAPI', '酒馆接口对接状态', tavernStatus);
     } catch (e) {
@@ -93,7 +32,7 @@ export async function initializeEngram(): Promise<void> {
 
     // 启动 Summarizer 服务
     try {
-        const { summarizerService } = await import('../../core/summarizer');
+        const { summarizerService } = await import('../core/summarizer');
         summarizerService.start();
         const status = summarizerService.getStatus();
         Logger.info('Summarizer', '服务已启动', status);
@@ -108,7 +47,7 @@ export async function initializeEngram(): Promise<void> {
     setupEventListeners();
 
     // 初始化主题系统 (注入 CSS 并应用变量)
-    const { ThemeManager } = await import('../ThemeManager');
+    const { ThemeManager } = await import('./ThemeManager');
     ThemeManager.init();
 
     // 运行诊断
