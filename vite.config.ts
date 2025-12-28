@@ -37,6 +37,7 @@ export default defineConfig(({ mode }) => ({
         rollupOptions: {
             // 不外部化任何依赖，全部打包
             output: {
+                inlineDynamicImports: true,
                 assetFileNames: (assetInfo) => {
                     if (assetInfo.name?.endsWith('.css')) {
                         return 'style.css';

@@ -51,19 +51,22 @@
 }
 
 /* Strict Isolation for Engram Inputs */
-.engram-input,
-.engram-select {
-    all: unset;
-    /* Remove all inherited/browser styles */
-    display: block;
-    box-sizing: border-box;
-    font-family: var(--font-mono) !important;
-}
+@layer components {
 
-/* Re-apply necessary base styles after unset */
-.engram-input::placeholder {
-    opacity: 0.5;
-    color: currentColor;
+    .engram-input,
+    .engram-select {
+        all: unset;
+        /* Remove all inherited/browser styles */
+        display: block;
+        box-sizing: border-box;
+        font-family: var(--font-mono) !important;
+    }
+
+    /* Re-apply necessary base styles after unset */
+    .engram-input::placeholder {
+        opacity: 0.5;
+        color: currentColor;
+    }
 }
 
 /* Animations for Dashboard - Keeping these as they are used by utility classes or inline styles */

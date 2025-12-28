@@ -178,7 +178,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
             </div>
 
             {isOpen && (
-                <div className="absolute top-full left-0 right-0 mt-2 p-1 bg-popover-95 backdrop-blur-md border border-border rounded-lg shadow-lg z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute top-full left-0 right-0 mt-2 p-1 bg-popover border border-border rounded-lg shadow-xl z-50 animate-in fade-in zoom-in-95 duration-100">
                     {/* 命令列表 */}
                     {filteredCommands.length > 0 && (
                         <div className="py-1">

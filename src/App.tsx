@@ -8,6 +8,7 @@ import { APIPresets } from './views/APIPresets/APIPresetsView';
 import { Settings } from './views/Settings';
 import { MemoryStream } from './views/MemoryStream';
 import { Processing } from './views/Processing';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 interface AppProps {
     onClose: () => void;
@@ -38,9 +39,11 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
     };
 
     return (
-        <MainLayout activeTab={activeTab} setActiveTab={setActiveTab} onClose={onClose}>
-            {renderContent()}
-        </MainLayout>
+        <ThemeProvider>
+            <MainLayout activeTab={activeTab} setActiveTab={setActiveTab} onClose={onClose}>
+                {renderContent()}
+            </MainLayout>
+        </ThemeProvider>
     );
 };
 

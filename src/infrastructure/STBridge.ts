@@ -166,6 +166,11 @@ function createMainPanel(): HTMLElement {
     // 强制内联样式，确保颜色生效 (解决 Tailwind 类在某些环境下失效的问题)
     panel.style.backgroundColor = 'var(--background)';
     panel.style.color = 'var(--foreground)';
+    // 强制视口高度，解决移动端 Flex 布局塌陷
+    panel.style.height = '100dvh';
+    panel.style.width = '100vw';
+    panel.style.top = '0';
+    panel.style.left = '0';
 
     panel.id = 'engram-panel-root';
 

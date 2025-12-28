@@ -67,8 +67,8 @@ export const TextField: React.FC<TextFieldProps> = ({
                         disabled={disabled}
                         rows={rows}
                         className={`
-                            engram-input w-full bg-input/50 text-foreground text-sm px-0 py-2 border-b border-input
-                            focus:outline-none focus:border-primary transition-colors rounded-t-sm resize-y font-mono placeholder-muted-foreground/50
+                            engram-input w-full bg-transparent text-foreground text-sm px-3 py-2 border border-input rounded-md
+                            focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono placeholder-muted-foreground/50
                             disabled:opacity-50 disabled:cursor-not-allowed
                         `}
                     />
@@ -80,8 +80,8 @@ export const TextField: React.FC<TextFieldProps> = ({
                         placeholder={placeholder}
                         disabled={disabled}
                         className={`
-                            engram-input w-full bg-input/50 text-foreground text-sm px-0 py-2 border-b border-input
-                            focus:outline-none focus:border-primary transition-colors rounded-t-sm font-mono placeholder-muted-foreground/50
+                            engram-input w-full bg-transparent text-foreground text-sm px-3 py-2 border border-input rounded-md
+                            focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono placeholder-muted-foreground/50
                             disabled:opacity-50 disabled:cursor-not-allowed
                         `}
                     />
@@ -147,8 +147,8 @@ export const NumberField: React.FC<NumberFieldProps> = ({
                     value={value}
                     onChange={(e) => onChange(Number(e.target.value))}
                     className={`
-                        bg-input/50 border-b border-input text-foreground text-xs px-0 py-1 font-mono text-center
-                        focus:outline-none focus:border-primary transition-colors w-16
+                        bg-transparent border border-input rounded-md text-foreground text-xs px-2 py-1 font-mono text-center
+                        focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all w-20
                         [appearance:textfield] [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0
                     `}
                 />
@@ -196,8 +196,8 @@ export const SelectField: React.FC<SelectFieldProps> = ({
                     onChange={(e) => onChange(e.target.value)}
                     disabled={disabled}
                     className={`
-                        engram-select w-full bg-input/50 text-foreground text-sm pl-0 pr-8 py-2 border-b border-input
-                        focus:outline-none focus:border-primary transition-colors appearance-none cursor-pointer rounded-t-sm
+                        engram-select w-full bg-transparent text-foreground text-sm pl-3 pr-8 py-2 border border-input rounded-md
+                        focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer
                         disabled:opacity-50 disabled:cursor-not-allowed
                     `}
                 >
