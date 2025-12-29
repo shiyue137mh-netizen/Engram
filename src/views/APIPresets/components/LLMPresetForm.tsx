@@ -291,20 +291,6 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                     description="鼓励模型讨论新主题"
                 />
             </FormSection>
-
-            {/* 上下文设置 */}
-            <FormSection title="上下文设置" description="控制发送给模型的上下文内容">
-                <NumberField
-                    label="聊天历史条数"
-                    value={preset.context.maxChatHistory}
-                    onChange={(value) => updateContext('maxChatHistory', value)}
-                    min={0}
-                    max={100}
-                    step={1}
-                    showSlider={false}
-                    description="使用多少条聊天历史（0 表示不使用）"
-                />
-            </FormSection>
         </div>
     );
 };

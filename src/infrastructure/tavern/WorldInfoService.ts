@@ -144,6 +144,37 @@ export class WorldInfoService {
     }
 
     /**
+     * 获取当前角色的所有 Engram 摘要内容（用于 {{engramSummaries}} 宏）
+     * 返回格式化后的摘要文本，供精简功能使用
+     */
+    static async getEngramSummariesContent(): Promise<string> {
+        const worldbookName = this.findExistingWorldbook();
+        if (!worldbookName) {
+            return '';
+        }
+
+        const entries = await this.getEntries(worldbookName);
+        // 筛选出名字以 "剧情摘要_" 开头的条目（不管是否启用）
+        const summaryEntries = entries.filter(e => e.name.startsWith('剧情摘要_'));
+
+        if (summaryEntries.length === 0) {
+            return '';
+        }
+
+        // 按名称排序（确保按楼层顺序）
+        summaryEntries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+        // 格式化输出：移除元数据注释，只保留摘要内容
+        const formattedSummaries = summaryEntries.map(entry => {
+            // 移除 {{// ... }} 元数据注释
+            const content = entry.content.replace(/\{\{\/\/.*?\}\}/gs, '').trim();
+            return `【${entry.name}】\n${content}`;
+        });
+
+        return formattedSummaries.join('\n\n---\n\n');
+    }
+
+    /**
      * 批量计算多段文本的 Token 数量
      * @param texts 文本数组
      */
@@ -299,6 +330,7 @@ export class WorldInfoService {
                 name: params.name,
                 content: params.content,
                 comment: params.name,  // 用作备注
+                disable: !(params.enabled ?? true),  // TavernHelper 使用 disable 字段
                 strategy: {
                     type: params.constant ? 'constant' : 'selective',
                     keys: params.keys || [],
@@ -340,9 +372,12 @@ export class WorldInfoService {
         }
 
         try {
-
-
+            // 转换 enabled 为 disable（TavernHelper 使用 disable 字段）
             const entry: any = { ...updates, uid };
+            if ('enabled' in updates) {
+                entry.disable = !updates.enabled;
+                delete entry.enabled;
+            }
             await helper.createWorldbookEntries(worldbookName, [entry]);
             return true;
         } catch (e) {
@@ -352,13 +387,19 @@ export class WorldInfoService {
     }
 
     /**
-     * 根据 Key 查找条目
+     * 根据 Key 或名称查找条目
      * @param worldbookName 世界书名称
      * @param key 关键词
      */
     static async findEntryByKey(worldbookName: string, key: string): Promise<WorldInfoEntry | null> {
         const entries = await this.getEntries(worldbookName);
-        return entries.find(e => e.keys.includes(key)) || null;
+        // 先按 keys 数组查找
+        let found = entries.find(e => e.keys.includes(key));
+        // 如果没找到，尝试按名称查找（Engram System State 条目可能 keys 为空）
+        if (!found && key === '__ENGRAM_STATE__') {
+            found = entries.find(e => e.name === 'Engram System State');
+        }
+        return found || null;
     }
 
     /**

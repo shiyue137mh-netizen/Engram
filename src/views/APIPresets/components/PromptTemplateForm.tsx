@@ -13,11 +13,15 @@ interface PromptTemplateFormProps {
     onChange: (template: PromptTemplate) => void;
 }
 
-// 输出格式选项
-const OUTPUT_FORMAT_OPTIONS = [
-    { value: 'plain', label: '纯文本' },
-    { value: 'markdown', label: 'Markdown' },
-    { value: 'json', label: 'JSON' },
+// 可用宏定义及说明
+const AVAILABLE_MACROS = [
+    { name: '{{chatHistory}}', desc: '待处理的对话历史' },
+    { name: '{{context}}', desc: '角色卡设定' },
+    { name: '{{char}}', desc: '角色名' },
+    { name: '{{user}}', desc: '用户名' },
+    { name: '{{userInput}}', desc: '当前用户输入' },
+    { name: '{{worldbookContext}}', desc: '世界书激活内容' },
+    { name: '{{engramSummaries}}', desc: 'Engram 所有摘要（用于精简）' },
 ];
 
 export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
@@ -66,16 +70,11 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                     description="选择用于此模板的 LLM 预设"
                 />
 
-                <SelectField
-                    label="输出格式"
-                    value={template.outputFormat}
-                    onChange={(value) => updateTemplate({ outputFormat: value as 'plain' | 'markdown' | 'json' })}
-                    options={OUTPUT_FORMAT_OPTIONS}
-                />
+
             </FormSection>
 
             {/* 提示词内容 */}
-            <FormSection title="提示词内容" description="支持变量：{{chatHistory}}, {{context}}, {{char}}, {{user}}, {{userInput}}">
+            <FormSection title="提示词内容">
                 <TextField
                     label="系统提示词"
                     value={template.systemPrompt}
@@ -95,14 +94,17 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                 />
             </FormSection>
 
-            {/* 变量提示 */}
+            {/* 可用宏提示 */}
             <div className="px-3 py-2 bg-muted/30 rounded border border-border">
-                <div className="text-[10px] text-muted-foreground mb-2 font-medium uppercase tracking-wider">可用变量</div>
-                <div className="flex flex-wrap gap-2">
-                    {template.availableVariables.map((v) => (
-                        <code key={v} className="px-1.5 py-0.5 bg-muted rounded text-[10px] text-primary font-mono">
-                            {v}
-                        </code>
+                <div className="text-[10px] text-muted-foreground mb-2 font-medium uppercase tracking-wider">可用宏</div>
+                <div className="flex flex-col gap-1">
+                    {AVAILABLE_MACROS.map((m) => (
+                        <div key={m.name} className="flex items-center gap-2 text-[10px]">
+                            <code className="px-1.5 py-0.5 bg-muted rounded text-primary font-mono whitespace-nowrap">
+                                {m.name}
+                            </code>
+                            <span className="text-muted-foreground">{m.desc}</span>
+                        </div>
                     ))}
                 </div>
             </div>

@@ -602,11 +602,23 @@ export class SummarizerService {
             const systemPrompt = template?.systemPrompt || FALLBACK_SUMMARY_PROMPT.system;
             const userPromptTemplate = template?.userPromptTemplate || FALLBACK_SUMMARY_PROMPT.user;
 
+            // 获取所有 Engram 摘要内容（用于精简功能）
+            let engramSummaries = '';
+            try {
+                engramSummaries = await WorldInfoService.getEngramSummariesContent();
+                if (engramSummaries) {
+                    this.log('debug', '已加载 Engram 摘要', { length: engramSummaries.length });
+                }
+            } catch (e) {
+                this.log('warn', '获取 Engram 摘要失败', { error: String(e) });
+            }
+
             // 构建最终提示词
             const userPrompt = userPromptTemplate
                 .replace('{{worldbookContext}}', worldbookContext)
                 .replace('{{chatHistory}}', cleanedChatHistory)
-                .replace('{{context}}', worldbookContext);  // 兼容两种变量名
+                .replace('{{context}}', worldbookContext)  // 兼容两种变量名
+                .replace('{{engramSummaries}}', engramSummaries);
 
             this.log('debug', '使用提示词模板', {
                 source: template ? 'APIPresets' : 'fallback',
@@ -739,7 +751,7 @@ export class SummarizerService {
             const success = await WorldInfoService.createEntry(worldbookName, {
                 name: `剧情摘要_${result.sourceFloors[0]}-${result.sourceFloors[1]}`,
                 content: finalContent,
-                enabled: true,
+                enabled: true,  // 开启状态，让摘要能被激活进入上下文
                 constant: true,
             });
 

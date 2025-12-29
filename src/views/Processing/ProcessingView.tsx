@@ -5,23 +5,24 @@
  * 类似 APIPresetsView 的架构设计
  */
 import React, { useState } from 'react';
-import { FileText, Database, Layers, Boxes, ExternalLink } from 'lucide-react';
-import { TabPills, Tab } from '../components/TabPills';
+import { FileText, Database, Layers, Boxes, ScrollText, BookOpen } from 'lucide-react';
+import { Tab } from '../components/TabPills';
+import { QuickLinks, QuickLink } from '../components/QuickLinks';
 import { SummaryPanel } from './SummaryPanel';
 
 type ProcessingTab = 'summary' | 'vectorization' | 'batch';
 
-// 主 Tab 配置（不含跳转）
+// 主 Tab 配置
 const MAIN_TABS: Tab[] = [
     { id: 'summary', label: '记忆摘要', icon: <FileText size={16} /> },
     { id: 'vectorization', label: '向量化', icon: <Database size={16} /> },
     { id: 'batch', label: '批量处理', icon: <Layers size={16} /> },
 ];
 
-// 跳转链接配置
-const LINK_ITEMS = [
-    { id: 'devlog', label: '模型日志', linkTo: 'devlog' },
-    { id: 'presets', label: '提示词模板', linkTo: 'presets' },
+// 快速跳转链接配置（使用 page:subtab 格式精确跳转）
+const QUICK_LINKS: QuickLink[] = [
+    { id: 'devlog', label: '模型日志', icon: ScrollText, linkTo: 'devlog:model' },
+    { id: 'presets', label: '提示词模板', icon: BookOpen, linkTo: 'presets:prompt' },
 ];
 
 interface ProcessingViewProps {
@@ -39,29 +40,34 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                 <p className="text-sm text-muted-foreground">记忆摘要、向量化存储和批量任务管理</p>
             </div>
 
-            {/* 标签导航 - 主 Tab + 右侧跳转链接 */}
-            <div className="flex items-center justify-between border-b border-border mb-6">
-                {/* 左侧：主 Tab */}
-                <TabPills
-                    tabs={MAIN_TABS}
-                    activeTab={activeTab}
-                    onChange={(id) => setActiveTab(id as ProcessingTab)}
-                    sticky={false}
-                    className="border-b-0 mb-0"
-                />
+            {/* 标签导航 - 整体 sticky */}
+            <div className="sticky top-0 z-10 bg-background -mx-4 px-4 md:-mx-8 md:px-8 lg:-mx-12 lg:px-12 pt-2 -mt-2">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                    {/* 左侧：主 Tab */}
+                    <div className="flex overflow-x-auto gap-2 no-scrollbar">
+                        {MAIN_TABS.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as ProcessingTab)}
+                                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition-all relative ${activeTab === tab.id
+                                    ? 'text-foreground'
+                                    : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                            >
+                                {tab.icon && <span className="w-4 h-4">{tab.icon}</span>}
+                                {tab.label}
+                                {activeTab === tab.id && (
+                                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-primary shadow-[0_0_10px_var(--primary)]" />
+                                )}
+                            </button>
+                        ))}
+                    </div>
 
-                {/* 右侧：跳转链接 */}
-                <div className="flex items-center gap-4 pr-2">
-                    {LINK_ITEMS.map((item) => (
-                        <button
-                            key={item.id}
-                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                            onClick={() => onNavigate?.(item.linkTo)}
-                        >
-                            <ExternalLink size={12} />
-                            {item.label}
-                        </button>
-                    ))}
+                    {/* 右侧：快速跳转链接 */}
+                    <QuickLinks
+                        links={QUICK_LINKS}
+                        onNavigate={(path) => onNavigate?.(path)}
+                    />
                 </div>
             </div>
 

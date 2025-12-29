@@ -51,15 +51,18 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
     }
 
     const renderContent = () => {
-        switch (activeTab) {
+        // 解析路径，支持 page:subtab 格式（如 devlog:model, presets:prompt）
+        const [page, subtab] = activeTab.split(':');
+
+        switch (page) {
             case 'dashboard':
                 return <Dashboard onNavigate={setActiveTab} />;
             case 'presets':
-                return <APIPresets />;
+                return <APIPresets initialTab={subtab as 'model' | 'prompt' | 'regex' | 'worldbook'} />;
             case 'graph':
                 return <GraphView />;
             case 'devlog':
-                return <DevLog />;
+                return <DevLog initialTab={subtab as 'runtime' | 'model'} />;
             case 'settings':
                 return <Settings />;
             case 'memory':

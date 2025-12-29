@@ -44,8 +44,12 @@ const MODULES = [
     'UI/MemoryStream',
 ];
 
-export const DevLog: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<TabType>('runtime');
+interface DevLogProps {
+    initialTab?: TabType;
+}
+
+export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
+    const [activeTab, setActiveTab] = useState<TabType>(initialTab || 'runtime');
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -143,9 +147,9 @@ export const DevLog: React.FC = () => {
                                     <ChevronDown size={12} />
                                 </button>
                                 {showLevelDropdown && (
-                                    <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-20 min-w-[100px] py-1">
+                                    <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-20 min-w-[100px] py-1 flex flex-col">
                                         <button
-                                            className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors"
+                                            className="block w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors"
                                             onClick={() => { setLevelFilter(-1); setShowLevelDropdown(false); }}
                                         >
                                             全部级别
@@ -153,7 +157,7 @@ export const DevLog: React.FC = () => {
                                         {Object.entries(LogLevelConfig).map(([level, config]) => (
                                             <button
                                                 key={level}
-                                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors"
+                                                className="block w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors"
                                                 onClick={() => { setLevelFilter(Number(level) as LogLevel); setShowLevelDropdown(false); }}
                                             >
                                                 {config.icon} {config.label}
@@ -176,11 +180,11 @@ export const DevLog: React.FC = () => {
                                     <ChevronDown size={12} />
                                 </button>
                                 {showModuleDropdown && (
-                                    <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-20 min-w-[120px] py-1 max-h-48 overflow-y-auto">
+                                    <div className="absolute top-full left-0 mt-1 bg-popover border border-border rounded-md shadow-lg z-20 min-w-[120px] py-1 max-h-48 overflow-y-auto flex flex-col">
                                         {MODULES.map((mod) => (
                                             <button
                                                 key={mod}
-                                                className="w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors"
+                                                className="block w-full text-left px-3 py-1.5 text-xs hover:bg-accent transition-colors"
                                                 onClick={() => { setModuleFilter(mod); setShowModuleDropdown(false); }}
                                             >
                                                 {mod}

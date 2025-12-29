@@ -11,6 +11,8 @@ import React, { useState, useEffect } from 'react';
 import { Play, Pause, RefreshCw, CheckCircle2, AlertCircle, Scissors, Calculator, Layers, Hash } from 'lucide-react';
 import type { TrimConfig, TrimTriggerType } from '../../core/api/types';
 import { DEFAULT_TRIM_CONFIG } from '../../core/api/types';
+import { SettingsManager } from '../../infrastructure/SettingsManager';
+import { NumberField, SwitchField } from '../APIPresets/components/FormField';
 
 interface SummarizerStatus {
     running: boolean;
@@ -54,7 +56,14 @@ export const SummaryPanel: React.FC = () => {
     const loadStatus = async () => {
         try {
             const { summarizerService } = await import('../../core/summarizer');
-            setStatus(summarizerService.getStatus());
+            // 获取当前状态
+            let currentStatus = summarizerService.getStatus();
+            // 如果 lastSummarizedFloor 为 0，可能需要从世界书初始化
+            if (currentStatus.lastSummarizedFloor === 0) {
+                await summarizerService.initializeForCurrentChat();
+                currentStatus = summarizerService.getStatus();
+            }
+            setStatus(currentStatus);
             const config = summarizerService.getConfig();
             setSettings({
                 autoEnabled: config.enabled,
@@ -62,6 +71,12 @@ export const SummaryPanel: React.FC = () => {
                 bufferSize: config.bufferSize || 3,
                 autoHide: config.autoHide || false
             });
+
+            // 加载保存的 trimConfig
+            const savedTrimConfig = SettingsManager.getSummarizerSettings()?.trimConfig;
+            if (savedTrimConfig) {
+                setTrimConfig({ ...DEFAULT_TRIM_CONFIG, ...savedTrimConfig });
+            }
 
             const { WorldInfoService } = await import('../../infrastructure/tavern/WorldInfoService');
             // 只查询已存在的世界书，不创建（避免面板打开时过早创建）
@@ -128,11 +143,27 @@ export const SummaryPanel: React.FC = () => {
     };
 
     const handleTriggerChange = (trigger: TrimTriggerType) => {
-        setTrimConfig({ ...trimConfig, trigger });
+        const newConfig = { ...trimConfig, trigger };
+        setTrimConfig(newConfig);
+        saveTrimConfig(newConfig);
     };
 
     const handleLimitChange = (key: 'tokenLimit' | 'floorLimit' | 'countLimit', value: number) => {
-        setTrimConfig({ ...trimConfig, [key]: value });
+        const newConfig = { ...trimConfig, [key]: value };
+        setTrimConfig(newConfig);
+        saveTrimConfig(newConfig);
+    };
+
+    // 保存 trimConfig 到 SettingsManager
+    const saveTrimConfig = (config: TrimConfig) => {
+        SettingsManager.setSummarizerSettings({ trimConfig: config });
+    };
+
+    // enabled 开关切换
+    const handleTrimEnabledChange = () => {
+        const newConfig = { ...trimConfig, enabled: !trimConfig.enabled };
+        setTrimConfig(newConfig);
+        saveTrimConfig(newConfig);
     };
 
     // 获取当前阈值配置
@@ -239,67 +270,51 @@ export const SummaryPanel: React.FC = () => {
                             <span className="text-sm text-foreground">自动总结</span>
                             <span className="text-xs text-muted-foreground ml-2">每 {settings.floorInterval} 楼</span>
                         </div>
-                        <button
-                            type="button"
-                            onClick={async () => {
-                                const newVal = !settings.autoEnabled;
+                        <SwitchField
+                            label=""
+                            checked={settings.autoEnabled}
+                            onChange={async (newVal) => {
                                 setSettings(s => ({ ...s, autoEnabled: newVal }));
                                 const { summarizerService } = await import('../../core/summarizer');
                                 summarizerService.updateConfig({ enabled: newVal });
                             }}
-                            className={`relative w-9 h-5 rounded-full transition-colors ${settings.autoEnabled ? 'bg-primary' : 'bg-input'}`}
-                        >
-                            <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${settings.autoEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                        </button>
+                        />
                     </div>
 
                     {settings.autoEnabled && (
-                        <div>
-                            <div className="flex justify-between text-xs text-muted-foreground mb-4">
-                                <span>触发间隔</span>
-                                <span>{settings.floorInterval} 楼</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={5}
-                                max={100}
-                                step={5}
+                        <div className="mt-4">
+                            <NumberField
+                                label="触发间隔 (楼层)"
                                 value={settings.floorInterval}
-                                onChange={async (e) => {
-                                    const val = Number(e.target.value);
+                                onChange={async (val) => {
                                     setSettings(s => ({ ...s, floorInterval: val }));
                                     const { summarizerService } = await import('../../core/summarizer');
                                     summarizerService.updateConfig({ floorInterval: val });
                                 }}
-                                className="w-full h-1.5 bg-secondary rounded-full appearance-none cursor-pointer range-thumb-sm"
+                                min={5}
+                                max={100}
+                                step={5}
+                                showSlider={true}
+                                suffix=" 楼"
                             />
-                            <span>1</span>
-                            <span>25</span>
-                            <span>50</span>
                         </div>
                     )}
 
                     <div className="pt-4 border-t border-border/30 grid grid-cols-1 gap-4 text-xs">
-                        <div>
-                            <span className="block text-muted-foreground mb-1.5">缓冲楼层 (Buffer)</span>
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    min="0"
-                                    max="20"
-                                    value={settings.bufferSize}
-                                    onChange={(e) => {
-                                        const val = Number(e.target.value);
-                                        setSettings(s => ({ ...s, bufferSize: val }));
-                                        import('../../core/summarizer').then(({ summarizerService }) => {
-                                            summarizerService.updateConfig({ bufferSize: val });
-                                        });
-                                    }}
-                                    className="w-full bg-input border border-border rounded px-2 py-1 text-right font-mono"
-                                />
-                                <span className="text-muted-foreground/60 w-6">楼</span>
-                            </div>
-                        </div>
+                        <NumberField
+                            label="缓冲楼层 (Buffer)"
+                            value={settings.bufferSize}
+                            onChange={(val) => {
+                                setSettings(s => ({ ...s, bufferSize: val }));
+                                import('../../core/summarizer').then(({ summarizerService }) => {
+                                    summarizerService.updateConfig({ bufferSize: val });
+                                });
+                            }}
+                            min={0}
+                            max={20}
+                            showSlider={false}
+                            suffix=" 楼"
+                        />
                     </div>
 
                     <div className="flex items-center justify-between mt-2">
@@ -307,19 +322,16 @@ export const SummaryPanel: React.FC = () => {
                             <span className="text-sm">自动隐藏</span>
                             <span className="text-[10px] text-muted-foreground">处理完后隐藏原文</span>
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                const newVal = !settings.autoHide;
+                        <SwitchField
+                            label=""
+                            checked={settings.autoHide}
+                            onChange={(newVal) => {
                                 setSettings(s => ({ ...s, autoHide: newVal }));
                                 import('../../core/summarizer').then(({ summarizerService }) => {
                                     summarizerService.updateConfig({ autoHide: newVal });
                                 });
                             }}
-                            className={`relative w-9 h-5 rounded-full transition-colors ${settings.autoHide ? 'bg-primary' : 'bg-input'}`}
-                        >
-                            <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${settings.autoHide ? 'translate-x-4' : 'translate-x-0'}`} />
-                        </button>
+                        />
                     </div>
                 </div>
 
@@ -338,20 +350,21 @@ export const SummaryPanel: React.FC = () => {
             </section>
 
             {/* ========== 右栏：精简配置 - 无框流体设计 ========== */}
-            <section className="space-y-6 lg:border-l lg:border-border/30 lg:pl-8">
+            <section className="space-y-6 lg:border-l lg:border-border/30 lg:pl-8 relative">
+                {/* 移动端分割线 (垂直布局时的水平线) */}
+                <div className="lg:hidden w-full h-px bg-border/30 my-2" />
+                {/* 桌面端分割线 (水平布局时的垂直线) - 使用绝对定位或边框 */}
                 {/* 标题 + 开关 */}
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-sm font-medium text-foreground">精简配置</h2>
                         <p className="text-xs text-muted-foreground mt-0.5">将多次总结压缩为更简洁的摘要</p>
                     </div>
-                    <button
-                        type="button"
-                        onClick={() => setTrimConfig(c => ({ ...c, enabled: !c.enabled }))}
-                        className={`relative w-9 h-5 rounded-full transition-colors ${trimConfig.enabled ? 'bg-primary' : 'bg-input'}`}
-                    >
-                        <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${trimConfig.enabled ? 'translate-x-4' : 'translate-x-0'}`} />
-                    </button>
+                    <SwitchField
+                        label=""
+                        checked={trimConfig.enabled}
+                        onChange={handleTrimEnabledChange}
+                    />
                 </div>
 
                 <div className={`space-y-6 transition-opacity ${trimConfig.enabled ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
@@ -381,31 +394,20 @@ export const SummaryPanel: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 阈值设置 - 行内布局 */}
-                    <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">{limitConfig.label}</span>
-                            <span className="text-xs font-mono text-primary">{limitConfig.value}</span>
-                        </div>
-                        <input
-                            type="range"
-                            min={limitConfig.min}
-                            max={limitConfig.max}
-                            step={limitConfig.step}
-                            value={limitConfig.value}
-                            onChange={(e) => {
-                                const key = trimConfig.trigger === 'token' ? 'tokenLimit'
-                                    : trimConfig.trigger === 'floor' ? 'floorLimit' : 'countLimit';
-                                handleLimitChange(key, Number(e.target.value));
-                            }}
-                            className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
-                        />
-                        <div className="flex justify-between text-[10px] text-muted-foreground/60 font-mono">
-                            <span>{limitConfig.min}</span>
-                            <span>{Math.round((limitConfig.min + limitConfig.max) / 2)}</span>
-                            <span>{limitConfig.max}</span>
-                        </div>
-                    </div>
+                    {/* 阈值设置 - 使用极简 NumberField */}
+                    <NumberField
+                        label={limitConfig.label}
+                        value={limitConfig.value}
+                        onChange={(val) => {
+                            const key = trimConfig.trigger === 'token' ? 'tokenLimit'
+                                : trimConfig.trigger === 'floor' ? 'floorLimit' : 'countLimit';
+                            handleLimitChange(key, val);
+                        }}
+                        min={limitConfig.min}
+                        max={limitConfig.max}
+                        step={limitConfig.step}
+                        showSlider={true}
+                    />
 
                     {/* 执行按钮 */}
                     <button

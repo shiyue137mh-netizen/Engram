@@ -160,4 +160,21 @@ export class SettingsManager {
         const templates = this.get('promptTemplates') || [];
         return templates.find((t: PromptTemplate) => t.category === category && t.enabled) || null;
     }
+
+    /**
+     * 获取总结器设置
+     * @returns summarizerConfig 对象
+     */
+    public static getSummarizerSettings(): any {
+        return this.get('summarizerConfig') || {};
+    }
+
+    /**
+     * 设置总结器设置（合并更新）
+     * @param config 要合并的配置对象
+     */
+    public static setSummarizerSettings(config: Partial<any>): void {
+        const current = this.getSummarizerSettings();
+        this.set('summarizerConfig', { ...current, ...config });
+    }
 }

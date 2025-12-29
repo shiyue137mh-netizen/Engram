@@ -34,11 +34,12 @@ const MODEL_SUB_TABS: { id: ModelSubTabType; label: string; icon: React.ElementT
 
 interface APIPresetsProps {
     onNavigate?: (path: string) => void;
+    initialTab?: MainTabType;
 }
 
-export const APIPresets: React.FC<APIPresetsProps> = () => {
+export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
     // Tab 状态（UI 专用）
-    const [mainTab, setMainTab] = useState<MainTabType>('model');
+    const [mainTab, setMainTab] = useState<MainTabType>(initialTab || 'model');
     const [modelSubTab, setModelSubTab] = useState<ModelSubTabType>('llm');
 
     // 使用 Hook 管理业务状态
