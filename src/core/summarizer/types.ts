@@ -24,6 +24,10 @@ export interface SummarizerConfig {
     promptTemplateId: string | null;
     /** 使用的 LLM 预设 ID（null 表示使用默认） */
     llmPresetId: string | null;
+    /** 保留末尾不处理的楼层数（缓冲） */
+    bufferSize: number;
+    /** 是否自动隐藏已总结的楼层 */
+    autoHide: boolean;
 }
 
 /** 默认配置 */
@@ -35,6 +39,8 @@ export const DEFAULT_SUMMARIZER_CONFIG: SummarizerConfig = {
     previewEnabled: true,
     promptTemplateId: null, // 使用内置默认模板
     llmPresetId: null,      // 使用默认预设
+    bufferSize: 3,          // 默认保留 3 楼不处理
+    autoHide: false,        // 默认不自动隐藏
 };
 
 /** 总结结果 */

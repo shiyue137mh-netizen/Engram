@@ -7,12 +7,27 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './styles/main.css';
 import App from './App';
-import { initializeEngram, setReactRenderer } from './infrastructure/STBridge';
+import { initializeEngram, setReactRenderer, setGlobalRenderer } from './infrastructure/STBridge';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { RevisionModal } from './views/components/RevisionModal';
 
 // 设置 React 渲染器
 setReactRenderer((container: HTMLElement, onClose: () => void) => {
     const root = ReactDOM.createRoot(container);
     root.render(React.createElement(App, { onClose }));
+    return root;
+});
+
+// 设置全局渲染器 (RevisionModal etc)
+setGlobalRenderer((container: HTMLElement) => {
+    const root = ReactDOM.createRoot(container);
+    root.render(
+        <ThemeProvider>
+            <div className="pointer-events-auto">
+                <RevisionModal />
+            </div>
+        </ThemeProvider>
+    );
     return root;
 });
 

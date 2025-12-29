@@ -64,6 +64,21 @@ export function getCurrentChat(): STMessage[] {
 }
 
 /**
+ * 获取当前聊天记录 (别名)
+ */
+export function getChatMessages(): STMessage[] {
+    return getCurrentChat();
+}
+
+/**
+ * 获取当前聊天 ID
+ */
+export function getCurrentChatId(): string | null {
+    const ctx = getSTContext();
+    return ctx?.chatId || null;
+}
+
+/**
  * 获取当前角色信息
  */
 export function getCurrentCharacter(): { name: string; id: number } | null {

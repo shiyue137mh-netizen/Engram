@@ -1,8 +1,11 @@
 /**
  * RegexProcessor - 正则处理器
  * 
- * 提供可配置的正则规则，用于清洗聊天内容
+ * 提供可配置的正则规则，用于清洗聊天内容和 LLM 输出
  */
+
+/** 正则规则作用域 */
+export type RegexScope = 'input' | 'output' | 'both';
 
 /** 正则规则定义 */
 export interface RegexRule {
@@ -18,11 +21,20 @@ export interface RegexRule {
     enabled: boolean;
     /** 正则标志 (g, i, m, s) */
     flags: string;
+    /** 作用域：input=清洗发给LLM的内容，output=清洗LLM返回的内容，both=两者都应用 */
+    scope: RegexScope;
     /** 描述 */
     description?: string;
 }
 
-/** 默认正则规则 */
+/** 作用域选项 */
+export const REGEX_SCOPE_OPTIONS: { value: RegexScope; label: string; description: string }[] = [
+    { value: 'input', label: '输入', description: '清洗发给 LLM 的聊天内容' },
+    { value: 'output', label: '输出', description: '清洗 LLM 返回的内容（预览/写入前）' },
+    { value: 'both', label: '两者', description: '输入和输出都应用' },
+];
+
+/** 默认正则规则 - 只保留 think 修剪 */
 export const DEFAULT_REGEX_RULES: RegexRule[] = [
     {
         id: 'remove-think',
@@ -31,43 +43,8 @@ export const DEFAULT_REGEX_RULES: RegexRule[] = [
         replacement: '',
         enabled: true,
         flags: 'gi',
-        description: '移除 <think>...</think> 标签及其内容',
-    },
-    {
-        id: 'remove-inner-monologue',
-        name: '移除内心独白',
-        pattern: '<inner_monologue>[\\s\\S]*?</inner_monologue>',
-        replacement: '',
-        enabled: true,
-        flags: 'gi',
-        description: '移除 <inner_monologue>...</inner_monologue> 标签',
-    },
-    {
-        id: 'remove-system-note',
-        name: '移除系统标记',
-        pattern: '\\[System:.*?\\]',
-        replacement: '',
-        enabled: true,
-        flags: 'gi',
-        description: '移除 [System:...] 格式的系统标记',
-    },
-    {
-        id: 'remove-ooc',
-        name: '移除 OOC 标记',
-        pattern: '\\(OOC:.*?\\)',
-        replacement: '',
-        enabled: false,
-        flags: 'gi',
-        description: '移除 (OOC:...) 格式的元对话',
-    },
-    {
-        id: 'remove-empty-lines',
-        name: '合并空行',
-        pattern: '\\n{3,}',
-        replacement: '\n\n',
-        enabled: true,
-        flags: 'g',
-        description: '将连续3个以上的换行合并为2个',
+        scope: 'output',
+        description: '移除 LLM 输出中的 <think>...</think> 思考过程',
     },
 ];
 
@@ -83,12 +60,19 @@ export class RegexProcessor {
 
     /**
      * 应用所有启用的规则处理文本
+     * @param text 要处理的文本
+     * @param scope 可选，只应用特定作用域的规则
      */
-    process(text: string): string {
+    process(text: string, scope?: RegexScope): string {
         let result = text;
 
         for (const rule of this.rules) {
             if (!rule.enabled) continue;
+
+            // 如果指定了 scope，只应用匹配的规则
+            if (scope && rule.scope !== scope && rule.scope !== 'both') {
+                continue;
+            }
 
             try {
                 const regex = new RegExp(rule.pattern, rule.flags);

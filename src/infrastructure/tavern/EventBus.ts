@@ -43,6 +43,8 @@ export const TavernEventType = {
     // 角色事件
     CHARACTER_EDITED: 'character_edited',
     CHARACTER_DELETED: 'characterDeleted',
+    // 扩展事件
+    ENGRAM_REQUEST_REVISION: 'engram:request_revision',
 } as const;
 
 export type TavernEventTypeKey = keyof typeof TavernEventType;
@@ -144,6 +146,19 @@ export class EventBus {
 
         // 从本地存储移除
         this.listeners.get(event)?.delete(callback);
+    }
+
+    /**
+     * 触发事件
+     * @param event 事件名称
+     * @param args 参数
+     */
+    static emit(event: TavernEventTypeValue | string, ...args: unknown[]): void {
+        const eventSource = getEventSource();
+
+        if (eventSource) {
+            eventSource.emit(event, ...args);
+        }
     }
 
     /**

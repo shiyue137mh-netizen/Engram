@@ -58,6 +58,9 @@ export async function initializeEngram(): Promise<void> {
     // 运行诊断
     // import('../diagnose').then(({ runDiagnostics }) => runDiagnostics());
 
+    // 挂载全局悬浮层 (用于修订弹窗等)
+    mountGlobalOverlay();
+
     Logger.success('STBridge', 'Engram 初始化完成 - Where memories leave their trace.');
 }
 
@@ -134,6 +137,44 @@ let reactRenderer: ReactRenderer | null = null;
  */
 export function setReactRenderer(renderer: ReactRenderer): void {
     reactRenderer = renderer;
+    reactRenderer = renderer;
+}
+
+let globalRenderer: ReactRenderer | null = null;
+let globalRoot: any = null;
+
+/**
+ * 设置全局渲染器（用于悬浮窗等）
+ */
+export function setGlobalRenderer(renderer: ReactRenderer): void {
+    globalRenderer = renderer;
+}
+
+/**
+ * 挂载全局悬浮层
+ */
+function mountGlobalOverlay(): void {
+    if (!globalRenderer) {
+        console.warn('[Engram] Global renderer not ready');
+        return;
+    }
+
+    const overlayId = 'engram-global-overlay';
+    let overlay = document.getElementById(overlayId);
+
+    // 如果已存在但未挂载，则复用
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = overlayId;
+        overlay.className = 'pointer-events-none fixed inset-0 z-[11000]'; // 极高层级，不妨碍交互
+        document.body.appendChild(overlay);
+    }
+
+    // 挂载
+    if (!globalRoot) {
+        globalRoot = globalRenderer(overlay, () => { }); // global overlay usually doesn't need onClose
+        console.log('[Engram] Global overlay mounted');
+    }
 }
 
 /**
@@ -208,4 +249,31 @@ function setupEventListeners(): void {
     // eventSource?.addEventListener('chatChanged', () => {
     //     EventBus.emit({ type: 'CHAT_CHANGED', payload: {} });
     // });
+}
+
+/**
+ * 隐藏指定范围的消息
+ * @param start 起始楼层
+ * @param end 结束楼层
+ */
+export async function hideMessageRange(start: number, end: number): Promise<void> {
+    try {
+        const importPath = '/scripts/chats.js';
+        // @ts-expect-error - 动态导入酒馆模块
+        const chatsModule = await (new Function('path', 'return import(path)'))(importPath);
+
+        if (chatsModule && typeof chatsModule.hideChatMessageRange === 'function') {
+            // start - 1 / end - 1 ? 
+            // 注意：酒馆的 messageId 通常是 0-indexed (array index)，但楼层显示通常是 1-indexed
+            // 我们需要确认一下 Engram 使用的 'floor' 是什么。
+            // 假设 Engram 这里的 floor 是 0-indexed 的 message index (matches context.chat length)
+            // 根据之前的 SummarizerService, sourceFloors 似乎就是 message index。
+            await chatsModule.hideChatMessageRange(start, end, false); // unhide=false -> hide
+            console.log(`[Engram] Hidden messages range: ${start}-${end}`);
+        } else {
+            console.warn('[Engram] hideChatMessageRange not found in chats.js');
+        }
+    } catch (e) {
+        console.error('[Engram] Failed to hide messages:', e);
+    }
 }

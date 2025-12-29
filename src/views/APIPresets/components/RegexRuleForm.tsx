@@ -3,8 +3,8 @@
  */
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, CheckCircle, Play, Info } from 'lucide-react';
-import type { RegexRule } from '../../../core/summarizer/RegexProcessor';
-import { RegexProcessor } from '../../../core/summarizer/RegexProcessor';
+import type { RegexRule, RegexScope } from '../../../core/summarizer/RegexProcessor';
+import { RegexProcessor, REGEX_SCOPE_OPTIONS } from '../../../core/summarizer/RegexProcessor';
 
 interface RegexRuleFormProps {
     rule: RegexRule;
@@ -77,6 +77,29 @@ export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) 
                         placeholder="简短描述此规则的用途"
                     />
                 </div>
+
+                {/* 作用域选择 */}
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-sm font-medium text-foreground">作用域</label>
+                    <div className="flex gap-2">
+                        {REGEX_SCOPE_OPTIONS.map((opt) => (
+                            <button
+                                key={opt.value}
+                                className={`flex-1 px-3 py-2 text-sm rounded-md border transition-colors ${rule.scope === opt.value
+                                        ? 'bg-primary-20 border-primary text-primary'
+                                        : 'bg-background border-border text-muted-foreground hover:bg-muted'
+                                    }`}
+                                onClick={() => onChange({ scope: opt.value })}
+                                title={opt.description}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        {REGEX_SCOPE_OPTIONS.find(o => o.value === rule.scope)?.description}
+                    </p>
+                </div>
             </div>
 
             {/* 正则表达式 */}
@@ -122,8 +145,8 @@ export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) 
                             <button
                                 key={opt.value}
                                 className={`px-2 py-1 text-xs rounded-md border transition-colors ${rule.flags.includes(opt.value)
-                                        ? 'bg-primary-20 border-primary text-primary'
-                                        : 'bg-background border-border text-muted-foreground hover:bg-muted'
+                                    ? 'bg-primary-20 border-primary text-primary'
+                                    : 'bg-background border-border text-muted-foreground hover:bg-muted'
                                     }`}
                                 onClick={() => handleFlagToggle(opt.value)}
                                 title={opt.description}
@@ -166,8 +189,8 @@ export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) 
             <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm text-blue-400">
                 <Info size={16} className="shrink-0 mt-0.5" />
                 <div>
-                    正则规则会在发送给 LLM 之前应用于聊天内容，用于清理干扰信息。
-                    常用规则如移除思维链 <code className="bg-blue-500/20 px-1 rounded">&lt;think&gt;</code> 标签等。
+                    <strong>输入</strong>：清洗发给 LLM 的聊天内容。
+                    <strong>输出</strong>：清洗 LLM 返回的内容（如移除 <code className="bg-blue-500/20 px-1 rounded">&lt;think&gt;</code>）。
                 </div>
             </div>
         </div>

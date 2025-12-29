@@ -60,6 +60,7 @@ export const APIPresets: React.FC<APIPresetsProps> = () => {
         deleteTemplate,
         updateVectorConfig,
         updateRerankConfig,
+        updateWorldbookConfig,
         selectRule,
         addRule,
         updateRule,
@@ -217,9 +218,7 @@ export const APIPresets: React.FC<APIPresetsProps> = () => {
                     <div className="max-w-2xl py-4">
                         <WorldbookConfigForm
                             config={settings.worldbookConfig}
-                            onChange={(config) => {
-                                // 直接使用 settings 更新
-                            }}
+                            onChange={updateWorldbookConfig}
                         />
                     </div>
                 )}

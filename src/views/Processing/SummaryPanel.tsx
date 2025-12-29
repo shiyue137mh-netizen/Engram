@@ -23,7 +23,10 @@ interface SummarizerStatus {
 
 interface SummarizerSettings {
     autoEnabled: boolean;
+    autoEnabled: boolean;
     floorInterval: number;
+    bufferSize: number;
+    autoHide: boolean;
 }
 
 const TRIGGER_OPTIONS: { id: TrimTriggerType; label: string; icon: React.ElementType }[] = [
@@ -38,6 +41,8 @@ export const SummaryPanel: React.FC = () => {
     const [settings, setSettings] = useState<SummarizerSettings>({
         autoEnabled: true,
         floorInterval: 10,
+        bufferSize: 3,
+        autoHide: false,
     });
     const [trimConfig, setTrimConfig] = useState<TrimConfig>({ ...DEFAULT_TRIM_CONFIG });
     const [worldbookTokens, setWorldbookTokens] = useState<number>(0);
@@ -50,12 +55,22 @@ export const SummaryPanel: React.FC = () => {
         try {
             const { summarizerService } = await import('../../core/summarizer');
             setStatus(summarizerService.getStatus());
+            const config = summarizerService.getConfig();
+            setSettings({
+                autoEnabled: config.enabled,
+                floorInterval: config.floorInterval,
+                bufferSize: config.bufferSize || 3,
+                autoHide: config.autoHide || false
+            });
 
             const { WorldInfoService } = await import('../../infrastructure/tavern/WorldInfoService');
-            const content = await WorldInfoService.getActivatedWorldInfo();
-            if (content) {
-                const tokens = await WorldInfoService.countTokens(content);
+            // 只查询已存在的世界书，不创建（避免面板打开时过早创建）
+            const worldbookName = WorldInfoService.findExistingWorldbook();
+            if (worldbookName) {
+                const tokens = await WorldInfoService.countSummaryTokens(worldbookName);
                 setWorldbookTokens(tokens);
+            } else {
+                setWorldbookTokens(0);
             }
         } catch (e) {
             console.error('加载 Summarizer 状态失败:', e);
@@ -90,6 +105,23 @@ export const SummaryPanel: React.FC = () => {
             await loadStatus();
         } catch (e) {
             console.error('触发失败:', e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 重置进度功能
+    const handleReset = async () => {
+        if (!confirm('确定要重置总结进度吗？这会导致扫描所有历史消息。')) return;
+        setLoading(true);
+        try {
+            const { summarizerService } = await import('../../core/summarizer');
+            // 这是一个 hack，通过设置 lastSummarizedFloor 为 0 来重置
+            // 理想情况下应该在 service 中暴露 reset 方法
+            await summarizerService.setLastSummarizedFloor(0);
+            await loadStatus();
+        } catch (e) {
+            console.error('重置失败:', e);
         } finally {
             setLoading(false);
         }
@@ -162,7 +194,7 @@ export const SummaryPanel: React.FC = () => {
 
                             {/* 第三层级：信息 - 世界书 Token */}
                             <div className="pt-4 border-t border-border/30">
-                                <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider block mb-1">世界书 Token</span>
+                                <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider block mb-1">已总结内容 Token (Engram)</span>
                                 <div className="text-sm font-mono text-primary/80">{worldbookTokens.toLocaleString()}</div>
                             </div>
                         </div>
@@ -200,7 +232,7 @@ export const SummaryPanel: React.FC = () => {
                     </button>
                 </div>
 
-                {/* 总结设置 - 简化 */}
+                {/* 总结设置 */}
                 <div className="pt-6 border-t border-border/50 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
@@ -209,7 +241,12 @@ export const SummaryPanel: React.FC = () => {
                         </div>
                         <button
                             type="button"
-                            onClick={() => setSettings(s => ({ ...s, autoEnabled: !s.autoEnabled }))}
+                            onClick={async () => {
+                                const newVal = !settings.autoEnabled;
+                                setSettings(s => ({ ...s, autoEnabled: newVal }));
+                                const { summarizerService } = await import('../../core/summarizer');
+                                summarizerService.updateConfig({ enabled: newVal });
+                            }}
                             className={`relative w-9 h-5 rounded-full transition-colors ${settings.autoEnabled ? 'bg-primary' : 'bg-input'}`}
                         >
                             <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${settings.autoEnabled ? 'translate-x-4' : 'translate-x-0'}`} />
@@ -218,21 +255,85 @@ export const SummaryPanel: React.FC = () => {
 
                     {settings.autoEnabled && (
                         <div>
+                            <div className="flex justify-between text-xs text-muted-foreground mb-4">
+                                <span>触发间隔</span>
+                                <span>{settings.floorInterval} 楼</span>
+                            </div>
                             <input
                                 type="range"
-                                min="1"
-                                max="50"
+                                min={5}
+                                max={100}
+                                step={5}
                                 value={settings.floorInterval}
-                                onChange={(e) => setSettings(s => ({ ...s, floorInterval: Number(e.target.value) }))}
-                                className="w-full h-1 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
+                                onChange={async (e) => {
+                                    const val = Number(e.target.value);
+                                    setSettings(s => ({ ...s, floorInterval: val }));
+                                    const { summarizerService } = await import('../../core/summarizer');
+                                    summarizerService.updateConfig({ floorInterval: val });
+                                }}
+                                className="w-full h-1.5 bg-secondary rounded-full appearance-none cursor-pointer range-thumb-sm"
                             />
-                            <div className="flex justify-between text-[10px] text-muted-foreground/60 mt-1 font-mono">
-                                <span>1</span>
-                                <span>25</span>
-                                <span>50</span>
-                            </div>
+                            <span>1</span>
+                            <span>25</span>
+                            <span>50</span>
                         </div>
                     )}
+
+                    <div className="pt-4 border-t border-border/30 grid grid-cols-1 gap-4 text-xs">
+                        <div>
+                            <span className="block text-muted-foreground mb-1.5">缓冲楼层 (Buffer)</span>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="20"
+                                    value={settings.bufferSize}
+                                    onChange={(e) => {
+                                        const val = Number(e.target.value);
+                                        setSettings(s => ({ ...s, bufferSize: val }));
+                                        import('../../core/summarizer').then(({ summarizerService }) => {
+                                            summarizerService.updateConfig({ bufferSize: val });
+                                        });
+                                    }}
+                                    className="w-full bg-input border border-border rounded px-2 py-1 text-right font-mono"
+                                />
+                                <span className="text-muted-foreground/60 w-6">楼</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2">
+                        <div className="flex flex-col">
+                            <span className="text-sm">自动隐藏</span>
+                            <span className="text-[10px] text-muted-foreground">处理完后隐藏原文</span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const newVal = !settings.autoHide;
+                                setSettings(s => ({ ...s, autoHide: newVal }));
+                                import('../../core/summarizer').then(({ summarizerService }) => {
+                                    summarizerService.updateConfig({ autoHide: newVal });
+                                });
+                            }}
+                            className={`relative w-9 h-5 rounded-full transition-colors ${settings.autoHide ? 'bg-primary' : 'bg-input'}`}
+                        >
+                            <span className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${settings.autoHide ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* 底部重置按钮区 */}
+                <div className="pt-4 border-t border-border/30 flex justify-end">
+                    <button
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 border border-red-200 rounded transition-colors"
+                        onClick={handleReset}
+                        disabled={loading}
+                        title="重置进度 (重新扫描历史)"
+                    >
+                        <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+                        重置所有进度
+                    </button>
                 </div>
             </section>
 

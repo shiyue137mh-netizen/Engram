@@ -12,6 +12,8 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { WelcomeAnimation } from './views/components/WelcomeAnimation';
 import { SettingsManager } from './infrastructure/SettingsManager';
 
+
+
 interface AppProps {
     onClose: () => void;
 }

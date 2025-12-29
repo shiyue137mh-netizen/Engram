@@ -89,12 +89,18 @@ async function getTokenCountAsync(text: string): Promise<number> {
 
 /**
  * 获取 TavernHelper API (如果可用)
+ * 类型基于 the_world 插件验证过的 API
  */
 function getTavernHelper(): {
-    getOrCreateChatWorldbook?: (mode: 'current' | 'character') => Promise<string>;
+    // 世界书操作
+    createWorldbook?: (name: string) => Promise<void>;
     getWorldbook?: (name: string) => Promise<unknown[]>;
     createWorldbookEntries?: (name: string, entries: unknown[]) => Promise<void>;
-    replaceWorldbook?: (name: string, entries: unknown[]) => Promise<void>;
+    updateWorldbookWith?: (name: string, updater: (entries: unknown[]) => unknown[]) => Promise<void>;
+    deleteWorldbookEntries?: (name: string, filter: (entry: unknown) => boolean) => Promise<void>;
+    // 角色世界书绑定
+    getCharWorldbookNames?: (mode: 'current' | 'all') => { primary?: string; additional: string[] } | null;
+    rebindCharWorldbooks?: (mode: 'current', books: { primary?: string; additional: string[] }) => Promise<void>;
 } | null {
     try {
         // @ts-expect-error - TavernHelper 全局对象
@@ -118,6 +124,26 @@ export class WorldInfoService {
     }
 
     /**
+     * 计算特定世界书中所有"剧情摘要"条目的 Token 总和
+     * 仅计算已启用的条目
+     * @param worldbookName 世界书名称
+     */
+    static async countSummaryTokens(worldbookName: string): Promise<number> {
+        const entries = await this.getEntries(worldbookName);
+        // 筛选出 enabled 且名字以 "剧情摘要_" 开头的条目
+        // 或者所有 Engram 创建的条目
+        const summaryEntries = entries.filter(e =>
+            e.enabled && e.name.startsWith('剧情摘要_')
+        );
+
+        if (summaryEntries.length === 0) return 0;
+
+        const contents = summaryEntries.map(e => e.content);
+        const tokens = await Promise.all(contents.map(c => this.countTokens(c)));
+        return tokens.reduce((sum, t) => sum + t, 0);
+    }
+
+    /**
      * 批量计算多段文本的 Token 数量
      * @param texts 文本数组
      */
@@ -126,53 +152,98 @@ export class WorldInfoService {
     }
 
     /**
-     * 获取当前聊天的绑定世界书名称
-     * 使用自定义命名规则：角色name2_Engram_聊天文件名
+     * 查找已绑定的 Engram 世界书（不创建）
+     * 用于面板显示等只读场景
      */
-    static async getChatWorldbook(): Promise<string | null> {
+    static findExistingWorldbook(): string | null {
         try {
-            // 获取上下文信息用于生成自定义名称
-            // @ts-expect-error - SillyTavern 全局对象
-            const context = window.SillyTavern?.getContext?.();
-            if (!context) {
-                console.warn('[Engram] WorldInfoService: 无法获取 ST 上下文');
-                // 回退到 TavernHelper 默认行为
-                const helper = getTavernHelper();
-                if (helper?.getOrCreateChatWorldbook) {
-                    return await helper.getOrCreateChatWorldbook('current');
-                }
+            const helper = getTavernHelper();
+            if (!helper?.getCharWorldbookNames) {
                 return null;
             }
 
-            const characterName = context.name2 || 'Unknown';
-            // chatId 通常就是聊天文件名（不含扩展名）
-            const chatFileName = context.chatId || 'chat';
+            const charBooks = helper.getCharWorldbookNames('current');
+            if (charBooks) {
+                const allBooks = [...(charBooks.additional || []), charBooks.primary].filter(Boolean);
+                const existingBook = allBooks.find(name => name?.startsWith('[Engram]'));
+                return existingBook || null;
+            }
+            return null;
+        } catch {
+            return null;
+        }
+    }
 
-            // 生成自定义世界书名称：角色名_Engram_聊天文件名
-            const worldbookName = `${characterName}_Engram_${chatFileName}`
-                .replace(/[<>:"/\\|?*]/g, '_')  // 移除非法文件名字符
-                .replace(/\s+/g, '_')           // 空格转下划线
-                .substring(0, 100);             // 限制长度
+    /**
+     * 获取或创建当前角色的 Engram 世界书
+     * 如果不存在则创建并绑定到角色
+     * **仅在需要写入时调用**
+     * 
+     * 学习自 the_world 插件的成功实现：
+     * 1. TavernHelper.createWorldbook() 创建世界书
+     * 2. TavernHelper.getCharWorldbookNames() 获取角色世界书配置
+     * 3. TavernHelper.rebindCharWorldbooks() 绑定到角色
+     */
+    static async getOrCreateWorldbook(): Promise<string | null> {
+        try {
+            // 先检查是否已存在
+            const existing = this.findExistingWorldbook();
+            if (existing) {
+                console.debug('[Engram] WorldInfoService: 使用已绑定的世界书', existing);
+                return existing;
+            }
 
-            console.debug('[Engram] WorldInfoService: 使用世界书名称', worldbookName);
-
-            // 确保世界书存在（通过创建空条目来初始化）
             const helper = getTavernHelper();
-            if (helper?.createWorldbookEntries) {
-                try {
-                    // createWorldbookEntries 会自动创建不存在的世界书
-                    // 传入空数组不会添加条目，只是确保世界书存在
-                    await helper.createWorldbookEntries(worldbookName, []);
-                } catch (e) {
-                    console.debug('[Engram] 世界书可能已存在:', e);
+            if (!helper) {
+                console.warn('[Engram] WorldInfoService: TavernHelper 不可用');
+                return null;
+            }
+
+            // @ts-expect-error - SillyTavern 全局对象
+            const context = window.SillyTavern?.getContext?.();
+            if (!context?.name2 || context.name2 === 'SillyTavern System') {
+                console.warn('[Engram] WorldInfoService: 无效的角色上下文');
+                return null;
+            }
+
+            const charName = context.name2;
+            const worldbookName = `[Engram] ${charName}`;
+
+            console.debug('[Engram] WorldInfoService: 创建新世界书', worldbookName);
+
+            // 创建新世界书
+            if (helper.createWorldbook) {
+                await helper.createWorldbook(worldbookName);
+            } else {
+                console.error('[Engram] WorldInfoService: TavernHelper.createWorldbook 不可用');
+                return null;
+            }
+
+            // 绑定到角色
+            if (helper.getCharWorldbookNames && helper.rebindCharWorldbooks) {
+                const currentBooks = helper.getCharWorldbookNames('current');
+                if (currentBooks) {
+                    currentBooks.additional.push(worldbookName);
+                    await helper.rebindCharWorldbooks('current', currentBooks);
+                    console.info('[Engram] WorldInfoService: 世界书已绑定到角色', {
+                        character: charName,
+                        worldbook: worldbookName
+                    });
                 }
             }
 
             return worldbookName;
         } catch (e) {
-            console.error('[Engram] WorldInfoService: 获取聊天世界书失败', e);
+            console.error('[Engram] WorldInfoService: 获取/创建世界书失败', e);
             return null;
         }
+    }
+
+    /**
+     * @deprecated 使用 getOrCreateWorldbook() 替代
+     */
+    static async getChatWorldbook(): Promise<string | null> {
+        return this.getOrCreateWorldbook();
     }
 
     /**
@@ -211,10 +282,57 @@ export class WorldInfoService {
 
     /**
      * 创建新的世界书条目
+     * 使用 TavernHelper API（与 the_world 插件保持一致）
      * @param worldbookName 世界书名称
      * @param params 条目参数
      */
     static async createEntry(worldbookName: string, params: CreateWorldInfoEntryParams): Promise<boolean> {
+        try {
+            const helper = getTavernHelper();
+            if (!helper?.createWorldbookEntries) {
+                console.error('[Engram] WorldInfoService: TavernHelper.createWorldbookEntries 不可用');
+                return false;
+            }
+
+            // 构建条目数据，格式与 the_world 插件一致
+            const entryData = {
+                name: params.name,
+                content: params.content,
+                comment: params.name,  // 用作备注
+                strategy: {
+                    type: params.constant ? 'constant' : 'selective',
+                    keys: params.keys || [],
+                },
+                position: {
+                    type: params.position || 'before_character_definition',
+                    order: params.order ?? 100,
+                    depth: params.depth ?? 4,
+                },
+            };
+
+            console.debug('[Engram] WorldInfoService: 创建条目', {
+                worldbook: worldbookName,
+                name: params.name,
+                contentLength: params.content.length
+            });
+
+            await helper.createWorldbookEntries(worldbookName, [entryData]);
+
+            console.info('[Engram] WorldInfoService: 条目已保存到世界书', worldbookName);
+            return true;
+        } catch (e) {
+            console.error('[Engram] WorldInfoService: 创建世界书条目失败', e);
+            return false;
+        }
+    }
+
+    /**
+     * 更新世界书条目
+     * @param worldbookName 世界书名称
+     * @param uid 条目 UID
+     * @param updates 更新内容
+     */
+    static async updateEntry(worldbookName: string, uid: number, updates: Partial<WorldInfoEntry>): Promise<boolean> {
         const helper = getTavernHelper();
         if (!helper?.createWorldbookEntries) {
             console.warn('[Engram] WorldInfoService: TavernHelper 不可用');
@@ -222,34 +340,25 @@ export class WorldInfoService {
         }
 
         try {
-            const entry = {
-                name: params.name,
-                content: params.content,
-                enabled: params.enabled ?? true,
-                strategy: {
-                    type: params.constant ? 'constant' : 'selective',
-                    keys: params.keys || [],
-                    keys_secondary: {
-                        logic: 'and_any',
-                        keys: params.keysSecondary || [],
-                    },
-                    scan_depth: 'same_as_global',
-                },
-                position: {
-                    type: params.position || 'before_character_definition',
-                    role: params.role || 'system',
-                    depth: params.depth || 0,
-                    order: params.order || 100,
-                },
-                probability: params.probability || 100,
-            };
 
+
+            const entry: any = { ...updates, uid };
             await helper.createWorldbookEntries(worldbookName, [entry]);
             return true;
         } catch (e) {
-            console.error('[Engram] WorldInfoService: 创建世界书条目失败', e);
+            console.error('[Engram] WorldInfoService: 更新世界书条目失败', e);
             return false;
         }
+    }
+
+    /**
+     * 根据 Key 查找条目
+     * @param worldbookName 世界书名称
+     * @param key 关键词
+     */
+    static async findEntryByKey(worldbookName: string, key: string): Promise<WorldInfoEntry | null> {
+        const entries = await this.getEntries(worldbookName);
+        return entries.find(e => e.keys.includes(key)) || null;
     }
 
     /**

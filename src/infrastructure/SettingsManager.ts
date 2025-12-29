@@ -8,7 +8,7 @@ export interface EngramSettings {
     promptTemplates: PromptTemplate[]; // 提示词模板列表
     hasSeenWelcome: boolean; // 是否已看过欢迎动画
     lastReadVersion: string; // 最后已读的版本号
-    // Add other persistent keys here
+    summarizerConfig: Partial<any>; // 总结器配置
 }
 
 /** 默认设置 */
@@ -19,6 +19,7 @@ const defaultSettings: EngramSettings = Object.freeze({
     promptTemplates: [],
     hasSeenWelcome: false,
     lastReadVersion: '0.0.0',
+    summarizerConfig: {},
 });
 
 /**

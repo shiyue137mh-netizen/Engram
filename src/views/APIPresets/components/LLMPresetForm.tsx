@@ -304,26 +304,6 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                     showSlider={false}
                     description="使用多少条聊天历史（0 表示不使用）"
                 />
-
-                <SwitchField
-                    label="包含世界书设定"
-                    checked={preset.context.includeWorldInfo}
-                    onChange={(value) => updateContext('includeWorldInfo', value)}
-                    description="是否在提示词中包含已激活的世界书内容"
-                />
-
-                {preset.context.includeWorldInfo && (
-                    <NumberField
-                        label="世界书 Token 预算"
-                        value={preset.context.worldInfoBudget}
-                        onChange={(value) => updateContext('worldInfoBudget', value)}
-                        min={256}
-                        max={8192}
-                        step={256}
-                        showSlider={false}
-                        description="分配给世界书内容的最大 token 数"
-                    />
-                )}
             </FormSection>
         </div>
     );

@@ -8,6 +8,7 @@
  */
 
 import { SettingsManager } from './SettingsManager';
+import { notificationService } from './NotificationService';
 import manifest from '../../manifest.json';
 
 /** GitHub 仓库配置 */
@@ -102,6 +103,7 @@ export class UpdateService {
 
             if (!response.ok) {
                 console.warn('[Engram] UpdateService: 获取更新日志失败', response.status);
+                notificationService.warning(`获取更新日志失败: ${response.status}`, '更新检测');
                 return null;
             }
 
@@ -109,6 +111,7 @@ export class UpdateService {
             return cachedChangelog;
         } catch (e) {
             console.error('[Engram] UpdateService: 获取更新日志异常', e);
+            notificationService.error('获取更新日志异常', '更新检测');
             return null;
         }
     }

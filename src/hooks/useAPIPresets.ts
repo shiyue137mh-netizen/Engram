@@ -194,6 +194,7 @@ export function useAPIPresets(): UseAPIPresetsReturn {
             replacement: '',
             enabled: true,
             flags: 'gi',
+            scope: 'both',
             description: '',
         };
         setRegexRules(prev => [...prev, newRule]);
