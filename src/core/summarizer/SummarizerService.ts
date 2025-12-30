@@ -4,7 +4,7 @@
  * 提供楼层监听、总结触发、世界书写入等功能
  * 
  * 修复：
- * 1. 使用 chat_metadata 存储 lastSummarizedFloor（每聊天独立）
+ * 1. 使用 WorldBookStateService 存储 lastSummarizedFloor（每聊天独立）
  * 2. 正确获取当前楼层数（context.chat.length）
  * 3. 监听聊天切换事件以重置状态
  */
@@ -307,7 +307,9 @@ export class SummarizerService {
         // 如果缓存有值，直接返回（假设 initializeForCurrentChat 已调用）
         if (this._lastSummarizedFloor > 0) return this._lastSummarizedFloor;
 
-        const worldbook = await WorldInfoService.getChatWorldbook();
+        // 使用 findExistingWorldbook 避免在只读检查时自动创建世界书
+        // 这是一个同步方法，不需要 await
+        const worldbook = WorldInfoService.findExistingWorldbook();
         if (!worldbook) return this._lastSummarizedFloor;
 
         const state = await WorldBookStateService.loadState(worldbook);
@@ -321,13 +323,22 @@ export class SummarizerService {
      */
     public async setLastSummarizedFloor(floor: number): Promise<void> {
         this._lastSummarizedFloor = floor;
-        const worldbook = await WorldInfoService.getChatWorldbook();
-        if (!worldbook) return;
+
+        // 优化：仅在世界书已存在时保存状态
+        // 如果世界书不存在（尚未生成任何摘要），则不强制创建，实现"懒加载"
+        const worldbook = WorldInfoService.findExistingWorldbook();
+
+        if (!worldbook) {
+            this.log('debug', '世界书未创建，跳过保存进度', { floor });
+            return;
+        }
 
         await WorldBookStateService.saveState(worldbook, {
             lastSummarizedFloor: floor
         });
     }
+
+    /**
 
     // ==================== 楼层计算 ====================
 
@@ -740,6 +751,12 @@ export class SummarizerService {
                 return false;
             }
 
+            // 1. 确保分隔符存在（只在首次写入时真正创建）
+            await WorldInfoService.ensureSeparatorEntries(worldbookName);
+
+            // 2. 获取下一个可用的顺序号 (9000+)
+            const order = await WorldInfoService.getNextSummaryOrder(worldbookName);
+
             // 添加元数据注释 (水印)，不添加额外标题
             const metadataComment = `{{// ${JSON.stringify({
                 floors: result.sourceFloors,
@@ -753,10 +770,11 @@ export class SummarizerService {
                 content: finalContent,
                 enabled: true,  // 开启状态，让摘要能被激活进入上下文
                 constant: true,
+                order: order,   // 使用计算出的递增顺序
             });
 
             if (success) {
-                this.log('success', '已写入世界书', { worldbook: worldbookName });
+                this.log('success', '已写入世界书', { worldbook: worldbookName, order });
             }
 
             return success;

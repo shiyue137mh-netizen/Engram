@@ -387,6 +387,60 @@ export class WorldInfoService {
     }
 
     /**
+     * 确保分隔条目存在
+     * 8999: 总结开始 <summary>
+     * 10000: 总结结束 </summary>
+     */
+    static async ensureSeparatorEntries(worldbookName: string): Promise<void> {
+        // Start Separator (8999)
+        const startEntry = await this.findEntryByKey(worldbookName, '总结开始');
+        if (!startEntry) {
+            await this.createEntry(worldbookName, {
+                name: '总结开始',
+                content: '<summary>',
+                keys: ['总结开始'],
+                constant: true,
+                order: 8999,
+                enabled: true,
+                position: 'before_character_definition'
+            });
+        }
+
+        // End Separator (10000)
+        const endEntry = await this.findEntryByKey(worldbookName, '总结结束');
+        if (!endEntry) {
+            await this.createEntry(worldbookName, {
+                name: '总结结束',
+                content: '</summary>',
+                keys: ['总结结束'],
+                constant: true,
+                order: 10000,
+                enabled: true,
+                position: 'before_character_definition'
+            });
+        }
+    }
+
+    /**
+     * 获取下一个可用的总结条目顺序号
+     * 起始 9000，递增
+     */
+    static async getNextSummaryOrder(worldbookName: string): Promise<number> {
+        const entries = await this.getEntries(worldbookName);
+        // 筛选出 9000-9999 之间的条目
+        const summaryOrders = entries
+            .map(e => e.order)
+            .filter(o => o >= 9000 && o < 10000);
+
+        if (summaryOrders.length === 0) {
+            return 9000;
+        }
+
+        const maxOrder = Math.max(...summaryOrders);
+        return maxOrder + 1;
+    }
+
+    /**
      * 根据 Key 或名称查找条目
      * @param worldbookName 世界书名称
      * @param key 关键词
@@ -396,8 +450,9 @@ export class WorldInfoService {
         // 先按 keys 数组查找
         let found = entries.find(e => e.keys.includes(key));
         // 如果没找到，尝试按名称查找（Engram System State 条目可能 keys 为空）
-        if (!found && key === '__ENGRAM_STATE__') {
-            found = entries.find(e => e.name === 'Engram System State');
+        // 兼容分隔条目按名字查找
+        if (!found) {
+            found = entries.find(e => e.name === key || (key === '__ENGRAM_STATE__' && e.name === 'Engram System State'));
         }
         return found || null;
     }

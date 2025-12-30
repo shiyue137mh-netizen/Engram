@@ -5,7 +5,6 @@ export interface EngramState {
     lastSummarizedFloor: number;
     totalSummaries: number;
     totalTokens: number;
-    version: string;
     updatedAt: number;
 }
 
@@ -14,7 +13,6 @@ const DEFAULT_STATE: EngramState = {
     lastSummarizedFloor: 0,
     totalSummaries: 0,
     totalTokens: 0,
-    version: '1.0',
     updatedAt: Date.now(),
 };
 

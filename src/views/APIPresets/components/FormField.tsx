@@ -85,7 +85,7 @@ export const TextField: React.FC<TextFieldProps> = ({
                     disabled={disabled}
                     rows={rows}
                     style={inputStyle}
-                    className="font-mono resize-none placeholder:text-muted-foreground/40 disabled:opacity-50 focus:border-primary transition-colors"
+                    className="font-mono resize-y min-h-[80px] placeholder:text-muted-foreground/40 disabled:opacity-50 focus:border-primary transition-colors"
                 />
             ) : (
                 <input

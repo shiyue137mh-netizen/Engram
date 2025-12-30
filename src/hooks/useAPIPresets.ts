@@ -19,6 +19,7 @@ import {
     createDefaultLLMPreset,
 } from '../core/api/types';
 import { RegexRule, DEFAULT_REGEX_RULES } from '../core/summarizer/RegexProcessor';
+import { SettingsManager } from '../infrastructure/SettingsManager';
 
 export interface UseAPIPresetsReturn {
     // 状态
@@ -74,7 +75,11 @@ export function useAPIPresets(): UseAPIPresetsReturn {
 
     // 加载保存的配置
     useEffect(() => {
-        // TODO: 从 extension_settings 加载
+        // 从 SettingsManager 加载正则规则
+        const savedRules = SettingsManager.getRegexRules();
+        if (savedRules && savedRules.length > 0) {
+            setRegexRules(savedRules);
+        }
     }, []);
 
     // ==================== LLM 预设操作 ====================
@@ -232,7 +237,8 @@ export function useAPIPresets(): UseAPIPresetsReturn {
     // ==================== 保存 ====================
 
     const save = useCallback(() => {
-        // TODO: 保存到 extension_settings
+        // 保存正则规则到 SettingsManager
+        SettingsManager.setRegexRules(regexRules);
         console.log('保存配置:', settings, regexRules);
         setHasChanges(false);
     }, [settings, regexRules]);

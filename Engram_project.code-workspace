@@ -11,6 +11,9 @@
 		},
 		{
 			"path": "../third-party/vectors-enhanced"
+		},
+		{
+			"path": "../the_world"
 		}
 	],
 	"settings": {}

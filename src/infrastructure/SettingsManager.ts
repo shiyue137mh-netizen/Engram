@@ -1,5 +1,6 @@
 import { Logger } from './logger';
 import type { PromptTemplate, PromptCategory } from '../core/api/types';
+import type { RegexRule } from '../core/summarizer/RegexProcessor';
 
 export interface EngramSettings {
     theme: string;
@@ -9,6 +10,7 @@ export interface EngramSettings {
     hasSeenWelcome: boolean; // 是否已看过欢迎动画
     lastReadVersion: string; // 最后已读的版本号
     summarizerConfig: Partial<any>; // 总结器配置
+    regexRules: RegexRule[]; // 正则规则列表
 }
 
 /** 默认设置 */
@@ -20,6 +22,7 @@ const defaultSettings: EngramSettings = Object.freeze({
     hasSeenWelcome: false,
     lastReadVersion: '0.0.0',
     summarizerConfig: {},
+    regexRules: [],
 });
 
 /**
@@ -176,5 +179,21 @@ export class SettingsManager {
     public static setSummarizerSettings(config: Partial<any>): void {
         const current = this.getSummarizerSettings();
         this.set('summarizerConfig', { ...current, ...config });
+    }
+
+    /**
+     * 获取正则规则列表
+     * @returns RegexRule[] 正则规则数组
+     */
+    public static getRegexRules(): RegexRule[] {
+        return this.get('regexRules') || [];
+    }
+
+    /**
+     * 设置正则规则列表
+     * @param rules 规则数组
+     */
+    public static setRegexRules(rules: RegexRule[]): void {
+        this.set('regexRules', rules);
     }
 }

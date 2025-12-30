@@ -13,6 +13,7 @@ import type { TrimConfig, TrimTriggerType } from '../../core/api/types';
 import { DEFAULT_TRIM_CONFIG } from '../../core/api/types';
 import { SettingsManager } from '../../infrastructure/SettingsManager';
 import { NumberField, SwitchField } from '../APIPresets/components/FormField';
+import { Divider } from '../Layout/Divider';
 
 interface SummarizerStatus {
     running: boolean;
@@ -24,7 +25,6 @@ interface SummarizerStatus {
 }
 
 interface SummarizerSettings {
-    autoEnabled: boolean;
     autoEnabled: boolean;
     floorInterval: number;
     bufferSize: number;
@@ -211,8 +211,11 @@ export const SummaryPanel: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* 分割线 */}
+                            <Divider length={100} spacing="md" />
+
                             {/* 第二层级：次要 - 当前楼层 + 总结次数 */}
-                            <div className="grid grid-cols-2 gap-6 pt-4 border-t border-border/30">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">当前楼层</span>
                                     <div className="text-xl font-mono text-foreground/80">{status.currentFloor}</div>
@@ -223,8 +226,11 @@ export const SummaryPanel: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* 分割线 */}
+                            <Divider length={30} spacing="md" />
+
                             {/* 第三层级：信息 - 世界书 Token */}
-                            <div className="pt-4 border-t border-border/30">
+                            <div>
                                 <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider block mb-1">已总结内容 Token (Engram)</span>
                                 <div className="text-sm font-mono text-primary/80">{worldbookTokens.toLocaleString()}</div>
                             </div>
@@ -263,80 +269,118 @@ export const SummaryPanel: React.FC = () => {
                     </button>
                 </div>
 
-                {/* 总结设置 */}
-                <div className="pt-6 border-t border-border/50 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <span className="text-sm text-foreground">自动总结</span>
-                            <span className="text-xs text-muted-foreground ml-2">每 {settings.floorInterval} 楼</span>
-                        </div>
-                        <SwitchField
-                            label=""
-                            checked={settings.autoEnabled}
-                            onChange={async (newVal) => {
-                                setSettings(s => ({ ...s, autoEnabled: newVal }));
-                                const { summarizerService } = await import('../../core/summarizer');
-                                summarizerService.updateConfig({ enabled: newVal });
-                            }}
-                        />
-                    </div>
+                {/* 总结设置 - 重新布局：开关并开关，滑块并滑块 */}
+                <div className="pt-6 space-y-6">
+                    {/* 分割线 */}
+                    <Divider length={100} />
 
-                    {settings.autoEnabled && (
-                        <div className="mt-4">
-                            <NumberField
-                                label="触发间隔 (楼层)"
-                                value={settings.floorInterval}
-                                onChange={async (val) => {
-                                    setSettings(s => ({ ...s, floorInterval: val }));
+                    {/* 开关区域：自动总结 + 自动隐藏 并列 */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-foreground">自动总结</span>
+                            <SwitchField
+                                label=""
+                                checked={settings.autoEnabled}
+                                onChange={async (newVal) => {
+                                    setSettings(s => ({ ...s, autoEnabled: newVal }));
                                     const { summarizerService } = await import('../../core/summarizer');
-                                    summarizerService.updateConfig({ floorInterval: val });
+                                    summarizerService.updateConfig({ enabled: newVal });
                                 }}
-                                min={5}
-                                max={100}
-                                step={5}
-                                showSlider={true}
-                                suffix=" 楼"
                             />
                         </div>
-                    )}
-
-                    <div className="pt-4 border-t border-border/30 grid grid-cols-1 gap-4 text-xs">
-                        <NumberField
-                            label="缓冲楼层 (Buffer)"
-                            value={settings.bufferSize}
-                            onChange={(val) => {
-                                setSettings(s => ({ ...s, bufferSize: val }));
-                                import('../../core/summarizer').then(({ summarizerService }) => {
-                                    summarizerService.updateConfig({ bufferSize: val });
-                                });
-                            }}
-                            min={0}
-                            max={20}
-                            showSlider={false}
-                            suffix=" 楼"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between mt-2">
-                        <div className="flex flex-col">
-                            <span className="text-sm">自动隐藏</span>
-                            <span className="text-[10px] text-muted-foreground">处理完后隐藏原文</span>
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                                <span className="text-sm text-foreground">自动隐藏</span>
+                                <span className="text-[10px] text-muted-foreground">处理完后隐藏原文</span>
+                            </div>
+                            <SwitchField
+                                label=""
+                                checked={settings.autoHide}
+                                onChange={(newVal) => {
+                                    setSettings(s => ({ ...s, autoHide: newVal }));
+                                    import('../../core/summarizer').then(({ summarizerService }) => {
+                                        summarizerService.updateConfig({ autoHide: newVal });
+                                    });
+                                }}
+                            />
                         </div>
-                        <SwitchField
-                            label=""
-                            checked={settings.autoHide}
-                            onChange={(newVal) => {
-                                setSettings(s => ({ ...s, autoHide: newVal }));
-                                import('../../core/summarizer').then(({ summarizerService }) => {
-                                    summarizerService.updateConfig({ autoHide: newVal });
-                                });
-                            }}
-                        />
                     </div>
+
+                    {/* 滑块区域：触发间隔 + 缓冲楼层 并列 */}
+                    {settings.autoEnabled && (
+                        <>
+                         
+
+                            <div className="grid grid-cols-2 gap-6">
+                                {/* 触发间隔 - 指引式标签 */}
+                                <div className="space-y-3">
+                                    <div className="text-xs text-muted-foreground">
+                                        楼层将每隔 <span className="text-base font-medium text-foreground mx-0.5">{settings.floorInterval}</span> 层总结
+                                    </div>
+                                    <div className="relative h-4 flex items-center group cursor-pointer">
+                                        {/* 极简滑块轨道 */}
+                                        <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
+                                        {/* Thumb */}
+                                        <div
+                                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
+                                            style={{ left: `${((settings.floorInterval - 5) / (100 - 5)) * 100}%`, transform: 'translate(-50%, -50%)' }}
+                                        />
+                                        <input
+                                            type="range"
+                                            min={5}
+                                            max={100}
+                                            step={5}
+                                            value={settings.floorInterval}
+                                            onChange={async (e) => {
+                                                const val = Number(e.target.value);
+                                                setSettings(s => ({ ...s, floorInterval: val }));
+                                                const { summarizerService } = await import('../../core/summarizer');
+                                                summarizerService.updateConfig({ floorInterval: val });
+                                            }}
+                                            className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
+                                            style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* 缓冲楼层 - 指引式标签 */}
+                                <div className="space-y-3">
+                                    <div className="text-xs text-muted-foreground">
+                                        保留最近 <span className="text-base font-medium text-foreground mx-0.5">{settings.bufferSize}</span> 层作为缓冲
+                                    </div>
+                                    <div className="relative h-4 flex items-center group cursor-pointer">
+                                        {/* 极简滑块轨道 */}
+                                        <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
+                                        {/* Thumb */}
+                                        <div
+                                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
+                                            style={{ left: `${(settings.bufferSize / 20) * 100}%`, transform: 'translate(-50%, -50%)' }}
+                                        />
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={20}
+                                            step={1}
+                                            value={settings.bufferSize}
+                                            onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                setSettings(s => ({ ...s, bufferSize: val }));
+                                                import('../../core/summarizer').then(({ summarizerService }) => {
+                                                    summarizerService.updateConfig({ bufferSize: val });
+                                                });
+                                            }}
+                                            className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
+                                            style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* 底部重置按钮区 */}
-                <div className="pt-4 border-t border-border/30 flex justify-end">
+                <div className="flex justify-end">
                     <button
                         className="inline-flex items-center gap-2 px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 border border-red-200 rounded transition-colors"
                         onClick={handleReset}
@@ -350,10 +394,9 @@ export const SummaryPanel: React.FC = () => {
             </section>
 
             {/* ========== 右栏：精简配置 - 无框流体设计 ========== */}
-            <section className="space-y-6 lg:border-l lg:border-border/30 lg:pl-8 relative">
-                {/* 移动端分割线 (垂直布局时的水平线) */}
-                <div className="lg:hidden w-full h-px bg-border/30 my-2" />
-                {/* 桌面端分割线 (水平布局时的垂直线) - 使用绝对定位或边框 */}
+            <section className="space-y-6 lg:pl-8 relative">
+                {/* 响应式分割线 - 30% 长度 */}
+                <Divider responsive length={30} />
                 {/* 标题 + 开关 */}
                 <div className="flex items-center justify-between">
                     <div>

@@ -76,15 +76,6 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
             <PageTitle
                 title="API 配置"
                 subtitle="管理模型参数和上下文规则"
-                actions={hasChanges && (
-                    <button
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-colors bg-primary text-primary-foreground hover:opacity-90 text-sm shadow-sm"
-                        onClick={save}
-                    >
-                        <Save size={16} />
-                        保存更改
-                    </button>
-                )}
             />
 
             <TabPills
@@ -96,6 +87,15 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                 ]}
                 activeTab={mainTab}
                 onChange={(id) => setMainTab(id as MainTabType)}
+                actions={hasChanges && (
+                    <button
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary hover:text-primary-foreground hover:bg-primary border border-primary/50 rounded transition-colors"
+                        onClick={save}
+                    >
+                        <Save size={12} />
+                        保存
+                    </button>
+                )}
             />
 
             <div className="flex-1 overflow-y-auto no-scrollbar">
