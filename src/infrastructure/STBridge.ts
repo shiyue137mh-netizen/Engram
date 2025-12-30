@@ -61,6 +61,15 @@ export async function initializeEngram(): Promise<void> {
     // 挂载全局悬浮层 (用于修订弹窗等)
     mountGlobalOverlay();
 
+    // 初始化角色删除联动服务
+    try {
+        const { CharacterDeleteService } = await import('../core/services/CharacterDeleteService');
+        CharacterDeleteService.init();
+        Logger.info('STBridge', 'CharacterDeleteService initialized');
+    } catch (e) {
+        Logger.warn('STBridge', 'Failed to initialize CharacterDeleteService', { error: String(e) });
+    }
+
     Logger.success('STBridge', 'Engram 初始化完成 - Where memories leave their trace.');
 }
 
@@ -276,4 +285,20 @@ export async function hideMessageRange(start: number, end: number): Promise<void
     } catch (e) {
         console.error('[Engram] Failed to hide messages:', e);
     }
+}
+
+/**
+ * 调用 SillyTavern 原生弹窗
+ * @param content 弹窗内容 (HTML)
+ * @param type 弹窗类型 ('text', 'confirm', 'input')
+ * @param inputValue 输入框默认值
+ */
+export async function callPopup(content: string, type: 'text' | 'confirm' | 'input' = 'text', inputValue: string = ''): Promise<any> {
+    // @ts-ignore
+    if (window.callPopup) {
+        // @ts-ignore
+        return window.callPopup(content, type, inputValue);
+    }
+    console.warn('[Engram] callPopup not available');
+    return Promise.resolve(type === 'confirm' ? true : null);
 }

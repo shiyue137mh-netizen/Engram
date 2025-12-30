@@ -9,11 +9,12 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RefreshCw, CheckCircle2, AlertCircle, Scissors, Calculator, Layers, Hash } from 'lucide-react';
-import type { TrimConfig, TrimTriggerType } from '../../core/api/types';
-import { DEFAULT_TRIM_CONFIG } from '../../core/api/types';
+import type { TrimTriggerType } from '../../core/api/types';
+import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '../../core/summarizer/TrimmerService';
 import { SettingsManager } from '../../infrastructure/SettingsManager';
 import { NumberField, SwitchField } from '../APIPresets/components/FormField';
 import { Divider } from '../Layout/Divider';
+import type { TrimmerStatus } from '../../core/summarizer';
 
 interface SummarizerStatus {
     running: boolean;
@@ -33,21 +34,24 @@ interface SummarizerSettings {
 
 const TRIGGER_OPTIONS: { id: TrimTriggerType; label: string; icon: React.ElementType }[] = [
     { id: 'token', label: 'Token 数', icon: Calculator },
-    { id: 'floor', label: '楼层数', icon: Layers },
     { id: 'count', label: '总结次数', icon: Hash },
 ];
 
 export const SummaryPanel: React.FC = () => {
     const [status, setStatus] = useState<SummarizerStatus | null>(null);
     const [loading, setLoading] = useState(false);
+    const [trimLoading, setTrimLoading] = useState(false);
     const [settings, setSettings] = useState<SummarizerSettings>({
         autoEnabled: true,
         floorInterval: 10,
         bufferSize: 3,
         autoHide: false,
     });
-    const [trimConfig, setTrimConfig] = useState<TrimConfig>({ ...DEFAULT_TRIM_CONFIG });
+    const [trimConfig, setTrimConfig] = useState<TrimmerConfig>({ ...DEFAULT_TRIMMER_CONFIG });
+    const [trimStatus, setTrimStatus] = useState<TrimmerStatus | null>(null);
     const [worldbookTokens, setWorldbookTokens] = useState<number>(0);
+    const [totalSummaries, setTotalSummaries] = useState<number>(0);
+
 
     useEffect(() => {
         loadStatus();
@@ -75,17 +79,28 @@ export const SummaryPanel: React.FC = () => {
             // 加载保存的 trimConfig
             const savedTrimConfig = SettingsManager.getSummarizerSettings()?.trimConfig;
             if (savedTrimConfig) {
-                setTrimConfig({ ...DEFAULT_TRIM_CONFIG, ...savedTrimConfig });
+                setTrimConfig({ ...DEFAULT_TRIMMER_CONFIG, ...savedTrimConfig });
             }
 
+            // 加载精简服务状态
+            const { trimmerService } = await import('../../core/summarizer');
+            const trimmerStatus = await trimmerService.getStatus();
+            setTrimStatus(trimmerStatus);
+
             const { WorldInfoService } = await import('../../infrastructure/tavern/WorldInfoService');
+            const { WorldBookStateService } = await import('../../infrastructure/WorldBookStateService');
             // 只查询已存在的世界书，不创建（避免面板打开时过早创建）
             const worldbookName = WorldInfoService.findExistingWorldbook();
             if (worldbookName) {
                 const tokens = await WorldInfoService.countSummaryTokens(worldbookName);
                 setWorldbookTokens(tokens);
+
+                // 从 WorldBookStateService 读取持久化的总结次数
+                const engramState = await WorldBookStateService.loadState(worldbookName);
+                setTotalSummaries(engramState.totalSummaries);
             } else {
                 setWorldbookTokens(0);
+                setTotalSummaries(0);
             }
         } catch (e) {
             console.error('加载 Summarizer 状态失败:', e);
@@ -148,29 +163,45 @@ export const SummaryPanel: React.FC = () => {
         saveTrimConfig(newConfig);
     };
 
-    const handleLimitChange = (key: 'tokenLimit' | 'floorLimit' | 'countLimit', value: number) => {
+    const handleLimitChange = (key: keyof TrimmerConfig, value: any) => {
         const newConfig = { ...trimConfig, [key]: value };
         setTrimConfig(newConfig);
         saveTrimConfig(newConfig);
     };
 
     // 保存 trimConfig 到 SettingsManager
-    const saveTrimConfig = (config: TrimConfig) => {
+    const saveTrimConfig = (config: TrimmerConfig) => {
         SettingsManager.setSummarizerSettings({ trimConfig: config });
     };
 
     // enabled 开关切换
-    const handleTrimEnabledChange = () => {
+    const handleTrimEnabledChange = async () => {
         const newConfig = { ...trimConfig, enabled: !trimConfig.enabled };
         setTrimConfig(newConfig);
         saveTrimConfig(newConfig);
+        // 同步更新 TrimmerService 配置
+        const { trimmerService } = await import('../../core/summarizer');
+        trimmerService.updateConfig({ enabled: newConfig.enabled });
+    };
+
+    // 手动触发精简
+    const handleTriggerTrim = async () => {
+        setTrimLoading(true);
+        try {
+            const { trimmerService } = await import('../../core/summarizer');
+            await trimmerService.triggerTrim(true);
+            await loadStatus();
+        } catch (e) {
+            console.error('精简失败:', e);
+        } finally {
+            setTrimLoading(false);
+        }
     };
 
     // 获取当前阈值配置
     const getCurrentLimit = () => {
         switch (trimConfig.trigger) {
-            case 'token': return { value: trimConfig.tokenLimit, min: 1024, max: 16384, step: 512, label: 'Token 上限' };
-            case 'floor': return { value: trimConfig.floorLimit, min: 10, max: 200, step: 10, label: '楼层上限' };
+            case 'token': return { value: trimConfig.tokenLimit, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
             case 'count': return { value: trimConfig.countLimit, min: 2, max: 20, step: 1, label: '次数上限' };
         }
     };
@@ -222,7 +253,7 @@ export const SummaryPanel: React.FC = () => {
                                 </div>
                                 <div>
                                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">总结次数</span>
-                                    <div className="text-xl font-mono text-foreground/80">{status.historyCount}</div>
+                                    <div className="text-xl font-mono text-foreground/80">{totalSummaries}</div>
                                 </div>
                             </div>
 
@@ -309,7 +340,7 @@ export const SummaryPanel: React.FC = () => {
                     {/* 滑块区域：触发间隔 + 缓冲楼层 并列 */}
                     {settings.autoEnabled && (
                         <>
-                         
+
 
                             <div className="grid grid-cols-2 gap-6">
                                 {/* 触发间隔 - 指引式标签 */}
@@ -437,29 +468,93 @@ export const SummaryPanel: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* 阈值设置 - 使用极简 NumberField */}
-                    <NumberField
-                        label={limitConfig.label}
-                        value={limitConfig.value}
-                        onChange={(val) => {
-                            const key = trimConfig.trigger === 'token' ? 'tokenLimit'
-                                : trimConfig.trigger === 'floor' ? 'floorLimit' : 'countLimit';
-                            handleLimitChange(key, val);
-                        }}
-                        min={limitConfig.min}
-                        max={limitConfig.max}
-                        step={limitConfig.step}
-                        showSlider={true}
-                    />
+                    {/* 阈值设置 - 指引式标签 */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground">
+                            {limitConfig.label === 'Token 上限' ? (
+                                <>当 Token 数超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 时触发</>
+                            ) : limitConfig.label === '楼层上限' ? (
+                                <>当楼层数超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 层时触发</>
+                            ) : (
+                                <>当总结次数超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 次时触发</>
+                            )}
+                        </div>
+                        <div className="relative h-4 flex items-center group cursor-pointer">
+                            {/* 极简滑块轨道 */}
+                            <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
+                            {/* Thumb */}
+                            <div
+                                className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
+                                style={{ left: `${((limitConfig.value - limitConfig.min) / (limitConfig.max - limitConfig.min)) * 100}%`, transform: 'translate(-50%, -50%)' }}
+                            />
+                            <input
+                                type="range"
+                                min={limitConfig.min}
+                                max={limitConfig.max}
+                                step={limitConfig.step}
+                                value={limitConfig.value}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    const key = trimConfig.trigger === 'token' ? 'tokenLimit' : 'countLimit';
+                                    handleLimitChange(key, val);
+                                }}
+                                className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
+                                style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* 缓冲设置 - 指引式标签 */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground">
+                            保留最近 <span className="text-base font-medium text-foreground mx-0.5">{trimConfig.keepRecentCount ?? 3}</span> 条不合并
+                        </div>
+                        <div className="relative h-4 flex items-center group cursor-pointer">
+                            {/* 极简滑块轨道 */}
+                            <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
+                            {/* Thumb */}
+                            <div
+                                className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
+                                style={{ left: `${((trimConfig.keepRecentCount ?? 3) / 10) * 100}%`, transform: 'translate(-50%, -50%)' }}
+                            />
+                            <input
+                                type="range"
+                                min={0}
+                                max={10}
+                                step={1}
+                                value={trimConfig.keepRecentCount ?? 3}
+                                onChange={(e) => handleLimitChange('keepRecentCount', Number(e.target.value))}
+                                className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
+                                style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* 精简状态显示 */}
+                    {trimStatus && (
+                        <div className="text-xs text-muted-foreground space-y-1">
+                            <div className="flex justify-between">
+                                <span>待合并条目:</span>
+                                <span className="font-mono">{trimStatus.pendingEntryCount}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>当前{trimConfig.trigger === 'token' ? 'Token' : '条目数'}:</span>
+                                <span className={`font-mono ${trimStatus.triggered ? 'text-amber-500' : ''}`}>
+                                    {trimStatus.currentValue} / {limitConfig.value}
+                                </span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* 执行按钮 */}
                     <button
                         type="button"
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                        onClick={() => console.log('手动触发精简...')}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                        onClick={handleTriggerTrim}
+                        disabled={trimLoading || (trimStatus?.pendingEntryCount ?? 0) < 2}
                     >
-                        <Scissors size={14} />
-                        手动执行精简
+                        <Scissors size={14} className={trimLoading ? 'animate-pulse' : ''} />
+                        {trimLoading ? '精简中...' : '手动执行精简'}
                     </button>
 
                     {/* 说明 - 简化 */}

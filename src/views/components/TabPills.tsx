@@ -45,7 +45,7 @@ export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onChange, s
                     {tab.icon && <span className="w-4 h-4">{tab.icon}</span>}
                     {tab.label}
                     {activeTab === tab.id && (
-                        <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-primary shadow-[0_0_10px_var(--primary)]"></div>
+                        <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_var(--primary)] z-10 transition-all duration-300"></div>
                     )}
                 </button>
             ))}

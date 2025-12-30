@@ -184,6 +184,9 @@ const FALLBACK_SUMMARY_PROMPT = {
 /** 元数据 key */
 const METADATA_KEY = 'engram';
 
+/** 总结条目关键词 - 用于筛选 Engram 创建的摘要 */
+const SUMMARY_ENTRY_KEY = 'engram总结';
+
 /**
  * 获取 SillyTavern 上下文
  */
@@ -768,6 +771,7 @@ export class SummarizerService {
             const success = await WorldInfoService.createEntry(worldbookName, {
                 name: `剧情摘要_${result.sourceFloors[0]}-${result.sourceFloors[1]}`,
                 content: finalContent,
+                keys: [SUMMARY_ENTRY_KEY],  // 添加关键词用于筛选
                 enabled: true,  // 开启状态，让摘要能被激活进入上下文
                 constant: true,
                 order: order,   // 使用计算出的递增顺序
@@ -775,6 +779,12 @@ export class SummarizerService {
 
             if (success) {
                 this.log('success', '已写入世界书', { worldbook: worldbookName, order });
+
+                // 更新总结次数统计
+                const currentState = await WorldBookStateService.loadState(worldbookName);
+                await WorldBookStateService.saveState(worldbookName, {
+                    totalSummaries: currentState.totalSummaries + 1,
+                });
             }
 
             return success;

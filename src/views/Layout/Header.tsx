@@ -40,13 +40,13 @@ const Header: React.FC<HeaderProps> = ({
                 </div>
             </div>
 
-            {/* Center: Command Palette */}
-            <div className="flex-1 flex justify-center max-w-xl mx-2 md:mx-4">
-                <CommandPalette onNavigate={onNavigate} />
-            </div>
+            {/* Center: Spacer */}
+            <div className="flex-1" />
 
             {/* Right: Window Controls */}
-            <div className="flex items-center gap-2 w-16 md:w-64 justify-end">
+            <div className="flex items-center gap-1 md:gap-2">
+                <CommandPalette onNavigate={onNavigate} />
+                <div className="h-4 w-[1px] bg-border mx-1" />
                 <button
                     className="p-2 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors text-muted-foreground"
                     onClick={onClose}

@@ -1,6 +1,5 @@
 # 依赖
 node_modules/
-
 # 构建产物
 
 
@@ -23,3 +22,9 @@ npm-debug.log*
 # 临时文件
 *.tmp
 *.temp
+
+# Documentation
+docs/
+
+# Workspace
+Engram_project.code-workspace

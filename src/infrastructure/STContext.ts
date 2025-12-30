@@ -21,6 +21,13 @@ export interface STContext {
     name2: string; // 角色名
     characterId: number;
     chatId: string;
+    // 事件系统
+    eventSource?: {
+        on: (event: string, callback: (data: any) => void) => void;
+        off: (event: string, callback: (data: any) => void) => void;
+        emit: (event: string, data: any) => void;
+    };
+    event_types?: Record<string, string>;
 }
 
 /** ST 消息类型 */

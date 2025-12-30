@@ -10,7 +10,14 @@ export interface EngramSettings {
     hasSeenWelcome: boolean; // 是否已看过欢迎动画
     lastReadVersion: string; // 最后已读的版本号
     summarizerConfig: Partial<any>; // 总结器配置
+    trimmerConfig: Partial<any>; // 精简器配置
     regexRules: RegexRule[]; // 正则规则列表
+    linkedDeletion: {
+        enabled: boolean;          // 是否启用联动删除
+        deleteWorldbook: boolean;  // 删除角色时删除 Engram 世界书
+        deleteIndexedDB: boolean;  // 删除角色时删除 IndexedDB 数据
+        showConfirmation: boolean; // 删除前显示确认对话框
+    };
 }
 
 /** 默认设置 */
@@ -22,7 +29,14 @@ const defaultSettings: EngramSettings = Object.freeze({
     hasSeenWelcome: false,
     lastReadVersion: '0.0.0',
     summarizerConfig: {},
+    trimmerConfig: {},
     regexRules: [],
+    linkedDeletion: {
+        enabled: true,
+        deleteWorldbook: true,
+        deleteIndexedDB: false, // 默认不删数据库，以防万一
+        showConfirmation: true,
+    },
 });
 
 /**
@@ -46,7 +60,11 @@ export class SettingsManager {
      * 获取扩展设置对象
      * 如果不存在则创建
      */
-    private static getExtensionSettings(): EngramSettings {
+    /**
+     * 获取扩展设置对象
+     * 如果不存在则创建
+     */
+    public static getSettings(): EngramSettings {
         const context = this.getContext();
         if (!context?.extensionSettings) {
             Logger.warn('SettingsManager', 'SillyTavern context.extensionSettings not available');
@@ -62,6 +80,10 @@ export class SettingsManager {
         }
 
         return context.extensionSettings[this.EXTENSION_NAME];
+    }
+
+    private static getExtensionSettings(): EngramSettings {
+        return this.getSettings();
     }
 
     /**

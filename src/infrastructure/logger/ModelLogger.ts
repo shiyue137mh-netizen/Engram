@@ -12,7 +12,7 @@ export interface ModelLogEntry {
     /** 时间戳 */
     timestamp: number;
     /** 调用类型 */
-    type: 'summarize' | 'vectorize' | 'query' | 'other';
+    type: 'summarize' | 'trim' | 'vectorize' | 'query' | 'other';
     /** 方向：发送/接收 */
     direction: 'sent' | 'received';
 

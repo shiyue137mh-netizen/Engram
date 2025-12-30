@@ -146,16 +146,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
     return (
         <>
             {/* Trigger Button (Icons only or small bar) */}
+            {/* Trigger Button (Icons only) */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors border border-transparent hover:border-border"
+                className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
                 title="搜索 (Cmd+K)"
             >
-                <Search size={18} />
-                <span className="hidden md:inline text-xs opacity-70">搜索...</span>
-                <kbd className="hidden md:inline-flex h-5 items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground ml-2">
-                    <span className="text-xs">⌘</span>K
-                </kbd>
+                <Search size={20} />
             </button>
 
             {/* Modal Overlay */}

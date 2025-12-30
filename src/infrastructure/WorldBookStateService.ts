@@ -60,18 +60,48 @@ export class WorldBookStateService {
 
             const content = JSON.stringify(newState, null, 2);
 
-            // 2. 查找是否存在
-            const entry = await WorldInfoService.findEntryByKey(worldbookName, STATE_ENTRY_KEY);
+            // 2. 查找所有可能是状态条目的 entries (按 name 或 key)
+            const entries = await WorldInfoService.getEntries(worldbookName);
+            const stateEntries = entries.filter(e =>
+                e.name === 'Engram System State' || e.keys.includes(STATE_ENTRY_KEY)
+            );
 
-            if (entry) {
-                // 更新现有条目
-                Logger.debug('WorldBookStateService', '更新状态条目', { uid: entry.uid, state: newState });
-                return await WorldInfoService.updateEntry(worldbookName, entry.uid, {
+            if (stateEntries.length > 0) {
+                // 优先保留包含 KEY 的条目
+                stateEntries.sort((a, b) => {
+                    const aHasKey = a.keys.includes(STATE_ENTRY_KEY) ? 1 : 0;
+                    const bHasKey = b.keys.includes(STATE_ENTRY_KEY) ? 1 : 0;
+                    return bHasKey - aHasKey;
+                });
+
+                const [primaryEntry, ...duplicates] = stateEntries;
+
+                // 删除重复项
+                if (duplicates.length > 0) {
+                    Logger.warn('WorldBookStateService', `发现 ${duplicates.length} 个重复的状态条目，正在清理...`);
+                    for (const dup of duplicates) {
+                        await WorldInfoService.deleteEntry(worldbookName, dup.uid);
+                    }
+                }
+
+                // 更新保留的条目
+                // 强制修正所有属性，确保不会出现"蓝灯"（constant）或被注入上下文
+                Logger.debug('WorldBookStateService', '更新并修复状态条目', { uid: primaryEntry.uid, state: newState });
+                const updates = {
                     content,
                     name: 'Engram System State',
-                    // 确保是禁用的
                     enabled: false,
-                });
+                    constant: false,
+                    keys: [STATE_ENTRY_KEY],
+                    recursion: {
+                        prevent_incoming: true,
+                        prevent_outgoing: true
+                    },
+                    position: 'before_character_definition' as const,
+                    order: 0
+                };
+
+                return await WorldInfoService.updateEntry(worldbookName, primaryEntry.uid, updates);
             } else {
                 // 创建新条目
                 Logger.debug('WorldBookStateService', '创建状态条目', { state: newState });
@@ -79,11 +109,15 @@ export class WorldBookStateService {
                     name: 'Engram System State',
                     content,
                     keys: [STATE_ENTRY_KEY],
-                    enabled: false, // 默认禁用，防止干扰上下文
+                    enabled: false,
                     constant: false,
                     position: 'before_character_definition',
                     role: 'system',
-                    order: 0, // 置顶
+                    order: 0,
+                    recursion: {
+                        prevent_incoming: true,
+                        prevent_outgoing: true
+                    }
                 };
                 return await WorldInfoService.createEntry(worldbookName, params);
             }
