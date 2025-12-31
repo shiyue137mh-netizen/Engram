@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
+import { Switch } from '../../components/Switch';
 
 interface FormSectionProps {
     title: string;
@@ -296,7 +297,8 @@ interface SwitchFieldProps extends Omit<BaseFieldProps, 'required'> {
 }
 
 /**
- * 极简开关 - 1px 细线轨道 + 小圆点
+ * 极简开关 - 胶囊形轨道 + 圆点
+ * 优化可视性，遵循无框流体设计
  */
 export const SwitchField: React.FC<SwitchFieldProps> = ({
     label,
@@ -310,43 +312,25 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
 }) => {
     return (
         <div className={`flex items-start justify-between gap-4 ${compact ? 'py-0' : 'py-1'} ${className} ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
-            {label && ( // 只有当 label 存在时才渲染左侧区域，避免只有开关时占用过多空间
-                <div className="flex-1">
+            {label && (
+                <div className="flex-1 min-w-0">
                     <label
-                        className="text-xs text-foreground cursor-pointer"
+                        className="text-xs text-foreground cursor-pointer block truncate"
                         onClick={() => !disabled && onChange(!checked)}
                     >
                         {label}
                     </label>
-                    {description && <p className="text-[10px] text-muted-foreground/70 mt-0.5">{description}</p>}
+                    {description && <p className="text-[10px] text-muted-foreground/70 mt-0.5 break-words">{description}</p>}
                     {error && <p className="text-[10px] text-destructive mt-0.5">{error}</p>}
                 </div>
             )}
 
-            {/* 极简开关按钮 */}
-            <button
-                type="button"
-                role="switch"
-                aria-checked={checked}
-                onClick={() => !disabled && onChange(!checked)}
+            {/* 开关按钮 - 使用共享组件 */}
+            <Switch
+                checked={checked}
+                onChange={onChange}
                 disabled={disabled}
-                className="relative inline-flex h-4 w-8 shrink-0 items-center justify-center cursor-pointer focus:outline-none group"
-            >
-                {/* 1px 细线轨道 - 始终保持边框色 */}
-                <span
-                    className="absolute left-0 w-full h-[1px]"
-                    style={{ backgroundColor: 'var(--border)' }}
-                />
-
-                {/* 悬浮圆点 - 选中变白/亮，未选中变灰 */}
-                <span
-                    className={`
-                        absolute block h-2.5 w-2.5 rounded-full shadow-sm transition-all duration-200 group-hover:scale-110
-                        ${checked ? 'left-full -translate-x-full bg-foreground' : 'left-0 bg-muted-foreground'}
-                    `}
-                    style={{ top: '50%', transform: checked ? 'translate(-100%, -50%)' : 'translate(0, -50%)' }}
-                />
-            </button>
+            />
         </div>
     );
 };

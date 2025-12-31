@@ -41,6 +41,8 @@ export interface ModelLogEntry {
     // 元数据
     /** 模型名称 */
     model?: string;
+    /** 角色名称 */
+    character?: string;
     /** 楼层范围（如适用） */
     floorRange?: [number, number];
 }
@@ -65,6 +67,7 @@ class ModelLoggerClass {
         userPrompt?: string;
         tokensSent?: number;
         model?: string;
+        character?: string;
         floorRange?: [number, number];
     }): string {
         const id = `log_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -78,6 +81,7 @@ class ModelLoggerClass {
             userPrompt: data.userPrompt,
             tokensSent: data.tokensSent,
             model: data.model,
+            character: data.character,
             floorRange: data.floorRange,
             status: 'pending',
         };
@@ -114,6 +118,7 @@ class ModelLoggerClass {
             error: data.error,
             duration: data.duration,
             model: entry.model,
+            character: entry.character,
             floorRange: entry.floorRange,
         };
 
@@ -143,6 +148,7 @@ class ModelLoggerClass {
             userPrompt?: string;
             tokensSent?: number;
             model?: string;
+            character?: string;
             floorRange?: [number, number];
         },
         action: () => Promise<T>

@@ -54,7 +54,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
     }, []);
 
     return (
-        <div className="flex absolute inset-0 w-full h-full bg-background text-foreground overflow-hidden font-sans selection:bg-primary/30 selection:text-primary" id="engram-layout-root">
+        <div className="flex absolute inset-0 w-full h-full bg-background text-foreground overflow-hidden font-sans selection:bg-primary/30 selection:text-primary animate-in fade-in duration-300" id="engram-layout-root">
             <GlobalStyles />
 
             {/* Update Notice Modal */}
@@ -66,8 +66,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                 }}
             />
 
-            {/* Sidebar (Desktop Only) - 紧凑布局 */}
-            <aside className="[display:none] md:flex w-36 flex-shrink-0 bg-sidebar flex-col z-40 pt-4 px-2 border-r border-border/50">
+            {/* Sidebar (Desktop Only) - 紧凑布局 - Staged Animation Step 2 (Delay 100ms) */}
+            <aside className="[display:none] md:flex w-36 flex-shrink-0 bg-sidebar flex-col z-40 pt-4 px-2 border-r border-border/50 animate-in slide-in-from-left-4 fade-in duration-500 fill-mode-both" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
                 <nav className="flex-1 w-full flex flex-col gap-1 overflow-y-auto no-scrollbar">
                     {NAV_ITEMS.map((item) => {
                         const Icon = item.icon;
@@ -187,9 +187,9 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                     </div>
                 )}
 
-                {/* Main Content Area */}
+                {/* Main Content Area - Staged Animation Step 3 (Delay 200ms) with Blur */}
                 <main className="flex-1 flex flex-col relative w-full overflow-hidden bg-background">
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth animate-blur-in fill-mode-both" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
                         <div className="max-w-6xl mx-auto min-h-full pb-20">
                             {children}
                         </div>

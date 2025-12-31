@@ -113,18 +113,13 @@ export const RevisionModal: React.FC = () => {
                 <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border bg-muted/30">
                     <button
                         onClick={handleCancel}
-                        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-md hover:bg-accent transition-colors"
-                        style={{ backgroundColor: 'transparent' }}
+                        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors"
                     >
                         取消
                     </button>
                     <button
                         onClick={handleConfirm}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-opacity"
-                        style={{
-                            backgroundColor: 'var(--primary)',
-                            color: 'var(--primary-foreground)',
-                        }}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-primary/20 text-primary border border-primary/50 shadow-[0_0_10px_rgba(var(--primary),0.2)] hover:bg-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary),0.4)] focus:outline-none focus:ring-2 focus:ring-primary/50"
                     >
                         <Check size={16} />
                         确认写入

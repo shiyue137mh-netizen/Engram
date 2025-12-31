@@ -118,7 +118,7 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
                                 const activeEntriesCount = entries.filter((e: any) => !isEntryDisabled(book, e.uid)).length;
 
                                 return (
-                                    <div key={book} className={`border rounded-lg transition-all ${isDisabled ? 'bg-muted/30 border-muted' : 'bg-card border-border'}`}>
+                                    <div key={book} className={`transition-all border-b border-border last:border-0 ${isDisabled ? 'bg-muted/10 opacity-60 grayscale' : ''}`}>
                                         {/* 世界书头部 */}
                                         <div className="flex items-center justify-between p-3">
                                             <div className="flex items-center gap-3 flex-1 overflow-hidden">
@@ -150,52 +150,57 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
 
                                         {/* 条目列表 (展开时显示) */}
                                         {isExpanded && !isDisabled && (
-                                            <div className="border-t bg-accent/5 p-3 flex flex-col gap-2 animate-in slide-in-from-top-2 duration-200">
+                                            <div className="pl-4 pr-1 py-1 flex flex-col gap-0 animate-in slide-in-from-top-1 duration-200">
                                                 {entries.length === 0 ? (
-                                                    <div className="text-xs text-muted-foreground text-center py-2">暂无条目</div>
+                                                    <div className="text-xs text-muted-foreground text-center py-4">暂无条目</div>
                                                 ) : (
                                                     entries.map((entry: any) => {
                                                         const isEntryItemDisabled = isEntryDisabled(book, entry.uid);
                                                         return (
-                                                            <div key={entry.uid} className="flex items-start justify-between p-2 rounded hover:bg-accent/50 transition-colors group">
+                                                            <div key={entry.uid} className={`flex items-start justify-between py-2 -mx-2 px-2 rounded hover:bg-accent/40 transition-colors group ${isEntryItemDisabled ? 'bg-muted/10 opacity-60 grayscale' : ''}`}>
                                                                 <div className="flex flex-col gap-1 min-w-0 flex-1 pr-4">
-                                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                                        {/* 状态指示灯: 蓝灯(常驻) / 绿灯(条件) */}
+                                                                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                                                                        {/* 状态指示灯 */}
                                                                         <div
-                                                                            className={`w-2 h-2 rounded-full flex-shrink-0 ${entry.constant ? 'bg-blue-500 shadow-[0_0_4px_rgba(59,130,246,0.5)]' : 'bg-green-500 shadow-[0_0_4px_rgba(34,197,94,0.5)]'}`}
+                                                                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${entry.constant ? 'bg-primary' : 'bg-emerald-500'}`}
                                                                             title={entry.constant ? "常驻 (Constant)" : "条件触发 (Selective)"}
                                                                         />
 
-                                                                        {/* 条目名称 */}
-                                                                        <span className={`text-sm font-medium ${isEntryItemDisabled ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                                                                        {/* 条目名称 - 添加 truncate 防止溢出 */}
+                                                                        <span className={`text-sm font-medium truncate max-w-full ${isEntryItemDisabled ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                                                                             {entry.name || `条目 #${entry.uid}`}
                                                                         </span>
 
                                                                         {/* 关键词 Badge */}
                                                                         {(entry.keys || []).length > 0 && (
-                                                                            <div className="flex items-center gap-1 ml-2">
-                                                                                {(entry.keys).map((key: string, i: number) => (
-                                                                                    <span key={i} className="text-[10px] px-1 py-0.5 rounded border bg-muted/30 text-muted-foreground border-transparent">
+                                                                            <div className="flex items-center gap-1 ml-auto md:ml-2 overflow-hidden max-w-full">
+                                                                                {(entry.keys).slice(0, 3).map((key: string, i: number) => (
+                                                                                    <span key={i} className="text-[10px] px-1 py-0.5 rounded border border-border bg-muted/20 text-muted-foreground whitespace-nowrap overflow-hidden text-ellipsis max-w-[80px]">
                                                                                         {key}
                                                                                     </span>
                                                                                 ))}
+                                                                                {(entry.keys).length > 3 && (
+                                                                                    <span className="text-[10px] text-muted-foreground">+{entry.keys.length - 3}</span>
+                                                                                )}
                                                                             </div>
                                                                         )}
                                                                     </div>
 
-                                                                    {/* 内容预览/备注 */}
+                                                                    {/* 内容预览 - 添加 break-words 和 truncate */}
                                                                     {(entry.comment || entry.content) && (
-                                                                        <p className="text-xs text-muted-foreground truncate pl-4">
+                                                                        <p className="text-xs text-muted-foreground/80 pl-3.5 break-words line-clamp-2">
                                                                             {entry.comment || entry.content}
                                                                         </p>
                                                                     )}
                                                                 </div>
-                                                                <SwitchField
-                                                                    label=""
-                                                                    checked={!isEntryItemDisabled}
-                                                                    onChange={(checked) => onToggleEntry?.(book, entry.uid, !checked)}
-                                                                    compact
-                                                                />
+                                                                <div className="flex-shrink-0">
+                                                                    <SwitchField
+                                                                        label=""
+                                                                        checked={!isEntryItemDisabled}
+                                                                        onChange={(checked) => onToggleEntry?.(book, entry.uid, !checked)}
+                                                                        compact
+                                                                    />
+                                                                </div>
                                                             </div>
                                                         );
                                                     })

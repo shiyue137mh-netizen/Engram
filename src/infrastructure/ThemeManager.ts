@@ -93,13 +93,45 @@ export class ThemeManager {
         };
 
         // 1. Colors
+        // Universal Transparency Logic
+        const settings = SettingsManager.getSettings();
+        const opacity = settings.glassSettings?.opacity ?? 1;
+        const isGlassTheme = themeName === 'glass';
+        // Only apply mix if not glass theme (glass handles it internally) and opacity < 1
+        const shouldApplyTransparency = !isGlassTheme && opacity < 1;
+        // Calculate transparency percentage for color-mix (e.g., opacity 0.8 -> 20% transparent)
+        const transparencyPercent = Math.round((1 - opacity) * 100);
+
+        // Keys that should be transparentized
+        const transparentKeys = [
+            'background', 'card', 'popover', 'sidebar',
+            'secondary', 'muted', 'input', 'border', 'sidebarBorder'
+        ];
+
         Object.entries(themeConfig.colors).forEach(([key, value]) => {
             // camelCase -> kebab-case (e.g., cardForeground -> --card-foreground)
             let cssVar = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
             // Handle numbers (chart1 -> --chart-1)
             cssVar = cssVar.replace(/(\d+)/, '-$1');
 
-            setVar(cssVar, value);
+            let finalValue = value;
+
+            if (shouldApplyTransparency && transparentKeys.includes(key)) {
+                // Use color-mix to inject transparency dynamically
+
+                // Border Resistance Logic:
+                // Borders should fade much slower than backgrounds to maintain structure
+                // If is border, reduce transparency mix by 60% (keep 40% of the fade effect)
+                const isBorder = key.toLowerCase().includes('border');
+                const effectiveTransparency = isBorder
+                    ? Math.round(transparencyPercent * 0.1)
+                    : transparencyPercent;
+
+                // Syntax: color-mix(in srgb, OriginalColor, transparent Percentage%)
+                finalValue = `color-mix(in srgb, ${value}, transparent ${effectiveTransparency}%)`;
+            }
+
+            setVar(cssVar, finalValue);
         });
 
         // 2. Variables (radius, etc)
@@ -113,6 +145,25 @@ export class ThemeManager {
             root.classList.add('dark');
         } else {
             root.classList.remove('dark');
+        }
+
+        // 4. Inject Glass Settings
+        // Reuse settings from above or get fresh
+        const glassSettings = SettingsManager.getSettings();
+        if (glassSettings.glassSettings) {
+            setVar('--glass-opacity', glassSettings.glassSettings.opacity.toString());
+            setVar('--glass-blur', `${glassSettings.glassSettings.blur}px`);
+
+            // 只要设置了 blur，就应用到所有主题 (不仅仅是 glass)
+            // 这样用户可以在任何主题上启用毛玻璃效果
+            if (glassSettings.glassSettings.blur > 0) {
+                setVar('--glass-backdrop-filter', `blur(${glassSettings.glassSettings.blur}px)`);
+            } else {
+                setVar('--glass-backdrop-filter', 'none');
+            }
+        } else {
+            // Fallback if settings missing
+            setVar('--glass-backdrop-filter', 'none');
         }
     }
 }

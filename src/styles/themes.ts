@@ -22,7 +22,7 @@ export const paperLightTheme: Theme = {
         accentForeground: 'oklch(0.6723 0.1606 244.9955)',
         destructive: 'oklch(0.6188 0.2376 25.7658)',
         destructiveForeground: 'oklch(1.0000 0 0)',
-        border: 'oklch(0.9317 0.0118 231.6594)',
+        border: 'oklch(0.1884 0.0128 248.5103 / 0.15)', // Darker (Foreground based) as requested
         input: 'oklch(0.9809 0.0025 228.7836)',
         ring: 'oklch(0.6818 0.1584 243.3540)',
         chart1: 'oklch(0.6723 0.1606 244.9955)',
@@ -37,7 +37,7 @@ export const paperLightTheme: Theme = {
         sidebarPrimaryForeground: 'oklch(1.0000 0 0)',
         sidebarAccent: 'oklch(0.9392 0.0166 250.8453)',
         sidebarAccentForeground: 'oklch(0.6723 0.1606 244.9955)',
-        sidebarBorder: 'oklch(0.9271 0.0101 238.5177)',
+        sidebarBorder: 'oklch(0.1884 0.0128 248.5103 / 0.1)', // Darker (Foreground based)
         sidebarRing: 'oklch(0.6818 0.1584 243.3540)',
     },
     variables: {
@@ -67,7 +67,7 @@ export const claudeDarkTheme: Theme = {
         accentForeground: 'oklch(1.0000 0 0)',
         destructive: 'oklch(0.6368 0.2078 25.3313)',
         destructiveForeground: 'oklch(1.0000 0 0)',
-        border: 'oklch(0.3618 0.0101 106.8928)',
+        border: 'oklch(0.8074 0.0142 93.0137 / 0.15)', // Foreground / 0.15
         input: 'oklch(0.4336 0.0113 100.2195)',
         ring: 'oklch(0.6724 0.1308 38.7559)',
         chart1: 'oklch(0.6724 0.1308 38.7559)',
@@ -81,7 +81,7 @@ export const claudeDarkTheme: Theme = {
         sidebarPrimaryForeground: 'oklch(1.0000 0 0)',
         sidebarAccent: 'oklch(0.2213 0.0038 106.7070)',
         sidebarAccentForeground: 'oklch(0.8074 0.0142 93.0137)',
-        sidebarBorder: 'oklch(0.3618 0.0101 106.8928)',
+        sidebarBorder: 'oklch(0.7713 0.0169 99.0657 / 0.15)', // SidebarForeground / 0.15
         sidebarRing: 'oklch(0.6724 0.1308 38.7559)',
     },
     variables: {
@@ -111,7 +111,7 @@ export const twitterDarkTheme: Theme = {
         accentForeground: 'oklch(0.6692 0.1607 245.0110)',
         destructive: 'oklch(0.6188 0.2376 25.7658)',
         destructiveForeground: 'oklch(1.0000 0 0)',
-        border: 'oklch(0.2674 0.0047 248.0045)',
+        border: 'oklch(0.9328 0.0025 228.7857 / 0.15)', // Foreground / 0.15
         input: 'oklch(0.3020 0.0288 244.8244)',
         ring: 'oklch(0.6818 0.1584 243.3540)',
         chart1: 'oklch(0.6723 0.1606 244.9955)',
@@ -126,7 +126,7 @@ export const twitterDarkTheme: Theme = {
         sidebarPrimaryForeground: 'oklch(1.0000 0 0)',
         sidebarAccent: 'oklch(0.1928 0.0331 242.5459)',
         sidebarAccentForeground: 'oklch(0.6692 0.1607 245.0110)',
-        sidebarBorder: 'oklch(0.2674 0.0047 248.0045)',
+        sidebarBorder: 'oklch(0.9328 0.0025 228.7857 / 0.15)', // SidebarForeground / 0.15
         sidebarRing: 'oklch(0.6818 0.1584 243.3540)',
     },
     variables: {
@@ -156,7 +156,7 @@ export const discordTheme: Theme = {
         accentForeground: '#f2f3f5',
         destructive: '#fa777c',
         destructiveForeground: '#313338',
-        border: '#1e1f22',
+        border: '#f2f3f526', // Foreground #f2f3f5 with ~15% alpha
         input: '#1e1f22',
         ring: '#5865f2',
         chart1: '#5865f2',
@@ -170,7 +170,7 @@ export const discordTheme: Theme = {
         sidebarPrimaryForeground: '#ffffff',
         sidebarAccent: '#3f4147',
         sidebarAccentForeground: '#f2f3f5',
-        sidebarBorder: '#1e1f22',
+        sidebarBorder: '#949ba426', // SidebarForeground #949ba4 with ~15% alpha
         sidebarRing: '#5865f2',
     },
     variables: {
@@ -209,7 +209,7 @@ export const catppuccinTheme: Theme = {
         destructive: '#f38ba8',
         destructiveForeground: '#1e1e2e',
 
-        border: '#313244',
+        border: '#cba6f726', // Mauve with ~15% alpha
         input: '#313244',
         ring: '#89b4fa',
 
@@ -225,7 +225,7 @@ export const catppuccinTheme: Theme = {
         sidebarPrimaryForeground: '#1e1e2e',
         sidebarAccent: '#313244',
         sidebarAccentForeground: '#cba6f7',
-        sidebarBorder: '#11111b',
+        sidebarBorder: '#cba6f726', // Mauve with ~15% alpha
         sidebarRing: '#89b4fa',
     },
     variables: {
@@ -278,6 +278,62 @@ export const sillyTavernTheme: Theme = {
 };
 
 // ----------------------------------------------------------------------
+// 7. Glass (Frosted) - 毛玻璃主题
+// ----------------------------------------------------------------------
+export const glassTheme: Theme = {
+    name: 'Glass (Frosted)',
+    colors: {
+        // 背景完全透明，但跟随透明度变化
+        background: 'rgba(255, 255, 255, var(--glass-opacity, 0.1))',
+        foreground: '#0f172a', // 深色文字 (Slate-900) 以适应白色磨砂背景
+
+        // 卡片使用动态透明度 - 改为白色基底
+        card: 'rgba(255, 255, 255, var(--glass-opacity, 0.25))',
+        cardForeground: '#0f172a',
+
+        popover: 'rgba(255, 255, 255, var(--glass-opacity, 0.4))',
+        popoverForeground: '#0f172a',
+
+        primary: 'rgba(15, 23, 42, 0.8)', // 深色主色
+        primaryForeground: '#ffffff',
+
+        secondary: 'rgba(255, 255, 255, 0.3)',
+        secondaryForeground: '#0f172a',
+
+        muted: 'rgba(255, 255, 255, 0.3)',
+        mutedForeground: 'rgba(15, 23, 42, 0.6)',
+
+        accent: 'rgba(255, 255, 255, 0.4)',
+        accentForeground: '#0f172a',
+
+        destructive: 'rgba(239, 68, 68, 0.8)',
+        destructiveForeground: '#ffffff',
+
+        border: 'rgba(15, 23, 42, 0.15)', // Lighter base (will be resistant to fade)
+        input: 'rgba(255, 255, 255, 0.4)',
+        ring: 'rgba(15, 23, 42, 0.4)',
+
+        chart1: '#0f172a',
+        chart2: 'rgba(15, 23, 42, 0.8)',
+        chart3: 'rgba(15, 23, 42, 0.6)',
+        chart4: 'rgba(15, 23, 42, 0.4)',
+        chart5: 'rgba(15, 23, 42, 0.2)',
+
+        sidebar: 'rgba(255, 255, 255, var(--glass-opacity, 0.15))',
+        sidebarForeground: '#0f172a',
+        sidebarPrimary: 'rgba(15, 23, 42, 0.8)',
+        sidebarPrimaryForeground: '#ffffff',
+        sidebarAccent: 'rgba(255, 255, 255, 0.3)',
+        sidebarAccentForeground: '#0f172a',
+        sidebarBorder: 'rgba(15, 23, 42, 0.1)', // Lighter base
+        sidebarRing: 'rgba(15, 23, 42, 0.4)',
+    },
+    variables: {
+        radius: '1rem',
+    }
+};
+
+// ----------------------------------------------------------------------
 // Exports
 // ----------------------------------------------------------------------
 
@@ -288,6 +344,7 @@ export const themes = {
     claudeDark: claudeDarkTheme,
     catppuccin: catppuccinTheme,
     discord: discordTheme,
+    glass: glassTheme,
 };
 
 export type ThemeName = keyof typeof themes;

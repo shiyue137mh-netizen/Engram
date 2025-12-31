@@ -10,6 +10,7 @@ import { ModelLogger, ModelLogEntry } from '../../infrastructure/logger/ModelLog
 /** 类型标签配置 */
 const TYPE_LABELS: Record<ModelLogEntry['type'], { label: string; color: string }> = {
     summarize: { label: '总结', color: 'bg-blue-500/20 text-blue-400' },
+    trim: { label: '修剪', color: 'bg-yellow-500/20 text-yellow-500' },
     vectorize: { label: '向量化', color: 'bg-purple-500/20 text-purple-400' },
     query: { label: '查询', color: 'bg-green-500/20 text-green-400' },
     other: { label: '其他', color: 'bg-gray-500/20 text-gray-400' },
@@ -64,6 +65,20 @@ const LogCard: React.FC<{
                 <span className={`px-2 py-0.5 rounded text-xs font-medium ${typeConfig.color}`}>
                     {typeConfig.label}
                 </span>
+
+                {/* Model Badge */}
+                {sent.model && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 truncate max-w-[100px]" title={`模型: ${sent.model}`}>
+                        {sent.model}
+                    </span>
+                )}
+
+                {/* Character Badge */}
+                {sent.character && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 truncate max-w-[80px]" title={`角色: ${sent.character}`}>
+                        {sent.character}
+                    </span>
+                )}
                 <span className="text-xs text-muted-foreground">{formatTime(sent.timestamp)}</span>
                 <StatusIcon status={received?.status || sent.status} />
                 {sent.floorRange && (

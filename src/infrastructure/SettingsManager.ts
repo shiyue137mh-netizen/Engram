@@ -19,6 +19,10 @@ export interface EngramSettings {
         deleteIndexedDB: boolean;  // 删除角色时删除 IndexedDB 数据
         showConfirmation: boolean; // 删除前显示确认对话框
     };
+    glassSettings: {
+        opacity: number; // 0-1
+        blur: number;    // px
+    };
 }
 
 /** 默认设置 */
@@ -38,6 +42,10 @@ const defaultSettings: EngramSettings = Object.freeze({
         deleteWorldbook: true,
         deleteIndexedDB: false, // 默认不删数据库，以防万一
         showConfirmation: true,
+    },
+    glassSettings: {
+        opacity: 0.3,
+        blur: 10,
     },
 });
 

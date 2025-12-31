@@ -162,8 +162,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
                     style={{
                         height: '100dvh',
                         width: '100vw',
-                        backgroundColor: 'rgba(0,0,0,0.5)', // Explicit semi-transparent black
-                        backdropFilter: 'blur(4px)'
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        backdropFilter: 'var(--glass-backdrop-filter, blur(4px))' // Apply global glass blur variable
                     }}
                     onClick={(e) => {
                         if (e.target === e.currentTarget) setIsOpen(false);
@@ -172,8 +172,9 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
                     <div
                         className="w-full max-w-xl border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-top-4 duration-200"
                         style={{
-                            backgroundColor: 'var(--popover)', // Force theme background color
-                            color: 'var(--popover-foreground)'
+                            backgroundColor: 'var(--popover)', // This will pick up the transparent color from theme
+                            color: 'var(--popover-foreground)',
+                            backdropFilter: 'var(--glass-backdrop-filter)' // Ensure the modal content itself also blurs what's behind it if it's transparent
                         }}
                     >
                         {/* Input Area */}

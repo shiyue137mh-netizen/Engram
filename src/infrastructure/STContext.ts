@@ -97,6 +97,18 @@ export function getCurrentCharacter(): { name: string; id: number } | null {
     };
 }
 
+/**
+ * 获取当前模型名称 (尝试从全局变量获取)
+ */
+export function getCurrentModel(): string | undefined {
+    try {
+        // @ts-expect-error - SillyTavern 全局变量
+        return window.selected_model || undefined;
+    } catch {
+        return undefined;
+    }
+}
+
 
 
 /**

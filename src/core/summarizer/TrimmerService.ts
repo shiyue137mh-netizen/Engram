@@ -17,6 +17,7 @@ import { ModelLogger } from '../../infrastructure/logger/ModelLogger';
 import { notificationService } from '../../infrastructure/NotificationService';
 import { SettingsManager } from '../../infrastructure/SettingsManager';
 import { revisionService } from '../services/RevisionService';
+import { getCurrentCharacter, getCurrentModel } from '../../infrastructure/STContext';
 import type { TrimConfig, TrimTriggerType } from '../api/types';
 import { DEFAULT_TRIM_CONFIG } from '../api/types';
 
@@ -320,6 +321,8 @@ export class TrimmerService {
                 systemPrompt,
                 userPrompt,
                 floorRange: newFloorRange,
+                model: getCurrentModel(),
+                character: getCurrentCharacter()?.name,
             });
 
             const startTime = Date.now();

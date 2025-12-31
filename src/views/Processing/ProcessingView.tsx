@@ -6,7 +6,7 @@
  */
 import React, { useState } from 'react';
 import { FileText, Database, Layers, Boxes, ScrollText, BookOpen } from 'lucide-react';
-import { Tab } from '../components/TabPills';
+import { Tab, TabPills } from '../components/TabPills';
 import { QuickLinks, QuickLink } from '../components/QuickLinks';
 import { SummaryPanel } from './SummaryPanel';
 
@@ -40,36 +40,18 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                 <p className="text-sm text-muted-foreground">记忆摘要、向量化存储和批量任务管理</p>
             </div>
 
-            {/* 标签导航 - 整体 sticky */}
-            <div className="sticky top-0 z-10 bg-background -mx-4 px-4 md:-mx-8 md:px-8 lg:-mx-12 lg:px-12 pt-2 -mt-2">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                    {/* 左侧：主 Tab */}
-                    <div className="flex overflow-x-auto gap-2 no-scrollbar">
-                        {MAIN_TABS.map((tab) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id as ProcessingTab)}
-                                className={`flex items-center gap-2 whitespace-nowrap px-4 py-2 text-sm transition-all relative ${activeTab === tab.id
-                                    ? 'text-foreground'
-                                    : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                            >
-                                {tab.icon && <span className="w-4 h-4">{tab.icon}</span>}
-                                {tab.label}
-                                {activeTab === tab.id && (
-                                    <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-primary shadow-[0_0_10px_var(--primary)]" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* 右侧：快速跳转链接 */}
+            {/* 标签导航 - 使用 TabPills 组件以获得统一的磨砂效果 */}
+            <TabPills
+                tabs={MAIN_TABS}
+                activeTab={activeTab}
+                onChange={(id) => setActiveTab(id as ProcessingTab)}
+                actions={
                     <QuickLinks
                         links={QUICK_LINKS}
                         onNavigate={(path) => onNavigate?.(path)}
                     />
-                </div>
-            </div>
+                }
+            />
 
             {/* 内容区域 */}
             <div className="flex-1 overflow-y-auto no-scrollbar">

@@ -18,7 +18,7 @@ import { ModelLogger } from '../../infrastructure/logger/ModelLogger';
 import { notificationService } from '../../infrastructure/NotificationService';
 import { SettingsManager } from '../../infrastructure/SettingsManager';
 import { WorldBookStateService } from '../../infrastructure/WorldBookStateService';
-import { getCurrentChat, getCurrentChatId, getChatMessages } from '../../infrastructure/STContext';
+import { getCurrentChat, getCurrentChatId, getChatMessages, getCurrentCharacter, getCurrentModel } from '../../infrastructure/STContext';
 import { hideMessageRange } from '../../infrastructure/STBridge';
 import { revisionService } from '../services/RevisionService';
 import type {
@@ -645,6 +645,8 @@ export class SummarizerService {
                 systemPrompt,
                 userPrompt,
                 floorRange: request.floorRange,
+                model: getCurrentModel(),
+                character: getCurrentCharacter()?.name,
             });
 
             const startTime = Date.now();
