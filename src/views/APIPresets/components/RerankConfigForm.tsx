@@ -1,6 +1,8 @@
-import React from 'react';
-import { TextField, NumberField, SwitchField, FormSection } from './FormField';
+import React, { useState } from 'react';
+import { TextField, NumberField, SwitchField, FormSection, SelectField } from './FormField';
 import type { RerankConfig } from '../../../core/api/types';
+import { RefreshCw, Loader2 } from 'lucide-react';
+import { ModelService, ModelInfo } from '../../../infrastructure/ModelService';
 
 interface RerankConfigFormProps {
     config: RerankConfig;
@@ -22,6 +24,42 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
 }) => {
     const updateConfig = (updates: Partial<RerankConfig>) => {
         onChange({ ...config, ...updates });
+    };
+
+    // 模型列表状态
+    const [modelList, setModelList] = useState<ModelInfo[]>([]);
+    const [isLoadingModels, setIsLoadingModels] = useState(false);
+    const [modelError, setModelError] = useState<string | null>(null);
+
+    // 获取模型列表
+    const fetchModelList = async () => {
+        if (!config.url) {
+            setModelError('请先填写 API URL');
+            return;
+        }
+
+        setIsLoadingModels(true);
+        setModelError(null);
+
+        try {
+            // 尝试从 OpenAI 兼容 API 获取
+            const models = await ModelService.fetchOpenAIModels({
+                apiUrl: config.url,
+                apiKey: config.apiKey
+            });
+
+            if (models.length > 0) {
+                setModelList(models);
+            } else {
+                // 如果 API 不返回模型，使用常用预设
+                setModelList(ModelService.getCommonRerankModels());
+            }
+        } catch (error: any) {
+            // 失败时使用常用模型预设
+            setModelList(ModelService.getCommonRerankModels());
+        } finally {
+            setIsLoadingModels(false);
+        }
     };
 
     return (
@@ -57,37 +95,47 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                         />
 
                         <div className="flex flex-col gap-2">
-                            <TextField
-                                label="模型名称"
-                                value={config.model}
-                                onChange={(value) => updateConfig({ model: value })}
-                                placeholder="BAAI/bge-reranker-v2-m3"
-                                description="使用的 Rerank 模型"
-                                required
-                            />
-
-                            {/* 常用模型快速选择 */}
-                            <div>
-                                <span className="block text-[10px] text-muted-foreground mb-2">常用模型：</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {COMMON_MODELS.map((model) => (
-                                        <button
-                                            key={model}
-                                            type="button"
-                                            className={`
-                                                px-2.5 py-1 border rounded text-xs cursor-pointer transition-all 
-                                                ${config.model === model
-                                                    ? 'bg-accent border-input text-foreground'
-                                                    : 'bg-transparent border-transparent text-muted-foreground hover:bg-accent hover:text-foreground'
-                                                }
-                                            `}
-                                            onClick={() => updateConfig({ model })}
-                                        >
-                                            {model.split('/').pop()}
-                                        </button>
-                                    ))}
-                                </div>
+                            <div className="flex items-end gap-2">
+                                {modelList.length > 0 ? (
+                                    <SelectField
+                                        className="flex-1 !mb-0"
+                                        label="模型名称"
+                                        value={config.model}
+                                        onChange={(value) => updateConfig({ model: value })}
+                                        options={modelList.map(m => ({ value: m.id, label: m.name || m.id }))}
+                                        placeholder="选择模型"
+                                    />
+                                ) : (
+                                    <TextField
+                                        className="flex-1 !mb-0"
+                                        label="模型名称"
+                                        value={config.model}
+                                        onChange={(value) => updateConfig({ model: value })}
+                                        placeholder="BAAI/bge-reranker-v2-m3"
+                                        description="使用的 Rerank 模型"
+                                        required
+                                    />
+                                )}
+                                <button
+                                    type="button"
+                                    className="h-[42px] w-[42px] min-w-[42px] flex items-center justify-center border-none rounded-md bg-muted text-muted-foreground cursor-pointer transition-all hover:bg-accent hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={fetchModelList}
+                                    disabled={isLoadingModels}
+                                    title="获取模型列表"
+                                >
+                                    {isLoadingModels ? (
+                                        <Loader2 size={16} className="animate-spin" />
+                                    ) : (
+                                        <RefreshCw size={16} />
+                                    )}
+                                </button>
                             </div>
+                            {modelError && (
+                                <p className="text-xs text-destructive">{modelError}</p>
+                            )}
+                            {modelList.length > 0 && (
+                                <p className="text-xs text-muted-foreground">已加载 {modelList.length} 个模型</p>
+                            )}
                         </div>
                     </FormSection>
 

@@ -20,6 +20,9 @@ import {
 } from '../core/api/types';
 import { RegexRule, DEFAULT_REGEX_RULES } from '../core/summarizer/RegexProcessor';
 import { SettingsManager } from '../infrastructure/SettingsManager';
+import { WorldBookStateService } from '../infrastructure/WorldBookStateService';
+import { WorldInfoService } from '../infrastructure/tavern/WorldInfoService';
+import { getTavernHelper } from '../infrastructure/tavern/WorldInfoService';
 
 export interface UseAPIPresetsReturn {
     // 状态
@@ -29,6 +32,15 @@ export interface UseAPIPresetsReturn {
     hasChanges: boolean;
     regexRules: RegexRule[];
     editingRule: RegexRule | null;
+
+    // 世界书状态
+    worldbookStructure: Record<string, any[]>;
+    disabledEntries: Record<string, number[]>;
+    currentCharWorldbook: string | null;
+    // 世界书操作
+    toggleWorldbook: (name: string, disabled: boolean) => void;
+    toggleEntry: (worldbook: string, uid: number, disabled: boolean) => void;
+    refreshWorldbooks: () => Promise<void>;
 
     // LLM 预设操作
     selectPreset: (preset: LLMPreset) => void;
@@ -73,8 +85,57 @@ export function useAPIPresets(): UseAPIPresetsReturn {
     const [regexRules, setRegexRules] = useState<RegexRule[]>([...DEFAULT_REGEX_RULES]);
     const [editingRule, setEditingRule] = useState<RegexRule | null>(null);
 
+    // 世界书状态
+    const [worldbookStructure, setWorldbookStructure] = useState<Record<string, any[]>>({});
+    const [disabledEntries, setDisabledEntries] = useState<Record<string, number[]>>({});
+    const [currentCharWorldbook, setCurrentCharWorldbook] = useState<string | null>(null);
+
+    // 加载世界书结构和状态
+    const loadWorldbookState = useCallback(async () => {
+        // 1. 加载结构
+        const structure = await WorldInfoService.getWorldbookStructure();
+        setWorldbookStructure(structure);
+
+        // 2. 加载当前角色状态
+        const helper = getTavernHelper();
+        const charBooks = helper?.getCharWorldbookNames?.('current');
+        if (charBooks?.primary) {
+            setCurrentCharWorldbook(charBooks.primary);
+            const state = await WorldBookStateService.loadState(charBooks.primary);
+            if (state.disabledEntries) {
+                setDisabledEntries(state.disabledEntries);
+            }
+        }
+    }, []);
+
+    // 初始加载
+    useEffect(() => {
+        loadWorldbookState();
+    }, [loadWorldbookState]);
+
     // 加载保存的配置
     useEffect(() => {
+        // 从 SettingsManager 加载 API 设置
+        const savedAPISettings = SettingsManager.get('apiSettings');
+        if (savedAPISettings) {
+            // 合并保存的设置，确保内置模板不丢失
+            const defaultSettings = getDefaultAPISettings();
+            const mergedSettings: EngramAPISettings = {
+                ...defaultSettings,
+                ...savedAPISettings,
+                // 合并预设：保留用户预设，确保至少有一个默认
+                llmPresets: savedAPISettings.llmPresets?.length > 0
+                    ? savedAPISettings.llmPresets
+                    : defaultSettings.llmPresets,
+                // 合并模板：内置模板 + 用户自定义模板
+                promptTemplates: [
+                    ...defaultSettings.promptTemplates.filter(t => t.isBuiltIn),
+                    ...(savedAPISettings.promptTemplates || []).filter((t: PromptTemplate) => !t.isBuiltIn),
+                ],
+            };
+            setSettings(mergedSettings);
+        }
+
         // 从 SettingsManager 加载正则规则
         const savedRules = SettingsManager.getRegexRules();
         if (savedRules && savedRules.length > 0) {
@@ -184,6 +245,43 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         setHasChanges(true);
     }, []);
 
+    const toggleWorldbook = useCallback((name: string, disabled: boolean) => {
+        setSettings(prev => {
+            const currentDisabled = prev.worldbookConfig.disabledWorldbooks || [];
+            let newDisabled;
+            if (disabled) {
+                newDisabled = [...new Set([...currentDisabled, name])];
+            } else {
+                newDisabled = currentDisabled.filter(n => n !== name);
+            }
+            return {
+                ...prev,
+                worldbookConfig: {
+                    ...prev.worldbookConfig,
+                    disabledWorldbooks: newDisabled
+                }
+            };
+        });
+        setHasChanges(true);
+    }, []);
+
+    const toggleEntry = useCallback((worldbook: string, uid: number, disabled: boolean) => {
+        setDisabledEntries(prev => {
+            const currentList = prev[worldbook] || [];
+            let newList;
+            if (disabled) {
+                newList = [...new Set([...currentList, uid])];
+            } else {
+                newList = currentList.filter(id => id !== uid);
+            }
+            return {
+                ...prev,
+                [worldbook]: newList
+            };
+        });
+        setHasChanges(true);
+    }, []);
+
     // ==================== 正则规则操作 ====================
 
     const selectRule = useCallback((id: string) => {
@@ -236,12 +334,22 @@ export function useAPIPresets(): UseAPIPresetsReturn {
 
     // ==================== 保存 ====================
 
-    const save = useCallback(() => {
+    const save = useCallback(async () => {
+        // 保存 API 设置到 SettingsManager
+        SettingsManager.set('apiSettings', settings);
         // 保存正则规则到 SettingsManager
         SettingsManager.setRegexRules(regexRules);
-        console.log('保存配置:', settings, regexRules);
+
+        // 保存角色特定的世界书状态
+        if (currentCharWorldbook) {
+            await WorldBookStateService.saveState(currentCharWorldbook, {
+                disabledEntries
+            });
+        }
+
+        console.log('[Engram] 保存配置:', settings, regexRules, disabledEntries);
         setHasChanges(false);
-    }, [settings, regexRules]);
+    }, [settings, regexRules, currentCharWorldbook, disabledEntries]);
 
     return {
         settings,
@@ -265,6 +373,12 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         updateVectorConfig,
         updateRerankConfig,
         updateWorldbookConfig,
+        toggleWorldbook,
+        toggleEntry,
+        refreshWorldbooks: loadWorldbookState,
+        worldbookStructure,
+        disabledEntries,
+        currentCharWorldbook,
 
         selectRule,
         addRule,

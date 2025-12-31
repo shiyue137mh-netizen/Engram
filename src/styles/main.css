@@ -133,23 +133,23 @@
     @apply bg-muted-foreground opacity-50;
 }
 
-/* Explicit Utility Classes for Sidebar (Safeguard against Tailwind generation issues) */
-.bg-sidebar {
+/* Explicit Utility Classes for Sidebar (Scoped to Engram to prevent leakage) */
+#engram-panel-root .bg-sidebar {
     background-color: var(--sidebar) !important;
 }
 
-.text-sidebar-foreground {
+#engram-panel-root .text-sidebar-foreground {
     color: var(--sidebar-foreground) !important;
 }
 
-.bg-sidebar-accent {
+#engram-panel-root .bg-sidebar-accent {
     background-color: var(--sidebar-accent) !important;
 }
 
-.text-sidebar-accent-foreground {
+#engram-panel-root .text-sidebar-accent-foreground {
     color: var(--sidebar-accent-foreground) !important;
 }
 
-.border-sidebar-border {
+#engram-panel-root .border-sidebar-border {
     border-color: var(--sidebar-border) !important;
 }

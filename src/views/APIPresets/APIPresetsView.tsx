@@ -68,7 +68,14 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         toggleRule,
         deleteRule,
         resetRules,
+
         save,
+        // Worldbook filtering
+        worldbookStructure,
+        disabledEntries,
+        toggleWorldbook,
+        toggleEntry,
+        refreshWorldbooks,
     } = useAPIPresets();
 
     return (
@@ -220,6 +227,11 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                         <WorldbookConfigForm
                             config={settings.worldbookConfig}
                             onChange={updateWorldbookConfig}
+                            worldbookStructure={worldbookStructure}
+                            disabledEntries={disabledEntries}
+                            onToggleWorldbook={toggleWorldbook}
+                            onToggleEntry={toggleEntry}
+                            onRefresh={refreshWorldbooks}
                         />
                     </div>
                 )}

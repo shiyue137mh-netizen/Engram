@@ -4,7 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import { TextField, NumberField, SelectField, SwitchField, FormSection } from './FormField';
 import type { LLMPreset, APISource } from '../../../core/api/types';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
+import { ModelService, ModelInfo, ModelAPIType } from '../../../infrastructure/ModelService';
 
 
 interface LLMPresetFormProps {
@@ -62,6 +63,11 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
     const [tavernProfiles, setTavernProfiles] = useState<TavernProfile[]>([]);
     const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
 
+    // 模型列表状态 (自定义 API 用)
+    const [modelList, setModelList] = useState<ModelInfo[]>([]);
+    const [isLoadingModels, setIsLoadingModels] = useState(false);
+    const [modelError, setModelError] = useState<string | null>(null);
+
     // 加载酒馆配置文件
     const loadTavernProfiles = () => {
         setIsLoadingProfiles(true);
@@ -70,6 +76,38 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
             setTavernProfiles(profiles);
         } finally {
             setIsLoadingProfiles(false);
+        }
+    };
+
+    // 加载模型列表 (自定义 API)
+    const fetchModelList = async () => {
+        const { apiUrl, apiKey, apiSource } = preset.custom || {};
+        if (!apiUrl) {
+            setModelError('请先填写 API URL');
+            return;
+        }
+
+        setIsLoadingModels(true);
+        setModelError(null);
+
+        try {
+            // 根据 API 类型选择获取方式
+            let models: ModelInfo[] = [];
+            if (apiSource === 'ollama') {
+                models = await ModelService.fetchOllamaModels({ apiUrl });
+            } else {
+                // OpenAI 兼容 API (openai, vllm, azure, custom)
+                models = await ModelService.fetchOpenAIModels({ apiUrl, apiKey });
+            }
+            setModelList(models);
+            if (models.length === 0) {
+                setModelError('未找到可用模型');
+            }
+        } catch (error: any) {
+            setModelError(error.message || '获取模型列表失败');
+            setModelList([]);
+        } finally {
+            setIsLoadingModels(false);
         }
     };
 
@@ -229,13 +267,49 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                         placeholder="sk-..."
                     />
 
-                    <TextField
-                        label="模型名称"
-                        value={preset.custom?.model || ''}
-                        onChange={(value) => updateCustom('model', value)}
-                        placeholder="gpt-4o-mini"
-                        required
-                    />
+                    {/* 模型选择: 下拉 + 手动输入 + 获取按钮 */}
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-end gap-2">
+                            {modelList.length > 0 ? (
+                                <SelectField
+                                    className="flex-1 !mb-0"
+                                    label="模型名称"
+                                    value={preset.custom?.model || ''}
+                                    onChange={(value) => updateCustom('model', value)}
+                                    options={modelList.map(m => ({ value: m.id, label: m.name || m.id }))}
+                                    placeholder="选择模型"
+                                />
+                            ) : (
+                                <TextField
+                                    className="flex-1 !mb-0"
+                                    label="模型名称"
+                                    value={preset.custom?.model || ''}
+                                    onChange={(value) => updateCustom('model', value)}
+                                    placeholder="gpt-4o-mini"
+                                    required
+                                />
+                            )}
+                            <button
+                                type="button"
+                                className="h-[42px] w-[42px] min-w-[42px] flex items-center justify-center border-none rounded-md bg-muted text-muted-foreground cursor-pointer transition-all hover:bg-accent hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={fetchModelList}
+                                disabled={isLoadingModels || !preset.custom?.apiUrl}
+                                title="获取模型列表"
+                            >
+                                {isLoadingModels ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <RefreshCw size={16} />
+                                )}
+                            </button>
+                        </div>
+                        {modelError && (
+                            <p className="text-xs text-destructive">{modelError}</p>
+                        )}
+                        {modelList.length > 0 && (
+                            <p className="text-xs text-muted-foreground">已加载 {modelList.length} 个模型</p>
+                        )}
+                    </div>
                 </FormSection>
             )}
 

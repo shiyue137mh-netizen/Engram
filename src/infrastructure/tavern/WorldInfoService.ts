@@ -58,6 +58,10 @@ export interface WorldInfoEntry {
     constant: boolean;
     keys: string[];
     position: WorldInfoPosition;
+    /** 备注 */
+    comment?: string;
+    /** 其他自定义字段 */
+    extra?: Record<string, any>;
     depth: number;
     order: number;
     tokenCount?: number;
@@ -79,10 +83,10 @@ export interface WorldInfoTokenStats {
  */
 async function getTokenCountAsync(text: string): Promise<number> {
     try {
-        // @ts-expect-error - SillyTavern 全局对象
+        // @ts-ignore - SillyTavern 全局对象
         const SillyTavern = window.SillyTavern;
         if (SillyTavern?.getContext) {
-            const context = SillyTavern.getContext();
+            const context = SillyTavern.getContext() as any;
             if (context?.getTokenCountAsync) {
                 return await context.getTokenCountAsync(text);
             }
@@ -100,7 +104,7 @@ async function getTokenCountAsync(text: string): Promise<number> {
  * 获取 TavernHelper API (如果可用)
  * 类型基于 the_world 插件验证过的 API
  */
-function getTavernHelper(): {
+export function getTavernHelper(): {
     // 世界书操作
     createWorldbook?: (name: string) => Promise<void>;
     getWorldbook?: (name: string) => Promise<unknown[]>;
@@ -108,13 +112,14 @@ function getTavernHelper(): {
     updateWorldbookWith?: (name: string, updater: (entries: unknown[]) => unknown[]) => Promise<void>;
     deleteWorldbookEntries?: (name: string, filter: (entry: unknown) => boolean) => Promise<void>;
     getWorldbookNames?: () => string[];
+    getGlobalWorldbookNames?: () => string[];
     deleteWorldbook?: (name: string) => Promise<boolean>;
     // 角色世界书绑定
     getCharWorldbookNames?: (mode: 'current' | 'all') => { primary?: string; additional: string[] } | null;
     rebindCharWorldbooks?: (mode: 'current', books: { primary?: string; additional: string[] }) => Promise<void>;
 } | null {
     try {
-        // @ts-expect-error - TavernHelper 全局对象
+        // @ts-ignore - TavernHelper 全局对象
         return window.TavernHelper || null;
     } catch {
         return null;
@@ -243,7 +248,7 @@ export class WorldInfoService {
                 return null;
             }
 
-            // @ts-expect-error - SillyTavern 全局对象
+            // @ts-ignore - SillyTavern 全局对象
             const context = window.SillyTavern?.getContext?.();
             if (!context?.name2 || context.name2 === 'SillyTavern System') {
                 console.warn('[Engram] WorldInfoService: 无效的角色上下文');
@@ -336,7 +341,9 @@ export class WorldInfoService {
                     recursion: recursion ? {
                         prevent_incoming: recursion.prevent_incoming,
                         prevent_outgoing: recursion.prevent_outgoing
-                    } : undefined
+                    } : undefined,
+                    comment: entry.comment as string || '',
+                    extra: entry.extra as Record<string, any> || undefined
                 };
             });
         } catch (e) {
@@ -414,6 +421,10 @@ export class WorldInfoService {
                     depth: params.depth ?? 4,
                 },
                 recursion: params.recursion,
+                // 添加 Engram 身份标识
+                extra: {
+                    engram: true
+                }
             };
 
             console.debug('[Engram] WorldInfoService: 创建条目', {
@@ -699,7 +710,7 @@ export class WorldInfoService {
      */
     static async isNativeTokenCountAvailable(): Promise<boolean> {
         try {
-            // @ts-expect-error - SillyTavern 全局对象
+            // @ts-ignore - SillyTavern 全局对象
             const SillyTavern = window.SillyTavern;
             if (SillyTavern?.getContext) {
                 const context = SillyTavern.getContext();
@@ -720,23 +731,43 @@ export class WorldInfoService {
      * @returns 格式化后的世界书内容字符串
      */
     static async getActivatedWorldInfo(chatMessages?: string[]): Promise<string> {
+        // 延迟导入 Logger 避免循环依赖
+        const { Logger } = await import('../logger');
+
         try {
             // 使用运行时动态导入绕过 Rollup 的静态分析
             const importPath = '/scripts/world-info.js';
-            // @ts-expect-error - 动态导入酒馆模块
             const worldInfoModule = await (new Function('path', 'return import(path)'))(importPath);
             const getWorldInfoPrompt = worldInfoModule?.getWorldInfoPrompt;
+            const getSortedEntries = worldInfoModule?.getSortedEntries;
+
+            // 调试：先检查 getSortedEntries 返回的所有条目
+            if (typeof getSortedEntries === 'function') {
+                const allEntries = await getSortedEntries();
+                const worlds = [...new Set(allEntries?.map((e: { world?: string }) => e.world) || [])];
+                const constantCount = allEntries?.filter((e: { constant?: boolean }) => e.constant)?.length || 0;
+
+                Logger.info('WorldInfo', 'getSortedEntries 诊断', {
+                    totalEntries: allEntries?.length || 0,
+                    worlds: worlds,
+                    constantCount: constantCount,
+                    sampleEntry: allEntries?.[0] ? {
+                        name: allEntries[0].name,
+                        world: allEntries[0].world,
+                        constant: allEntries[0].constant
+                    } : null
+                });
+            }
 
             if (typeof getWorldInfoPrompt !== 'function') {
-                console.warn('[Engram] WorldInfoService: getWorldInfoPrompt 不可用，回退到常驻条目');
+                Logger.warn('WorldInfo', 'getWorldInfoPrompt 不可用，回退到常驻条目');
                 return this.getConstantWorldInfo();
             }
 
             // 获取聊天消息用于关键词扫描
             let messages = chatMessages;
             if (!messages || messages.length === 0) {
-                // 从酒馆上下文获取聊天记录
-                // @ts-expect-error - 酒馆全局对象
+                // @ts-ignore - 酒馆全局对象
                 const context = window.SillyTavern?.getContext?.();
                 if (context?.chat && Array.isArray(context.chat)) {
                     messages = context.chat.map((m: { mes?: string }) => m.mes || '').reverse();
@@ -744,31 +775,182 @@ export class WorldInfoService {
             }
 
             if (!messages || messages.length === 0) {
-                console.warn('[Engram] WorldInfoService: 无聊天消息，回退到常驻条目');
+                Logger.warn('WorldInfo', '无聊天消息，回退到常驻条目');
                 return this.getConstantWorldInfo();
             }
 
-            // 调用世界书扫描（isDryRun=true 不触发额外事件）
-            const maxContext = 8192; // 默认上下文大小
-            const result = await getWorldInfoPrompt(messages, maxContext, true, {
+            Logger.debug('WorldInfo', '调用 getWorldInfoPrompt', {
+                messageCount: messages.length
+            });
+
+            // 1. 调用世界书扫描 (使用 checkWorldInfo 获取详细数据)
+            // 用户要求：不要有 maxContext 限制，或者设置很高，确保不影响扫描
+            const maxContextScan = 1000000;
+            // @ts-ignore - 动态类型
+            const checkWorldInfo = worldInfoModule?.checkWorldInfo;
+
+            if (typeof checkWorldInfo !== 'function') {
+                Logger.error('WorldInfo', 'checkWorldInfo 不可用');
+                return this.getConstantWorldInfo();
+            }
+
+            const result = await checkWorldInfo(messages, maxContextScan, true, {
                 trigger: 'normal'
             });
 
-            // 合并 before 和 after 位置的世界书内容
-            const worldInfo = [
-                result?.worldInfoBefore || '',
-                result?.worldInfoAfter || ''
-            ].filter(Boolean).join('\n\n').trim();
+            // 2. 获取所有激活条目
+            // @ts-ignore - allActivatedEntries 是 Set 类型
+            const allEntriesSet: Set<any> = result?.allActivatedEntries;
+            const entries = allEntriesSet ? Array.from(allEntriesSet.values()) : [];
 
-            if (worldInfo) {
-                console.debug(`[Engram] WorldInfoService: 获取到激活的世界书内容 (${worldInfo.length} 字符)`);
-            }
+            Logger.info('WorldInfo', `扫描完成，共激活 ${entries.length} 个条目`);
 
-            return worldInfo;
+            // 3. 加载过滤配置状态
+            const filterState = await this.loadFilteringState();
+            const { disabledGlobalBooks, disabledEntries, globalWorldbooks, config } = filterState;
+
+            // 4. 执行过滤
+            const filteredEntries = entries.filter((entry) =>
+                this.shouldIncludeEntry(entry, globalWorldbooks, disabledGlobalBooks, disabledEntries, config)
+            );
+
+            Logger.info('WorldInfo', '筛选结果', {
+                total: entries.length,
+                kept: filteredEntries.length,
+                filteredOut: entries.length - filteredEntries.length,
+                keptWorlds: [...new Set(filteredEntries.map(e => e.world))]
+            });
+
+            // 5. 排序：按 order 排序 (酒馆默认顺序可能不同，这里保持原有逻辑或按需调整)
+            filteredEntries.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+            // 6. 提取内容并合并
+            const context = filteredEntries
+                .map(e => e.content)
+                .filter(Boolean)
+                .join('\n\n');
+
+            return context;
         } catch (e) {
-            console.warn('[Engram] WorldInfoService: 获取世界书失败，回退到常驻条目', e);
+            Logger.error('WorldInfo', '获取激活世界书失败', e);
             return this.getConstantWorldInfo();
         }
+    }
+
+    /**
+     * 加载过滤所需的所有状态配置
+     * @private
+     */
+    private static async loadFilteringState() {
+        const helper = getTavernHelper();
+        const globalWorldbooks = helper?.getGlobalWorldbookNames?.() || [];
+
+        const { SettingsManager } = await import('../SettingsManager');
+        const settings = SettingsManager.getSettings();
+        const config = settings.apiSettings?.worldbookConfig;
+        const disabledGlobalBooks = config?.disabledWorldbooks || [];
+
+        // 加载角色特定状态 (用于条目黑名单)
+        const { WorldBookStateService } = await import('../WorldBookStateService');
+        const charBooks = helper?.getCharWorldbookNames?.('current');
+        let disabledEntries: Record<string, number[]> = {};
+
+        if (charBooks?.primary) {
+            const state = await WorldBookStateService.loadState(charBooks.primary);
+            disabledEntries = state.disabledEntries || {};
+        }
+
+        return {
+            globalWorldbooks,
+            disabledGlobalBooks,
+            disabledEntries,
+            config
+        };
+    }
+
+    /**
+     * 判断单个条目是否应该被包含
+     * @private
+     */
+    private static shouldIncludeEntry(
+        entry: any,
+        globalWorldbooks: string[],
+        disabledGlobalBooks: string[],
+        disabledEntries: Record<string, number[]>,
+        config: any
+    ): boolean {
+        // (1) Engram 自身条目：始终保留
+        if (entry.extra?.engram === true) return true;
+        if (entry.world?.startsWith('[Engram]')) return true;
+
+        // (2) 全局世界书逻辑：根据 includeGlobal 和黑名单过滤
+        if (entry.world && globalWorldbooks.includes(entry.world)) {
+            // 如果未启用全局世界书，直接排除
+            if (config?.includeGlobal === false) return false;
+            // 如果在禁用列表中，排除
+            if (disabledGlobalBooks.includes(entry.world)) return false;
+        }
+
+        // (3) 条目级黑名单：如果 uid 在禁用列表中，排除
+        if (entry.world && entry.uid) {
+            const bookDisabledList = disabledEntries[entry.world];
+            if (bookDisabledList && bookDisabledList.includes(entry.uid)) {
+                return false;
+            }
+        }
+
+        // (4) 额外保险：排除常见全局规则世界书命名前缀 (硬编码规则)
+        // 这些通常是输出格式控制，不应该作为剧情总结的输入
+        if (entry.world?.startsWith('格式')) return false;
+        if (entry.world?.startsWith('---')) return false;
+
+        // (5) 其他条目：保留
+        return true;
+    }
+
+    /**
+     * 获取世界书结构（用于 UI 展示）
+     * 返回所有世界书及其包含的条目摘要
+     */
+    static async getWorldbookStructure(): Promise<Record<string, { uid: number; name: string; keys: string[]; constant: boolean; comment: string; content: string }[]>> {
+        const helper = getTavernHelper();
+        if (!helper) return {};
+
+        // 1. 获取全局世界书
+        const globalWorldbooks = helper.getGlobalWorldbookNames?.() || [];
+
+        // 2. 获取当前角色世界书
+        let charWorldbooks: string[] = [];
+        if (helper.getCharWorldbookNames) {
+            const charBooks = helper.getCharWorldbookNames('current');
+            if (charBooks) {
+                charWorldbooks = [...(charBooks.additional || []), charBooks.primary].filter(Boolean) as string[];
+            }
+        }
+
+        // 3. 合并并去重，只显示这部分相关的世界书
+        const targetBooks = Array.from(new Set([...globalWorldbooks, ...charWorldbooks])).sort();
+
+        const structure: Record<string, any[]> = {};
+
+        for (const book of targetBooks) {
+            try {
+                // 使用现有的 getEntries 方法
+                const entries = await this.getEntries(book);
+                structure[book] = entries.map(e => ({
+                    uid: e.uid,
+                    name: e.name,   // 传递真实名称
+                    keys: e.keys,
+                    constant: e.constant, // 传递常驻状态
+                    comment: e.comment || '',
+                    content: e.content?.substring(0, 50) + '...' // 预览内容
+                }));
+            } catch (e) {
+                console.warn(`[Engram] WorldInfoService: 读取世界书 ${book} 失败`, e);
+                structure[book] = [];
+            }
+        }
+        return structure;
     }
 
     /**

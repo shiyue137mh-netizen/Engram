@@ -292,6 +292,7 @@ interface SwitchFieldProps extends Omit<BaseFieldProps, 'required'> {
     checked: boolean;
     onChange: (checked: boolean) => void;
     disabled?: boolean;
+    compact?: boolean;
 }
 
 /**
@@ -305,9 +306,10 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
     checked,
     onChange,
     disabled,
+    compact,
 }) => {
     return (
-        <div className={`flex items-start justify-between gap-4 py-1 ${className} ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+        <div className={`flex items-start justify-between gap-4 ${compact ? 'py-0' : 'py-1'} ${className} ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
             {label && ( // 只有当 label 存在时才渲染左侧区域，避免只有开关时占用过多空间
                 <div className="flex-1">
                     <label

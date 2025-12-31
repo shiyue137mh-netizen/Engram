@@ -1,5 +1,5 @@
 import { Logger } from './logger';
-import type { PromptTemplate, PromptCategory } from '../core/api/types';
+import type { PromptTemplate, PromptCategory, EngramAPISettings } from '../core/api/types';
 import type { RegexRule } from '../core/summarizer/RegexProcessor';
 
 export interface EngramSettings {
@@ -12,6 +12,7 @@ export interface EngramSettings {
     summarizerConfig: Partial<any>; // 总结器配置
     trimmerConfig: Partial<any>; // 精简器配置
     regexRules: RegexRule[]; // 正则规则列表
+    apiSettings: EngramAPISettings | null; // API 配置（LLM 预设、向量化、Rerank 等）
     linkedDeletion: {
         enabled: boolean;          // 是否启用联动删除
         deleteWorldbook: boolean;  // 删除角色时删除 Engram 世界书
@@ -31,6 +32,7 @@ const defaultSettings: EngramSettings = Object.freeze({
     summarizerConfig: {},
     trimmerConfig: {},
     regexRules: [],
+    apiSettings: null,
     linkedDeletion: {
         enabled: true,
         deleteWorldbook: true,

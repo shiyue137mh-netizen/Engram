@@ -6,6 +6,12 @@ export interface EngramState {
     totalSummaries: number;
     totalTokens: number;
     updatedAt: number;
+    /** 
+     * 条目黑名单
+     * 结构：{ "WorldbookName": [uid1, uid2, ...] }
+     * 使用 UID 作为唯一标识
+     */
+    disabledEntries?: Record<string, number[]>;
 }
 
 const STATE_ENTRY_KEY = '__ENGRAM_STATE__';
