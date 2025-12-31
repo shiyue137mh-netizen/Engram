@@ -11,9 +11,6 @@
 		},
 		{
 			"path": "../third-party/vectors-enhanced"
-		},
-		{
-			"path": "../SillyworldExtension"
 		}
 	],
 	"settings": {}
