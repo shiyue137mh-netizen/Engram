@@ -16,8 +16,8 @@ import { PromptTemplateForm } from './components/PromptTemplateForm';
 import { RegexRuleList } from './components/RegexRuleList';
 import { RegexRuleForm } from './components/RegexRuleForm';
 import { WorldbookConfigForm } from './components/WorldbookConfigForm';
-import { PageTitle } from '../components/PageTitle';
-import { TabPills } from '../components/TabPills';
+import { PageTitle } from "@/components/common/PageTitle";
+import { TabPills } from "@/components/ui/TabPills";
 // Hooks
 import { useAPIPresets } from '../../hooks/useAPIPresets';
 

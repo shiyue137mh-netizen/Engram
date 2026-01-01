@@ -13,16 +13,16 @@ import type {
     RerankConfig,
     PromptTemplate,
     WorldbookConfig,
-} from '../core/api/types';
+} from '@/services/api/types';
 import {
     getDefaultAPISettings,
     createDefaultLLMPreset,
-} from '../core/api/types';
-import { RegexRule, DEFAULT_REGEX_RULES } from '../core/summarizer/RegexProcessor';
-import { SettingsManager } from '../infrastructure/SettingsManager';
-import { WorldBookStateService } from '../infrastructure/WorldBookStateService';
-import { WorldInfoService } from '../infrastructure/tavern/WorldInfoService';
-import { getTavernHelper } from '../infrastructure/tavern/WorldInfoService';
+} from '@/services/api/types';
+import { RegexRule, DEFAULT_REGEX_RULES } from '@/services/summarizer/RegexProcessor';
+import { SettingsManager } from "@/services/settings/Persistence";
+import { WorldBookStateService } from "@/services/WorldBookStateService";
+import { WorldInfoService } from '@/tavern/api/WorldInfo';
+import { getTavernHelper } from '@/tavern/api/WorldInfo';
 
 export interface UseAPIPresetsReturn {
     // 状态

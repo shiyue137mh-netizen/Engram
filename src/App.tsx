@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { MainLayout } from './views/Layout/MainLayout';
+import { MainLayout } from '@/components/layout/MainLayout';
 // Import Views
-import { Dashboard } from './views/Dashboard';
-import { GraphView } from './views/Graph';
-import { DevLog } from './views/DevLog';
-import { APIPresets } from './views/APIPresets/APIPresetsView';
-import { Settings } from './views/Settings';
-import { MemoryStream } from './views/MemoryStream';
-import { ProcessingView } from './views/Processing/ProcessingView';
-import { ThemeProvider } from './contexts/ThemeContext';
-import { WelcomeAnimation } from './views/components/WelcomeAnimation';
-import { SettingsManager } from './infrastructure/SettingsManager';
+import { Dashboard } from '@/views/Dashboard';
+import { GraphView } from '@/views/Graph';
+import { DevLog } from '@/views/DevLog';
+import { APIPresets } from '@/views/APIPresets/APIPresetsView';
+import { Settings } from '@/views/Settings';
+import { MemoryStream } from '@/views/MemoryStream';
+import { ProcessingView } from '@/views/Processing/ProcessingView';
+import { ThemeProvider } from '@/contexts/ThemeContext';
+import { WelcomeAnimation } from '@/components/visual/WelcomeAnimation';
+import { SettingsManager } from '@/services/settings/Persistence';
 
 
 

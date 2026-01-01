@@ -3,9 +3,9 @@
  */
 import React, { useState, useEffect } from 'react';
 import { TextField, NumberField, SelectField, SwitchField, FormSection } from './FormField';
-import type { LLMPreset, APISource } from '../../../core/api/types';
+import type { LLMPreset, APISource } from '@/services/api/types';
 import { RefreshCw, Loader2 } from 'lucide-react';
-import { ModelService, ModelInfo, ModelAPIType } from '../../../infrastructure/ModelService';
+import { ModelService, ModelInfo, ModelAPIType } from '@/services/api/ModelDiscovery';
 
 
 interface LLMPresetFormProps {

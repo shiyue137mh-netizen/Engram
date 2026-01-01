@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { ThemeManager } from '../../../infrastructure/ThemeManager';
+import { ThemeManager } from '@/services/ThemeManager';
 import { themes, ThemeName } from '../../../styles/themes';
-import { SettingsManager } from '../../../infrastructure/SettingsManager';
+import { SettingsManager } from '@/services/settings/Persistence';
 
 interface ThemeOption {
     id: ThemeName;

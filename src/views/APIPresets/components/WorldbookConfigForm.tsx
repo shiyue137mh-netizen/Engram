@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SwitchField, FormSection } from './FormField';
-import type { WorldbookConfig } from '../../../core/api/types';
+import type { WorldbookConfig } from '@/services/api/types';
 import { ChevronRight, ChevronDown, Book, FileText, Ban, RefreshCw, AlertCircle, Search } from 'lucide-react';
 
 interface WorldbookConfigFormProps {

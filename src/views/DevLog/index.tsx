@@ -17,10 +17,10 @@ import {
     ArrowDownToLine,
     Zap,
 } from 'lucide-react';
-import { Logger, LogEntry, LogLevel, LogLevelConfig } from '../../infrastructure/logger';
+import { Logger, LogEntry, LogLevel, LogLevelConfig } from "@/lib/logger";
 import { LogEntryItem } from './LogEntryItem';
 import { ModelLog } from './ModelLog';
-import { TabPills, Tab } from '../components/TabPills';
+import { TabPills, Tab } from "@/components/ui/TabPills";
 
 // Tab 类型
 type TabType = 'runtime' | 'model';

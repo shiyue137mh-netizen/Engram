@@ -1,8 +1,8 @@
 import React from 'react';
 import { Plus, FileText } from 'lucide-react';
 import { PromptTemplateCard } from './PromptTemplateCard';
-import type { PromptTemplate } from '../../../core/api/types';
-import { createPromptTemplate, PROMPT_CATEGORIES } from '../../../core/api/types';
+import type { PromptTemplate } from '@/services/api/types';
+import { createPromptTemplate, PROMPT_CATEGORIES } from '@/services/api/types';
 
 interface PromptTemplateListProps {
     templates: PromptTemplate[];

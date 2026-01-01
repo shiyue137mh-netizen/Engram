@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { FileText, Copy, Trash2, Download, Upload, Check, Power } from 'lucide-react';
-import type { PromptTemplate, PromptCategory, PromptTemplateSingleExport } from '../../../core/api/types';
-import { PROMPT_CATEGORIES, createPromptTemplate } from '../../../core/api/types';
+import type { PromptTemplate, PromptCategory, PromptTemplateSingleExport } from '@/services/api/types';
+import { PROMPT_CATEGORIES, createPromptTemplate } from '@/services/api/types';
 
 interface PromptTemplateCardProps {
     template: PromptTemplate;

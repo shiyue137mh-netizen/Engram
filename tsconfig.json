@@ -42,6 +42,7 @@
     },
     "include": [
         "src/**/*",
+        "src/types/**/*.d.ts",
         "manifest.json"
     ],
     "exclude": [

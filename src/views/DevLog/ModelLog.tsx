@@ -5,7 +5,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Send, Bot, Clock, Zap, AlertCircle, CheckCircle, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
-import { ModelLogger, ModelLogEntry } from '../../infrastructure/logger/ModelLogger';
+import { ModelLogger, ModelLogEntry } from "@/lib/logger/ModelLogger";
 
 /** 类型标签配置 */
 const TYPE_LABELS: Record<ModelLogEntry['type'], { label: string; color: string }> = {

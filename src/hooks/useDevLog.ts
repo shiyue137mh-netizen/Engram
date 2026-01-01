@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Logger, LogEntry, LogLevel } from '../infrastructure/logger';
+import { Logger, LogEntry, LogLevel } from "@/lib/logger";
 
 // 模块列表（用于过滤）
 export const LOG_MODULES = [

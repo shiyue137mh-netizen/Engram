@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { StatsCard } from './components/StatsCard';
 import { Database, Cpu, Server, Terminal as TermIcon, Zap } from 'lucide-react';
-import { Logger } from '../../infrastructure/logger';
-import type { LogEntry } from '../../infrastructure/logger/types';
-import { getSTContext } from '../../infrastructure/STBridge';
+import { Logger } from "@/lib/logger";
+import type { LogEntry } from "@/lib/logger/types";
+import { getSTContext } from '@/tavern/bridge';
 
 interface DashboardProps {
     onNavigate?: (path: string) => void;

@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { ChevronRight, ChevronDown } from 'lucide-react';
-import { LogEntry, LogLevel, LogLevelConfig } from '../../infrastructure/logger';
+import { LogEntry, LogLevel, LogLevelConfig } from "@/lib/logger";
 
 interface LogEntryItemProps {
     entry: LogEntry;

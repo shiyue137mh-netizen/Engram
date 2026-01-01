@@ -1,5 +1,5 @@
 import React from 'react';
-import { PageTitle } from '../components/PageTitle';
+import { PageTitle } from "@/components/common/PageTitle";
 import { Brain } from 'lucide-react';
 
 export const MemoryStream: React.FC = () => {

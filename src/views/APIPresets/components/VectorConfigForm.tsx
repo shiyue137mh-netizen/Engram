@@ -3,9 +3,9 @@
  */
 import React, { useState } from 'react';
 import { TextField, SelectField, FormSection } from './FormField';
-import type { VectorConfig, VectorSource } from '../../../core/api/types';
+import type { VectorConfig, VectorSource } from '@/services/api/types';
 import { RefreshCw, Loader2 } from 'lucide-react';
-import { ModelService, ModelInfo, ModelAPIType } from '../../../infrastructure/ModelService';
+import { ModelService, ModelInfo, ModelAPIType } from '@/services/api/ModelDiscovery';
 
 
 interface VectorConfigFormProps {

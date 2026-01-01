@@ -6,8 +6,8 @@
  */
 import React, { useState } from 'react';
 import { FileText, Database, Layers, Boxes, ScrollText, BookOpen } from 'lucide-react';
-import { Tab, TabPills } from '../components/TabPills';
-import { QuickLinks, QuickLink } from '../components/QuickLinks';
+import { Tab, TabPills } from "@/components/ui/TabPills";
+import { QuickLinks, QuickLink } from '@/components/common/QuickLinks';
 import { SummaryPanel } from './SummaryPanel';
 
 type ProcessingTab = 'summary' | 'vectorization' | 'batch';

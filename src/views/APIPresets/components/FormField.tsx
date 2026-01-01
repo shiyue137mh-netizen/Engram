@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChevronDown } from 'lucide-react';
-import { Switch } from '../../components/Switch';
+import { Switch } from '@/components/ui/Switch';
 
 interface FormSectionProps {
     title: string;

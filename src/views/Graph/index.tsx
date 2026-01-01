@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Maximize2, Settings2, Terminal, Cpu, Database, Play } from 'lucide-react';
-import { PageTitle } from '../components/PageTitle';
-import { ModernButton } from '../components/ModernButton';
+import { PageTitle } from "@/components/common/PageTitle";
+import { ModernButton } from "@/components/ui/Button";
 
 const SimulatedReactFlow = () => {
     // Simple state to simulate dragging (visual only for mockup)

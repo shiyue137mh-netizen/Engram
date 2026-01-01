@@ -9,12 +9,12 @@
  */
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RefreshCw, CheckCircle2, AlertCircle, Scissors, Calculator, Layers, Hash } from 'lucide-react';
-import type { TrimTriggerType } from '../../core/api/types';
-import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '../../core/summarizer/TrimmerService';
-import { SettingsManager } from '../../infrastructure/SettingsManager';
+import type { TrimTriggerType } from '@/services/api/types';
+import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService';
+import { SettingsManager } from "@/services/settings/Persistence";
 import { NumberField, SwitchField } from '../APIPresets/components/FormField';
-import { Divider } from '../Layout/Divider';
-import type { TrimmerStatus } from '../../core/summarizer';
+import { Divider } from "@/components/layout/Divider";
+import type { TrimmerStatus } from "@/services/summarizer";
 
 interface SummarizerStatus {
     running: boolean;
@@ -59,7 +59,7 @@ export const SummaryPanel: React.FC = () => {
 
     const loadStatus = async () => {
         try {
-            const { summarizerService } = await import('../../core/summarizer');
+            const { summarizerService } = await import('@/services/summarizer');
             // 获取当前状态
             let currentStatus = summarizerService.getStatus();
             // 如果 lastSummarizedFloor 为 0，可能需要从世界书初始化
@@ -83,12 +83,12 @@ export const SummaryPanel: React.FC = () => {
             }
 
             // 加载精简服务状态
-            const { trimmerService } = await import('../../core/summarizer');
+            const { trimmerService } = await import('@/services/summarizer');
             const trimmerStatus = await trimmerService.getStatus();
             setTrimStatus(trimmerStatus);
 
-            const { WorldInfoService } = await import('../../infrastructure/tavern/WorldInfoService');
-            const { WorldBookStateService } = await import('../../infrastructure/WorldBookStateService');
+            const { WorldInfoService } = await import('@/tavern/api/WorldInfo');
+            const { WorldBookStateService } = await import('@/services/WorldBookStateService');
             // 只查询已存在的世界书，不创建（避免面板打开时过早创建）
             const worldbookName = WorldInfoService.findExistingWorldbook();
             if (worldbookName) {
@@ -109,7 +109,7 @@ export const SummaryPanel: React.FC = () => {
 
     const handleStart = async () => {
         try {
-            const { summarizerService } = await import('../../core/summarizer');
+            const { summarizerService } = await import('@/services/summarizer');
             summarizerService.start();
             await loadStatus();
         } catch (e) {
@@ -119,7 +119,7 @@ export const SummaryPanel: React.FC = () => {
 
     const handleStop = async () => {
         try {
-            const { summarizerService } = await import('../../core/summarizer');
+            const { summarizerService } = await import('@/services/summarizer');
             summarizerService.stop();
             await loadStatus();
         } catch (e) {
@@ -130,7 +130,7 @@ export const SummaryPanel: React.FC = () => {
     const handleTrigger = async () => {
         setLoading(true);
         try {
-            const { summarizerService } = await import('../../core/summarizer');
+            const { summarizerService } = await import('@/services/summarizer');
             await summarizerService.triggerSummary(true);
             await loadStatus();
         } catch (e) {
@@ -145,7 +145,7 @@ export const SummaryPanel: React.FC = () => {
         if (!confirm('确定要重置总结进度吗？这会导致扫描所有历史消息。')) return;
         setLoading(true);
         try {
-            const { summarizerService } = await import('../../core/summarizer');
+            const { summarizerService } = await import('@/services/summarizer');
             // 这是一个 hack，通过设置 lastSummarizedFloor 为 0 来重置
             // 理想情况下应该在 service 中暴露 reset 方法
             await summarizerService.setLastSummarizedFloor(0);
@@ -180,7 +180,7 @@ export const SummaryPanel: React.FC = () => {
         setTrimConfig(newConfig);
         saveTrimConfig(newConfig);
         // 同步更新 TrimmerService 配置
-        const { trimmerService } = await import('../../core/summarizer');
+        const { trimmerService } = await import('@/services/summarizer');
         trimmerService.updateConfig({ enabled: newConfig.enabled });
     };
 
@@ -188,7 +188,7 @@ export const SummaryPanel: React.FC = () => {
     const handleTriggerTrim = async () => {
         setTrimLoading(true);
         try {
-            const { trimmerService } = await import('../../core/summarizer');
+            const { trimmerService } = await import('@/services/summarizer');
             await trimmerService.triggerTrim(true);
             await loadStatus();
         } catch (e) {
@@ -314,7 +314,7 @@ export const SummaryPanel: React.FC = () => {
                                 checked={settings.autoEnabled}
                                 onChange={async (newVal) => {
                                     setSettings(s => ({ ...s, autoEnabled: newVal }));
-                                    const { summarizerService } = await import('../../core/summarizer');
+                                    const { summarizerService } = await import('@/services/summarizer');
                                     summarizerService.updateConfig({ enabled: newVal });
                                 }}
                             />
@@ -329,7 +329,7 @@ export const SummaryPanel: React.FC = () => {
                                 checked={settings.autoHide}
                                 onChange={(newVal) => {
                                     setSettings(s => ({ ...s, autoHide: newVal }));
-                                    import('../../core/summarizer').then(({ summarizerService }) => {
+                                    import('@/services/summarizer').then(({ summarizerService }) => {
                                         summarizerService.updateConfig({ autoHide: newVal });
                                     });
                                 }}
@@ -365,7 +365,7 @@ export const SummaryPanel: React.FC = () => {
                                             onChange={async (e) => {
                                                 const val = Number(e.target.value);
                                                 setSettings(s => ({ ...s, floorInterval: val }));
-                                                const { summarizerService } = await import('../../core/summarizer');
+                                                const { summarizerService } = await import('@/services/summarizer');
                                                 summarizerService.updateConfig({ floorInterval: val });
                                             }}
                                             className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
@@ -396,7 +396,7 @@ export const SummaryPanel: React.FC = () => {
                                             onChange={(e) => {
                                                 const val = Number(e.target.value);
                                                 setSettings(s => ({ ...s, bufferSize: val }));
-                                                import('../../core/summarizer').then(({ summarizerService }) => {
+                                                import('@/services/summarizer').then(({ summarizerService }) => {
                                                     summarizerService.updateConfig({ bufferSize: val });
                                                 });
                                             }}

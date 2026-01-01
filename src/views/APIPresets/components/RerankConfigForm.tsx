@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { TextField, NumberField, SwitchField, FormSection, SelectField } from './FormField';
-import type { RerankConfig } from '../../../core/api/types';
+import type { RerankConfig } from '@/services/api/types';
 import { RefreshCw, Loader2 } from 'lucide-react';
-import { ModelService, ModelInfo } from '../../../infrastructure/ModelService';
+import { ModelService, ModelInfo } from '@/services/api/ModelDiscovery';
 
 interface RerankConfigFormProps {
     config: RerankConfig;

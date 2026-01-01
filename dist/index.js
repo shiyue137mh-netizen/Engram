@@ -12719,10 +12719,6 @@ class pe {
    * 获取扩展设置对象
    * 如果不存在则创建
    */
-  /**
-   * 获取扩展设置对象
-   * 如果不存在则创建
-   */
   static getSettings() {
     const s = this.getContext();
     return s != null && s.extensionSettings ? (s.extensionSettings[this.EXTENSION_NAME] || (s.extensionSettings[this.EXTENSION_NAME] = { ...ma }, ae.debug("SettingsManager", "Initialized engram settings with defaults"), this.save()), s.extensionSettings[this.EXTENSION_NAME]) : (ae.warn("SettingsManager", "SillyTavern context.extensionSettings not available"), { ...ma });
@@ -13313,7 +13309,6 @@ const st = Gc.getInstance(), M3 = "0.2.1", O3 = {
   owner: "shiyue137mh-netizen",
   repo: "Engram",
   branch: "master"
-  // 实际分支名是 master
 }, Bs = O3.version;
 let ir = null, or = null;
 function zc(u, s) {

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { PageTitle } from '../components/PageTitle';
+import { PageTitle } from "@/components/common/PageTitle";
 import { Settings as SettingsIcon, Eye, Trash2 } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
 import { ThemeSelector } from './components/ThemeSelector';
-import { Switch } from '../components/Switch';
+import { Switch } from "@/components/ui/Switch";
 import { NumberField } from '../APIPresets/components/FormField';
-import { summarizerService } from '../../core/summarizer';
-import { SettingsManager } from '../../infrastructure/SettingsManager';
+import { summarizerService } from "@/services/summarizer";
+import { SettingsManager } from "@/services/settings/Persistence";
 
 export const Settings: React.FC = () => {
     const [previewEnabled, setPreviewEnabled] = useState(SettingsManager.getSettings().apiSettings?.previewEnabled ?? true);
@@ -58,7 +58,7 @@ export const Settings: React.FC = () => {
                                 };
                                 SettingsManager.set('glassSettings', newSettings);
                                 // 实时应用
-                                import('../../infrastructure/ThemeManager').then(({ ThemeManager }) => {
+                                import('@/services/ThemeManager').then(({ ThemeManager }) => {
                                     // 重新应用当前主题以更新变量
                                     ThemeManager.setTheme(ThemeManager.getTheme());
                                 });
@@ -81,7 +81,7 @@ export const Settings: React.FC = () => {
                                 };
                                 SettingsManager.set('glassSettings', newSettings);
                                 // 实时应用
-                                import('../../infrastructure/ThemeManager').then(({ ThemeManager }) => {
+                                import('@/services/ThemeManager').then(({ ThemeManager }) => {
                                     ThemeManager.setTheme(ThemeManager.getTheme());
                                 });
                                 forceUpdate({}); // 触发重绘

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ThemeName, themes } from '../styles/themes';
-import { ThemeManager } from '../infrastructure/ThemeManager';
+import { ThemeManager } from "@/services/ThemeManager";
 
 interface ThemeContextType {
     theme: ThemeName;
