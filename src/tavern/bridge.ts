@@ -268,7 +268,6 @@ function setupEventListeners(): void {
 export async function hideMessageRange(start: number, end: number): Promise<void> {
     try {
         const importPath = '/scripts/chats.js';
-        // @ts-expect-error - 动态导入酒馆模块
         const chatsModule = await (new Function('path', 'return import(path)'))(importPath);
 
         if (chatsModule && typeof chatsModule.hideChatMessageRange === 'function') {

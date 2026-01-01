@@ -196,7 +196,6 @@ function getSTContext(): {
     characterId: number;
 } | null {
     try {
-        // @ts-expect-error - SillyTavern 全局对象
         return window.SillyTavern?.getContext?.() || null;
     } catch {
         return null;
@@ -209,7 +208,6 @@ function getSTContext(): {
 function getChatMetadata(): Record<string, unknown> | null {
     try {
         // 优先从 context 获取
-        // @ts-expect-error - SillyTavern 全局对象
         const context = window.SillyTavern?.getContext?.();
         if (context?.chat_metadata) {
             return context.chat_metadata;
