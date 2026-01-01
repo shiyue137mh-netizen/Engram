@@ -7,6 +7,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, CheckCircle, Download } from 'lucide-react';
 import { UpdateService } from '@/services/updater';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface UpdateNoticeProps {
     isOpen: boolean;
@@ -148,11 +150,10 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                                     <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                         更新日志
                                     </h3>
-                                    <div className="bg-muted/20 rounded-lg p-4 max-h-64 overflow-y-auto">
-                                        <pre className="text-xs text-foreground/80 whitespace-pre-wrap font-mono leading-relaxed">
-                                            {changelog.substring(0, 2000)}
-                                            {changelog.length > 2000 && '\n\n... (更多内容请查看完整日志)'}
-                                        </pre>
+                                    <div className="bg-muted/20 rounded-lg p-4 max-h-64 overflow-y-auto engram-changelog-content text-sm">
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {changelog}
+                                        </ReactMarkdown>
                                     </div>
                                 </div>
                             )}
