@@ -8,14 +8,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Command, ArrowRight, CornerDownLeft, Palette, Moon, Sun } from 'lucide-react';
 import { COMMANDS, searchCommands, CommandItem } from '@/constants/commands';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useThemeStore } from '@/stores/themeStore';
 
 interface CommandPaletteProps {
     onNavigate: (path: string) => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) => {
-    const { setTheme } = useTheme();
+    const setTheme = useThemeStore(state => state.setTheme);
     const [query, setQuery] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);

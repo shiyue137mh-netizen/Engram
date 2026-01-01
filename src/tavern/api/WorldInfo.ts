@@ -851,7 +851,7 @@ export class WorldInfoService {
         const disabledGlobalBooks = config?.disabledWorldbooks || [];
 
         // 加载角色特定状态 (用于条目黑名单)
-        const { WorldBookStateService } = await import('@/services/WorldBookStateService');
+        const { WorldBookStateService } = await import('@/tavern/WorldBookState');
         const charBooks = helper?.getCharWorldbookNames?.('current');
         let disabledEntries: Record<string, number[]> = {};
 

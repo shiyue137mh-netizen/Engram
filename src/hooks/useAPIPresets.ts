@@ -20,7 +20,7 @@ import {
 } from '@/services/api/types';
 import { RegexRule, DEFAULT_REGEX_RULES } from '@/services/summarizer/RegexProcessor';
 import { SettingsManager } from "@/services/settings/Persistence";
-import { WorldBookStateService } from "@/services/WorldBookStateService";
+import { WorldBookStateService } from "@/tavern/WorldBookState";
 import { WorldInfoService } from '@/tavern/api/WorldInfo';
 import { getTavernHelper } from '@/tavern/api/WorldInfo';
 

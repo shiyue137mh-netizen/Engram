@@ -8,7 +8,6 @@ import ReactDOM from 'react-dom/client';
 import './styles/main.css';
 import App from './App';
 import { initializeEngram, setReactRenderer, setGlobalRenderer } from '@/tavern/bridge';
-import { ThemeProvider } from './contexts/ThemeContext';
 import { RevisionModal } from '@/components/ui/Modal';
 
 // 设置 React 渲染器
@@ -22,11 +21,9 @@ setReactRenderer((container: HTMLElement, onClose: () => void) => {
 setGlobalRenderer((container: HTMLElement) => {
     const root = ReactDOM.createRoot(container);
     root.render(
-        <ThemeProvider>
-            <div className="pointer-events-auto">
-                <RevisionModal />
-            </div>
-        </ThemeProvider>
+        <div className="pointer-events-auto">
+            <RevisionModal />
+        </div>
     );
     return root;
 });

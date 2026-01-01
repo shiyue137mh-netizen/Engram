@@ -1,6 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { ThemeProvider } from '@/contexts/ThemeContext';
 import { WelcomeAnimation } from '@/components/visual/WelcomeAnimation';
 import { SettingsManager } from '@/services/settings/Persistence';
 
@@ -85,8 +84,8 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
     };
 
     return (
-        <ThemeProvider>
-            {/* 首次安装欢迎动画 */}
+        /* 首次安装欢迎动画 */
+        <>
             {showWelcome && (
                 <WelcomeAnimation onComplete={handleWelcomeComplete} />
             )}
@@ -96,7 +95,7 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
                     {renderContent()}
                 </Suspense>
             </MainLayout>
-        </ThemeProvider>
+        </>
     );
 };
 

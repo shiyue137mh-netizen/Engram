@@ -88,7 +88,7 @@ export const SummaryPanel: React.FC = () => {
             setTrimStatus(trimmerStatus);
 
             const { WorldInfoService } = await import('@/tavern/api/WorldInfo');
-            const { WorldBookStateService } = await import('@/services/WorldBookStateService');
+            const { WorldBookStateService } = await import('@/tavern/WorldBookState');
             // 只查询已存在的世界书，不创建（避免面板打开时过早创建）
             const worldbookName = WorldInfoService.findExistingWorldbook();
             if (worldbookName) {

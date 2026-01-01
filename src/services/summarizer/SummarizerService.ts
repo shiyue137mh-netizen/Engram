@@ -17,7 +17,7 @@ import { Logger } from "@/lib/logger";
 import { ModelLogger } from "@/lib/logger/ModelLogger";
 import { notificationService } from '@/services/NotificationService';
 import { SettingsManager } from "@/services/settings/Persistence";
-import { WorldBookStateService } from '@/services/WorldBookStateService';
+import { WorldBookStateService } from '@/tavern/WorldBookState';
 import { getCurrentChat, getCurrentChatId, getChatMessages, getCurrentCharacter, getCurrentModel } from '@/tavern/context';
 import { hideMessageRange } from '@/tavern/bridge';
 import { revisionService } from '@/services/RevisionService';

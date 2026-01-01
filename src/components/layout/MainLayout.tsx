@@ -10,7 +10,7 @@ import {
     X,
     Bell
 } from 'lucide-react';
-import { GlobalStyles } from '@/assets/styles/GlobalStyles';
+import { GlobalStyles } from '@/styles/GlobalStyles';
 import Header from '@/components/layout/Header';
 import { EngramIcon } from '@/assets/icons/EngramIcon';
 import { EngramTextLogo } from '@/assets/icons/EngramTextLogo';
