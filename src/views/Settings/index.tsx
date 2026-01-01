@@ -2,14 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { PageTitle } from "@/components/common/PageTitle";
 import { Settings as SettingsIcon, Eye, Trash2 } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
-import { ThemeSelector } from './components/ThemeSelector';
 import { Switch } from "@/components/ui/Switch";
 import { NumberField } from '../APIPresets/components/FormField';
 import { summarizerService } from "@/services/summarizer";
 import { SettingsManager } from "@/services/settings/Persistence";
 
 export const Settings: React.FC = () => {
-    const [previewEnabled, setPreviewEnabled] = useState(SettingsManager.getSettings().apiSettings?.previewEnabled ?? true);
+    const [previewEnabled, setPreviewEnabled] = useState(SettingsManager.getSettings().summarizerConfig?.previewEnabled ?? true);
 
     // HACK: 强制刷新引用
     const [, forceUpdate] = useState({});
@@ -46,51 +45,78 @@ export const Settings: React.FC = () => {
                 <section>
                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">毛玻璃特效 (Glass Effect)</h3>
                     <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-6">
-                        <NumberField
-                            label="不透明度 (Opacity)"
-                            description="调整面板背景的遮罩强度，数值越低越透明"
-                            value={SettingsManager.getSettings().glassSettings?.opacity ?? 0.8}
-                            onChange={(val) => {
-                                const current = SettingsManager.getSettings();
-                                const newSettings = {
-                                    ...current.glassSettings,
-                                    opacity: val
-                                };
-                                SettingsManager.set('glassSettings', newSettings);
-                                // 实时应用
-                                import('@/services/ThemeManager').then(({ ThemeManager }) => {
-                                    // 重新应用当前主题以更新变量
-                                    ThemeManager.setTheme(ThemeManager.getTheme());
-                                });
-                                forceUpdate({}); // 触发重绘
-                            }}
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            showSlider={true}
-                        />
-                        <NumberField
-                            label="背景磨砂 (Blur)"
-                            description="调整背景模糊程度 (px)，仅在支持 backdrop-filter 的环境下有效"
-                            value={SettingsManager.getSettings().glassSettings?.blur ?? 10}
-                            onChange={(val) => {
-                                const current = SettingsManager.getSettings();
-                                const newSettings = {
-                                    ...current.glassSettings,
-                                    blur: val
-                                };
-                                SettingsManager.set('glassSettings', newSettings);
-                                // 实时应用
-                                import('@/services/ThemeManager').then(({ ThemeManager }) => {
-                                    ThemeManager.setTheme(ThemeManager.getTheme());
-                                });
-                                forceUpdate({}); // 触发重绘
-                            }}
-                            min={0}
-                            max={50}
-                            step={1}
-                            showSlider={true}
-                        />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div>
+                                    <h4 className="font-medium text-foreground">启用毛玻璃</h4>
+                                    <p className="text-sm text-muted-foreground break-words max-w-[200px] sm:max-w-none">
+                                        开启后，面板背景将具有磨砂质感
+                                    </p>
+                                </div>
+                            </div>
+                            <Switch
+                                checked={SettingsManager.getSettings().glassSettings?.enabled ?? true}
+                                onChange={(checked) => {
+                                    const current = SettingsManager.getSettings();
+                                    const newSettings = {
+                                        ...current.glassSettings,
+                                        enabled: checked
+                                    };
+                                    SettingsManager.set('glassSettings', newSettings);
+                                    import('@/services/ThemeManager').then(({ ThemeManager }) => {
+                                        ThemeManager.setTheme(ThemeManager.getTheme());
+                                    });
+                                    forceUpdate({});
+                                }}
+                            />
+                        </div>
+
+                        {(SettingsManager.getSettings().glassSettings?.enabled ?? true) && (
+                            <>
+                                <NumberField
+                                    label="不透明度 (Opacity)"
+                                    description="调整面板背景的遮罩强度，数值越低越透明"
+                                    value={SettingsManager.getSettings().glassSettings?.opacity ?? 0.8}
+                                    onChange={(val) => {
+                                        const current = SettingsManager.getSettings();
+                                        const newSettings = {
+                                            ...current.glassSettings,
+                                            opacity: val
+                                        };
+                                        SettingsManager.set('glassSettings', newSettings);
+                                        import('@/services/ThemeManager').then(({ ThemeManager }) => {
+                                            ThemeManager.setTheme(ThemeManager.getTheme());
+                                        });
+                                        forceUpdate({});
+                                    }}
+                                    min={0}
+                                    max={1}
+                                    step={0.05}
+                                    showSlider={true}
+                                />
+                                <NumberField
+                                    label="背景磨砂 (Blur)"
+                                    description="调整背景模糊程度 (px)"
+                                    value={SettingsManager.getSettings().glassSettings?.blur ?? 10}
+                                    onChange={(val) => {
+                                        const current = SettingsManager.getSettings();
+                                        const newSettings = {
+                                            ...current.glassSettings,
+                                            blur: val
+                                        };
+                                        SettingsManager.set('glassSettings', newSettings);
+                                        import('@/services/ThemeManager').then(({ ThemeManager }) => {
+                                            ThemeManager.setTheme(ThemeManager.getTheme());
+                                        });
+                                        forceUpdate({});
+                                    }}
+                                    min={0}
+                                    max={50}
+                                    step={1}
+                                    showSlider={true}
+                                />
+                            </>
+                        )}
                     </div>
                 </section>
 

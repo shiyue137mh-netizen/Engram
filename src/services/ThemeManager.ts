@@ -95,9 +95,14 @@ export class ThemeManager {
         // 1. Colors
         // Universal Transparency Logic
         const settings = SettingsManager.getSettings();
-        const opacity = settings.glassSettings?.opacity ?? 1;
+        const glassEnabled = settings.glassSettings?.enabled ?? true;
+
+        // 如果禁用了毛玻璃，强制不透明度为 1 (不透明)
+        const opacity = glassEnabled ? (settings.glassSettings?.opacity ?? 1) : 1;
+
         const isGlassTheme = themeName === 'glass';
         // Only apply mix if not glass theme (glass handles it internally) and opacity < 1
+        // 注意：如果是 glass 主题，通常由主题自己定义透明度，但这里我们允许通过 opacity 覆盖
         const shouldApplyTransparency = !isGlassTheme && opacity < 1;
         // Calculate transparency percentage for color-mix (e.g., opacity 0.8 -> 20% transparent)
         const transparencyPercent = Math.round((1 - opacity) * 100);
@@ -148,21 +153,21 @@ export class ThemeManager {
         }
 
         // 4. Inject Glass Settings
-        // Reuse settings from above or get fresh
-        const glassSettings = SettingsManager.getSettings();
-        if (glassSettings.glassSettings) {
-            setVar('--glass-opacity', glassSettings.glassSettings.opacity.toString());
-            setVar('--glass-blur', `${glassSettings.glassSettings.blur}px`);
+        const glassSettings = SettingsManager.getSettings().glassSettings;
+        if (glassSettings && glassSettings.enabled) {
+            setVar('--glass-opacity', glassSettings.opacity.toString());
+            setVar('--glass-blur', `${glassSettings.blur}px`);
 
             // 只要设置了 blur，就应用到所有主题 (不仅仅是 glass)
-            // 这样用户可以在任何主题上启用毛玻璃效果
-            if (glassSettings.glassSettings.blur > 0) {
-                setVar('--glass-backdrop-filter', `blur(${glassSettings.glassSettings.blur}px)`);
+            if (glassSettings.blur > 0) {
+                setVar('--glass-backdrop-filter', `blur(${glassSettings.blur}px)`);
             } else {
                 setVar('--glass-backdrop-filter', 'none');
             }
         } else {
-            // Fallback if settings missing
+            // Fallback / Disabled
+            setVar('--glass-opacity', '1');
+            setVar('--glass-blur', '0px');
             setVar('--glass-backdrop-filter', 'none');
         }
     }

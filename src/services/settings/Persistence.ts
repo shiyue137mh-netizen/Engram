@@ -20,6 +20,7 @@ export interface EngramSettings {
         showConfirmation: boolean; // 删除前显示确认对话框
     };
     glassSettings: {
+        enabled: boolean; // 是否启用
         opacity: number; // 0-1
         blur: number;    // px
     };
@@ -44,6 +45,7 @@ const defaultSettings: EngramSettings = Object.freeze({
         showConfirmation: true,
     },
     glassSettings: {
+        enabled: true,
         opacity: 0.3,
         blur: 10,
     },

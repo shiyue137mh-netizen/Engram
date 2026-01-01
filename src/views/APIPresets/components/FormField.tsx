@@ -13,7 +13,7 @@ export const FormSection: React.FC<FormSectionProps> = ({ title, description, ch
     <div className={`mb-8 ${className}`}>
         <div className="mb-4">
             <h3 className="text-sm font-medium text-primary">{title}</h3>
-            {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+            {description && <p className="text-xs text-muted-foreground mt-1 break-words">{description}</p>}
         </div>
         <div className="space-y-4">
             {children}
@@ -99,7 +99,7 @@ export const TextField: React.FC<TextFieldProps> = ({
                     className="placeholder:text-muted-foreground/40 disabled:opacity-50 focus:border-primary transition-colors"
                 />
             )}
-            {description && <p className="text-[10px] text-muted-foreground/70">{description}</p>}
+            {description && <p className="text-[10px] text-muted-foreground/70 break-words">{description}</p>}
             {error && <p className="text-[10px] text-destructive">{error}</p>}
         </div>
     );
@@ -207,7 +207,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
                     className="focus:border-primary transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
             </div>
-            {description && <p className="text-[10px] text-muted-foreground/70">{description}</p>}
+            {description && <p className="text-[10px] text-muted-foreground/70 break-words">{description}</p>}
             {error && <p className="text-[10px] text-destructive">{error}</p>}
         </div>
     );
@@ -283,7 +283,7 @@ export const SelectField: React.FC<SelectFieldProps> = ({
                 </select>
                 <ChevronDown size={14} className="absolute right-0 top-1/2 -translate-y-1/2 text-muted-foreground/50 pointer-events-none" />
             </div>
-            {description && <p className="text-[10px] text-muted-foreground/70">{description}</p>}
+            {description && <p className="text-[10px] text-muted-foreground/70 break-words">{description}</p>}
             {error && <p className="text-[10px] text-destructive">{error}</p>}
         </div>
     );

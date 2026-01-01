@@ -2,6 +2,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import { NAV_ITEMS, type NavItem } from '@/constants/navigation';
+import manifest from '../../../../manifest.json';
 
 interface SidebarProps {
     currentPath: string;
@@ -85,6 +86,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </li>
                     ))}
                 </ul>
+
+                {/* 版本号 */}
+                <div className={`mt-auto mb-4 text-[10px] text-muted-foreground/50 text-center font-mono ${isMobile ? 'hidden' : ''}`}>
+                    v{manifest.version}
+                </div>
             </nav>
         </>
     );
