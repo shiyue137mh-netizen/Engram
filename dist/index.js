@@ -23969,6 +23969,36 @@ const bd = new T2(), Ip = [
     flags: "gi",
     scope: "output",
     description: "移除 LLM 输出中的 <think>...</think> 思考过程"
+  },
+  {
+    id: "remove-headless-think",
+    name: "移除无头思维链",
+    pattern: "[\\s\\S]*?</think>",
+    replacement: "",
+    enabled: !0,
+    flags: "g",
+    scope: "output",
+    description: "移除无开头标签的思维链，如直接以 </think> 结尾的内容"
+  },
+  {
+    id: "remove-update-variable",
+    name: "移除 UpdateVariable",
+    pattern: "<UpdateVariable>[\\s\\S]*?</UpdateVariable>",
+    replacement: "",
+    enabled: !0,
+    flags: "gi",
+    scope: "output",
+    description: "移除 MVU 更新变量标签，避免污染提示词"
+  },
+  {
+    id: "remove-status-placeholder",
+    name: "移除 StatusPlaceHolder",
+    pattern: "<StatusPlaceHolderImpl\\s*/>",
+    replacement: "",
+    enabled: !0,
+    flags: "gi",
+    scope: "input",
+    description: "移除变量脚本在消息末尾添加的占位符标签"
   }
 ];
 class vd {

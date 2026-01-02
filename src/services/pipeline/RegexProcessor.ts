@@ -36,7 +36,7 @@ export const REGEX_SCOPE_OPTIONS: { value: RegexScope; label: string; descriptio
     { value: 'both', label: '两者', description: '输入和输出都应用' },
 ];
 
-/** 默认正则规则 - 只保留 think 修剪 */
+/** 默认正则规则 */
 export const DEFAULT_REGEX_RULES: RegexRule[] = [
     {
         id: 'remove-think',
@@ -47,6 +47,36 @@ export const DEFAULT_REGEX_RULES: RegexRule[] = [
         flags: 'gi',
         scope: 'output',
         description: '移除 LLM 输出中的 <think>...</think> 思考过程',
+    },
+    {
+        id: 'remove-headless-think',
+        name: '移除无头思维链',
+        pattern: '[\\s\\S]*?</think>',
+        replacement: '',
+        enabled: true,
+        flags: 'g',
+        scope: 'output',
+        description: '移除无开头标签的思维链，如直接以 </think> 结尾的内容',
+    },
+    {
+        id: 'remove-update-variable',
+        name: '移除 UpdateVariable',
+        pattern: '<UpdateVariable>[\\s\\S]*?</UpdateVariable>',
+        replacement: '',
+        enabled: true,
+        flags: 'gi',
+        scope: 'output',
+        description: '移除 MVU 更新变量标签，避免污染提示词',
+    },
+    {
+        id: 'remove-status-placeholder',
+        name: '移除 StatusPlaceHolder',
+        pattern: '<StatusPlaceHolderImpl\\s*/>',
+        replacement: '',
+        enabled: true,
+        flags: 'gi',
+        scope: 'input',
+        description: '移除变量脚本在消息末尾添加的占位符标签',
     },
 ];
 
