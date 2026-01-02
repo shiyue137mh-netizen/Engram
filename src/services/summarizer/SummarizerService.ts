@@ -245,6 +245,7 @@ export class SummarizerService {
     private currentChatId: string | null = null;
     private isRunning = false;
     private isSummarizing = false;
+    private cancelRequested = false; // 用户请求取消总结
     private unsubscribeMessage: (() => void) | null = null;
     private unsubscribeChat: (() => void) | null = null;
     private summaryHistory: SummaryResult[] = [];
@@ -514,9 +515,17 @@ export class SummarizerService {
         const lastSummarized = await this.getLastSummarizedFloor();
 
         this.isSummarizing = true;
+        this.cancelRequested = false; // 重置取消标志
         this.log('info', '开始执行总结', {
             floorRange: [lastSummarized + 1, currentFloor],
             manual,
+        });
+
+        // 显示运行中通知（支持点击取消）
+        const runningToast = notificationService.running('总结运行中...', 'Engram', () => {
+            this.cancelRequested = true;
+            this.log('info', '用户请求取消总结');
+            notificationService.warning('正在取消总结...', 'Engram');
         });
 
         try {
@@ -669,6 +678,13 @@ export class SummarizerService {
                 return null;
             }
 
+            // 检查用户是否请求取消
+            if (this.cancelRequested) {
+                this.log('info', '总结已被用户取消');
+                notificationService.info('总结已取消', 'Engram');
+                return null;
+            }
+
             // 清洗输出：先用 textProcessor 基础清洗，再应用 output 规则移除 <think> 等
             const basicCleanedContent = this.textProcessor.clean(response.content);
             const cleanedContent = regexProcessor.process(basicCleanedContent, 'output');
@@ -741,6 +757,8 @@ export class SummarizerService {
             notificationService.error(`总结异常: ${errorMsg}`, 'Engram 错误');
             return null;
         } finally {
+            // 移除运行中通知
+            notificationService.remove(runningToast);
             this.isSummarizing = false;
         }
     }

@@ -51,6 +51,7 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
                                 ? 'bg-accent/50 border-input'
                                 : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
                             }
+                            ${!rule.enabled && 'opacity-50'}
                         `}
                         onClick={() => onSelect(rule.id)}
                     >

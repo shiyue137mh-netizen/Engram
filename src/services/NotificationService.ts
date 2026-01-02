@@ -4,12 +4,12 @@ import { Logger } from '@/lib/logger';
  * Toastr 类型定义 (部分)
  */
 interface Toastr {
-    success(message: string, title?: string, options?: any): void;
-    info(message: string, title?: string, options?: any): void;
-    warning(message: string, title?: string, options?: any): void;
-    error(message: string, title?: string, options?: any): void;
-    clear(): void;
-    remove(): void;
+    success(message: string, title?: string, options?: any): JQuery | null;
+    info(message: string, title?: string, options?: any): JQuery | null;
+    warning(message: string, title?: string, options?: any): JQuery | null;
+    error(message: string, title?: string, options?: any): JQuery | null;
+    clear($toastElement?: JQuery): void;
+    remove($toastElement?: JQuery): void;
     options: any;
 }
 
@@ -112,6 +112,50 @@ export class NotificationService {
             console.error(`[Engram] ERROR: ${title} - ${message}`);
         }
         Logger.error('Notification', `Error: ${message}`);
+    }
+
+    /**
+     * 发送运行中通知（持续显示，不自动消失）
+     * @param message 消息内容
+     * @param title 标题
+     * @param onCancel 可选的取消回调，如果提供则点击时触发取消
+     * @returns toastr 对象，可用于后续手动移除
+     */
+    public running(message: string, title: string = 'Engram', onCancel?: () => void): JQuery | null {
+        const toastr = this.getToastr();
+        if (toastr) {
+            // 如果有取消回调，在消息末尾添加提示
+            const displayMessage = onCancel
+                ? `${message} <small style="opacity:0.7">(点击取消)</small>`
+                : message;
+
+            const toast = toastr.info(displayMessage, title, {
+                timeOut: 20000,       // 最大显示 20 秒
+                extendedTimeOut: 0,   // 悬停时不延长
+                closeButton: false,   // 不显示关闭按钮
+                progressBar: true,    // 显示进度条（表示倒计时）
+                tapToDismiss: !!onCancel, // 有取消回调时点击可关闭
+                onclick: onCancel ? () => {
+                    Logger.info('Notification', '用户取消操作');
+                    onCancel();
+                } : undefined,
+                escapeHtml: false,    // 允许 HTML
+            });
+            return toast;
+        } else {
+            console.log(`[Engram] RUNNING: ${title} - ${message}`);
+            return null;
+        }
+    }
+
+    /**
+     * 移除指定的 toastr 通知
+     */
+    public remove(toastElement: JQuery | null): void {
+        const toastr = this.getToastr();
+        if (toastr && toastElement) {
+            toastr.remove(toastElement);
+        }
     }
 
     /**

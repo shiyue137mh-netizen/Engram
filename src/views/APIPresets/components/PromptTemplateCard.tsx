@@ -129,6 +129,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                     ? 'bg-accent/50 border-input'
                     : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
                 }
+                ${!template.enabled && 'opacity-50'}
             `}
             onClick={onSelect}
         >
@@ -152,7 +153,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                        <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                        <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'} ${!template.enabled && 'line-through'}`}>
                             {template.name}
                         </h4>
 

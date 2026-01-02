@@ -5,6 +5,11 @@ import { SettingsManager } from "@/services/settings/Persistence";
 import { WorldInfoService } from '@/tavern/api/WorldInfo';
 import { notificationService } from '@/services/NotificationService';
 
+/**
+ * CharacterDeleteService - 联动删除服务
+ * 
+ * 监听角色删除和聊天删除事件，同步删除 Engram 世界书
+ */
 export class CharacterDeleteService {
     private static isInitialized = false;
 
@@ -13,27 +18,48 @@ export class CharacterDeleteService {
 
         try {
             const context = getSTContext();
-            if (context?.eventSource && context?.event_types?.CHARACTER_DELETED) {
-                // @ts-ignore - TS 可能无法正确推断 eventSource 的类型，即使我们在 STContext 中定义了
+            if (!context?.eventSource || !context?.event_types) {
+                Logger.warn('CharacterDeleteService', '无法获取事件系统');
+                return;
+            }
+
+            // 监听角色删除事件
+            if (context.event_types.CHARACTER_DELETED) {
+                // @ts-ignore
                 context.eventSource.on(context.event_types.CHARACTER_DELETED, this.onCharacterDeleted.bind(this));
                 Logger.info('CharacterDeleteService', '监听 CHARACTER_DELETED 事件成功');
-                this.isInitialized = true;
-            } else {
-                Logger.warn('CharacterDeleteService', '无法监听 CHARACTER_DELETED 事件: eventSource 或事件类型缺失');
             }
+
+            // 监听聊天删除事件
+            if (context.event_types.CHAT_DELETED) {
+                // @ts-ignore
+                context.eventSource.on(context.event_types.CHAT_DELETED, this.onChatDeleted.bind(this));
+                Logger.info('CharacterDeleteService', '监听 CHAT_DELETED 事件成功');
+            }
+
+            // 监听群聊删除事件
+            if (context.event_types.GROUP_CHAT_DELETED) {
+                // @ts-ignore
+                context.eventSource.on(context.event_types.GROUP_CHAT_DELETED, this.onChatDeleted.bind(this));
+                Logger.info('CharacterDeleteService', '监听 GROUP_CHAT_DELETED 事件成功');
+            }
+
+            this.isInitialized = true;
         } catch (e) {
             Logger.error('CharacterDeleteService', '初始化失败', e);
         }
     }
 
+    /**
+     * 角色删除回调
+     */
     private static async onCharacterDeleted(data: { id: number; character: any }) {
         const settings = SettingsManager.getSettings().linkedDeletion;
-        if (!settings?.enabled) return;
+        if (!settings?.enabled || !settings?.deleteWorldbook) return;
 
         Logger.debug('CharacterDeleteService', '检测到角色删除', data);
 
         const characterData = data.character;
-        // 获取角色名（多种可能的字段）
         const characterName = characterData?.name || characterData?.avatar || characterData?.ch_name || characterData?.data?.name;
 
         if (!characterName) {
@@ -41,35 +67,71 @@ export class CharacterDeleteService {
             return;
         }
 
+        await this.deleteEngramWorldbooks(characterName, '角色', settings.showConfirmation);
+    }
+
+    /**
+     * 聊天删除回调
+     * @param chatId 聊天 ID，格式通常为 "CharName - 2024-1-1@12h30m" 或类似
+     */
+    private static async onChatDeleted(chatId: string) {
+        const settings = SettingsManager.getSettings().linkedDeletion;
+        if (!settings?.enabled || !settings?.deleteChatWorldbook) return;
+
+        Logger.debug('CharacterDeleteService', '检测到聊天删除', chatId);
+
+        // 从 chatId 解析角色名
+        // 常见格式: "CharName - 2024-1-1@12h30m" 或 "CharName_2024-1-1@12h30m"
+        const characterName = this.extractCharacterNameFromChatId(chatId);
+
+        if (!characterName) {
+            Logger.debug('CharacterDeleteService', `无法从 chatId 解析角色名: ${chatId}`);
+            return;
+        }
+
+        await this.deleteEngramWorldbooks(characterName, '聊天', settings.showConfirmation);
+    }
+
+    /**
+     * 从 chatId 提取角色名
+     */
+    private static extractCharacterNameFromChatId(chatId: string): string | null {
+        if (!chatId) return null;
+
+        // 尝试多种分隔符模式
+        // Pattern 1: "CharName - 2024-1-1@12h30m"
+        let match = chatId.match(/^(.+?)\s*-\s*\d{4}/);
+        if (match) return match[1].trim();
+
+        // Pattern 2: "CharName_2024-1-1"
+        match = chatId.match(/^(.+?)_\d{4}/);
+        if (match) return match[1].trim();
+
+        // Pattern 3: 没有日期后缀，整个就是名字
+        // 但这种情况下我们不确定，返回 null 更安全
+        return null;
+    }
+
+    /**
+     * 删除 Engram 世界书
+     */
+    private static async deleteEngramWorldbooks(
+        characterName: string,
+        source: '角色' | '聊天',
+        showConfirmation: boolean
+    ) {
         const candidates = new Set<string>();
 
-        // 1. 基于命名规则的猜测 (保底策略)
-        // Engram 标准命名: "[Engram] CharName"
-        // 同时也兼容一些可能的变体
+        // Engram 标准命名规则
         candidates.add(`[Engram] ${characterName}`);
         candidates.add(`Engram_${characterName}`);
 
-        // 2. 从角色数据中读取绑定的世界书 (精准策略)
-        // 检查 extensions.world 字段 (这是 SillyTavern 存储绑定世界书的地方)
-        const dataToCheck = characterData.data || characterData;
-        const linkedWorld = dataToCheck?.extensions?.world;
-
-        if (linkedWorld && typeof linkedWorld === 'string') {
-            Logger.debug('CharacterDeleteService', `从角色数据中发现绑定世界书: ${linkedWorld}`);
-            candidates.add(linkedWorld);
-        }
-
-        // 3. 验证存在性并过滤
-        // 我们只删除确实存在，且看起来像是 Engram 创建的世界书（安全网）
+        // 获取所有世界书并验证
         const allWorldbooks = await WorldInfoService.getWorldbookNames();
         const allWorldbooksSet = new Set(allWorldbooks);
 
         const booksToDelete = Array.from(candidates).filter(name => {
-            // 必须存在于系统中
             if (!allWorldbooksSet.has(name)) return false;
-
-            // 安全检查：只删除包含 "Engram" 字样的世界书
-            // 防止误删用户手动绑定但非 Engram 创建的通用世界书
             const isEngramBook = name.toLowerCase().includes('engram');
             if (!isEngramBook) {
                 Logger.info('CharacterDeleteService', `跳过非 Engram 世界书: ${name}`);
@@ -78,18 +140,18 @@ export class CharacterDeleteService {
         });
 
         if (booksToDelete.length === 0) {
-            Logger.debug('CharacterDeleteService', `未找到角色 "${characterName}" 关联的 Engram 世界书`);
+            Logger.debug('CharacterDeleteService', `未找到 "${characterName}" 关联的 Engram 世界书`);
             return;
         }
 
         Logger.info('CharacterDeleteService', `准备删除关联世界书: ${booksToDelete.join(', ')}`);
 
-        // 4. 确认删除
-        if (settings.showConfirmation) {
+        // 确认删除
+        if (showConfirmation) {
             const confirmHtml = `
                 <div style="font-size: 0.9em;">
                     <h3>🧹 Engram 联动清理</h3>
-                    <p>检测到角色 <b>${characterName}</b> 已被删除。</p>
+                    <p>检测到${source} <b>${characterName}</b> 已被删除。</p>
                     <p>发现以下关联的 Engram 记忆库：</p>
                     <ul style="max-height: 100px; overflow-y: auto; background: var(--black50a); padding: 5px; border-radius: 4px; list-style: none; margin: 10px 0;">
                         ${booksToDelete.map(name => `<li style="padding: 2px 0;">• ${name}</li>`).join('')}
@@ -106,42 +168,33 @@ export class CharacterDeleteService {
             }
         }
 
-        // 5. 执行删除
-        if (settings.deleteWorldbook) {
-            let deletedCount = 0;
-            const failedBooks: string[] = [];
+        // 执行删除
+        let deletedCount = 0;
+        const failedBooks: string[] = [];
 
-            // 显示加载提示
-            notificationService.info('正在清理 Engram 记忆库...', 'Engram');
+        notificationService.info('正在清理 Engram 记忆库...', 'Engram');
 
-            for (const wbName of booksToDelete) {
-                try {
-                    const success = await WorldInfoService.deleteWorldbook(wbName);
-                    if (success) {
-                        deletedCount++;
-                        Logger.info('CharacterDeleteService', `已删除世界书: ${wbName}`);
-                    } else {
-                        failedBooks.push(wbName);
-                    }
-                } catch (e) {
-                    Logger.error('CharacterDeleteService', `删除世界书 ${wbName} 失败`, e);
+        for (const wbName of booksToDelete) {
+            try {
+                const success = await WorldInfoService.deleteWorldbook(wbName);
+                if (success) {
+                    deletedCount++;
+                    Logger.info('CharacterDeleteService', `已删除世界书: ${wbName}`);
+                } else {
                     failedBooks.push(wbName);
                 }
-            }
-
-            if (deletedCount > 0) {
-                notificationService.success(`已清理 ${deletedCount} 个关联记忆库`, 'Engram');
-            }
-
-            if (failedBooks.length > 0) {
-                notificationService.warning(`部分记忆库删除失败: ${failedBooks.join(', ')}`, 'Engram');
+            } catch (e) {
+                Logger.error('CharacterDeleteService', `删除世界书 ${wbName} 失败`, e);
+                failedBooks.push(wbName);
             }
         }
 
-        // 6. 删除 IndexedDB 数据 (TODO)
-        if (settings.deleteIndexedDB) {
-            // Placeholder for future IndexedDB cleanup logic
-            // Logger.debug('CharacterDeleteService', 'IndexedDB cleanup is not yet implemented');
+        if (deletedCount > 0) {
+            notificationService.success(`已清理 ${deletedCount} 个关联记忆库`, 'Engram');
+        }
+
+        if (failedBooks.length > 0) {
+            notificationService.warning(`部分记忆库删除失败: ${failedBooks.join(', ')}`, 'Engram');
         }
     }
 }

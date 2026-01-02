@@ -186,6 +186,21 @@ export const Settings: React.FC = () => {
                                         className="scale-90"
                                     />
                                 </div>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <span className="text-sm text-muted-foreground">删除聊天时同步删除</span>
+                                        <p className="text-xs text-muted-foreground/60">清空聊天记录时也删除关联的 Engram 记忆库</p>
+                                    </div>
+                                    <Switch
+                                        checked={linkedDeletion.deleteChatWorldbook ?? false}
+                                        onChange={(checked) => {
+                                            const newSettings = { ...linkedDeletion, deleteChatWorldbook: checked };
+                                            setLinkedDeletion(newSettings);
+                                            SettingsManager.set('linkedDeletion', newSettings);
+                                        }}
+                                        className="scale-90"
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>

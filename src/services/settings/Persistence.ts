@@ -16,6 +16,7 @@ export interface EngramSettings {
     linkedDeletion: {
         enabled: boolean;          // 是否启用联动删除
         deleteWorldbook: boolean;  // 删除角色时删除 Engram 世界书
+        deleteChatWorldbook: boolean; // 删除聊天时删除 Engram 世界书
         deleteIndexedDB: boolean;  // 删除角色时删除 IndexedDB 数据
         showConfirmation: boolean; // 删除前显示确认对话框
     };
@@ -41,7 +42,8 @@ const defaultSettings: EngramSettings = Object.freeze({
     linkedDeletion: {
         enabled: true,
         deleteWorldbook: true,
-        deleteIndexedDB: false, // 默认不删数据库，以防万一
+        deleteChatWorldbook: false, // 默认关闭，防止误删
+        deleteIndexedDB: false,
         showConfirmation: true,
     },
     glassSettings: {
@@ -190,7 +192,9 @@ export class SettingsManager {
      * @returns 启用的模板，如果没有则返回 null
      */
     public static getEnabledPromptTemplate(category: PromptCategory): PromptTemplate | null {
-        const templates = this.get('promptTemplates') || [];
+        // 优先从 apiSettings.promptTemplates 读取（这是 useAPIPresets 保存的位置）
+        const apiSettings = this.get('apiSettings') as { promptTemplates?: PromptTemplate[] } | null;
+        const templates = apiSettings?.promptTemplates || [];
         return templates.find((t: PromptTemplate) => t.category === category && t.enabled) || null;
     }
 
