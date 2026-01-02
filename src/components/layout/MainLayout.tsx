@@ -8,7 +8,8 @@ import {
     Terminal,
     ArrowUpRight,
     X,
-    Bell
+    Bell,
+    Github
 } from 'lucide-react';
 import { GlobalStyles } from '@/styles/GlobalStyles';
 import Header from '@/components/layout/Header';
@@ -16,6 +17,7 @@ import { EngramIcon } from '@/assets/icons/EngramIcon';
 import { EngramTextLogo } from '@/assets/icons/EngramTextLogo';
 import { UpdateService } from '@/services/updater';
 import { UpdateNotice } from "@/components/common/UpdateNotice";
+import manifest from '../../../manifest.json';
 
 // Navigation Items Configuration
 const NAV_ITEMS = [
@@ -111,9 +113,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                         )}
                     </button>
 
-                    {/* Logo - 左对齐 */}
-                    <div className="opacity-40 text-muted-foreground px-2">
-                        <EngramTextLogo height={12} />
+                    {/* Logo + GitHub - 左对齐 */}
+                    <div className="flex items-center gap-2 px-2">
+                        <a
+                            href="https://github.com/shiyue137mh-netizen/Engram"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="opacity-40 hover:opacity-80 text-muted-foreground transition-opacity"
+                            title="GitHub"
+                        >
+                            <Github size={14} />
+                        </a>
+                        <div className="opacity-40 text-muted-foreground">
+                            <EngramTextLogo height={12} />
+                        </div>
                     </div>
                 </div>
             </aside>
@@ -179,8 +192,17 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
 
                             <div className="mt-auto pt-6 border-t border-border/20">
                                 <div className="flex items-center gap-3 px-2 text-xs text-muted-foreground/50">
+                                    <a
+                                        href="https://github.com/shiyue137mh-netizen/Engram"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="opacity-60 hover:opacity-100 transition-opacity"
+                                        title="GitHub"
+                                    >
+                                        <Github size={16} />
+                                    </a>
                                     <EngramIcon size={14} />
-                                    <span>Engram v0.1.0</span>
+                                    <span>Engram v{manifest.version}</span>
                                 </div>
                             </div>
                         </div>
