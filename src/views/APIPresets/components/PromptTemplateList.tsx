@@ -25,7 +25,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     const handleAdd = () => {
         const newTemplate = createPromptTemplate(
             `新模板 ${templates.length + 1}`,
-            'text_summary'
+            'summary'
         );
         onAdd(newTemplate);
         onSelect(newTemplate);

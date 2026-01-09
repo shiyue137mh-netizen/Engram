@@ -15,6 +15,7 @@ interface VectorConfigFormProps {
 
 // 向量源选项
 const VECTOR_SOURCE_OPTIONS: { value: VectorSource; label: string }[] = [
+    { value: 'custom', label: '自定义 (OpenAI 兼容)' },
     { value: 'transformers', label: 'Transformers (本地)' },
     { value: 'openai', label: 'OpenAI Embeddings' },
     { value: 'ollama', label: 'Ollama' },
@@ -26,6 +27,7 @@ const VECTOR_SOURCE_OPTIONS: { value: VectorSource; label: string }[] = [
 
 // 各向量源的默认/推荐模型
 const DEFAULT_MODELS: Record<VectorSource, string> = {
+    custom: 'text-embedding-3-small',
     transformers: 'Xenova/all-MiniLM-L6-v2',
     openai: 'text-embedding-3-small',
     ollama: 'nomic-embed-text',
@@ -36,9 +38,9 @@ const DEFAULT_MODELS: Record<VectorSource, string> = {
 };
 
 // 需要 API URL 的源
-const NEEDS_API_URL: VectorSource[] = ['ollama', 'vllm'];
+const NEEDS_API_URL: VectorSource[] = ['custom', 'ollama', 'vllm'];
 // 需要 API Key 的源
-const NEEDS_API_KEY: VectorSource[] = ['openai', 'cohere', 'jina', 'voyage'];
+const NEEDS_API_KEY: VectorSource[] = ['custom', 'openai', 'cohere', 'jina', 'voyage'];
 
 export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
     config,

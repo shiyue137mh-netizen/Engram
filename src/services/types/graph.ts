@@ -1,76 +1,135 @@
 /**
- * 图谱数据类型定义
+ * Core Graph Data Types for Engram V0.4.0
+ *
+ * Defines the unified data model for the dual-track memory system.
  */
 
 /**
- * 实体节点 - 图的"桩"
- * 代表人物、地点、物品等持久化实体
+ * Scope - Memory Container
+ *
+ * V0.5: 简化绑定 - 仅使用 chat_id 作为主键
+ * character_name 仅用于 UI 显示，不参与数据分割
  */
-export interface EntityNode {
-    /** 唯一标识 e.g., "ent_key_01" */
-    id: string;
-    /** 实体名称 e.g., "生锈的钥匙" */
-    name: string;
-    /** 实体类型 */
-    type: 'CHAR' | 'LOC' | 'ITEM' | 'CONCEPT';
-    /** 分脑隔离 ID (User + Character) */
-    brainId: string;
-    /** 实体描述（可选） */
-    description?: string;
-    /** 首次出现时间戳 */
-    createdAt: number;
-    /** 最后更新时间戳 */
-    updatedAt: number;
-    /** 额外元数据 */
-    metadata?: Record<string, unknown>;
+export interface Scope {
+    /** Auto-increment ID (Dexie primary key) */
+    id?: number;
+
+    /** Unique String ID (UUID) for lookup */
+    uuid: string;
+
+    /**
+     * SillyTavern Chat ID (UUID from metadata)
+     * 这是镜像/绑定的主键，每个聊天记录有唯一的 chat_id
+     */
+    chat_id: string;
+
+    /**
+     * 角色名称 (仅用于显示)
+     * 存储创建 Scope 时的角色名，不参与数据分割逻辑
+     */
+    character_name: string;
+
+    /**
+     * Persistent Execution State
+     * Replaces WorldBook metadata for keeping track of progress.
+     */
+    state: {
+        /** The last floor index (1-based) that was successfully summarized */
+        last_summarized_floor: number;
+
+        /** Accumulated token usage since last compression */
+        token_usage_accumulated: number;
+
+        /** Timestamp/Floor of the last compression event */
+        last_compressed_at: number;
+
+        /**
+         * The active WorldBook entry order.
+         * Important for "Basic Mode" (No-RAG) to implement rolling updates.
+         */
+        active_summary_order: number;
+    };
+
+    created_at: number;
+    last_active_at: number;
 }
 
 /**
- * 记忆事件节点 - 图的"肉"
- * 代表一个总结后的故事事件
+ * EventNode - The atom of memory
+ * Represents a single processed event, either from raw chat or higher-level summary.
  */
 export interface EventNode {
-    /** 唯一标识 e.g., "mem_evt_99" */
+    /** UUID */
     id: string;
-    /** 事件总结 e.g., "典狱长在玄关给了我一把钥匙" */
+
+    /** Foreign Key -> Scope.id */
+    scope_id: number;
+
+    /**
+     * Burn-in Text (For Model)
+     * High-density text ready for embedding and RAG injection.
+     */
     summary: string;
-    /** 语义向量（Embedding） */
-    vector?: Float32Array;
-    /** 关联的实体 ID 列表 */
-    relatedEntities: string[];
-    /** 重要性评分 0.0 - 1.0 */
-    significance: number;
-    /** 分脑隔离 ID */
-    brainId: string;
-    /** 现实时间戳 */
-    timestamp: number;
-    /** 游戏内时间（可选） */
-    gameTime?: string;
-    /** 原始消息 ID 范围 */
-    messageRange?: {
-        start: number;
-        end: number;
+
+    /**
+     * Structured Data (For Machine)
+     * JSON object for graph building, filtering, and logic.
+     */
+    structured_kv: {
+        /** 时间锚点 - 保留原文时间格式 */
+        time_anchor: string;
+        role: string[];
+        location: string;
+        event: string;
+        logic: string[];
+        causality: string;
     };
-    /** 额外元数据 */
-    metadata?: Record<string, unknown>;
+
+    /**
+     * Semantic Vector
+     * Optional because "Basic Mode" users might not have embedding models.
+     */
+    embedding?: number[];
+
+    /** Importance Score (0.0 - 1.0) */
+    significance_score: number;
+
+    /**
+     * Abstraction Level
+     * 0 = Raw Event (from Chat)
+     * 1 = Meta Summary (Summary of Summaries)
+     * ...
+     */
+    level: number;
+
+    /** Optional pointer to a parent node (if this node was compressed into a level+1 node) */
+    parent_id?: string;
+
+    /** Source Message Range */
+    source_range: {
+        start_index: number;
+        end_index: number;
+    };
+
+    timestamp: number;
 }
 
 /**
- * 图谱边关系类型
+ * EntityNode - Graph Entities
+ * Represents static or slowly changing entities (People, Places, Items).
  */
-export type EdgeType =
-    | 'HAS_ENTITY'      // 事件包含实体
-    | 'CAUSES'          // 因果关系
-    | 'FOLLOWS'         // 时序关系
-    | 'RELATED_TO';     // 一般关联
-
-/**
- * 图谱边
- */
-export interface Edge {
+export interface EntityNode {
     id: string;
-    source: string;
-    target: string;
-    type: EdgeType;
-    weight?: number;
+
+    /** Foreign Key -> Scope.id */
+    scope_id: number;
+
+    name: string;
+    type: string; // 'Character' | 'Location' | 'Item' | 'Concept'
+    description: string;
+
+    /** Associated Event IDs */
+    related_events?: string[];
+
+    last_updated_at: number;
 }

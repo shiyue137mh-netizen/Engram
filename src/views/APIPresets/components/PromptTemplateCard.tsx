@@ -19,10 +19,8 @@ interface PromptTemplateCardProps {
  */
 function getCategoryColorClass(category: PromptCategory): string {
     switch (category) {
-        case 'text_summary':
+        case 'summary':
             return 'text-blue-500 bg-blue-500/10 border border-blue-500/20';
-        case 'vector_summary':
-            return 'text-purple-500 bg-purple-500/10 border border-purple-500/20';
         case 'trim':
             return 'text-orange-500 bg-orange-500/10 border border-orange-500/20';
         case 'query_enhance':

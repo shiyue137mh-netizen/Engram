@@ -1,96 +1,80 @@
 /**
- * DexieDB - IndexedDB 数据库封装
+ * Engram Database (Dexie.js)
  *
- * 使用 Dexie.js 管理图谱数据存储
- * 包含实体表 (EntityNode)、记忆事件表 (EventNode) 和日志表 (LogEntry)
+ * Version 3.0 Refactor - "Dual-Nature" Architecture
+ * Introduces Scopes, Structured Events, and Graph Entities.
  */
 
 import Dexie, { Table } from 'dexie';
-import type { EntityNode, EventNode } from '@/services/types/graph';
-import type { LogEntry } from '../logger/types';
+import type { Scope, EventNode, EntityNode } from '../types/graph';
+import type { LogEntry } from '@/lib/logger/types';
 
 /**
- * Engram 数据库实例
+ * Engram V3 Database Class
  */
 export class EngramDatabase extends Dexie {
-    entities!: Table<EntityNode, string>;
+    scopes!: Table<Scope, number>;
     events!: Table<EventNode, string>;
+    entities!: Table<EntityNode, string>;
     logs!: Table<LogEntry, string>;
 
     constructor() {
         super('EngramDB');
 
-        // 版本 1: 基础图谱存储
+        // Version 1 & 2: Legacy (Preserved for history, but typically unused in V3 clean install)
         this.version(1).stores({
             entities: 'id, name, type, brainId',
             events: 'id, timestamp, significance, brainId, *relatedEntities',
         });
 
-        // 版本 2: 添加日志表
         this.version(2).stores({
             entities: 'id, name, type, brainId',
             events: 'id, timestamp, significance, brainId, *relatedEntities',
             logs: 'id, timestamp, level, module',
         });
+
+        // Version 3: The Big Refactor
+        // - Introduced 'scopes' table
+        // - 'events' now uses 'scope_id' and 'level'
+        // - 'entities' now uses 'scope_id'
+        this.version(3).stores({
+            // Scopes: Unique context container
+            // V0.5: 仅使用 chat_id 索引，character_name 仅用于显示
+            scopes: '++id, &uuid, &chat_id, last_active_at',
+
+            // Events: The core memory unit
+            // Indexed by scope, source range (for rollback), significance, and recursive level
+            events: 'id, scope_id, [source_range.start_index+source_range.end_index], significance_score, level',
+
+            // Entities: Graph nodes
+            // Compound index [scope_id+name] ensures uniqueness within a scope
+            entities: '[scope_id+name], type, last_updated_at',
+
+            // Logs: Debugging (Unchanged)
+            logs: 'id, timestamp, level, module'
+        }).upgrade(trans => {
+            // ⚠️ BREAKING CHANGE: Clear old data for the new architecture
+            // In a production app with real users, we would write a migration script.
+            // But since this is a refactor of a dev extension, we opt for a clean slate.
+            return Promise.all([
+                trans.table('events').clear(),
+                trans.table('entities').clear(),
+                // We don't clear logs as they might be useful
+            ]);
+        });
     }
 }
 
-// 单例数据库实例
+// Singleton Instance
 export const db = new EngramDatabase();
 
 /**
- * 数据库操作封装
+ * Legacy Helper (Deprecated)
+ * Retaining this temporarily to identify breakage points in the codebase.
+ * TODO: Remove this after Phase 3.
  */
 export const DexieDB = {
-    /**
-     * 添加或更新实体
-     */
-    async upsertEntity(entity: EntityNode): Promise<string> {
-        return db.entities.put(entity);
-    },
-
-    /**
-     * 添加记忆事件
-     */
-    async addEvent(event: EventNode): Promise<string> {
-        return db.events.add(event);
-    },
-
-    /**
-     * 根据 brainId 获取所有实体
-     */
-    async getEntitiesByBrain(brainId: string): Promise<EntityNode[]> {
-        return db.entities.where('brainId').equals(brainId).toArray();
-    },
-
-    /**
-     * 根据实体 ID 列表获取相关事件
-     */
-    async getEventsByEntities(entityIds: string[]): Promise<EventNode[]> {
-        return db.events
-            .filter((event) =>
-                event.relatedEntities.some((id) => entityIds.includes(id))
-            )
-            .toArray();
-    },
-
-    /**
-     * 根据 brainId 获取最近的事件
-     */
-    async getRecentEvents(brainId: string, limit: number = 20): Promise<EventNode[]> {
-        return db.events
-            .where('brainId')
-            .equals(brainId)
-            .reverse()
-            .limit(limit)
-            .toArray();
-    },
-
-    /**
-     * 清空指定 brain 的所有数据
-     */
-    async clearBrain(brainId: string): Promise<void> {
-        await db.entities.where('brainId').equals(brainId).delete();
-        await db.events.where('brainId').equals(brainId).delete();
-    },
+    // These methods will fail or need strict replacement
+    // We keep the object structure to allow "Find Usages" to work,
+    // but typically we should switch to `db.scopes`, `db.events` directly.
 };

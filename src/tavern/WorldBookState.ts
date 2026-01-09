@@ -6,7 +6,7 @@ export interface EngramState {
     totalSummaries: number;
     totalTokens: number;
     updatedAt: number;
-    /** 
+    /**
      * 条目黑名单
      * 结构：{ "WorldbookName": [uid1, uid2, ...] }
      * 使用 UID 作为唯一标识
@@ -23,6 +23,10 @@ const DEFAULT_STATE: EngramState = {
 };
 
 /**
+ * @deprecated V0.5 已弃用
+ * 状态现在存储在 IndexedDB (ScopeManager) 中，不再使用世界书
+ * 保留此文件仅为兼容性，请勿在新代码中使用
+ *
  * WorldBookStateService
  * 负责在世界书中持久化 Engram 的状态
  */

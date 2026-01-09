@@ -67,7 +67,7 @@ function getEventSource(): {
     removeListener: (event: string, callback: EventCallback) => void;
 } | null {
     try {
-        // @ts-expect-error - SillyTavern 全局对象
+        
         const SillyTavern = window.SillyTavern;
         if (SillyTavern?.getContext) {
             const context = SillyTavern.getContext();

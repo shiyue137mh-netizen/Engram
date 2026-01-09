@@ -710,7 +710,6 @@ export class WorldInfoService {
      */
     static async isNativeTokenCountAvailable(): Promise<boolean> {
         try {
-            // @ts-ignore - SillyTavern 全局对象
             const SillyTavern = window.SillyTavern;
             if (SillyTavern?.getContext) {
                 const context = SillyTavern.getContext();
@@ -960,7 +959,6 @@ export class WorldInfoService {
     private static async getConstantWorldInfo(): Promise<string> {
         try {
             const importPath = '/scripts/world-info.js';
-            // @ts-expect-error - 动态导入酒馆模块
             const worldInfoModule = await (new Function('path', 'return import(path)'))(importPath);
             const getSortedEntries = worldInfoModule?.getSortedEntries;
 

@@ -45,6 +45,9 @@ export const DEFAULT_SUMMARIZER_CONFIG: SummarizerConfig = {
 
 /** 总结结果 */
 export interface SummaryResult {
+    /** 唯一标识 (V4 新增) */
+    id?: string;
+
     /** 总结内容 */
     content: string;
     /** Token 数量 */
@@ -69,6 +72,13 @@ export interface SummarizerStatus {
     lastSummarizedFloor: number;
     /** 待处理楼层数 */
     pendingFloors: number;
+    /**
+     * 触发模式
+     * auto: 自动触发 (基于楼层或 V2 Pipeline)
+     * manual: 仅手动
+     */
+    mode?: 'auto' | 'manual';
+
     /** 总结历史记录数 */
     historyCount: number;
     /** 是否正在执行总结 */

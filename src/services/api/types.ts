@@ -3,8 +3,7 @@
  */
 
 // 导入内置提示词模板 (Vite ?raw 导入)
-import textSummaryPrompt from './prompts/text_summary.md?raw';
-import vectorSummaryPrompt from './prompts/vector_summary.md?raw';
+import summaryPrompt from './prompts/summary_prompt.md?raw';
 import trimPrompt from './prompts/trim.md?raw';
 import queryEnhancePrompt from './prompts/query_enhance.md?raw';
 
@@ -108,7 +107,8 @@ export type VectorSource =
   | 'vllm'          // vLLM
   | 'cohere'        // Cohere
   | 'jina'          // Jina AI
-  | 'voyage';       // Voyage AI
+  | 'voyage'        // Voyage AI
+  | 'custom';       // 自定义 (OpenAI 兼容)
 
 // ==================== Rerank 配置 ====================
 
@@ -136,8 +136,7 @@ export interface RerankConfig {
  * 提示词模板分类
  */
 export type PromptCategory =
-  | 'text_summary'      // 纯文本总结
-  | 'vector_summary'    // 向量化总结
+  | 'summary'           // 剧情摘要 (V0.5 统一为 JSON 输出)
   | 'trim'              // 精简/修剪
   | 'query_enhance';    // 用户输入加强
 
@@ -145,9 +144,8 @@ export type PromptCategory =
  * 提示词分类选项
  */
 export const PROMPT_CATEGORIES: { value: PromptCategory; label: string; description: string }[] = [
-  { value: 'text_summary', label: '纯文本总结', description: '将对话转为世界书条目' },
-  { value: 'vector_summary', label: '向量化总结', description: '输出结构化 JSON，含实体/关系' },
-  { value: 'trim', label: '精简/修剪', description: '合并、压缩旧的世界书条目' },
+  { value: 'summary', label: '剧情摘要', description: '将对话转为结构化 JSON 事件' },
+  { value: 'trim', label: '精简/修剪', description: '合并、压缩旧的事件记录' },
   { value: 'query_enhance', label: '用户输入加强', description: '扩展用户输入，解决指代问题' },
 ];
 
@@ -348,35 +346,17 @@ export function createPromptTemplate(
  */
 export function getBuiltInPromptTemplates(): PromptTemplate[] {
   return [
-    createPromptTemplate('纯文本剧情总结', 'text_summary', {
+    createPromptTemplate('剧情摘要', 'summary', {
       enabled: true,
       isBuiltIn: true,
-      systemPrompt: textSummaryPrompt,
+      systemPrompt: summaryPrompt,
       userPromptTemplate: `{{worldbookContext}}
-请将以下对话内容总结为剧情摘要：
+请将以下对话内容总结为结构化事件：
 
 {{chatHistory}}
 
 ---
-请按要求输出剧情总结：`,
-      outputFormat: 'plain',
-    }),
-    createPromptTemplate('向量化剧情总结', 'vector_summary', {
-      enabled: true,
-      isBuiltIn: true,
-      systemPrompt: vectorSummaryPrompt,
-      userPromptTemplate: `{{worldbookContext}}
-以上是相关设定和剧情。
-
-请从以下对话中提取结构化信息：
-
-{{chatHistory}}
-
-请以 JSON 格式输出，包含：
-- summary: 事件摘要
-- entities: 实体列表 [{name, type}]
-- relations: 关系列表 [{subject, predicate, object}]
-- keywords: 关键词列表`,
+请按要求输出 JSON 格式的剧情总结：`,
       outputFormat: 'json',
     }),
     createPromptTemplate('记忆精简', 'trim', {
@@ -391,7 +371,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 {{engramSummaries}}
 
 请输出一条精简后的综合摘要。`,
-      outputFormat: 'markdown',
+      outputFormat: 'json',
     }),
     createPromptTemplate('查询增强', 'query_enhance', {
       enabled: true,

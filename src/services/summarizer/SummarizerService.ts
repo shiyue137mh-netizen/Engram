@@ -1,24 +1,20 @@
 /**
  * SummarizerService - 剧情总结核心服务
- * 
- * 提供楼层监听、总结触发、世界书写入等功能
- * 
- * 修复：
- * 1. 使用 WorldBookStateService 存储 lastSummarizedFloor（每聊天独立）
- * 2. 正确获取当前楼层数（context.chat.length）
- * 3. 监听聊天切换事件以重置状态
  */
 
 import { EventBus, TavernEventType, MessageService, WorldInfoService } from "@/tavern/api";
 import { TextProcessor, textProcessor } from '@/services/pipeline/TextProcessor';
 import { LLMAdapter, llmAdapter } from '@/services/api/LLMAdapter';
-import { RegexProcessor, regexProcessor } from '@/services/pipeline/RegexProcessor';
-import { Logger } from "@/lib/logger";
-import { ModelLogger } from "@/lib/logger/ModelLogger";
-import { notificationService } from '@/services/NotificationService';
-import { SettingsManager } from "@/services/settings/Persistence";
-import { WorldBookStateService } from '@/tavern/WorldBookState';
-import { getCurrentChat, getCurrentChatId, getChatMessages, getCurrentCharacter, getCurrentModel } from '@/tavern/context';
+import { eventWatcher } from '@/lib/EventWatcher';
+import { pipeline } from '@/services/pipeline/Pipeline';
+import { useMemoryStore } from '@/stores/memoryStore';
+import {
+    getCurrentChat,
+    getCurrentChatId,
+    getChatMessages,
+    getCurrentCharacter,
+    getCurrentModel
+} from '@/tavern/context';
 import { hideMessageRange } from '@/tavern/bridge';
 import { revisionService } from '@/services/RevisionService';
 import type {
@@ -29,164 +25,16 @@ import type {
 } from './types';
 import { DEFAULT_SUMMARIZER_CONFIG } from './types';
 import { getBuiltInTemplateByCategory } from '@/services/api/types';
+import { RegexProcessor, regexProcessor } from '@/services/pipeline/RegexProcessor';
+import { Logger } from "@/lib/logger";
+import { ModelLogger } from "@/lib/logger/ModelLogger";
+import { notificationService } from '@/services/NotificationService';
+import { SettingsManager } from "@/services/settings/Persistence";
+// WorldBookStateService 已废弃，状态管理迁移到 IndexedDB (memoryStore)
 
-/** 备用总结提示词模板（APIPresets 无启用模板时使用） */
-const FALLBACK_SUMMARY_PROMPT = {
-    system: `<system_configuration>
-  <role_definition>
-    身份: 长篇故事记忆摘要器
-    核心任务: 担任超长篇故事的“记忆核心”。接收用户提供的已有剧情原文，先理解“故事元摘要”的宏观视角，然后严格按照时间顺序，并遵照“事件粒度原则”合并同类项，分解为最精简的、服务于长线记忆的关键事件。
-    禁令: 绝对禁止创作新内容、剧情推演或添加创意。绝对禁止输出YAML代码块。绝对禁止输出额外解释。
-  </role_definition>
-
-  <formatting_protocol>
-    输出格式: 纯文本列表。
-    事件行格式: 数字序号. [上下文信息] 事件核心描述 (重要性等级 | 权重值)
-    宏观时间标记: 【 时间描述文本 】 (单独占一行，无序号)
-    上下文信息: [时间 | 地点 | 核心人物] (若缺失则省略，全缺失用[])
-  </formatting_protocol>
-
-  <logic_protocol>
-    评估基准:
-      原则: 所有评估必须以开头提供的“故事元摘要”为基准。
-      注意: 一个在当前章节看起来很“关键”的事件（比如找到一个普通线索），从整个故事（元摘要）的尺度看，可能仅仅是“基础”。
-    
-    时间顺序与锚定:
-      首要规则: 严格按照原文的时间流逝顺序排列。
-      宏观时间轴: 当剧情发生天数变更、年份跳跃、进入长时段回忆或新的篇章时，必须输出宏观时间标记。
-        历法日期: 如“太阳历1023年4月4日”。
-        相对日期: 如“第1天”、“第3年”、“数日后”。
-      微观时间戳: 在具体事件行中，聚焦于：
-        具体时刻: 如 HH:MM (14:30)。
-        自然时段: 如 清晨、深夜、正午、黄昏。
-        时间流状态: 对于跨越长日期的宏观块，使用 长期（表示持续性动作）、开始、过程、结束、突发 等标记。
-
-    事件粒度原则 (节省Token的核心):
-      最高原则: 合并连续的因果链。必须将服务于同一个直接目标、在短时间内连续发生的多个动作和反应，合并成一个单一的、结果导向的事件。
-      判定标准: 一场完整的战斗（从接触到结束）、一次完整的谈判、一次完整的潜行侦察，都应被视为一个事件。
-      错误示例 (过度细分):
-        1: {{user}}发现紫袍人。
-        2: {{user}}的潜行被察觉。
-        3: {{user}}发起试探攻击...
-      正确示例 (合并后的单一事件):
-        1: [巢穴深处 | {{user}}, 紫袍人, 援军] {{user}}与紫袍人对峙，但在精神攻击下不敌陷入危机，最终被援军所救。 (推动 | 0.7)
-
-    描述标准 (情报式摘要):
-      动词-宾语核心: 砍掉所有不必要的修饰词、副词和从句，只保留事件的核心骨架：“谁，做了什么，对谁/什么”。
-        错误: {{user}}在休息区找到了任务委托人——性格古板的药草师赫伯，并确认了任务细节。
-        正确: {{user}}与药草师赫伯会面，确认任务。
-      结论优先: 对于分析或推断性质的事件，直接给出最终的“结论”，省略思考过程。
-        错误: {{user}}结合军事经验将线索串联，推断出哥布林已初具规模...
-        正确: {{user}}得出结论：哥布林已成规模并计划扩张。
-      状态快照: 对于描述角色状态或关系变化的事件，只记录其最终形成的稳定新状态，而不是描述变化过程。
-        错误: 严峻的形势让赫伯彻底信服{{user}}的判断，他在一个岔路口前将决定权完全交给了{{user}}...
-        正确: 赫伯完全信服，并将决策权交给{{user}}。
-      关键信息保留: 绝不省略对剧情至关重要的专有名词、关键数据或核心发现。不能用模糊的词（如“基础情报”、“某个物品”）来代替具体信息。
-        错误: {{user}}获取了基础情报。
-        正确: {{user}}获知情报：斯特林集团涉嫌数据伪造。
-
-    重要性分级 (金字塔模型):
-      等级一_基础 (Foundation):
-        权重: 0.1 - 0.4
-        定义: 构成世界和叙事基础的背景、细节和常规互动。绝大多数（>60%）事件都属于此等级。
-        伏笔处理: 对于符合“反常细节”或“悬而未决信息”的伏笔，也归于此类，但权重可酌情给予 0.3-0.4，并在描述中用括号注明 (伏笔)。
-      等级二_推动 (Propulsion):
-        权重: 0.5 - 0.7
-        定义: 对某个章节或阶段剧情有实质性推动作用的事件。（占比 <30%）
-        示例: 一次成功的关键说服、一次导致主角受伤的战斗、一个关键线索的发现。
-      等级三_关键 (Keystone):
-        权重: 0.8 - 0.9
-        定义: 对长远故事有明确导向性作用的剧情关键节点。（占比 <10%）
-        警告: 此等级不适用于故事早期的常规情节推进。
-        示例: 关键配角的死亡、重要秘密的揭露、主角团队做出重大战略决策。
-      等级四_转折 (Turning Point):
-        权重: 1.0
-        定义: 极其罕见的、能改变“故事元摘要”核心描述的决定性时刻。（占比 ≈1%）
-        示例: 主角的死亡与重生、最终反派的揭晓、世界规则的颠覆。
-  </logic_protocol>
-
-  <output_template>
-    <think>
-      元摘要校准:
-        故事基调: \${分析故事的核心类型和当前所处阶段}
-        关键伏笔: \${回顾元摘要中提到的未解之谜，以便在摘要中保留相关线索}
-      
-      时间轴梳理:
-        宏观节点识别: \${识别出原文中的日期变更、回忆片段或篇章转换}
-        微观时刻提取: \${提取具体事件发生的时间点或自然时段}
-      
-      事件粒度分析:
-        合并同类项: \${将连续的战斗、对话或行动合并为单一事件}
-        重要性评估: \${根据金字塔模型，为每个事件评定等级和权重}
-      
-      格式自查:
-        情报式摘要: \${检查是否去除了修饰词，只保留动宾结构}
-        关键信息保留: \${确认是否保留了所有专有名词和关键数据}
-    </think>
-
-    \${按时间顺序输出宏观时间标记和事件列表}
-    【 \${宏观时间描述} 】
-    \${数字序号}. [\${微观时间} | \${地点} | \${核心人物}] \${事件核心描述} (\${重要性等级} | \${权重值})
-  </output_template>
-  
-  <example_demonstration>
-    输入原文:
-      "穿越者A重伤濒死，被B公主发现并施展治愈术救回。B因同情决定暂时收留A，并隐瞒其异界人身份。
-      (三年前的回忆) A在B安排下接受高强度骑士训练，习得“基础剑术”。两人确立主仆契约，A正式获得“见习守护骑士”头衔。
-      (冒险开始) A使用假名“剑”注册冒险者，并提交了采集药草任务。A在交换情报时引起哥布林杀手注意，获赠“便携粉尘炸弹”。"
-
-    AI输出:
-      <think>
-        元摘要校准:
-          故事基调: \${异世界穿越/骑士成长/主仆羁绊}
-          当前进度: \${从穿越初识到冒险起步}
-        
-        时间轴梳理:
-          宏观节点1: \${太阳历1023年春4月4日 (穿越)}
-          宏观节点2: \${太阳历1023年-1026年 (磨合期/回忆)}
-          宏观节点3: \${第4年-第10天 (冒险开始)}
-        
-        事件粒度分析:
-          事件1: \${A被救 (合并重伤/发现/治疗)} -> 关键
-          事件2: \${B收留 (合并同情/决定/隐瞒)} -> 推动
-          事件3: \${骑士训练 (合并长期训练过程)} -> 基础
-          事件4: \${确立契约 (合并主仆关系确认/获得头衔)} -> 关键
-          事件5: \${注册冒险者 (合并假名/注册/接任务)} -> 基础
-          事件6: \${获赠炸弹 (合并情报交换/引起注意/获赠)} -> 推动
-        
-        格式自查:
-          情报式摘要: \${去除修饰词，保留核心动宾结构}
-          关键信息: \${保留"B"、"见习守护骑士"、"哥布林杀手"等专有名词}
-      </think>
-
-      【 太阳历1023年春4月4日 : 穿越 】
-      1. [深夜 | 荒野森林 | A, B] 穿越者A重伤濒死，被B公主发现并施展治愈术救回。 (关键 | 0.8)
-      2. [深夜 | 临时营地 | A, B] B因同情决定暂时收留A，并隐瞒其异界人身份。 (推动 | 0.6)
-
-      【 太阳历1023年春4月4日-1026年秋9月5日 : 磨合期 (三年前的回忆) 】
-      3. [长期 | 王城训练场 | A, 骑士长] A在B安排下接受高强度骑士训练，习得“基础剑术”。 (基础 | 0.4)
-      4. [结束 | B寝宫 | A, B] 两人确立主仆契约，A正式获得“见习守护骑士”头衔。 (关键 | 0.8)
-
-      【 第4年-第10天 : 冒险开始 】
-      5. [正午 | 边境公会大厅 | A, 接待员] A使用假名“剑”注册冒险者，并提交了采集药草任务。 (基础 | 0.3)
-      6. [14:30 | 小镇酒馆 | A, 哥布林杀手] A在交换情报时引起哥布林杀手注意，获赠“便携粉尘炸弹”。 (推动 | 0.7)
-  </example_demonstration>
-</system_configuration>`,
-
-    user: `{{worldbookContext}}
-请将以下对话内容总结为剧情摘要：
-
-{{chatHistory}}
-
----
-请按要求输出剧情总结：`,
-};
 
 /** 元数据 key */
 const METADATA_KEY = 'engram';
-
-/** 总结条目关键词 - 用于筛选 Engram 创建的摘要 */
-const SUMMARY_ENTRY_KEY = 'engram总结';
 
 /**
  * 获取 SillyTavern 上下文
@@ -304,44 +152,30 @@ export class SummarizerService {
 
     /**
      * 获取上次总结的楼层
-     * 优先从 cache 读取，未初始化时(0)尝试从 WB 读取
+     * V0.5: 优先从 memoryStore 读取
      */
     private async getLastSummarizedFloor(): Promise<number> {
-        // 如果缓存有值，直接返回（假设 initializeForCurrentChat 已调用）
+        // 如果缓存有值，直接返回
         if (this._lastSummarizedFloor > 0) return this._lastSummarizedFloor;
 
-        // 使用 findExistingWorldbook 避免在只读检查时自动创建世界书
-        // 这是一个同步方法，不需要 await
-        const worldbook = WorldInfoService.findExistingWorldbook();
-        if (!worldbook) return this._lastSummarizedFloor;
-
-        const state = await WorldBookStateService.loadState(worldbook);
-        this._lastSummarizedFloor = state.lastSummarizedFloor;
+        // 从 memoryStore 读取
+        const store = useMemoryStore.getState();
+        this._lastSummarizedFloor = store.lastSummarizedFloor;
         return this._lastSummarizedFloor;
     }
 
     /**
      * 设置上次总结的楼层
-     * 同时更新内存和持久化存储
+     * V0.5: 保存到 memoryStore (IndexedDB)
      */
     public async setLastSummarizedFloor(floor: number): Promise<void> {
         this._lastSummarizedFloor = floor;
 
-        // 优化：仅在世界书已存在时保存状态
-        // 如果世界书不存在（尚未生成任何摘要），则不强制创建，实现"懒加载"
-        const worldbook = WorldInfoService.findExistingWorldbook();
-
-        if (!worldbook) {
-            this.log('debug', '世界书未创建，跳过保存进度', { floor });
-            return;
-        }
-
-        await WorldBookStateService.saveState(worldbook, {
-            lastSummarizedFloor: floor
-        });
+        // 保存到 memoryStore
+        const store = useMemoryStore.getState();
+        await store.setLastSummarizedFloor(floor);
     }
 
-    /**
 
     // ==================== 楼层计算 ====================
 
@@ -369,6 +203,7 @@ export class SummarizerService {
 
     /**
      * 启动服务，开始监听事件
+     * V0.5: 使用 EventWatcher 统一监听
      */
     start(): void {
         if (this.isRunning) {
@@ -379,21 +214,23 @@ export class SummarizerService {
         // 初始化当前聊天状态
         this.initializeForCurrentChat();
 
-        // 监听消息接收事件
+        // 启动 EventWatcher (如果尚未启动)
+        eventWatcher.start();
+
+        // 注册回调
         if (this.config.triggerMode === 'auto') {
-            this.unsubscribeMessage = EventBus.on(
-                TavernEventType.MESSAGE_RECEIVED,
+            this.unsubscribeMessage = eventWatcher.on(
+                'onMessageReceived',
                 this.handleMessageReceived.bind(this)
             );
-            this.log('debug', `已订阅事件: ${TavernEventType.MESSAGE_RECEIVED}`);
+            this.log('debug', '已通过 EventWatcher 订阅消息事件');
         }
 
-        // 监听聊天切换事件
-        this.unsubscribeChat = EventBus.on(
-            TavernEventType.CHAT_CHANGED,
+        this.unsubscribeChat = eventWatcher.on(
+            'onChatChanged',
             this.handleChatChanged.bind(this)
         );
-        this.log('debug', `已订阅事件: ${TavernEventType.CHAT_CHANGED}`);
+        this.log('debug', '已通过 EventWatcher 订阅聊天切换事件');
 
         this.isRunning = true;
 
@@ -620,8 +457,8 @@ export class SummarizerService {
             }
 
             // 3. 获取提示词模板（优先从 APIPresets 获取，fallback 使用内置模板）
-            const template = SettingsManager.getEnabledPromptTemplate('text_summary');
-            const fallbackTemplate = getBuiltInTemplateByCategory('text_summary');
+            const template = SettingsManager.getEnabledPromptTemplate('summary');
+            const fallbackTemplate = getBuiltInTemplateByCategory('summary');
             const systemPrompt = template?.systemPrompt || fallbackTemplate?.systemPrompt || '';
             const userPromptTemplate = template?.userPromptTemplate || fallbackTemplate?.userPromptTemplate || '';
 
@@ -648,7 +485,8 @@ export class SummarizerService {
                 templateName: template?.name || 'default'
             });
 
-            // 4. 记录到模型日志并调用 LLM
+            // 调用 LLM 进行总结
+
             const logId = ModelLogger.logSend({
                 type: 'summarize',
                 systemPrompt,
@@ -727,12 +565,38 @@ export class SummarizerService {
                 }
             }
 
-            // 写入世界书
-            const writeSuccess = await this.writeToWorldbook(result);
-            result.writtenToWorldbook = writeSuccess;
+            // V0.5: 调用 Pipeline 将数据存到 IndexedDB
+            const chatId = getCurrentChatId();
+            const character = getCurrentCharacter();
+            if (chatId && character) {
+                try {
+                    const pipelineResult = await pipeline.run({
+                        messages: request.messages,
+                        context: {
+                            characterId: String(character.name),
+                            chatId: chatId
+                        },
+                        sourceRange: {
+                            start: request.floorRange[0],
+                            end: request.floorRange[1]
+                        }
+                    });
 
-            // 更新状态 - 保存到 API 和缓存
-            // 注意：这里我们只更新到 endFloor，而不是 currentFloor
+                    if (pipelineResult.success) {
+                        this.log('info', 'Pipeline 存储成功', {
+                            eventsCount: pipelineResult.events?.length || 0
+                        });
+                    } else {
+                        this.log('warn', 'Pipeline 存储失败', { error: pipelineResult.error });
+                    }
+                } catch (pipelineError) {
+                    this.log('error', 'Pipeline 调用异常', { error: String(pipelineError) });
+                }
+            }
+
+            result.writtenToWorldbook = true;  // 兼容旧代码
+
+            // 更新状态 - 保存到 memoryStore
             await this.setLastSummarizedFloor(request.floorRange[1]);
             this.summaryHistory.push(result);
 
@@ -760,57 +624,6 @@ export class SummarizerService {
             // 移除运行中通知
             notificationService.remove(runningToast);
             this.isSummarizing = false;
-        }
-    }
-
-    /**
-     * 写入世界书
-     */
-    private async writeToWorldbook(result: SummaryResult): Promise<boolean> {
-        try {
-            const worldbookName = await WorldInfoService.getChatWorldbook();
-            if (!worldbookName) {
-                this.log('warn', '无法获取聊天世界书');
-                return false;
-            }
-
-            // 1. 确保分隔符存在（只在首次写入时真正创建）
-            await WorldInfoService.ensureSeparatorEntries(worldbookName);
-
-            // 2. 获取下一个可用的顺序号 (9000+)
-            const order = await WorldInfoService.getNextSummaryOrder(worldbookName);
-
-            // 添加元数据注释 (水印)，不添加额外标题
-            const metadataComment = `{{// ${JSON.stringify({
-                floors: result.sourceFloors,
-                tokens: result.tokenCount,
-                timestamp: result.timestamp
-            })} }}`;
-            const finalContent = `${result.content}\n\n${metadataComment}`;
-
-            const success = await WorldInfoService.createEntry(worldbookName, {
-                name: `剧情摘要_${result.sourceFloors[0]}-${result.sourceFloors[1]}`,
-                content: finalContent,
-                keys: [SUMMARY_ENTRY_KEY],  // 添加关键词用于筛选
-                enabled: true,  // 开启状态，让摘要能被激活进入上下文
-                constant: true,
-                order: order,   // 使用计算出的递增顺序
-            });
-
-            if (success) {
-                this.log('success', '已写入世界书', { worldbook: worldbookName, order });
-
-                // 更新总结次数统计
-                const currentState = await WorldBookStateService.loadState(worldbookName);
-                await WorldBookStateService.saveState(worldbookName, {
-                    totalSummaries: currentState.totalSummaries + 1,
-                });
-            }
-
-            return success;
-        } catch (e) {
-            this.log('error', '写入世界书失败', { error: String(e) });
-            return false;
         }
     }
 

@@ -1,6 +1,6 @@
 /**
  * SummaryPanel - 总结面板组件
- * 
+ *
  * 合并「总结管理」和「精简配置」功能
  * 应用「无框流体」设计语言：
  * - PC端使用水平双栏布局
@@ -87,21 +87,12 @@ export const SummaryPanel: React.FC = () => {
             const trimmerStatus = await trimmerService.getStatus();
             setTrimStatus(trimmerStatus);
 
-            const { WorldInfoService } = await import('@/tavern/api/WorldInfo');
-            const { WorldBookStateService } = await import('@/tavern/WorldBookState');
-            // 只查询已存在的世界书，不创建（避免面板打开时过早创建）
-            const worldbookName = WorldInfoService.findExistingWorldbook();
-            if (worldbookName) {
-                const tokens = await WorldInfoService.countSummaryTokens(worldbookName);
-                setWorldbookTokens(tokens);
-
-                // 从 WorldBookStateService 读取持久化的总结次数
-                const engramState = await WorldBookStateService.loadState(worldbookName);
-                setTotalSummaries(engramState.totalSummaries);
-            } else {
-                setWorldbookTokens(0);
-                setTotalSummaries(0);
-            }
+            // V0.5: 从 IndexedDB 读取事件统计
+            const { useMemoryStore } = await import('@/stores/memoryStore');
+            const store = useMemoryStore.getState();
+            const { totalTokens, eventCount } = await store.countEventTokens();
+            setWorldbookTokens(totalTokens);
+            setTotalSummaries(eventCount);
         } catch (e) {
             console.error('加载 Summarizer 状态失败:', e);
         }
