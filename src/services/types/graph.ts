@@ -52,21 +52,17 @@ export interface EventNode {
     embedding?: number[];
 
     /**
-     * 嵌入模型名称
-     * 用于判断是否需要重新嵌入（模型切换时）
-     */
-    embedding_model?: string;
-
-    /**
      * 是否已嵌入
      * 已嵌入的事件从 {{engramSummaries}} 移除，只能通过 RAG 召回
      */
     is_embedded: boolean;
 
     /**
-     * 嵌入时间戳
+     * 是否已归档 (隐藏)
+     * true: 从线性上下文移除 (但保留在库中，可被 RAG 召回)
+     * false: 显示在上下文中
      */
-    embedded_at?: number;
+    is_archived: boolean;
 
     /** Importance Score (0.0 - 1.0) */
     significance_score: number;

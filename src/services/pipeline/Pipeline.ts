@@ -121,6 +121,7 @@ export class Pipeline {
                     significance_score: parsedEvent.significance_score,
                     level: 0,
                     is_embedded: false, // V0.7: 新事件默认未嵌入
+                    is_archived: false, // V0.7: 新事件默认未归档
                     source_range: {
                         start_index: input.sourceRange.start,
                         end_index: input.sourceRange.end

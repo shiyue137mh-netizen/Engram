@@ -1,13 +1,12 @@
 /**
- * Injector Service V0.7
+ * Injector Service V0.7.1
  *
  * 使用 GENERATE_BEFORE_COMBINE_PROMPTS 事件进行 RAG 注入
- * 这个事件是 await 的，所以我们的异步操作会在 prompt 组合之前完成
+ * V0.7.1: 简化逻辑，召回部分暂时占位
  */
 
 import { EventBus, TavernEventType } from '@/tavern/api';
-import { getCurrentChatId, getSTContext } from '@/tavern/context';
-import { retriever } from './Retriever';
+import { getCurrentChatId } from '@/tavern/context';
 import { MacroService } from '@/tavern/MacroService';
 import { Logger } from '@/lib/logger';
 
@@ -39,43 +38,24 @@ export class Injector {
     public init() {
         if (this.isInitialized) return;
 
-        // V0.7: 使用 GENERATE_BEFORE_COMBINE_PROMPTS 进行 RAG 注入
+        // V0.7.1: 使用 GENERATE_BEFORE_COMBINE_PROMPTS 进行 RAG 注入
         // 这个事件是 await 的，确保我们的异步操作完成后再继续生成
         EventBus.on(
             TavernEventType.GENERATE_BEFORE_COMBINE_PROMPTS,
             (data: unknown) => this.handleBeforeCombinePrompts(data as GenerateBeforeCombineData)
         );
 
-        // 聊天切换时清空 RAG 缓存
+        // 聊天切换时刷新宏缓存
         EventBus.on(TavernEventType.CHAT_CHANGED, this.handleChatChanged.bind(this));
 
         this.isInitialized = true;
-        console.log('[Injector] V0.7 Initialized with GENERATE_BEFORE_COMBINE_PROMPTS hook.');
+        console.log('[Injector] V0.7.1 Initialized with GENERATE_BEFORE_COMBINE_PROMPTS hook.');
     }
 
     /**
-     * 获取用户最新消息
-     */
-    private getLastUserMessage(): string {
-        const ctx = getSTContext();
-        if (!ctx || !ctx.chat || ctx.chat.length === 0) {
-            return '';
-        }
-
-        // 从后往前找最近的用户消息
-        for (let i = ctx.chat.length - 1; i >= 0; i--) {
-            const msg = ctx.chat[i];
-            if (msg.is_user && !msg.is_hidden && msg.mes) {
-                return msg.mes;
-            }
-        }
-
-        return '';
-    }
-
-    /**
-     * V0.7: 核心 RAG 注入逻辑
-     * 在 prompt 组合之前触发，此时更新宏缓存
+     * V0.7.1: 核心注入逻辑
+     * 在 prompt 组合之前触发，刷新宏缓存
+     * TODO: 后续实现向量检索 + 取消归档逻辑
      */
     private async handleBeforeCombinePrompts(_data: GenerateBeforeCombineData) {
         try {
@@ -84,61 +64,30 @@ export class Injector {
                 return;
             }
 
-            // 获取用户最新消息作为 RAG query
-            const query = this.getLastUserMessage();
+            // V0.7.1: 暂时只刷新宏缓存，确保最新事件可见
+            // TODO: 后续实现:
+            // 1. 获取用户最新消息
+            // 2. 向量检索相关事件
+            // 3. 取消归档召回的事件
+            // 4. 刷新宏缓存
+            await MacroService.refreshCache();
 
-            // 使用 retriever 检索相关记忆
-            // TODO: 后续实现 vectorSearch，目前使用 rollingSearch
-            const retrievalResult = await retriever.search(query);
-
-            // 如果没有事件，清空 RAG 缓存
-            if (retrievalResult.entries.length === 0) {
-                MacroService.updateRAGCache('');
-                return;
-            }
-
-            // 格式化并更新宏缓存
-            // 注意：这里的结果已经按照 source_range 排序
-            const contextText = `<engram_rag>\n${retrievalResult.entries.join('\n')}\n</engram_rag>`;
-            MacroService.updateRAGCache(contextText);
-
-            Logger.debug('Injector', 'RAG 缓存已更新 (BEFORE_COMBINE_PROMPTS)', {
-                entryCount: retrievalResult.entries.length,
-                query: query.slice(0, 50) + (query.length > 50 ? '...' : '')
-            });
+            Logger.debug('Injector', '宏缓存已刷新 (BEFORE_COMBINE_PROMPTS)');
 
         } catch (e) {
-            console.error('[Injector] Failed to inject RAG context:', e);
+            console.error('[Injector] Failed to refresh cache:', e);
         }
     }
 
     /**
-     * Handle chat change - clear RAG cache
+     * Handle chat change - 刷新宏缓存
      */
     private handleChatChanged() {
-        // 切换聊天时清空 RAG 缓存
-        MacroService.updateRAGCache('');
-    }
-
-    /**
-     * 手动刷新 RAG 上下文
-     */
-    public async refreshRAGContext() {
-        const query = this.getLastUserMessage();
-        const retrievalResult = await retriever.search(query);
-
-        if (retrievalResult.entries.length === 0) {
-            MacroService.updateRAGCache('');
-            return;
-        }
-
-        const contextText = `<engram_rag>\n${retrievalResult.entries.join('\n')}\n</engram_rag>`;
-        MacroService.updateRAGCache(contextText);
-
-        Logger.debug('Injector', 'RAG 缓存已手动刷新', {
-            entryCount: retrievalResult.entries.length
+        MacroService.refreshCache().catch(e => {
+            Logger.warn('Injector', '聊天切换时刷新缓存失败', e);
         });
     }
 }
 
 export const injector = new Injector();
+

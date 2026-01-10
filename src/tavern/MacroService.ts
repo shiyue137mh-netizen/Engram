@@ -3,6 +3,7 @@ import { Logger } from '@/lib/logger';
 
 /**
  * MacroService 类
+ * V0.7.1: 简化为单一宏 {{engramSummaries}}，支持 RAG 召回
  */
 export class MacroService {
     private static isInitialized = false;
@@ -24,7 +25,8 @@ export class MacroService {
 
             // --- 注册宏 ---
 
-            // 1. {{engramSummaries}} - 从 IndexedDB 获取当前 Scope 的所有事件摘要
+            // {{engramSummaries}} - 从 IndexedDB 获取当前聊天的所有事件摘要
+            // V0.7.1: RAG 召回的事件（绿灯）通过 recalledIds 临时显示
             context.registerMacro(
                 'engramSummaries',
                 () => {
@@ -34,18 +36,9 @@ export class MacroService {
                 'Engram: 当前聊天的所有事件摘要 (从 IndexedDB)'
             );
 
-            // 2. {{engramRAGSummaries}} - 动态 RAG 检索结果
-            context.registerMacro(
-                'engramRAGSummaries',
-                () => {
-                    return MacroService.cachedRAGSummaries;
-                },
-                'Engram: RAG 检索到的相关记忆片段'
-            );
-
             this.isInitialized = true;
             Logger.success('MacroService', '全局宏已注册', {
-                macros: ['{{engramSummaries}}', '{{engramRAGSummaries}}']
+                macros: ['{{engramSummaries}}']
             });
 
             // 初始化缓存
@@ -67,28 +60,22 @@ export class MacroService {
 
     // --- 缓存 ---
     private static cachedSummaries: string = '';
-    private static cachedRAGSummaries: string = '';
 
     /**
      * 刷新缓存 - 从 IndexedDB 读取事件摘要
+     * @param recalledIds 可选，RAG 召回的事件 ID 列表（绿灯事件临时显示）
      */
-    static async refreshCache(): Promise<void> {
+    static async refreshCache(recalledIds?: string[]): Promise<void> {
         try {
-            // 从 memoryStore 获取所有事件摘要
             const store = useMemoryStore.getState();
-            this.cachedSummaries = await store.getEventSummaries();
+            this.cachedSummaries = await store.getEventSummaries(recalledIds);
             Logger.debug('MacroService', '缓存已刷新', {
-                length: this.cachedSummaries.length
+                length: this.cachedSummaries.length,
+                recalledCount: recalledIds?.length ?? 0
             });
         } catch (e) {
             Logger.warn('MacroService', '刷新缓存失败', e);
         }
     }
-
-    /**
-     * 更新 RAG 检索结果缓存 (由 Injector 调用)
-     */
-    static updateRAGCache(content: string): void {
-        this.cachedRAGSummaries = content;
-    }
 }
+

@@ -10,6 +10,8 @@ import { Logger } from '@/lib/logger';
 import { notificationService } from '@/services/NotificationService';
 import { revisionService } from '@/services/RevisionService';
 import { llmAdapter } from '@/services/api';
+import { embeddingService } from '@/services/rag';
+import { SettingsManager } from '@/services/settings/Persistence';
 import { RobustJsonParser } from '@/utils/JsonParser';
 import type { EventNode } from '@/services/types/graph';
 
@@ -21,6 +23,14 @@ export interface TrimConfig {
     keepRecentCount: number;
     /** 是否启用预览确认 */
     previewEnabled: boolean;
+    /** 触发类型 */
+    trigger?: 'token' | 'count';
+    /** Token 阈值 */
+    tokenLimit?: number;
+    /** 条目数阈值 */
+    countLimit?: number;
+    /** 是否启用 */
+    enabled?: boolean;
 }
 
 export const DEFAULT_TRIM_CONFIG: TrimConfig = {
@@ -164,17 +174,39 @@ export class EventTrimmer {
                 },
                 significance_score: Math.max(...eventsToMerge.map(e => e.significance_score)),
                 level: 1,  // 标记为二层精简
+                is_embedded: false, // 摘要默认不嵌入 (等待下一次 Trim 或手动触发)
+                is_archived: false, // 摘要始终显示
                 source_range: {
                     start_index: Math.min(...eventsToMerge.map(e => e.source_range?.start_index ?? 0)),
                     end_index: Math.max(...eventsToMerge.map(e => e.source_range?.end_index ?? 0))
                 }
             });
 
-            // 7. 删除原始事件
+            // 7. Trim Linkage: 归档 & 嵌入联动
             const sourceEventIds = eventsToMerge.map(e => e.id);
-            await store.deleteEvents(sourceEventIds);
 
-            // 8. 刷新宏缓存
+            // 检查嵌入配置
+            const settings = SettingsManager.get('apiSettings');
+            const embeddingConfig = settings?.embeddingConfig;
+
+            if (embeddingConfig?.enabled && embeddingConfig.trigger === 'with_trim') {
+                Logger.info('EventTrimmer', '触发联动嵌入', { count: eventsToMerge.length });
+                try {
+                    // 1. 生成向量
+                    await embeddingService.embedEvents(eventsToMerge);
+                    // 2. 标记为已嵌入
+                    await store.markEventsAsEmbedded(sourceEventIds);
+                } catch (embedError) {
+                    Logger.error('EventTrimmer', '联动嵌入失败', { error: embedError });
+                    notificationService.warning('联动嵌入失败，但精简已完成', 'Engram');
+                }
+            }
+
+            // 8. 归档原始事件 (Hidden from Context)
+            // V0.7: 不再物理删除，而是标记为 is_archived
+            await store.archiveEvents(sourceEventIds);
+
+            // 9. 刷新宏缓存
             await MacroService.refreshCache();
 
             Logger.success('EventTrimmer', '精简完成', {
@@ -189,7 +221,7 @@ export class EventTrimmer {
 
             return {
                 newEvent,
-                deletedCount: sourceEventIds.length,
+                deletedCount: 0, // V0.7: 不再删除
                 sourceEventIds
             };
 
@@ -230,6 +262,64 @@ Significance: ${e.significance_score}`;
             }
         }
         return Array.from(set);
+    }
+
+    /**
+     * 获取配置
+     */
+    getConfig(): TrimConfig {
+        return { ...this.config };
+    }
+
+    /**
+     * 获取状态 (UI 适配)
+     */
+    async getStatus() {
+        // 动态导入以避免循环依赖
+        const { useMemoryStore } = await import('@/stores/memoryStore');
+        const store = useMemoryStore.getState();
+        const { totalTokens, eventCount } = await store.countEventTokens();
+
+        // 触发检测
+        let triggered = false;
+        let currentValue = 0;
+        let threshold = 0;
+
+        // 获取阈值配置 (SettingsManager 中读取)
+        const settings = SettingsManager.getSummarizerSettings()?.trimConfig || this.config;
+        const limitConfig = settings as any; // Temporary cast
+
+        // 注意：这里我们需要统一配置来源。UI目前是从 SettingsManager 读取 trimConfig
+        // EventTrimmer 构造函数加载了 DEFAULT，但应该也读取 Settings
+
+        // 检查触发器类型 (假设 TrimConfig 扩展了 trigger 字段，虽然当前接口没写，但 UI 有用)
+        // 我们需要在 TrimConfig 中补充这些字段以匹配 TrimmerService 的定义
+        const triggerType = (limitConfig.trigger || 'token') as 'token' | 'count';
+        const tokenLimit = limitConfig.tokenLimit || 10240;
+        const countLimit = limitConfig.countLimit || 5;
+
+        if (triggerType === 'token') {
+            currentValue = totalTokens;
+            threshold = tokenLimit;
+        } else {
+            currentValue = eventCount;
+            threshold = countLimit;
+        }
+
+        triggered = currentValue >= threshold;
+
+        // 待合并条目
+        const keepCount = limitConfig.keepRecentCount || 3;
+        const pendingEntryCount = Math.max(0, eventCount - keepCount);
+
+        return {
+            triggered,
+            triggerType,
+            currentValue,
+            threshold,
+            pendingEntryCount,
+            isTrimming: this.isTrimming
+        };
     }
 }
 

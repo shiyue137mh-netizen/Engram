@@ -10,7 +10,8 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Pause, RefreshCw, CheckCircle2, AlertCircle, Scissors, Calculator, Layers, Hash } from 'lucide-react';
 import type { TrimTriggerType } from '@/services/api/types';
-import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService';
+// import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService'; // V0.7 Deprecated
+import { DEFAULT_TRIM_CONFIG, type TrimConfig } from '@/services/pipeline/EventTrimmer';
 import { SettingsManager } from "@/services/settings/Persistence";
 import { NumberField, SwitchField } from '../APIPresets/components/FormField';
 import { Divider } from "@/components/layout/Divider";
@@ -47,7 +48,7 @@ export const SummaryPanel: React.FC = () => {
         bufferSize: 3,
         autoHide: false,
     });
-    const [trimConfig, setTrimConfig] = useState<TrimmerConfig>({ ...DEFAULT_TRIMMER_CONFIG });
+    const [trimConfig, setTrimConfig] = useState<TrimConfig>({ ...DEFAULT_TRIM_CONFIG, keepRecentCount: 3 });
     const [trimStatus, setTrimStatus] = useState<TrimmerStatus | null>(null);
     const [worldbookTokens, setWorldbookTokens] = useState<number>(0);
     const [totalSummaries, setTotalSummaries] = useState<number>(0);
@@ -82,9 +83,10 @@ export const SummaryPanel: React.FC = () => {
                 setTrimConfig({ ...DEFAULT_TRIMMER_CONFIG, ...savedTrimConfig });
             }
 
-            // 加载精简服务状态
-            const { trimmerService } = await import('@/services/summarizer');
-            const trimmerStatus = await trimmerService.getStatus();
+            // 加载精简服务状态 (使用 EventTrimmer V0.7)
+            const { eventTrimmer } = await import('@/services/pipeline/EventTrimmer');
+            // 需要 cast 因为 V0.7 定义可能跟旧的有一点差异，但结构兼容
+            const trimmerStatus = await eventTrimmer.getStatus() as any;
             setTrimStatus(trimmerStatus);
 
             // V0.5: 从 IndexedDB 读取事件统计
@@ -154,14 +156,14 @@ export const SummaryPanel: React.FC = () => {
         saveTrimConfig(newConfig);
     };
 
-    const handleLimitChange = (key: keyof TrimmerConfig, value: any) => {
+    const handleLimitChange = (key: keyof TrimConfig, value: any) => {
         const newConfig = { ...trimConfig, [key]: value };
         setTrimConfig(newConfig);
         saveTrimConfig(newConfig);
     };
 
     // 保存 trimConfig 到 SettingsManager
-    const saveTrimConfig = (config: TrimmerConfig) => {
+    const saveTrimConfig = (config: TrimConfig) => {
         SettingsManager.setSummarizerSettings({ trimConfig: config });
     };
 
@@ -170,17 +172,17 @@ export const SummaryPanel: React.FC = () => {
         const newConfig = { ...trimConfig, enabled: !trimConfig.enabled };
         setTrimConfig(newConfig);
         saveTrimConfig(newConfig);
-        // 同步更新 TrimmerService 配置
-        const { trimmerService } = await import('@/services/summarizer');
-        trimmerService.updateConfig({ enabled: newConfig.enabled });
+        // 同步更新 EventTrimmer 配置
+        const { eventTrimmer } = await import('@/services/pipeline/EventTrimmer');
+        eventTrimmer.updateConfig({ enabled: newConfig.enabled });
     };
 
     // 手动触发精简
     const handleTriggerTrim = async () => {
         setTrimLoading(true);
         try {
-            const { trimmerService } = await import('@/services/summarizer');
-            await trimmerService.triggerTrim(true);
+            const { eventTrimmer } = await import('@/services/pipeline/EventTrimmer');
+            await eventTrimmer.trim(true);
             await loadStatus();
         } catch (e) {
             console.error('精简失败:', e);
@@ -192,8 +194,9 @@ export const SummaryPanel: React.FC = () => {
     // 获取当前阈值配置
     const getCurrentLimit = () => {
         switch (trimConfig.trigger) {
-            case 'token': return { value: trimConfig.tokenLimit, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
-            case 'count': return { value: trimConfig.countLimit, min: 2, max: 20, step: 1, label: '次数上限' };
+            case 'token': return { value: trimConfig.tokenLimit ?? 10240, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
+            case 'count': return { value: trimConfig.countLimit ?? 5, min: 2, max: 20, step: 1, label: '次数上限' };
+            default: return { value: 10240, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
         }
     };
 
@@ -427,7 +430,7 @@ export const SummaryPanel: React.FC = () => {
                     </div>
                     <SwitchField
                         label=""
-                        checked={trimConfig.enabled}
+                        checked={trimConfig.enabled ?? false}
                         onChange={handleTrimEnabledChange}
                     />
                 </div>

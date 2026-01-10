@@ -406,6 +406,50 @@ export class EmbeddingService {
     }
 
     /**
+     * 为指定的事件列表生成嵌入
+     */
+    public async embedEvents(
+        events: EventNode[],
+        onProgress?: EmbedProgressCallback
+    ): Promise<{ success: number; failed: number }> {
+        if (events.length === 0) {
+            return { success: 0, failed: 0 };
+        }
+
+        const chatId = getCurrentChatId();
+        if (!chatId) throw new Error('No current chat');
+        const db = getDbForChat(chatId);
+
+        // 构建请求
+        const requests: EmbedRequest[] = events.map(e => ({
+            id: e.id,
+            text: e.summary,
+        }));
+
+        // 批量嵌入
+        const results = await this.embedBatch(requests, onProgress);
+
+        // 更新数据库
+        let success = 0;
+        let failed = 0;
+
+        for (const result of results) {
+            if (result.error || result.embedding.length === 0) {
+                failed++;
+                continue;
+            }
+
+            await db.events.update(result.id, {
+                embedding: result.embedding,
+                is_embedded: true,
+            });
+            success++;
+        }
+
+        return { success, failed };
+    }
+
+    /**
      * 为指定的 EventNode 生成嵌入
      */
     public async embedEvent(event: EventNode): Promise<number[]> {
