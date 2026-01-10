@@ -35,7 +35,7 @@ interface SummarizerSettings {
 
 const TRIGGER_OPTIONS: { id: TrimTriggerType; label: string; icon: React.ElementType }[] = [
     { id: 'token', label: 'Token 数', icon: Calculator },
-    { id: 'count', label: '总结次数', icon: Hash },
+    { id: 'count', label: '活跃事件数', icon: Hash },
 ];
 
 export const SummaryPanel: React.FC = () => {
@@ -51,7 +51,7 @@ export const SummaryPanel: React.FC = () => {
     const [trimConfig, setTrimConfig] = useState<TrimConfig>({ ...DEFAULT_TRIM_CONFIG, keepRecentCount: 3 });
     const [trimStatus, setTrimStatus] = useState<TrimmerStatus | null>(null);
     const [worldbookTokens, setWorldbookTokens] = useState<number>(0);
-    const [totalSummaries, setTotalSummaries] = useState<number>(0);
+    const [activeEventCount, setActiveEventCount] = useState<number>(0);  // V0.7.1: 蓝灯数
 
 
     useEffect(() => {
@@ -80,7 +80,7 @@ export const SummaryPanel: React.FC = () => {
             // 加载保存的 trimConfig
             const savedTrimConfig = SettingsManager.getSummarizerSettings()?.trimConfig;
             if (savedTrimConfig) {
-                setTrimConfig({ ...DEFAULT_TRIMMER_CONFIG, ...savedTrimConfig });
+                setTrimConfig({ ...DEFAULT_TRIM_CONFIG, ...savedTrimConfig });
             }
 
             // 加载精简服务状态 (使用 EventTrimmer V0.7)
@@ -89,12 +89,12 @@ export const SummaryPanel: React.FC = () => {
             const trimmerStatus = await eventTrimmer.getStatus() as any;
             setTrimStatus(trimmerStatus);
 
-            // V0.5: 从 IndexedDB 读取事件统计
+            // V0.7.1: 从 IndexedDB 读取事件统计
             const { useMemoryStore } = await import('@/stores/memoryStore');
             const store = useMemoryStore.getState();
-            const { totalTokens, eventCount } = await store.countEventTokens();
+            const { totalTokens, activeEventCount: activeCount } = await store.countEventTokens();
             setWorldbookTokens(totalTokens);
-            setTotalSummaries(eventCount);
+            setActiveEventCount(activeCount);  // 蓝灯数
         } catch (e) {
             console.error('加载 Summarizer 状态失败:', e);
         }
@@ -246,8 +246,8 @@ export const SummaryPanel: React.FC = () => {
                                     <div className="text-xl font-mono text-foreground/80">{status.currentFloor}</div>
                                 </div>
                                 <div>
-                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">总结次数</span>
-                                    <div className="text-xl font-mono text-foreground/80">{totalSummaries}</div>
+                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">活跃事件 (蓝灯)</span>
+                                    <div className="text-xl font-mono text-foreground/80">{activeEventCount}</div>
                                 </div>
                             </div>
 
@@ -444,6 +444,7 @@ export const SummaryPanel: React.FC = () => {
                                 <label
                                     key={opt.id}
                                     className="flex items-center gap-2 cursor-pointer group"
+                                    onClick={() => handleTriggerChange(opt.id)}
                                 >
                                     <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors
                                         ${trimConfig.trigger === opt.id
@@ -467,10 +468,8 @@ export const SummaryPanel: React.FC = () => {
                         <div className="text-xs text-muted-foreground">
                             {limitConfig.label === 'Token 上限' ? (
                                 <>当 Token 数超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 时触发</>
-                            ) : limitConfig.label === '楼层上限' ? (
-                                <>当楼层数超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 层时触发</>
                             ) : (
-                                <>当总结次数超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 次时触发</>
+                                <>当活跃事件超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 条时触发</>
                             )}
                         </div>
                         <div className="relative h-4 flex items-center group cursor-pointer">

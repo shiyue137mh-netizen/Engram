@@ -24,8 +24,8 @@ interface MemoryState {
      * @param recalledIds 可选，RAG 召回的事件 ID 列表（绿灯事件临时显示）
      */
     getEventSummaries: (recalledIds?: string[]) => Promise<string>;
-    /** 统计当前聊天的事件 Token 数 */
-    countEventTokens: () => Promise<{ totalTokens: number; eventCount: number }>;
+    /** 统计当前聊天的事件 Token 数和数量 */
+    countEventTokens: () => Promise<{ totalTokens: number; eventCount: number; activeEventCount: number }>;
     /** 更新最后总结楼层 */
     setLastSummarizedFloor: (floor: number) => Promise<void>;
     /** 设置处理状态 */
@@ -181,19 +181,25 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
     countEventTokens: async () => {
         const db = getCurrentDb();
-        if (!db) return { totalTokens: 0, eventCount: 0 };
+        if (!db) return { totalTokens: 0, eventCount: 0, activeEventCount: 0 };
 
         try {
             const events = await db.events.toArray();
-            if (events.length === 0) return { totalTokens: 0, eventCount: 0 };
+            if (events.length === 0) return { totalTokens: 0, eventCount: 0, activeEventCount: 0 };
 
-            const allSummaries = events.map(e => e.summary).join('\n\n');
+            // V0.7.1: 统计未归档事件数 (蓝灯数)
+            const activeEvents = events.filter(e => !e.is_archived);
+            const allSummaries = activeEvents.map(e => e.summary).join('\n\n');
             const totalTokens = await WorldInfoService.countTokens(allSummaries);
 
-            return { totalTokens, eventCount: events.length };
+            return {
+                totalTokens,
+                eventCount: events.length,
+                activeEventCount: activeEvents.length  // 蓝灯数
+            };
         } catch (e) {
             console.error('[MemoryStore] Failed to count event tokens:', e);
-            return { totalTokens: 0, eventCount: 0 };
+            return { totalTokens: 0, eventCount: 0, activeEventCount: 0 };
         }
     },
 
