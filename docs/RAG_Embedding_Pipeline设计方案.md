@@ -1,8 +1,8 @@
 # RAG Embedding Pipeline 设计方案
 
 > **创建日期**: 2026-01-10
-> **版本**: V0.7.1
-> **状态**: 基础架构已实现，注入时序已确认
+> **版本**: V0.8
+> **状态**: 基础架构已实现，注入时序已确认，预处理系统已实现
 
 ## 1. 概述
 
@@ -221,31 +221,15 @@ visibleEvents.sort((a, b) =>
 
 ---
 
-## 7. 待实现
 
-### Phase 1: EmbeddingService
-- [ ] OpenAI 兼容适配器
-- [ ] Ollama 适配器
-- [ ] 批量嵌入 + 并发控制
+### Phase 4: Query 预处理 ✅ (V0.8 已实现)
+- [x] Preprocessor 核心服务
+- [x] OutputParser 统一解析 `<output>`, `<query>`, `<think>` 标签
+- [x] GENERATION_AFTER_COMMANDS 事件阻塞式注入
+- [x] 内置 Query 增强 / 剧情编排 / 描写增强模板
+- [x] 配置项：是否启用预处理、自动触发、模板选择
 
-### Phase 2: Retriever.vectorSearch()
-- [ ] 余弦相似度计算
-- [ ] 多 Query 检索
-- [ ] 混合打分 (embedding + rerank + 图谱)
 
-### Phase 3: Trim 联动
-- [ ] TrimService 调用 EmbeddingService
-- [ ] 嵌入后标记 `is_embedded = true`
-- [ ] 同时创建 Level 1 大纲
-
-### Phase 4: Query 预处理 (可选)
-- [ ] LLM 调用生成 unified_queries
-- [ ] 配置项：是否启用预处理
-
-### Phase 5: UI
-- [ ] ProcessingView 向量化 Tab
-- [ ] 嵌入进度条
-- [ ] 检索参数配置
 
 ---
 

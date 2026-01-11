@@ -2,21 +2,33 @@
  * Injector Service V0.8
  *
  * 监听生成事件进行预处理和 RAG 注入
- * V0.8: 使用多个事件触发点确保可靠性
+ * V0.8: 使用 GENERATION_AFTER_COMMANDS 事件，阻塞生成直到预处理完成
+ *
+ * 参考 test/脚本.js 的剧情推进实现：
+ * - 监听 GENERATION_AFTER_COMMANDS 事件
+ * - 修改 chat 中最后一条用户消息的内容
+ * - 酒馆会 await 事件处理器，确保预处理完成后再继续
  */
 
 import { EventBus, TavernEventType } from '@/tavern/api';
-import { getCurrentChatId } from '@/tavern/context';
+import { getCurrentChatId, getSTContext } from '@/tavern/context';
 import { MacroService } from '@/tavern/MacroService';
 import { Logger } from '@/lib/logger';
 import { preprocessor } from '@/services/preprocessing';
 
 /**
- * CHAT_COMPLETION_PROMPT_READY 事件数据类型
+ * GENERATION_AFTER_COMMANDS 事件参数类型
  */
-interface ChatCompletionPromptData {
-    chat: Array<{ role: string; content: string }>;
-    dryRun: boolean;
+interface GenerationAfterCommandsParams {
+    automatic_trigger?: boolean;
+    force_name2?: boolean;
+    quiet_prompt?: string;
+    quietToLoud?: boolean;
+    skipWIAN?: boolean;
+    force_chid?: number;
+    signal?: AbortSignal;
+    quietImage?: string;
+    _engram_processed?: boolean; // 我们添加的标记，防止重复处理
 }
 
 export class Injector {
@@ -32,13 +44,16 @@ export class Injector {
         Logger.info('Injector', '开始初始化 V0.8 预处理注入器...');
         console.log('[Injector] Starting initialization...');
 
-        // V0.8: 主要使用 CHAT_COMPLETION_PROMPT_READY
+        // V0.8: 使用 GENERATION_AFTER_COMMANDS 事件
+        // 这个事件在命令处理后、生成开始前触发，酒馆会 await 处理器
         EventBus.on(
-            TavernEventType.CHAT_COMPLETION_PROMPT_READY,
-            (data: unknown) => {
-                console.log('[Injector] 🎯 CHAT_COMPLETION_PROMPT_READY triggered');
-                Logger.info('Injector', '🎯 捕获到 CHAT_COMPLETION_PROMPT_READY 事件');
-                this.handleChatCompletionReady(data as ChatCompletionPromptData);
+            TavernEventType.GENERATION_AFTER_COMMANDS,
+            async (type: string, params: GenerationAfterCommandsParams, dryRun: boolean) => {
+                console.log('[Injector] 🎯 GENERATION_AFTER_COMMANDS triggered', { type, dryRun });
+                Logger.info('Injector', '🎯 捕获到 GENERATION_AFTER_COMMANDS 事件', { type, dryRun });
+
+                // 重要！必须 await 处理，才能阻塞酒馆的生成流程
+                await this.handleGenerationAfterCommands(type, params, dryRun);
             }
         );
 
@@ -53,23 +68,40 @@ export class Injector {
 
         this.isInitialized = true;
         Logger.success('Injector', 'V0.8 Injector 初始化完成');
-        console.log('[Injector] ✅ V0.8 Initialized');
+        console.log('[Injector] ✅ V0.8 Initialized - Listening for GENERATION_AFTER_COMMANDS');
     }
 
     /**
-     * 处理 CHAT_COMPLETION_PROMPT_READY 事件
+     * 处理 GENERATION_AFTER_COMMANDS 事件
+     * 注意：这个函数必须是 async 并被 await，才能阻塞酒馆生成
      */
-    private async handleChatCompletionReady(data: ChatCompletionPromptData) {
+    private async handleGenerationAfterCommands(
+        type: string,
+        params: GenerationAfterCommandsParams,
+        dryRun: boolean
+    ): Promise<void> {
         try {
-            // 防止重入（同一次生成可能触发多次）
-            if (this.isProcessing) {
-                Logger.debug('Injector', '正在处理中，跳过重复调用');
+            // dryRun 模式是预览/计算 token，不需要预处理
+            if (dryRun) {
+                Logger.debug('Injector', 'dryRun 模式，跳过');
                 return;
             }
 
-            // dryRun 模式是预览/计算 token，不需要预处理
-            if (data.dryRun) {
-                Logger.debug('Injector', 'dryRun 模式，跳过');
+            // 只处理正常生成，跳过 regenerate、swipe、quiet 等
+            if (type === 'regenerate' || type === 'swipe' || type === 'quiet' || type === 'impersonate') {
+                Logger.debug('Injector', `跳过 ${type} 类型生成`);
+                return;
+            }
+
+            // 检查是否已被处理（防止重复）
+            if (params._engram_processed) {
+                Logger.debug('Injector', '已被处理，跳过');
+                return;
+            }
+
+            // 防止重入（同一次生成可能触发多次）
+            if (this.isProcessing) {
+                Logger.debug('Injector', '正在处理中，跳过重复调用');
                 return;
             }
 
@@ -79,14 +111,30 @@ export class Injector {
                 return;
             }
 
-            // 获取最后一条用户消息
-            const lastUserMessage = [...data.chat].reverse().find(m => m.role === 'user');
-            if (!lastUserMessage) {
-                Logger.debug('Injector', '未找到用户消息');
+            // 获取 SillyTavern 上下文
+            const context = getSTContext();
+            if (!context || !context.chat || context.chat.length === 0) {
+                Logger.warn('Injector', '无法获取聊天上下文');
                 return;
             }
 
-            const userInput = lastUserMessage.content;
+            // 找到最后一条用户消息
+            const chat = context.chat;
+            const lastMessageIndex = chat.length - 1;
+            const lastMessage = chat[lastMessageIndex];
+
+            // 只处理用户消息
+            if (!lastMessage || !lastMessage.is_user) {
+                Logger.debug('Injector', '最后一条不是用户消息，跳过');
+                return;
+            }
+
+            const userInput = lastMessage.mes;
+            if (!userInput || userInput.trim().length === 0) {
+                Logger.debug('Injector', '用户消息为空，跳过');
+                return;
+            }
+
             const config = preprocessor.getConfig();
 
             Logger.info('Injector', '准备预处理', {
@@ -114,10 +162,15 @@ export class Injector {
 
             // 开始处理
             this.isProcessing = true;
-            Logger.info('Injector', '🚀 开始执行预处理...');
-            console.log('[Injector] 🚀 Starting preprocessing...');
+            params._engram_processed = true; // 标记已处理
+            Logger.info('Injector', '🚀 开始执行预处理（阻塞生成）...');
+            console.log('[Injector] 🚀 Starting preprocessing (blocking generation)...');
 
             try {
+                // 设置用户输入到宏缓存
+                MacroService.setUserInput(userInput);
+                await MacroService.refreshCache();
+
                 const result = await preprocessor.process(userInput);
 
                 Logger.info('Injector', '预处理结果', {
@@ -135,6 +188,34 @@ export class Injector {
                         outputLength: result.output.length,
                         outputPreview: result.output.substring(0, 100) + '...'
                     });
+
+                    // 关键：修改最后一条用户消息的内容
+                    // 这样酒馆在后续构建 prompt 时会使用修改后的内容
+                    lastMessage.mes = result.output;
+
+                    // 触发消息更新事件刷新 UI
+                    try {
+                        const eventSource = context.eventSource;
+                        const eventTypes = context.eventTypes;
+                        if (eventSource && eventTypes?.MESSAGE_UPDATED) {
+                            eventSource.emit(eventTypes.MESSAGE_UPDATED, lastMessageIndex);
+                            Logger.debug('Injector', '已触发 MESSAGE_UPDATED 事件');
+                        }
+                    } catch (e) {
+                        Logger.warn('Injector', '触发 MESSAGE_UPDATED 失败', e);
+                    }
+
+                    // 同步清空输入框（如果内容还是原始输入）
+                    try {
+                        const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+                        if (textarea && textarea.value === userInput) {
+                            textarea.value = '';
+                            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    } catch (e) {
+                        // 忽略
+                    }
+
                 } else if (result.error) {
                     Logger.error('Injector', '预处理失败', { error: result.error });
                 }
@@ -146,12 +227,9 @@ export class Injector {
                 }, 1000);
             }
 
-            // 刷新宏缓存
-            await MacroService.refreshCache();
-
         } catch (e) {
             this.isProcessing = false;
-            Logger.error('Injector', 'handleChatCompletionReady 失败', e);
+            Logger.error('Injector', 'handleGenerationAfterCommands 失败', e);
             console.error('[Injector] Error:', e);
         }
     }

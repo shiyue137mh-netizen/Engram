@@ -6,6 +6,8 @@
 import summaryPrompt from './prompts/summary_prompt.md?raw';
 import trimPrompt from './prompts/trim.md?raw';
 import queryEnhancePrompt from './prompts/query_enhance.md?raw';
+import plotDirectorPrompt from './prompts/plot_director.md?raw';
+import descriptionPrompt from './prompts/description.md?raw';
 
 // ==================== LLM 预设 ====================
 
@@ -138,7 +140,7 @@ export interface RerankConfig {
 export type PromptCategory =
   | 'summary'           // 剧情摘要 (V0.5 统一为 JSON 输出)
   | 'trim'              // 精简/修剪
-  | 'query_enhance';    // 用户输入加强
+  | 'preprocessing';    // 预处理 (统一分类，包含 Query 增强/剧情编排/描写增强等)
 
 /**
  * 提示词分类选项
@@ -146,7 +148,7 @@ export type PromptCategory =
 export const PROMPT_CATEGORIES: { value: PromptCategory; label: string; description: string }[] = [
   { value: 'summary', label: '剧情摘要', description: '将对话转为结构化 JSON 事件' },
   { value: 'trim', label: '精简/修剪', description: '合并、压缩旧的事件记录' },
-  { value: 'query_enhance', label: '用户输入加强', description: '扩展用户输入，解决指代问题' },
+  { value: 'preprocessing', label: '预处理', description: '用户输入预处理（Query 增强/剧情编排/描写增强等）' },
 ];
 
 /**
@@ -409,20 +411,56 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 请输出一条精简后的综合摘要。`,
       outputFormat: 'json',
     }),
-    createPromptTemplate('查询增强', 'query_enhance', {
+    createPromptTemplate('Query 增强', 'preprocessing', {
       enabled: true,
       isBuiltIn: true,
       systemPrompt: queryEnhancePrompt,
-      userPromptTemplate: `{{worldbookContext}}
-以上是相关设定和剧情。
+      userPromptTemplate: `**世界书激活内容**:
+{{worldbookContext}}
 
-用户输入：{{userInput}}
+**最近对话历史**:
+{{chatHistory}}
 
-最近对话上下文：
-{{context}}
+**用户本轮输入**:
+{{userInput}}
 
-请输出扩展后的查询关键词列表，用于检索相关记忆。`,
+---
+请根据以上信息，输出扩展后的检索查询词。`,
       outputFormat: 'plain',
+      availableVariables: ['{{worldbookContext}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
+    }),
+    createPromptTemplate('剧情编排', 'preprocessing', {
+      enabled: false,  // 默认不启用，用户按需开启
+      isBuiltIn: true,
+      systemPrompt: plotDirectorPrompt,
+      userPromptTemplate: `**世界书激活内容**:
+{{worldbookContext}}
+
+**最近对话历史**:
+{{chatHistory}}
+
+**用户本轮输入**:
+{{userInput}}
+
+---
+请根据以上信息，进行剧情规划并输出导演指令框架。`,
+      outputFormat: 'plain',
+      availableVariables: ['{{worldbookContext}}', '{{context}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
+    }),
+    createPromptTemplate('描写增强', 'preprocessing', {
+      enabled: false,  // 默认不启用，用户按需开启
+      isBuiltIn: true,
+      systemPrompt: descriptionPrompt,
+      userPromptTemplate: `**最近对话历史**:
+{{chatHistory}}
+
+**用户本轮输入**:
+{{userInput}}
+
+---
+请根据以上信息，输出增强后的描写内容。`,
+      outputFormat: 'plain',
+      availableVariables: ['{{context}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
     }),
   ];
 }

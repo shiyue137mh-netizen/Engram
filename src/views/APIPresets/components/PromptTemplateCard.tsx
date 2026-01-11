@@ -23,7 +23,7 @@ function getCategoryColorClass(category: PromptCategory): string {
             return 'text-blue-500 bg-blue-500/10 border border-blue-500/20';
         case 'trim':
             return 'text-orange-500 bg-orange-500/10 border border-orange-500/20';
-        case 'query_enhance':
+        case 'preprocessing':
             return 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/20';
         default:
             return 'text-muted-foreground bg-muted border border-border';

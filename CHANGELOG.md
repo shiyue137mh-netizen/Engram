@@ -1,6 +1,30 @@
 # Changelog
 
 
+## [0.8.0] - 2026-01-11
+
+### ✨ New Features (新功能)
+- **输入预处理系统 (Input Preprocessing System):**
+  - 在用户发送消息时自动进行预处理，支持多种功能模式
+  - **Query 增强**: 扩展用户输入的指代词，优化 RAG 检索效果
+  - **剧情编排**: 生成导演指令框架，指导 AI 进行剧情发展
+  - **描写增强**: 补充细节描写和环境氛围
+  - 支持自定义预处理模板，统一使用 `preprocessing` 分类
+  - 阻塞式事件处理，确保预处理完成后再继续生成
+
+### 🏗️ Architecture (架构改进)
+- **Preprocessor 服务**: 新增 `services/preprocessing/Preprocessor.ts`，统一管理预处理逻辑
+- **OutputParser**: 新增 `services/preprocessing/OutputParser.ts`，统一解析 `<output>`, `<query>`, `<think>` 标签
+- **Injector 重构**: 使用 `GENERATION_AFTER_COMMANDS` 事件实现阻塞式预处理注入
+- **模板分类简化**: 将 `query_enhance`, `plot_director`, `description` 统一为 `preprocessing` 分类
+
+### 📄 新增文件
+- `src/services/preprocessing/Preprocessor.ts` - 预处理核心服务
+- `src/services/preprocessing/OutputParser.ts` - 输出解析器
+- `src/services/api/prompts/query_enhance.md` - Query 增强模板
+- `src/services/api/prompts/plot_director.md` - 剧情编排模板
+- `src/services/api/prompts/description.md` - 描写增强模板
+
 ## [0.7.1] - 2026-01-10
 
 ### 💄 UI/UX Improvements (界面优化)
