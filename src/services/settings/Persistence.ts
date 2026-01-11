@@ -1,6 +1,7 @@
 import { Logger } from '@/lib/logger';
 import type { PromptTemplate, PromptCategory, EngramAPISettings } from '@/services/api/types';
 import type { RegexRule } from '@/services/pipeline/RegexProcessor';
+import type { PreprocessingConfig } from '@/services/preprocessing/types';
 
 export interface EngramSettings {
     theme: string;
@@ -13,6 +14,7 @@ export interface EngramSettings {
     trimmerConfig: Partial<any>; // 精简器配置
     regexRules: RegexRule[]; // 正则规则列表
     apiSettings: EngramAPISettings | null; // API 配置（LLM 预设、向量化、Rerank 等）
+    preprocessingConfig: PreprocessingConfig | null; // V0.8: 预处理配置
     linkedDeletion: {
         enabled: boolean;          // 是否启用联动删除
         deleteWorldbook: boolean;  // 删除角色时删除 Engram 世界书
@@ -39,6 +41,7 @@ const defaultSettings: EngramSettings = Object.freeze({
     trimmerConfig: {},
     regexRules: [],
     apiSettings: null,
+    preprocessingConfig: null, // V0.8: 默认关闭预处理
     linkedDeletion: {
         enabled: true,
         deleteWorldbook: true,
@@ -55,7 +58,7 @@ const defaultSettings: EngramSettings = Object.freeze({
 
 /**
  * SettingsManager - Engram 设置管理器
- * 
+ *
  * 使用 SillyTavern.getContext().extensionSettings API 进行持久化
  * 这是 ST 官方推荐的扩展设置存储方式
  */

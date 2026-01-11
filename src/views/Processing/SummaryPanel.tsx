@@ -61,13 +61,9 @@ export const SummaryPanel: React.FC = () => {
     const loadStatus = async () => {
         try {
             const { summarizerService } = await import('@/services/summarizer');
-            // 获取当前状态
-            let currentStatus = summarizerService.getStatus();
-            // 如果 lastSummarizedFloor 为 0，可能需要从世界书初始化
-            if (currentStatus.lastSummarizedFloor === 0) {
-                await summarizerService.initializeForCurrentChat();
-                currentStatus = summarizerService.getStatus();
-            }
+            // V0.7.1: 始终刷新缓存，确保待处理数正确
+            await summarizerService.initializeForCurrentChat();
+            const currentStatus = summarizerService.getStatus();
             setStatus(currentStatus);
             const config = summarizerService.getConfig();
             setSettings({

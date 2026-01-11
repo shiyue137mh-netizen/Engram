@@ -1,8 +1,8 @@
 /**
  * RegexProcessor - 正则处理器
- * 
+ *
  * 提供可配置的正则规则，用于清洗聊天内容和 LLM 输出
- * 
+ *
  * 通用管道组件：可被多个模块复用
  */
 
@@ -205,6 +205,54 @@ export class RegexProcessor {
      */
     getEnabledCount(): number {
         return this.rules.filter(r => r.enabled).length;
+    }
+
+    // ========== V0.8: 标签捕获方法 ==========
+
+    /**
+     * 捕获标签内容
+     * @param text 源文本
+     * @param tagName 标签名 (如 'output', 'query')
+     * @returns 标签内容，未找到返回 null
+     */
+    captureTag(text: string, tagName: string): string | null {
+        try {
+            const regex = new RegExp(`<${tagName}>([\\s\\S]*?)<\\/${tagName}>`, 'i');
+            const match = text.match(regex);
+            return match?.[1]?.trim() || null;
+        } catch (e) {
+            console.warn(`[RegexProcessor] 标签捕获失败: ${tagName}`, e);
+            return null;
+        }
+    }
+
+    /**
+     * 移除指定标签及其内容
+     * @param text 源文本
+     * @param tagName 标签名
+     */
+    removeTag(text: string, tagName: string): string {
+        try {
+            const regex = new RegExp(`<${tagName}>[\\s\\S]*?<\\/${tagName}>`, 'gi');
+            return text.replace(regex, '').trim();
+        } catch (e) {
+            console.warn(`[RegexProcessor] 标签移除失败: ${tagName}`, e);
+            return text;
+        }
+    }
+
+    /**
+     * 捕获多个标签内容
+     * @param text 源文本
+     * @param tagNames 标签名数组
+     * @returns 标签内容映射
+     */
+    captureTags(text: string, tagNames: string[]): Record<string, string | null> {
+        const result: Record<string, string | null> = {};
+        for (const tag of tagNames) {
+            result[tag] = this.captureTag(text, tag);
+        }
+        return result;
     }
 }
 

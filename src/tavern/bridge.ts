@@ -75,6 +75,15 @@ export async function initializeEngram(): Promise<void> {
         Logger.warn('MacroService', 'Failed to initialize MacroService', { error: String(e) });
     }
 
+    // V0.8: Initialize QR 栏快捷按钮
+    try {
+        const { initQuickPanelButton } = await import('@/tavern/QuickPanelButton');
+        initQuickPanelButton();
+        Logger.info('QuickPanelButton', 'QR 栏按钮初始化完成');
+    } catch (e) {
+        Logger.warn('QuickPanelButton', 'Failed to initialize QuickPanelButton', { error: String(e) });
+    }
+
     // 挂载全局悬浮层 (用于修订弹窗等)
     mountGlobalOverlay();
 

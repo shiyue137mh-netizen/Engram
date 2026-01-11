@@ -31,6 +31,9 @@ export const TavernEventType = {
     GENERATE_BEFORE_COMBINE_PROMPTS: 'generate_before_combine_prompts',
     GENERATE_AFTER_COMBINE_PROMPTS: 'generate_after_combine_prompts',
     GENERATE_AFTER_DATA: 'generate_after_data',
+    // V0.8: Chat Completion 事件 (更可靠的预处理触发点)
+    CHAT_COMPLETION_PROMPT_READY: 'chat_completion_prompt_ready',
+    CHAT_COMPLETION_SETTINGS_READY: 'chat_completion_settings_ready',
 
     // 世界书事件
     WORLDINFO_UPDATED: 'worldinfo_updated',

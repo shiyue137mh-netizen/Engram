@@ -130,3 +130,68 @@ export const RevisionModal: React.FC = () => {
         document.body
     );
 };
+
+// ========== 通用 Modal 组件 ==========
+
+interface ModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    title?: string;
+    size?: 'sm' | 'md' | 'lg';
+    children: React.ReactNode;
+}
+
+export const Modal: React.FC<ModalProps> = ({
+    isOpen,
+    onClose,
+    title,
+    size = 'md',
+    children
+}) => {
+    if (!isOpen) return null;
+
+    const sizeClasses = {
+        sm: 'max-w-sm',
+        md: 'max-w-md',
+        lg: 'max-w-2xl',
+    };
+
+    return ReactDOM.createPortal(
+        <div
+            className="fixed inset-0 z-[11000] flex items-center justify-center p-4"
+            style={{ height: '100dvh', width: '100vw' }}
+        >
+            {/* 背景遮罩 */}
+            <div
+                className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200"
+                onClick={onClose}
+            />
+
+            {/* 弹窗主体 */}
+            <div className={`relative w-full ${sizeClasses[size]} bg-popover border border-border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in zoom-in-95 slide-in-from-bottom-2 duration-200`}>
+                {/* 标题栏 */}
+                {title && (
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                        <h3 className="text-base font-medium text-foreground">
+                            {title}
+                        </h3>
+                        <button
+                            onClick={onClose}
+                            className="p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                            aria-label="关闭"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+                )}
+
+                {/* 内容区域 */}
+                <div className="flex-1 p-4 overflow-auto">
+                    {children}
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
+

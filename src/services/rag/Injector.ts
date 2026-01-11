@@ -1,36 +1,27 @@
 /**
- * Injector Service V0.7.1
+ * Injector Service V0.8
  *
- * 使用 GENERATE_BEFORE_COMBINE_PROMPTS 事件进行 RAG 注入
- * V0.7.1: 简化逻辑，召回部分暂时占位
+ * 监听生成事件进行预处理和 RAG 注入
+ * V0.8: 使用多个事件触发点确保可靠性
  */
 
 import { EventBus, TavernEventType } from '@/tavern/api';
 import { getCurrentChatId } from '@/tavern/context';
 import { MacroService } from '@/tavern/MacroService';
 import { Logger } from '@/lib/logger';
+import { preprocessor } from '@/services/preprocessing';
 
 /**
- * GENERATE_BEFORE_COMBINE_PROMPTS 事件数据类型
+ * CHAT_COMPLETION_PROMPT_READY 事件数据类型
  */
-interface GenerateBeforeCombineData {
-    api: string;
-    combinedPrompt: string | null;
-    description: string;
-    personality: string;
-    persona: string;
-    scenario: string;
-    char: string;
-    user: string;
-    worldInfoBefore: string;
-    worldInfoAfter: string;
-    mesSendString: string;
-    finalMesSend: Array<{ message: string; extensionPrompts: string[] }>;
-    // ... 其他字段
+interface ChatCompletionPromptData {
+    chat: Array<{ role: string; content: string }>;
+    dryRun: boolean;
 }
 
 export class Injector {
     private isInitialized = false;
+    private isProcessing = false; // 防止重入
 
     /**
      * Initialize the Injector
@@ -38,56 +29,132 @@ export class Injector {
     public init() {
         if (this.isInitialized) return;
 
-        // V0.7.1: 使用 GENERATE_BEFORE_COMBINE_PROMPTS 进行 RAG 注入
-        // 这个事件是 await 的，确保我们的异步操作完成后再继续生成
+        Logger.info('Injector', '开始初始化 V0.8 预处理注入器...');
+        console.log('[Injector] Starting initialization...');
+
+        // V0.8: 主要使用 CHAT_COMPLETION_PROMPT_READY
         EventBus.on(
-            TavernEventType.GENERATE_BEFORE_COMBINE_PROMPTS,
-            (data: unknown) => this.handleBeforeCombinePrompts(data as GenerateBeforeCombineData)
+            TavernEventType.CHAT_COMPLETION_PROMPT_READY,
+            (data: unknown) => {
+                console.log('[Injector] 🎯 CHAT_COMPLETION_PROMPT_READY triggered');
+                Logger.info('Injector', '🎯 捕获到 CHAT_COMPLETION_PROMPT_READY 事件');
+                this.handleChatCompletionReady(data as ChatCompletionPromptData);
+            }
         );
 
-        // 聊天切换时刷新宏缓存
-        EventBus.on(TavernEventType.CHAT_CHANGED, this.handleChatChanged.bind(this));
+        // 聊天切换时重置状态
+        EventBus.on(TavernEventType.CHAT_CHANGED, () => {
+            Logger.debug('Injector', '捕获到 CHAT_CHANGED 事件');
+            this.isProcessing = false;
+            MacroService.refreshCache().catch(e => {
+                Logger.warn('Injector', '聊天切换时刷新缓存失败', e);
+            });
+        });
 
         this.isInitialized = true;
-        console.log('[Injector] V0.7.1 Initialized with GENERATE_BEFORE_COMBINE_PROMPTS hook.');
+        Logger.success('Injector', 'V0.8 Injector 初始化完成');
+        console.log('[Injector] ✅ V0.8 Initialized');
     }
 
     /**
-     * V0.7.1: 核心注入逻辑
-     * 在 prompt 组合之前触发，刷新宏缓存
-     * TODO: 后续实现向量检索 + 取消归档逻辑
+     * 处理 CHAT_COMPLETION_PROMPT_READY 事件
      */
-    private async handleBeforeCombinePrompts(_data: GenerateBeforeCombineData) {
+    private async handleChatCompletionReady(data: ChatCompletionPromptData) {
         try {
-            const chatId = getCurrentChatId();
-            if (!chatId) {
+            // 防止重入（同一次生成可能触发多次）
+            if (this.isProcessing) {
+                Logger.debug('Injector', '正在处理中，跳过重复调用');
                 return;
             }
 
-            // V0.7.1: 暂时只刷新宏缓存，确保最新事件可见
-            // TODO: 后续实现:
-            // 1. 获取用户最新消息
-            // 2. 向量检索相关事件
-            // 3. 取消归档召回的事件
-            // 4. 刷新宏缓存
+            // dryRun 模式是预览/计算 token，不需要预处理
+            if (data.dryRun) {
+                Logger.debug('Injector', 'dryRun 模式，跳过');
+                return;
+            }
+
+            const chatId = getCurrentChatId();
+            if (!chatId) {
+                Logger.warn('Injector', '无有效聊天 ID');
+                return;
+            }
+
+            // 获取最后一条用户消息
+            const lastUserMessage = [...data.chat].reverse().find(m => m.role === 'user');
+            if (!lastUserMessage) {
+                Logger.debug('Injector', '未找到用户消息');
+                return;
+            }
+
+            const userInput = lastUserMessage.content;
+            const config = preprocessor.getConfig();
+
+            Logger.info('Injector', '准备预处理', {
+                chatId,
+                userInputLength: userInput.length,
+                userInputPreview: userInput.substring(0, 50) + '...',
+                enabled: config.enabled,
+                autoTrigger: config.autoTrigger,
+                templateId: config.templateId,
+            });
+
+            console.log('[Injector] Config:', config);
+            console.log('[Injector] User input:', userInput.substring(0, 100));
+
+            // 检查是否启用
+            if (!config.enabled) {
+                Logger.debug('Injector', '预处理未启用');
+                return;
+            }
+
+            if (!config.autoTrigger) {
+                Logger.debug('Injector', 'autoTrigger 未开启');
+                return;
+            }
+
+            // 开始处理
+            this.isProcessing = true;
+            Logger.info('Injector', '🚀 开始执行预处理...');
+            console.log('[Injector] 🚀 Starting preprocessing...');
+
+            try {
+                const result = await preprocessor.process(userInput);
+
+                Logger.info('Injector', '预处理结果', {
+                    success: result.success,
+                    hasOutput: !!result.output,
+                    hasQuery: !!result.query,
+                    processingTime: result.processingTime,
+                    error: result.error,
+                });
+
+                console.log('[Injector] Preprocessing result:', result);
+
+                if (result.success && result.output) {
+                    Logger.success('Injector', '✅ 预处理完成', {
+                        outputLength: result.output.length,
+                        outputPreview: result.output.substring(0, 100) + '...'
+                    });
+                } else if (result.error) {
+                    Logger.error('Injector', '预处理失败', { error: result.error });
+                }
+
+            } finally {
+                // 延迟重置，防止同一生成周期内的其他事件
+                setTimeout(() => {
+                    this.isProcessing = false;
+                }, 1000);
+            }
+
+            // 刷新宏缓存
             await MacroService.refreshCache();
 
-            Logger.debug('Injector', '宏缓存已刷新 (BEFORE_COMBINE_PROMPTS)');
-
         } catch (e) {
-            console.error('[Injector] Failed to refresh cache:', e);
+            this.isProcessing = false;
+            Logger.error('Injector', 'handleChatCompletionReady 失败', e);
+            console.error('[Injector] Error:', e);
         }
-    }
-
-    /**
-     * Handle chat change - 刷新宏缓存
-     */
-    private handleChatChanged() {
-        MacroService.refreshCache().catch(e => {
-            Logger.warn('Injector', '聊天切换时刷新缓存失败', e);
-        });
     }
 }
 
 export const injector = new Injector();
-

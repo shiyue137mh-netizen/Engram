@@ -153,15 +153,23 @@ export class SummarizerService {
     /**
      * 获取上次总结的楼层
      * V0.5: 优先从 memoryStore 读取
+     * V0.8: 修复时序问题，直接从 chatManager.getState() 读取确保获取最新值
      */
     private async getLastSummarizedFloor(): Promise<number> {
-        // 如果缓存有值，直接返回
+        // 如果缓存有值且不是刚被清零，直接返回
         if (this._lastSummarizedFloor > 0) return this._lastSummarizedFloor;
 
-        // 从 memoryStore 读取
-        const store = useMemoryStore.getState();
-        this._lastSummarizedFloor = store.lastSummarizedFloor;
-        return this._lastSummarizedFloor;
+        // 直接从 IndexedDB 读取，避免 memoryStore 缓存未初始化的问题
+        try {
+            const { chatManager } = await import('@/services/database/ChatManager');
+            const state = await chatManager.getState();
+            this._lastSummarizedFloor = state.last_summarized_floor;
+            this.log('debug', '从 DB 读取 lastSummarizedFloor', { value: this._lastSummarizedFloor });
+            return this._lastSummarizedFloor;
+        } catch (e) {
+            this.log('warn', '读取 lastSummarizedFloor 失败，使用默认值 0', e);
+            return 0;
+        }
     }
 
     /**
