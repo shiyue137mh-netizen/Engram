@@ -13587,7 +13587,7 @@ const Lc = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
       ]
     }
   );
-}, l5 = "0.7.1", ub = {
+}, l5 = "0.8.0", ub = {
   version: l5
 }, S1 = ({
   activeTab: n,
