@@ -1,6 +1,6 @@
 /**
  * useAPIPresets - API 预设管理 Hook
- * 
+ *
  * 将 APIPresetsView 中的状态管理逻辑抽离出来，
  * 使视图组件只负责 UI 渲染。
  */
@@ -13,6 +13,7 @@ import type {
     RerankConfig,
     PromptTemplate,
     WorldbookConfig,
+    GlobalRegexConfig,
 } from '@/services/api/types';
 import {
     getDefaultAPISettings,
@@ -59,6 +60,7 @@ export interface UseAPIPresetsReturn {
     updateVectorConfig: (config: VectorConfig) => void;
     updateRerankConfig: (config: RerankConfig) => void;
     updateWorldbookConfig: (config: WorldbookConfig) => void;
+    updateRegexConfig: (config: GlobalRegexConfig) => void;
 
     // 正则规则操作
     selectRule: (id: string) => void;
@@ -280,6 +282,11 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         setHasChanges(true);
     }, []);
 
+    const updateRegexConfig = useCallback((config: GlobalRegexConfig) => {
+        setSettings((prev) => ({ ...prev, regexConfig: config }));
+        setHasChanges(true);
+    }, []);
+
     const toggleWorldbook = useCallback((name: string, disabled: boolean) => {
         setSettings(prev => {
             const currentDisabled = prev.worldbookConfig.disabledWorldbooks || [];
@@ -408,6 +415,7 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         updateVectorConfig,
         updateRerankConfig,
         updateWorldbookConfig,
+        updateRegexConfig,
         toggleWorldbook,
         toggleEntry,
         refreshWorldbooks: loadWorldbookState,

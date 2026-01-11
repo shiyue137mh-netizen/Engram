@@ -77,6 +77,14 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
                     onChange={() => handleToggle('includeGlobal')}
                     disabled={!config.enabled}
                 />
+
+                <SwitchField
+                    label="启用 EJS 模板 (ST-Prompt-Template)"
+                    description="[兼容性] 启用后将支持 WorldInfo 中的 EJS 脚本和宏（需安装 ST-Prompt-Template）"
+                    checked={config.enableEJS ?? true}
+                    onChange={() => handleToggle('enableEJS')}
+                    disabled={!config.enabled}
+                />
             </FormSection>
 
             {config.enabled && (

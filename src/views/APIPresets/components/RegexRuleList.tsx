@@ -10,6 +10,8 @@ interface RegexRuleListProps {
     onDelete: (id: string) => void;
     onAdd: () => void;
     onReset: () => void;
+    enableNativeRegex?: boolean;
+    onToggleNativeRegex?: (enabled: boolean) => void;
 }
 
 export const RegexRuleList: React.FC<RegexRuleListProps> = ({
@@ -37,6 +39,35 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
                         onClick={onAdd}
                     >
                         <Regex size={16} />
+                    </button>
+                </div>
+            </div>
+
+
+            {/* Native Compatibility Toggle */}
+            <div className="bg-muted/10 border border-border/50 rounded-lg p-3 mb-2">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h4 className="text-sm font-medium">酒馆原生 Regex 兼容</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">启用后将应用 SillyTavern 的 Regex 脚本（在 Engram 规则之前执行）</p>
+                    </div>
+
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={enableNativeRegex}
+                        onClick={() => onToggleNativeRegex?.(!enableNativeRegex)}
+                        className={`
+                            relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50
+                            ${enableNativeRegex ? 'bg-primary' : 'bg-input'}
+                        `}
+                    >
+                        <span
+                            className={`
+                                pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform
+                                ${enableNativeRegex ? 'translate-x-4' : 'translate-x-0'}
+                            `}
+                        />
                     </button>
                 </div>
             </div>
@@ -107,6 +138,6 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

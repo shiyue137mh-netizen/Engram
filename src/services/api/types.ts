@@ -211,6 +211,8 @@ export interface WorldbookConfig {
   includeGlobal: boolean;
   /** 全局世界书黑名单（被禁用的世界书名称列表） */
   disabledWorldbooks: string[];
+  /** 是否启用 EJS 模板 (ST-Prompt-Template 兼容) */
+  enableEJS?: boolean;
 }
 
 // ==================== 精简配置 ====================
@@ -264,6 +266,24 @@ export interface EmbeddingConfig {
   keepRecentCount?: number;
 }
 
+/**
+ * 全局正则配置 (V0.8)
+ */
+export interface GlobalRegexConfig {
+  /** 是否启用酒馆原生 Regex (SillyTavern) */
+  enableNativeRegex: boolean;
+  /** 是否启用 Engram 内部 Regex */
+  enableEngramRegex: boolean;
+}
+
+/**
+ * 默认全局正则配置
+ */
+export const DEFAULT_REGEX_CONFIG: GlobalRegexConfig = {
+  enableNativeRegex: true,
+  enableEngramRegex: true,
+};
+
 // ==================== 完整配置 ====================
 
 /**
@@ -282,6 +302,8 @@ export interface EngramAPISettings {
   promptTemplates: PromptTemplate[];
   /** 世界书配置 */
   worldbookConfig: WorldbookConfig;
+  /** 正则配置 (V0.8) */
+  regexConfig: GlobalRegexConfig;
   /** 精简配置（可选，二层总结） */
   trimConfig?: TrimConfig;
   /** V0.7: 嵌入配置 */
@@ -482,6 +504,7 @@ export const DEFAULT_WORLDBOOK_CONFIG: WorldbookConfig = {
   enabled: true,
   includeGlobal: true,
   disabledWorldbooks: [],
+  enableEJS: true, // V0.8 默认启用 EJS
 };
 
 /**
@@ -508,6 +531,7 @@ export function getDefaultAPISettings(): EngramAPISettings {
     rerankConfig: { ...DEFAULT_RERANK_CONFIG },
     promptTemplates: getBuiltInPromptTemplates(),
     worldbookConfig: { ...DEFAULT_WORLDBOOK_CONFIG },
+    regexConfig: { ...DEFAULT_REGEX_CONFIG }, // V0.8
   };
 }
 

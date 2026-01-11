@@ -85,6 +85,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         updateVectorConfig,
         updateRerankConfig,
         updateWorldbookConfig,
+        updateRegexConfig, // New!
         selectRule,
         addRule,
         updateRule,
@@ -335,6 +336,11 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                 onDelete={deleteRule}
                                 onAdd={addRule}
                                 onReset={resetRules}
+                                enableNativeRegex={settings.regexConfig?.enableNativeRegex ?? true}
+                                onToggleNativeRegex={(enabled) => updateRegexConfig({
+                                    ...settings.regexConfig,
+                                    enableNativeRegex: enabled
+                                })}
                             />
                         </div>
 
