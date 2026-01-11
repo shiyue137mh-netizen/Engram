@@ -22,6 +22,8 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
     onDelete,
     onAdd,
     onReset,
+    enableNativeRegex,
+    onToggleNativeRegex,
 }) => {
     return (
         <div className="flex flex-col gap-4">
@@ -46,10 +48,12 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
 
             {/* Native Compatibility Toggle */}
             <div className="bg-muted/10 border border-border/50 rounded-lg p-3 mb-2">
-                <div className="flex items-center justify-between">
-                    <div>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium">酒馆原生 Regex 兼容</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">启用后将应用 SillyTavern 的 Regex 脚本（在 Engram 规则之前执行）</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 break-words">
+                            启用后将应用 SillyTavern 的 Regex 脚本
+                        </p>
                     </div>
 
                     <button

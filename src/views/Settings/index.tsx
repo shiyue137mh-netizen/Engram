@@ -132,7 +132,7 @@ export const Settings: React.FC = () => {
                                 </div>
                                 <div>
                                     <h4 className="font-medium text-foreground">启用修订模式</h4>
-                                    <p className="text-sm text-muted-foreground">在写入长期记忆前，弹出预览窗口进行人工核对</p>
+                                    <p className="text-sm text-muted-foreground break-words">在写入长期记忆前，弹出预览窗口</p>
                                 </div>
                             </div>
                             <Switch
@@ -159,7 +159,7 @@ export const Settings: React.FC = () => {
                                 </div>
                                 <div>
                                     <h4 className="font-medium text-foreground">联动删除</h4>
-                                    <p className="text-sm text-muted-foreground">删除角色/聊天时，自动清理关联的 Engram 记忆库 (IndexedDB)</p>
+                                    <p className="text-sm text-muted-foreground break-words">删除角色/聊天时，自动清理记忆库</p>
                                 </div>
                             </div>
                             <Switch
@@ -189,7 +189,7 @@ export const Settings: React.FC = () => {
                                 <div className="flex items-center justify-between">
                                     <div>
                                         <span className="text-sm text-muted-foreground">删除聊天时同步删除 Worldbook</span>
-                                        <p className="text-xs text-muted-foreground/60">危险: 如果多聊天共享同一个 Character Worldbook，可能会导致误删</p>
+                                        <p className="text-xs text-muted-foreground/60 break-words">危险: 多聊天共享 Worldbook 时可能误删</p>
                                     </div>
                                     <Switch
                                         checked={linkedDeletion.deleteChatWorldbook ?? false}
