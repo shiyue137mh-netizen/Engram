@@ -310,6 +310,15 @@ export interface RecallConfig {
     /** 最低相似度阈值 (0-1) */
     minScoreThreshold: number;
   };
+  /** 黏性系统设置 */
+  sticky?: {
+    /** 是否启用 */
+    enabled: boolean;
+    /** 衰减系数：每次连续召回增加的惩罚 (0-1) */
+    decayFactor: number;
+    /** 最大停留轮数：超过此轮数不再惩罚 */
+    maxStickRounds: number;
+  };
   // 注: Rerank 设置复用 RerankConfig，不在此重复定义
 }
 
@@ -322,6 +331,11 @@ export const DEFAULT_RECALL_CONFIG: RecallConfig = {
   embedding: {
     topK: 20,
     minScoreThreshold: 0.3,
+  },
+  sticky: {
+    enabled: true,
+    decayFactor: 0.15,
+    maxStickRounds: 3,
   },
 };
 

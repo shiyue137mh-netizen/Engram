@@ -41,26 +41,26 @@ export function injectQuickPanelButton(): boolean {
         sendForm.style.position = 'relative';
     }
 
-    // 创建 Engram 快捷按钮 - 固定在右上角
+    // 创建 Engram 快捷按钮 - 固定在左上角
     const button = document.createElement('div');
     button.id = 'engram-quick-panel-trigger';
     button.className = 'fa-solid fa-brain';
     button.title = 'Engram 快捷面板';
     button.style.cssText = `
         position: absolute;
-        top: -30px;
-        right: 5px;
-        width: 24px;
-        height: 24px;
+        top: 0.5em;
+        left: 0.5em;
+        width: 1.5em;
+        height: 1.5em;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 14px;
+        font-size: 0.9em;
         cursor: pointer;
         color: var(--SmartThemeBodyColor, #ccc);
-        opacity: 0.7;
+        opacity: 0.6;
         transition: all 0.2s ease;
-        z-index: 100;
+        z-index: 36;
     `;
 
     // 悬停效果

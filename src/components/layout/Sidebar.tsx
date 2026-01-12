@@ -1,6 +1,6 @@
 /**
  * Sidebar - 统一侧边栏组件
- * 
+ *
  * 支持 PC 端和移动端两种模式，复用导航配置和底部功能区
  */
 import React from 'react';
@@ -125,7 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // 移动端抽屉
     return (
         <div
-            className="fixed inset-0 z-50 flex justify-start"
+            className="fixed inset-0 z-[60] flex justify-start"
             style={{ height: '100dvh', width: '100vw' }}
         >
             {/* Backdrop */}

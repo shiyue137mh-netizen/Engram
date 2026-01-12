@@ -6,6 +6,7 @@
 
 import { Logger } from '@/lib/logger';
 import type { EventNode } from '@/services/types/graph';
+import type { StickyCache, StickyConfig } from './StickyCache';
 
 // ==================== 类型定义 ====================
 
@@ -23,6 +24,10 @@ export interface ScoredEvent {
     rerankScore?: number;
     /** 混合分数 */
     hybridScore?: number;
+    /** 黏性惩罚分数 (0-1) */
+    stickyPenalty?: number;
+    /** 是否处于黏性期 */
+    isSticky?: boolean;
     /** 原始事件节点 */
     node?: EventNode;
 }
@@ -150,4 +155,51 @@ export function mergeResults(
     // 转换为数组并计算混合分数
     const candidates = Array.from(embeddingResults.values());
     return scoreAndSort(candidates, alpha);
+}
+
+/**
+ * 应用黏性惩罚
+ *
+ * 常用于混合打分之后，降低已被连续召回的事件权重
+ *
+ * @param candidates 候选事件列表
+ * @param stickyCache 黏性缓存实例
+ * @param config 黏性配置
+ * @returns 应用惩罚后重新排序的列表
+ */
+export function applySticky(
+    candidates: ScoredEvent[],
+    stickyCache: StickyCache,
+    config: StickyConfig
+): ScoredEvent[] {
+    if (!config.enabled) {
+        return candidates;
+    }
+
+    // 应用黏性惩罚
+    const adjusted = candidates.map(event => {
+        const penalty = stickyCache.getStickyPenalty(event.id, config);
+        const baseScore = event.hybridScore ?? event.embeddingScore ?? 0;
+
+        // 降低已召回多次的项的分数
+        const adjustedScore = baseScore * (1 - penalty);
+
+        return {
+            ...event,
+            hybridScore: adjustedScore,
+            stickyPenalty: penalty,
+            isSticky: penalty > 0,
+        };
+    });
+
+    // 按调整后的分数重新排序
+    adjusted.sort((a, b) => (b.hybridScore ?? 0) - (a.hybridScore ?? 0));
+
+    Logger.debug('HybridScorer', '应用黏性惩罚', {
+        totalCandidates: candidates.length,
+        stickyCount: adjusted.filter(e => e.isSticky).length,
+        maxPenalty: Math.max(...adjusted.map(e => e.stickyPenalty ?? 0)),
+    });
+
+    return adjusted;
 }

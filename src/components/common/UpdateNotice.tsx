@@ -1,11 +1,12 @@
 /**
  * UpdateNotice - 更新通知弹窗组件
- * 
+ *
  * 显示最新版本信息和更新日志
+ * V0.8.5: 添加一键更新功能
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, CheckCircle, Download } from 'lucide-react';
+import { X, RefreshCw, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { UpdateService } from '@/services/updater';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -15,18 +16,62 @@ interface UpdateNoticeProps {
     onClose: () => void;
 }
 
+/** Engram 扩展名（用于更新 API） */
+const EXTENSION_NAME = 'Engram_project';
+
+/**
+ * 调用酒馆扩展更新 API
+ */
+async function updateEngramExtension(): Promise<{ success: boolean; message: string; isUpToDate?: boolean }> {
+    try {
+        const response = await fetch('/api/extensions/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                extensionName: EXTENSION_NAME,
+                global: false, // Engram 是本地扩展
+            }),
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            return { success: false, message: text || response.statusText };
+        }
+
+        const data = await response.json();
+
+        if (data.isUpToDate) {
+            return { success: true, message: '扩展已是最新版本', isUpToDate: true };
+        }
+
+        return {
+            success: true,
+            message: `更新成功！新版本: ${data.shortCommitHash || 'latest'}`,
+            isUpToDate: false
+        };
+    } catch (error) {
+        console.error('[Engram] 更新失败:', error);
+        return { success: false, message: String(error) };
+    }
+}
+
 export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
     const [changelog, setChangelog] = useState<string | null>(null);
     const [hasUpdate, setHasUpdate] = useState(false);
     const [isMarking, setIsMarking] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [updateMessage, setUpdateMessage] = useState<string | null>(null);
 
     const currentVersion = UpdateService.getCurrentVersion();
 
     useEffect(() => {
         if (isOpen) {
             loadUpdateInfo();
+            setUpdateMessage(null);
         }
     }, [isOpen]);
 
@@ -57,6 +102,36 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
             onClose();
         } finally {
             setIsMarking(false);
+        }
+    };
+
+    const handleUpdate = async () => {
+        setIsUpdating(true);
+        setUpdateMessage(null);
+
+        try {
+            const result = await updateEngramExtension();
+
+            if (result.success && !result.isUpToDate) {
+                setUpdateMessage('更新成功！页面将在 2 秒后刷新...');
+                // 标记为已读
+                if (latestVersion) {
+                    await UpdateService.markAsRead(latestVersion);
+                }
+                // 延迟刷新页面
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else if (result.isUpToDate) {
+                setUpdateMessage('当前已是最新版本');
+                setHasUpdate(false);
+            } else {
+                setUpdateMessage(`更新失败: ${result.message}`);
+            }
+        } catch (error) {
+            setUpdateMessage(`更新出错: ${String(error)}`);
+        } finally {
+            setIsUpdating(false);
         }
     };
 
@@ -129,7 +204,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                                     ) : (
                                         <CheckCircle size={20} className="text-green-500" />
                                     )}
-                                    <div>
+                                    <div className="flex-1">
                                         <p className="font-medium text-foreground">
                                             {hasUpdate
                                                 ? `发现新版本: v${latestVersion}`
@@ -137,12 +212,26 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                                         </p>
                                         <p className="text-xs text-muted-foreground mt-0.5">
                                             {hasUpdate
-                                                ? '请手动更新扩展以获取新功能'
+                                                ? '点击下方按钮一键更新'
                                                 : '无需更新'}
                                         </p>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Update Message */}
+                            {updateMessage && (
+                                <div className={`
+                                    p-3 rounded-lg text-sm
+                                    ${updateMessage.includes('成功')
+                                        ? 'bg-green-500/10 text-green-600 border border-green-500/20'
+                                        : updateMessage.includes('失败') || updateMessage.includes('出错')
+                                            ? 'bg-red-500/10 text-red-600 border border-red-500/20'
+                                            : 'bg-muted/30 text-muted-foreground'}
+                                `}>
+                                    {updateMessage}
+                                </div>
+                            )}
 
                             {/* Changelog */}
                             {changelog && (
@@ -176,13 +265,32 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                         关闭
                     </button>
                     {hasUpdate && (
-                        <button
-                            onClick={handleMarkAsRead}
-                            disabled={isMarking}
-                            className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-                        >
-                            {isMarking ? '处理中...' : '我知道了'}
-                        </button>
+                        <>
+                            <button
+                                onClick={handleMarkAsRead}
+                                disabled={isMarking || isUpdating}
+                                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors disabled:opacity-50"
+                            >
+                                稍后再说
+                            </button>
+                            <button
+                                onClick={handleUpdate}
+                                disabled={isUpdating || isMarking}
+                                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                                {isUpdating ? (
+                                    <>
+                                        <Loader2 size={14} className="animate-spin" />
+                                        更新中...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download size={14} />
+                                        立即更新
+                                    </>
+                                )}
+                            </button>
+                        </>
                     )}
                 </div>
             </div>
@@ -191,3 +299,4 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
 };
 
 export default UpdateNotice;
+

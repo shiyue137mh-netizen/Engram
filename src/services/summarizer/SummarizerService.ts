@@ -370,6 +370,14 @@ export class SummarizerService {
         const runningToast = notificationService.running('总结运行中...', 'Engram', () => {
             this.cancelRequested = true;
             this.log('info', '用户请求取消总结');
+            // 调用酒馆 stopGeneration API
+            try {
+                // @ts-expect-error - SillyTavern 全局对象
+                window.SillyTavern?.getContext?.()?.stopGeneration?.();
+                this.log('info', '已调用酒馆 stopGeneration');
+            } catch (e) {
+                this.log('warn', '调用 stopGeneration 失败', e);
+            }
             notificationService.warning('正在取消总结...', 'Engram');
         });
 

@@ -16,21 +16,24 @@ import {
     ChevronDown,
     ArrowDownToLine,
     Zap,
+    Target,
 } from 'lucide-react';
 import { Logger, LogEntry, LogLevel, LogLevelConfig } from "@/lib/logger";
 import { LogEntryItem } from './LogEntryItem';
 import { ModelLog } from './ModelLog';
+import { RecallLog } from './RecallLog';
 import { Tab } from "@/components/ui/TabPills";
 import { LayoutTabs } from "@/components/layout/LayoutTabs";
 import { Divider } from "@/components/layout/Divider";
 
 // Tab 类型
-type TabType = 'runtime' | 'model';
+type TabType = 'runtime' | 'model' | 'recall';
 
 // Tab 配置
 const TABS: Tab[] = [
     { id: 'runtime', label: '运行日志', icon: <Terminal size={14} /> },
     { id: 'model', label: '模型日志', icon: <Zap size={14} /> },
+    { id: 'recall', label: '召回日志', icon: <Target size={14} /> },
 ];
 
 // 模块列表（用于过滤）
@@ -266,6 +269,13 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
             {activeTab === 'model' && (
                 <div className="flex-1 overflow-hidden">
                     <ModelLog />
+                </div>
+            )}
+
+            {/* ========== 召回日志 Tab ========== */}
+            {activeTab === 'recall' && (
+                <div className="flex-1 overflow-hidden">
+                    <RecallLog />
                 </div>
             )}
         </div>

@@ -12,6 +12,7 @@ import { llmAdapter } from '@/services/api/LLMAdapter';
 import { regexProcessor } from '@/services/pipeline/RegexProcessor';
 import { SettingsManager } from '@/services/settings/Persistence';
 import { Logger, ModelLogger } from '@/lib/logger';
+import { notificationService } from '@/services/NotificationService';
 import type { PromptCategory } from '@/services/api/types';
 import type { PreprocessingConfig, PreprocessingResult } from './types';
 import { DEFAULT_PREPROCESSING_CONFIG } from './types';
@@ -36,8 +37,25 @@ function substituteParams(text: string): string {
     }
 }
 
+/**
+ * 调用酒馆 stopGeneration API
+ */
+async function stopSTGeneration(): Promise<void> {
+    try {
+        // @ts-ignore - SillyTavern 全局对象
+        const context = window.SillyTavern?.getContext?.();
+        if (context?.stopGeneration) {
+            context.stopGeneration();
+            Logger.info('Preprocessor', '已调用酒馆 stopGeneration');
+        }
+    } catch (e) {
+        Logger.warn('Preprocessor', '调用 stopGeneration 失败', e);
+    }
+}
+
 export class Preprocessor {
     private static instance: Preprocessor;
+    private cancelRequested = false;
 
     private constructor() { }
 
@@ -46,6 +64,13 @@ export class Preprocessor {
             Preprocessor.instance = new Preprocessor();
         }
         return Preprocessor.instance;
+    }
+
+    /**
+     * 请求停止生成
+     */
+    private requestStopGeneration(): void {
+        stopSTGeneration();
     }
 
     /**
@@ -75,6 +100,17 @@ export class Preprocessor {
             };
         }
 
+        // 重置取消标志
+        this.cancelRequested = false;
+
+        // 显示运行中通知（支持点击取消）
+        const runningToast = notificationService.running('预处理中...', 'Engram', () => {
+            this.cancelRequested = true;
+            Logger.info('Preprocessor', '用户请求取消预处理');
+            this.requestStopGeneration();
+            notificationService.warning('正在取消预处理...', 'Engram');
+        });
+
         try {
             // 1. 获取提示词模板 (templateId 映射到 PromptCategory)
             const category = config.templateId as PromptCategory;
@@ -96,6 +132,18 @@ export class Preprocessor {
                     rawOutput: '',
                     processingTime: Date.now() - startTime,
                     error: errorMsg,
+                };
+            }
+
+            // 检查是否被取消
+            if (this.cancelRequested) {
+                return {
+                    success: false,
+                    output: null,
+                    query: null,
+                    rawOutput: '',
+                    processingTime: Date.now() - startTime,
+                    error: '用户取消',
                 };
             }
 
@@ -133,6 +181,19 @@ export class Preprocessor {
                 duration: Date.now() - startTime,
             });
 
+            // 检查是否被取消
+            if (this.cancelRequested) {
+                Logger.info('Preprocessor', '预处理已被取消');
+                return {
+                    success: false,
+                    output: null,
+                    query: null,
+                    rawOutput: '',
+                    processingTime: Date.now() - startTime,
+                    error: '用户取消',
+                };
+            }
+
             if (!response.success || !response.content) {
                 const errorMsg = response.error || 'LLM 调用失败';
                 Logger.error('Preprocessor', 'LLM 调用失败', { error: errorMsg });
@@ -160,6 +221,8 @@ export class Preprocessor {
                 processingTime,
             });
 
+            notificationService.success('预处理完成', 'Engram');
+
             return {
                 success: true,
                 output: tags.output,
@@ -171,6 +234,7 @@ export class Preprocessor {
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : '未知错误';
             Logger.error('Preprocessor', '预处理失败', { error: errorMsg, stack: (e as Error).stack });
+            notificationService.error(`预处理失败: ${errorMsg}`, 'Engram');
             return {
                 success: false,
                 output: null,
@@ -179,6 +243,9 @@ export class Preprocessor {
                 processingTime: Date.now() - startTime,
                 error: errorMsg,
             };
+        } finally {
+            // 移除运行中通知
+            notificationService.remove(runningToast);
         }
     }
 

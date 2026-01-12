@@ -11,7 +11,12 @@ export type { RetrievalResult } from './Retriever';
 export { rerankService, RerankService } from './RerankService';
 export type { RerankResultItem } from './RerankService';
 
-export { scoreAndSort, mergeResults, calculateHybridScore, normalizeScores } from './HybridScorer';
+export { scoreAndSort, mergeResults, calculateHybridScore, normalizeScores, applySticky } from './HybridScorer';
 export type { ScoredEvent, RecallResult } from './HybridScorer';
 
 export { injector, Injector } from './Injector';
+
+export { RecallLogService } from './RecallLogService';
+
+export { stickyCache, StickyCache, DEFAULT_STICKY_CONFIG } from './StickyCache';
+export type { StickyConfig } from './StickyCache';

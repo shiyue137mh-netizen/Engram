@@ -15,7 +15,9 @@ import { getCurrentChatId } from '@/tavern/context';
 import { SettingsManager } from '@/services/settings/Persistence';
 import { embeddingService } from './EmbeddingService';
 import { rerankService } from './RerankService';
-import { scoreAndSort, mergeResults, type ScoredEvent, type RecallResult } from './HybridScorer';
+import { scoreAndSort, mergeResults, applySticky, type ScoredEvent, type RecallResult } from './HybridScorer';
+import { RecallLogService } from './RecallLogService';
+import { stickyCache, DEFAULT_STICKY_CONFIG, type StickyConfig } from './StickyCache';
 import { Logger } from '@/lib/logger';
 import type { EventNode } from '@/services/types/graph';
 import type { RecallConfig, RerankConfig } from '@/services/api/types';
@@ -56,6 +58,9 @@ export class Retriever {
      */
     async search(userInput: string, unifiedQueries?: string[]): Promise<RetrievalResult> {
         const config = this.getRecallConfig();
+
+        // 新一轮召回，更新黏性缓存轮次
+        stickyCache.nextRound();
 
         // 未启用召回，使用滚动窗口策略
         if (!config.enabled) {
@@ -143,7 +148,48 @@ export class Retriever {
             finalCandidates = scoreAndSort(embeddingCandidates, 0);
         }
 
-        // 3. 返回结果
+        // 3. 应用黏性惩罚
+        const stickyConfig: StickyConfig = config.sticky || DEFAULT_STICKY_CONFIG;
+        if (stickyConfig.enabled) {
+            finalCandidates = applySticky(finalCandidates, stickyCache, stickyConfig);
+            Logger.debug('Retriever', '已应用黏性惩罚', {
+                candidatesWithPenalty: finalCandidates.filter(c => (c.stickyPenalty || 0) > 0).length,
+            });
+        }
+
+        // 4. 记录召回日志
+        const totalTime = Date.now() - startTime;
+        RecallLogService.log({
+            query: userInput,
+            preprocessedQuery: unifiedQueries?.[0],
+            mode: 'hybrid',
+            results: finalCandidates.map(c => ({
+                eventId: c.id,
+                summary: c.summary,
+                category: c.node?.structured_kv?.event || 'unknown',
+                embeddingScore: c.embeddingScore || 0,
+                rerankScore: c.rerankScore,
+                hybridScore: c.hybridScore,
+                isTopK: true,
+                isReranked: c.rerankScore != null,
+                sourceFloor: c.node?.source_range?.start_index,
+            })),
+            stats: {
+                totalCandidates: embeddingCandidates.length,
+                topKCount: embeddingCandidates.length,
+                rerankCount: finalCandidates.length,
+                latencyMs: totalTime,
+            },
+        });
+
+        // 5. 标记召回的事件（用于黏性系统）
+        const recalledIds = finalCandidates.map(c => c.id);
+        stickyCache.markRecalledBatch(recalledIds);
+
+        // 定期清理过期缓存
+        stickyCache.cleanup(10);
+
+        // 6. 返回结果
         const nodes = finalCandidates
             .filter(c => c.node)
             .map(c => c.node!);
@@ -152,8 +198,9 @@ export class Retriever {
 
         Logger.info('Retriever', '召回完成', {
             mode: config.mode,
-            totalTime: Date.now() - startTime,
+            totalTime,
             resultCount: nodes.length,
+            stickyRound: stickyCache.getCurrentRound(),
         });
 
         return { entries, nodes };
