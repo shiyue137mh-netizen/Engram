@@ -269,6 +269,7 @@ export class Injector {
                             });
 
                             // 刷新 MacroService 缓存，使 {{engramSummaries}} 包含召回结果
+                            // MacroService 内部会自动清洗 EJS
                             await MacroService.refreshCacheWithNodes(recallResult.nodes);
                         } else {
                             Logger.debug('Injector', 'RAG 无匹配结果');
@@ -346,6 +347,7 @@ export class Injector {
             console.error('[Injector] Error:', e);
         }
     }
+
 }
 
 export const injector = new Injector();

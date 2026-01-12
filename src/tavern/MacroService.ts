@@ -3,6 +3,18 @@ import { Logger } from '@/lib/logger';
 import { regexProcessor } from '@/services/pipeline/RegexProcessor';
 import { WorldInfoService } from '@/tavern/api';
 
+declare global {
+    interface Window {
+        EjsTemplate?: {
+            prepareContext: () => Promise<any>;
+            evalTemplate: (content: string, context: any) => Promise<string>;
+        };
+        Mvu?: {
+            getMvuData: (params: any) => any;
+        };
+    }
+}
+
 /**
  * MacroService 类
  * V0.8: 支持预处理使用的宏，包括 {{engramSummaries}} 和 {{worldbookContext}}
@@ -120,9 +132,11 @@ export class MacroService {
             const store = useMemoryStore.getState();
             this.cachedSummaries = await store.getEventSummaries(recalledIds);
 
-            // 刷新世界书上下文
+            // 刷新世界书上下文 (支持 EJS)
             try {
-                this.cachedWorldbookContext = await WorldInfoService.getActivatedWorldInfo();
+                const rawContext = await WorldInfoService.getActivatedWorldInfo();
+                const sanitized = await this.processEJSMacros([rawContext]);
+                this.cachedWorldbookContext = sanitized[0] || '';
             } catch (e) {
                 Logger.debug('MacroService', '获取世界书内容失败', e);
                 this.cachedWorldbookContext = '';
@@ -153,15 +167,15 @@ export class MacroService {
             // 直接拼接召回节点的摘要
             this.cachedSummaries = nodes.map(n => n.summary).join('\n\n---\n\n');
 
-            // 刷新世界书上下文
+            // 刷新世界书上下文 (支持 EJS)
             try {
-                this.cachedWorldbookContext = await WorldInfoService.getActivatedWorldInfo();
+                const rawContext = await WorldInfoService.getActivatedWorldInfo();
+                const sanitized = await this.processEJSMacros([rawContext]);
+                this.cachedWorldbookContext = sanitized[0] || '';
             } catch (e) {
                 Logger.debug('MacroService', '获取世界书内容失败', e);
                 this.cachedWorldbookContext = '';
             }
-
-
 
             // 刷新角色描述
             this.refreshCharDescription();
@@ -172,6 +186,52 @@ export class MacroService {
             });
         } catch (e) {
             Logger.warn('MacroService', '刷新 RAG 召回缓存失败', e);
+        }
+    }
+
+    /**
+     * 利用 ST-Prompt-Template (如果存在) 清洗 EJS 宏
+     * V0.8.6: 切换为直接调用 window.EjsTemplate API (参考 test/脚本.js)
+     */
+    private static async processEJSMacros(entries: string[]): Promise<string[]> {
+        if (entries.length === 0) return entries;
+
+        // 检查 ST-Prompt-Template 是否可用
+        if (!window.EjsTemplate || typeof window.EjsTemplate.evalTemplate !== 'function') {
+            Logger.debug('MacroService', 'ST-Prompt-Template 未检测到，跳过 EJS 处理');
+            return entries;
+        }
+
+        try {
+            // 1. 准备上下文 (自动包含 {{user}}, {{char}} 及所有酒馆变量)
+            const context = await window.EjsTemplate.prepareContext();
+
+            // 2. 尝试获取 MVU 变量并合并 (参考脚本.js)
+            if (typeof window.Mvu !== 'undefined' && window.Mvu.getMvuData) {
+                try {
+                    const mvuObj = window.Mvu.getMvuData({ type: 'message', message_id: 'latest' });
+                    if (mvuObj && mvuObj.stat_data) {
+                        context.mvu = mvuObj.stat_data;
+                    }
+                } catch (e) {
+                    Logger.warn('MacroService', '获取 MVU 数据失败', e);
+                }
+            }
+
+            // 3. 逐条渲染
+            const processed = await Promise.all(entries.map(async (content) => {
+                try {
+                    return await window.EjsTemplate!.evalTemplate(content, context);
+                } catch (err) {
+                    Logger.warn('MacroService', 'EJS 渲染单条失败，保留原内容', err);
+                    return content;
+                }
+            }));
+
+            return processed;
+        } catch (e) {
+            Logger.warn('MacroService', 'EJS 预处理失败', e);
+            return entries;
         }
     }
 
@@ -210,7 +270,7 @@ export class MacroService {
                     if (TavernHelper && typeof TavernHelper.formatAsTavernRegexedString === 'function') {
                         try {
                             // usage: text, placement (2=AI Output), options
-                            content = TavernHelper.formatAsTavernRegexedString(content, 2, { isPrompt: true });
+                            content = TavernHelper.formatAsTavernRegexedString(content, 'ai_output', { isPrompt: true });
                         } catch (err) {
                             Logger.warn('MacroService', '酒馆原生正则清洗失败', err);
                         }

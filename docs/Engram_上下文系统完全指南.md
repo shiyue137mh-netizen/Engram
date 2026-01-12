@@ -130,3 +130,40 @@ Engram 调用 `getWorldInfoPrompt` 时，配置了极高的上下文扫描深度
 
 ### 6.3 调整激活阈值
 *   目前 Engram 的激活依赖 ST 原生机制，请在酒馆的 `世界书` -> `设置` 中调整 `扫描深度` 和 `递归深度` 以获得最佳效果。
+
+## 7. 技术实现细节 (Technical Implementation Details)
+
+本节详细介绍了 Engram 如何在底层实现与其他插件早已存在的生态系统的深度兼容。
+
+### 7.1 EJS 兼容性实现 (EJS Compatibility Implementation)
+
+Engram 摒弃了不稳定的事件模拟方式，转而采用了与 `数据库` (Reference Implementation) 相同的 **原生 API 直接调用** 方案，实现了与 `ST-Prompt-Template` 的完美兼容。
+
+*   **核心机制**: 直接调用 `window.EjsTemplate` 全局对象。
+*   **处理流程**:
+    1.  **检测环境**: `MacroService` 会检查 `window.EjsTemplate.evalTemplate` 是否可用。
+    2.  **上下文构建**: 调用 `prepareContext()`，自动注入 `{{user}}`、`{{char}}` 以及所有酒馆内置变量。
+    3.  **MVU 集成**: 主动检测并获取 `MVU` 的状态数据，将其合并到渲染上下文中。
+    4.  **预渲染**: 在 `{{worldbookContext}}` 宏返回内容之前，对每一条激活的世界书条目执行 `evalTemplate(content, context)`。
+
+**优势**:
+*   确保了写在世界书里的 EJS 逻辑（如 `<% if (bias > 0) { %>...<% } %>`）在被注入 Prompt 之前就已完成计算和文本替换。
+*   避免了事件竞争条件 (Race Conditions) 导致的渲染失败。
+
+### 7.2 正则兼容性实现 (Regex Compatibility Implementation)
+
+为了确保用户在酒馆左侧栏配置的 Regex 脚本（如“将(...)转换为心理描写”、“移除特殊符号”）能正确作用于 Engram 生成的上下文（如摘要、历史记录），我们实现了 **双层清洗机制 (Dual-Layer Sanitization)**。
+
+*   **核心机制**: 在宏生成阶段主动调用酒馆原生接口。
+*   **处理流程** (以 `{{chatHistory}}` 为例):
+    1.  **第一层: 原生兼容 (Native Layer)**
+        *   调用 `TavernHelper.formatAsTavernRegexedString(content, 'ai_output', { isPrompt: true })`。
+        *   这会完整触发用户在酒馆扩展面板中配置的所有 Regex 规则，且应用顺序与原生酒馆完全一致。
+    2.  **第二层: 内部处理 (Internal Layer)**
+        *   调用 Engram 内部的 `RegexProcessor`。
+        *   执行特定的格式标准化任务（如移除 `<think>`标签、统一换行符），确保发往 API 的数据格式整洁。
+
+**优势**:
+*   用户无需为 Engram 单独重新配置 Regex，原有规则直接生效。
+*   保证了 Engram 读取到的历史记录与用户在屏幕上看到的效果（或用户期望发送给 AI 的效果）高度一致。
+

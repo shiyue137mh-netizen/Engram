@@ -99,6 +99,12 @@ export class LLMAdapter {
             // [Step 2] 触发 Native Pipeline Hook (兼容 ST-Prompt-Template)
             // 这将激活 EJS 渲染、宏替换和（可能的）原生 Regex
             const { EventBus, TavernEventType } = await import('@/tavern/api');
+
+            // 2.1 模拟 GENERATION_AFTER_COMMANDS (ST-Prompt-Template 初始化需要)
+            // type='engram', options={}, dryRun=false
+            await EventBus.emit(TavernEventType.GENERATION_AFTER_COMMANDS, 'engram', {}, false);
+
+            // 2.2 触发 GENERATION_AFTER_DATA
             await EventBus.emit(TavernEventType.GENERATE_AFTER_DATA, generateData);
 
             // [Step 3] 提取处理后的上下文

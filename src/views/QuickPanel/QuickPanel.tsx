@@ -77,7 +77,7 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         preprocessor.saveConfig(newPreConfig);
     }, [config, recallConfig, updateRecallConfig]);
 
-    // 切换模式 (选中模板时自动开启预处理，并同步更新 PromptTemplates 的 enabled 状态)
+    // 切换模式 (选中模板时自动开启预处理)
     const handleModeChange = useCallback((templateId: string) => {
         // 1. 更新 Preprocessor Config
         const newPreConfig = { ...config, templateId: templateId, enabled: true };
@@ -88,19 +88,7 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         if (recallConfig && !recallConfig.usePreprocessing) {
             updateRecallConfig({ ...recallConfig, usePreprocessing: true });
         }
-
-        // 3. 同步更新 PromptTemplates 的开关状态
-        // 逻辑：将选中的模板 enabled=true，同类别的其他模板 enabled=false
-        settings.promptTemplates.forEach(t => {
-            if (t.category === 'preprocessing') {
-                if (t.id === templateId && !t.enabled) {
-                    updateTemplate({ ...t, enabled: true });
-                } else if (t.id !== templateId && t.enabled) {
-                    updateTemplate({ ...t, enabled: false });
-                }
-            }
-        });
-    }, [config, recallConfig, updateRecallConfig, settings.promptTemplates, updateTemplate]);
+    }, [config, recallConfig, updateRecallConfig]);
 
     // 如果当前选中的模板不在可用列表中（除了默认或未设置），给个提示
     const isCurrentTemplateValid = !config.templateId || availableModes.some(m => m.id === config.templateId);

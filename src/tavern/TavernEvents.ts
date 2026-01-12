@@ -160,11 +160,11 @@ export class EventBus {
      * @param event 事件名称
      * @param args 参数
      */
-    static emit(event: TavernEventTypeValue | string, ...args: unknown[]): void {
+    static async emit(event: TavernEventTypeValue | string, ...args: unknown[]): Promise<any> {
         const eventSource = getEventSource();
 
         if (eventSource) {
-            eventSource.emit(event, ...args);
+            return eventSource.emit(event, ...args);
         }
     }
 

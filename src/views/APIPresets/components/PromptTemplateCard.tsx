@@ -119,6 +119,8 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
         }
     };
 
+    const isPreprocessing = template.category === 'preprocessing';
+
     return (
         <div
             className={`
@@ -127,27 +129,38 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                     ? 'bg-accent/50 border-input'
                     : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
                 }
-                ${!template.enabled && 'opacity-50'}
+                ${(!template.enabled && !isPreprocessing) && 'opacity-50'}
             `}
             onClick={onSelect}
         >
             <div className="flex items-start gap-3">
                 {/* 状态图标 */}
-                <button
-                    className={`
-                        w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0
-                        ${template.enabled
-                            ? 'bg-primary/10 text-primary'
-                            : 'bg-muted text-muted-foreground hover:text-foreground'
-                        }
-                    `}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleEnabled?.(!template.enabled);
-                    }}
-                >
-                    <Power size={14} />
-                </button>
+                {!isPreprocessing ? (
+                    <button
+                        className={`
+                            w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0
+                            ${template.enabled
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                            }
+                        `}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleEnabled?.(!template.enabled);
+                        }}
+                        title={template.enabled ? "点击禁用" : "点击启用"}
+                    >
+                        <Power size={16} />
+                    </button>
+                ) : (
+                    // 预处理模板始终显示为"就绪"状态
+                    <div
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 flex-shrink-0"
+                        title="预处理模板 (在快捷面板中激活)"
+                    >
+                        <Check size={16} />
+                    </div>
+                )}
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
