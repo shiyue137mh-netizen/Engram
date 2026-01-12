@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { FileText, Copy, Trash2, Download, Upload, Check, Power, RotateCcw } from 'lucide-react';
 import type { PromptTemplate, PromptCategory, PromptTemplateSingleExport } from '@/services/api/types';
-import { PROMPT_CATEGORIES, createPromptTemplate, getBuiltInTemplateByCategory } from '@/services/api/types';
+import { PROMPT_CATEGORIES, createPromptTemplate, getBuiltInTemplateByCategory, getBuiltInTemplateById } from '@/services/api/types';
 
 interface PromptTemplateCardProps {
     template: PromptTemplate;
@@ -187,7 +187,15 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                         className="p-1.5 hover:bg-amber-500/10 rounded text-muted-foreground hover:text-amber-500 transition-colors"
                         onClick={(e) => {
                             e.stopPropagation();
-                            const defaultTemplate = getBuiltInTemplateByCategory(template.category);
+                            // 优先尝试通过 ID 精确匹配 (V0.8.6 Fix)
+                            let defaultTemplate: PromptTemplate | null | undefined = getBuiltInTemplateById(template.id);
+
+                            // 如果找不到 (可能是旧数据的随机 ID)，回退到分类匹配
+                            // 注意：对于 preprocessing 分类，分类匹配可能不准确，建议刷新页面以触发 ID 迁移
+                            if (!defaultTemplate) {
+                                defaultTemplate = getBuiltInTemplateByCategory(template.category);
+                            }
+
                             if (defaultTemplate && onResetToDefault) {
                                 // 保留当前模板的 ID 和 enabled 状态，替换内容
                                 onResetToDefault({

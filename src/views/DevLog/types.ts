@@ -35,7 +35,9 @@ export interface RecallLogEntry {
     timestamp: number;
     query: string;                        // 检索查询
     preprocessedQuery?: string;           // 预处理后的查询
-    mode: 'embedding' | 'hybrid';         // 召回模式
+    preprocessedQuery?: string;           // 预处理后的查询
+    // mode: 'embedding' | 'hybrid';         // (Disabled in V0.8.5)
+    results: RecallResultItem[];          // 召回结果
     results: RecallResultItem[];          // 召回结果
     stats: RecallStats;                   // 统计信息
 }

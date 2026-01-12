@@ -1,5 +1,6 @@
 import { Logger } from '@/lib/logger';
 import type { PromptTemplate, PromptCategory, EngramAPISettings } from '@/services/api/types';
+import { getBuiltInTemplateById } from '@/services/api/types';
 import type { RegexRule } from '@/services/pipeline/RegexProcessor';
 import type { PreprocessingConfig } from '@/services/preprocessing/types';
 
@@ -199,6 +200,32 @@ export class SettingsManager {
         const apiSettings = this.get('apiSettings') as { promptTemplates?: PromptTemplate[] } | null;
         const templates = apiSettings?.promptTemplates || [];
         return templates.find((t: PromptTemplate) => t.category === category && t.enabled) || null;
+    }
+
+    /**
+     * 根据 ID 获取提示词模板
+     * @param id 模板 ID
+     * @returns 模板对象，如果未找到则返回 null
+     */
+    public static getPromptTemplateById(id: string): PromptTemplate | null {
+        const apiSettings = this.get('apiSettings') as { promptTemplates?: PromptTemplate[] } | null;
+        const templates = apiSettings?.promptTemplates || [];
+        // 尝试精确匹配 ID
+        const byId = templates.find((t: PromptTemplate) => t.id === id);
+        if (byId) return byId;
+
+        // Fallback: 尝试查找内置模板
+        const builtIn = getBuiltInTemplateById(id);
+        if (builtIn) {
+            // 注意：这里返回的内置模板可能没有用户覆盖的配置（如 enabled），
+            // 但如果它被 QuickPanel 选中为当前模板，说明用户意图是使用它。
+            // 它的 enabled 状态可能在 Settings 里没保存，但在运行时 context 下它是有效的。
+            return builtIn;
+        }
+
+        // 向下兼容：如果 ID 实际上是 category (旧版配置可能会这样)，尝试按分类查找启用的模板
+        // 这种情况主要发生在旧配置未完全迁移时
+        return templates.find((t: PromptTemplate) => t.category === id && t.enabled) || null;
     }
 
     /**

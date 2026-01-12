@@ -8,20 +8,21 @@
  * 创建对应分类的模板并启用才能生效。
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+/**
+ * QuickPanel - V0.8 快捷面板组件
+ *
+ * 独立于主面板的可拖拽悬浮面板
+ * 用于快捷切换预处理模式、查看 RAG 状态等
+ */
+
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { FloatingPanel } from '@/components/ui/FloatingPanel';
 import { Switch } from '@/components/ui/Switch';
 import { preprocessor } from '@/services/preprocessing';
 import type { PreprocessingConfig } from '@/services/preprocessing/types';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/services/preprocessing/types';
-import { Search, BookOpen, PenTool, AlertCircle } from 'lucide-react';
-
-/** 预处理模式选项 - 这些是 UI 占位，实际模板需要用户创建 */
-const PREPROCESSING_MODES = [
-    { id: 'query_enhance', name: 'Query 增强', description: 'RAG 检索优化', icon: Search },
-    { id: 'plot_director', name: '剧情构思', description: '生成导演指令', icon: BookOpen },
-    { id: 'description', name: '描写增强', description: '补充细节描写', icon: PenTool },
-];
+import { Search, AlertCircle, Wand2 } from 'lucide-react';
+import { useAPIPresets } from '@/hooks/useAPIPresets';
 
 interface QuickPanelProps {
     isOpen: boolean;
@@ -33,6 +34,24 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         preprocessor.getConfig() || DEFAULT_PREPROCESSING_CONFIG
     );
 
+    // 获取所有预处理模板
+    const { settings, updateRecallConfig, updateTemplate } = useAPIPresets();
+    const recallConfig = settings.apiSettings?.recallConfig;
+
+    // 计算当前的启用状态：必须两者都开启才算开启 (但 UI 上我们尽量同步它们)
+    const isIdsEnabled = config.enabled && (recallConfig?.usePreprocessing ?? false);
+
+    const availableModes = useMemo(() => {
+        return settings.promptTemplates
+            .filter(t => t.category === 'preprocessing')
+            .map(t => ({
+                id: t.id,
+                name: t.name,
+                description: t.userPromptTemplate.slice(0, 30).replace(/\n/g, ' ') + '...', // 简略描述
+                icon: Wand2, // 统一图标，或者根据名称关键词映射不同图标
+            }));
+    }, [settings.promptTemplates]);
+
     // 刷新配置
     useEffect(() => {
         if (isOpen) {
@@ -40,20 +59,51 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         }
     }, [isOpen]);
 
-    // 切换启用状态
+    // 切换启用状态 (同时更新 recallConfig 和 preprocessorConfig)
     const handleToggle = useCallback(() => {
-        const newEnabled = !config.enabled;
-        const newConfig = { ...config, enabled: newEnabled };
-        setConfig(newConfig);
-        preprocessor.saveConfig(newConfig);
-    }, [config]);
+        // 只要当前是关闭的，就试图开启；只要是开启的，就试图关闭
+        // 以 recallConfig 为准
+        const currentRecallState = recallConfig?.usePreprocessing ?? false;
+        const newState = !currentRecallState;
 
-    // 切换模式
-    const handleModeChange = useCallback((modeId: string) => {
-        const newConfig = { ...config, templateId: modeId };
-        setConfig(newConfig);
-        preprocessor.saveConfig(newConfig);
-    }, [config]);
+        // 1. 更新全局 Recall Config
+        if (recallConfig) {
+            updateRecallConfig({ ...recallConfig, usePreprocessing: newState });
+        }
+
+        // 2. 更新 Preprocessor Config
+        const newPreConfig = { ...config, enabled: newState };
+        setConfig(newPreConfig);
+        preprocessor.saveConfig(newPreConfig);
+    }, [config, recallConfig, updateRecallConfig]);
+
+    // 切换模式 (选中模板时自动开启预处理，并同步更新 PromptTemplates 的 enabled 状态)
+    const handleModeChange = useCallback((templateId: string) => {
+        // 1. 更新 Preprocessor Config
+        const newPreConfig = { ...config, templateId: templateId, enabled: true };
+        setConfig(newPreConfig);
+        preprocessor.saveConfig(newPreConfig);
+
+        // 2. 确保全局 Recall Config 也是开启的
+        if (recallConfig && !recallConfig.usePreprocessing) {
+            updateRecallConfig({ ...recallConfig, usePreprocessing: true });
+        }
+
+        // 3. 同步更新 PromptTemplates 的开关状态
+        // 逻辑：将选中的模板 enabled=true，同类别的其他模板 enabled=false
+        settings.promptTemplates.forEach(t => {
+            if (t.category === 'preprocessing') {
+                if (t.id === templateId && !t.enabled) {
+                    updateTemplate({ ...t, enabled: true });
+                } else if (t.id !== templateId && t.enabled) {
+                    updateTemplate({ ...t, enabled: false });
+                }
+            }
+        });
+    }, [config, recallConfig, updateRecallConfig, settings.promptTemplates, updateTemplate]);
+
+    // 如果当前选中的模板不在可用列表中（除了默认或未设置），给个提示
+    const isCurrentTemplateValid = !config.templateId || availableModes.some(m => m.id === config.templateId);
 
     return (
         <FloatingPanel
@@ -76,72 +126,74 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
                         <span className="text-sm font-medium">输入预处理</span>
                     </div>
                     <Switch
-                        checked={config.enabled}
+                        checked={recallConfig?.usePreprocessing ?? config.enabled}
                         onChange={handleToggle}
                     />
                 </div>
 
                 {/* 模式选择 */}
-                {config.enabled && (
+                {(recallConfig?.usePreprocessing ?? config.enabled) && (
                     <div className="space-y-2">
                         <div className="text-xs px-1" style={{ color: 'var(--muted-foreground, #888)' }}>
                             预处理模式
                         </div>
-                        <div className="space-y-1">
-                            {PREPROCESSING_MODES.map((mode) => {
-                                const Icon = mode.icon;
-                                const isSelected = config.templateId === mode.id;
-                                return (
-                                    <button
-                                        key={mode.id}
-                                        onClick={() => handleModeChange(mode.id)}
-                                        className="w-full flex items-center gap-3 p-2 rounded-md transition-all text-left"
-                                        style={{
-                                            backgroundColor: isSelected
-                                                ? 'rgba(var(--primary-rgb, 239,115,87), 0.15)'
-                                                : 'var(--surface, rgba(255,255,255,0.05))',
-                                            border: isSelected
-                                                ? '1px solid var(--primary, #ef7357)'
-                                                : '1px solid var(--border, rgba(255,255,255,0.1))',
-                                            color: 'var(--foreground, #fff)',
-                                        }}
-                                    >
-                                        <Icon
-                                            size={16}
-                                            style={{
-                                                color: isSelected
-                                                    ? 'var(--primary, #ef7357)'
-                                                    : 'var(--muted-foreground, #888)'
-                                            }}
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-sm font-medium truncate">{mode.name}</div>
-                                            <div
-                                                className="text-xs truncate"
-                                                style={{ color: 'var(--muted-foreground, #888)' }}
-                                            >
-                                                {mode.description}
-                                            </div>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
 
-                        {/* 提示：需要创建模板 */}
-                        <div
-                            className="flex items-start gap-2 p-2 rounded-md text-xs mt-2"
-                            style={{
-                                backgroundColor: 'rgba(var(--primary-rgb, 239,115,87), 0.1)',
-                                border: '1px solid rgba(var(--primary-rgb, 239,115,87), 0.3)',
-                                color: 'var(--muted-foreground, #888)',
-                            }}
-                        >
-                            <AlertCircle size={14} style={{ color: 'var(--primary, #ef7357)', flexShrink: 0, marginTop: 2 }} />
-                            <span>
-                                需要在 API 配置 → 提示词模板中创建对应分类的模板并启用
-                            </span>
-                        </div>
+                        {availableModes.length === 0 ? (
+                            <div
+                                className="flex items-start gap-2 p-2 rounded-md text-xs mt-2"
+                                style={{
+                                    backgroundColor: 'rgba(var(--primary-rgb, 239,115,87), 0.1)',
+                                    border: '1px solid rgba(var(--primary-rgb, 239,115,87), 0.3)',
+                                    color: 'var(--muted-foreground, #888)',
+                                }}
+                            >
+                                <AlertCircle size={14} style={{ color: 'var(--primary, #ef7357)', flexShrink: 0, marginTop: 2 }} />
+                                <span>
+                                    暂无预处理模板。请前往 API 配置 → 提示词模板中创建 'preprocessing' 类别的模板。
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="space-y-1">
+                                {availableModes.map((mode) => {
+                                    const Icon = mode.icon;
+                                    const isSelected = config.templateId === mode.id;
+                                    return (
+                                        <button
+                                            key={mode.id}
+                                            onClick={() => handleModeChange(mode.id)}
+                                            className="w-full flex items-center gap-3 p-2 rounded-md transition-all text-left"
+                                            style={{
+                                                backgroundColor: isSelected
+                                                    ? 'rgba(var(--primary-rgb, 239,115,87), 0.15)'
+                                                    : 'var(--surface, rgba(255,255,255,0.05))',
+                                                border: isSelected
+                                                    ? '1px solid var(--primary, #ef7357)'
+                                                    : '1px solid var(--border, rgba(255,255,255,0.1))',
+                                                color: 'var(--foreground, #fff)',
+                                            }}
+                                        >
+                                            <Icon
+                                                size={16}
+                                                style={{
+                                                    color: isSelected
+                                                        ? 'var(--primary, #ef7357)'
+                                                        : 'var(--muted-foreground, #888)'
+                                                }}
+                                            />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-medium truncate">{mode.name}</div>
+                                                <div
+                                                    className="text-xs truncate"
+                                                    style={{ color: 'var(--muted-foreground, #888)' }}
+                                                >
+                                                    {mode.description}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -153,8 +205,10 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
                         color: 'var(--muted-foreground, #888)',
                     }}
                 >
-                    {config.enabled
-                        ? `已启用 · ${PREPROCESSING_MODES.find(m => m.id === config.templateId)?.name || config.templateId}`
+                    {(recallConfig?.usePreprocessing ?? config.enabled)
+                        ? availableModes.find(m => m.id === config.templateId)?.name
+                            ? `已启用 · ${availableModes.find(m => m.id === config.templateId)?.name}`
+                            : '已启用 · 未知模板'
                         : '预处理已禁用'}
                 </div>
             </div>

@@ -16,6 +16,8 @@ import { MacroService } from '@/tavern/MacroService';
 import { Logger } from '@/lib/logger';
 import { preprocessor } from '@/services/preprocessing';
 import { retriever } from './Retriever';
+import { SettingsManager } from '@/services/settings/Persistence';
+import { DEFAULT_RECALL_CONFIG } from '@/services/api/types';
 
 /**
  * GENERATION_AFTER_COMMANDS 事件参数类型
@@ -49,7 +51,7 @@ export class Injector {
         // 这个事件在命令处理后、生成开始前触发，酒馆会 await 处理器
         EventBus.on(
             TavernEventType.GENERATION_AFTER_COMMANDS,
-            async (type: string, params: GenerationAfterCommandsParams, dryRun: boolean) => {
+            async (type: any, params: any, dryRun: boolean) => {
                 console.log('[Injector] 🎯 GENERATION_AFTER_COMMANDS triggered', { type, dryRun });
                 Logger.info('Injector', '🎯 捕获到 GENERATION_AFTER_COMMANDS 事件', { type, dryRun });
 
@@ -120,134 +122,207 @@ export class Injector {
             }
 
             // 找到最后一条用户消息
+            // 参考 test/脚本.js 策略：严格检查最新的一条消息
+            // 如果最新消息不是用户消息（例如是系统消息、Thinking消息等），则跳过处理，
+            // 严禁往前查找，否则会导致注入到上一轮对话中。
             const chat = context.chat;
             const lastMessageIndex = chat.length - 1;
             const lastMessage = chat[lastMessageIndex];
 
-            // 只处理用户消息
-            if (!lastMessage || !lastMessage.is_user) {
-                Logger.debug('Injector', '最后一条不是用户消息，跳过');
-                return;
+            // 严格校验：最新消息是否为用户消息
+            let userInput = '';
+            let targetSource: 'chat' | 'textarea' = 'chat';
+
+            if (lastMessage && lastMessage.is_user) {
+                userInput = lastMessage.mes;
+            } else {
+                // [Strategy 2] Fallback: 尝试读取输入框
+                const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+                if (textarea && textarea.value && textarea.value.trim().length > 0) {
+                    userInput = textarea.value;
+                    targetSource = 'textarea';
+                    Logger.info('Injector', '最新消息未入列，使用 Textarea 作为输入源 (Strategy 2)', {
+                        preview: userInput.substring(0, 50)
+                    });
+                } else {
+                    Logger.debug('Injector', '最新消息不是用户消息且输入框为空，跳过预处理', {
+                        index: lastMessageIndex,
+                        isUser: lastMessage?.is_user
+                    });
+                    return;
+                }
             }
 
-            const userInput = lastMessage.mes;
             if (!userInput || userInput.trim().length === 0) {
-                Logger.debug('Injector', '用户消息为空，跳过');
+                Logger.debug('Injector', '用户输入为空，跳过');
                 return;
             }
 
-            const config = preprocessor.getConfig();
+            Logger.debug('Injector', '尝试获取配置...');
 
-            Logger.info('Injector', '准备预处理', {
+            // 获取配置
+            let apiSettings, recallConfig, preprocessorConfig;
+            try {
+                apiSettings = SettingsManager.get('apiSettings');
+                Logger.debug('Injector', '已获取 apiSettings');
+
+                recallConfig = apiSettings?.recallConfig || DEFAULT_RECALL_CONFIG;
+                Logger.debug('Injector', '已获取 recallConfig', recallConfig);
+
+                if (!preprocessor) {
+                    throw new Error('Preprocessor service is undefined');
+                }
+                preprocessorConfig = preprocessor.getConfig();
+                Logger.debug('Injector', '已获取 preprocessorConfig', preprocessorConfig);
+            } catch (configError) {
+                Logger.error('Injector', '配置获取失败', configError);
+                throw configError;
+            }
+
+            Logger.info('Injector', '准备处理', {
                 chatId,
                 userInputLength: userInput.length,
                 userInputPreview: userInput.substring(0, 50) + '...',
-                enabled: config.enabled,
-                autoTrigger: config.autoTrigger,
-                templateId: config.templateId,
+                recallEnabled: recallConfig.enabled,
+                preprocessingEnabled: recallConfig.usePreprocessing && preprocessorConfig.enabled,
+                autoTrigger: preprocessorConfig.autoTrigger,
+                templateId: preprocessorConfig.templateId,
             });
 
-            console.log('[Injector] Config:', config);
-            console.log('[Injector] User input:', userInput.substring(0, 100));
-
-            // 检查是否启用
-            if (!config.enabled) {
-                Logger.debug('Injector', '预处理未启用');
-                return;
-            }
-
-            if (!config.autoTrigger) {
-                Logger.debug('Injector', 'autoTrigger 未开启');
-                return;
+            // 检查自动触发 (仅当预处理启用时检查 preprocessor 配置，否则视为纯 RAG)
+            if (recallConfig.usePreprocessing && preprocessorConfig.enabled && !preprocessorConfig.autoTrigger) {
+                Logger.debug('Injector', '预处理 autoTrigger 未开启');
+                // 如果 RAG 也没开启，直接返回
+                if (!recallConfig.enabled) return;
             }
 
             // 开始处理
             this.isProcessing = true;
-            params._engram_processed = true; // 标记已处理
-            Logger.info('Injector', '🚀 开始执行预处理（阻塞生成）...');
-            console.log('[Injector] 🚀 Starting preprocessing (blocking generation)...');
+            params._engram_processed = true; // 标记 Params 已处理
+            if (lastMessage) {
+                // @ts-ignore
+                lastMessage._engram_processed = true; // 标记消息对象已处理 (参考脚本.js)
+            }
+            Logger.info('Injector', '🚀 开始执行注入流程（阻塞生成）...');
+
+            let finalOutput = userInput;
+            let queries: string[] = [];
 
             try {
-                // 设置用户输入到宏缓存
-                MacroService.setUserInput(userInput);
-                await MacroService.refreshCache();
+                // 1. 预处理 (如果启用 且 自动触发开启)
+                if (recallConfig.usePreprocessing && preprocessorConfig.enabled && preprocessorConfig.autoTrigger) {
+                    try {
+                        // 设置用户输入到宏缓存
+                        MacroService.setUserInput(userInput);
+                        await MacroService.refreshCache();
 
-                const result = await preprocessor.process(userInput);
+                        const result = await preprocessor.process(userInput);
 
-                Logger.info('Injector', '预处理结果', {
-                    success: result.success,
-                    hasOutput: !!result.output,
-                    hasQuery: !!result.query,
-                    processingTime: result.processingTime,
-                    error: result.error,
-                });
+                        if (result.success && result.output) {
+                            Logger.success('Injector', '✅ 预处理完成', {
+                                outputLength: result.output.length,
+                                hasQuery: !!result.query
+                            });
+                            // 根据模板的注入模式决定如何组合
+                            const template = SettingsManager.getPromptTemplateById(preprocessorConfig.templateId);
+                            const mode = template?.injectionMode || 'replace';
 
-                console.log('[Injector] Preprocessing result:', result);
+                            if (mode === 'append') {
+                                finalOutput = `${userInput}\n\n${result.output}`;
+                            } else if (mode === 'prepend') {
+                                finalOutput = `${result.output}\n\n${userInput}`;
+                            } else {
+                                finalOutput = result.output;
+                            }
 
-                if (result.success && result.output) {
-                    Logger.success('Injector', '✅ 预处理完成', {
-                        outputLength: result.output.length,
-                        outputPreview: result.output.substring(0, 100) + '...'
-                    });
+                            if (result.query) {
+                                queries.push(result.query);
+                            }
+                        } else {
+                            Logger.warn('Injector', '预处理未返回有效结果，使用原始输入');
+                        }
+                    } catch (err) {
+                        Logger.warn('Injector', '⚠️ 预处理失败，降级为普通模式', err);
+                        // 降级：不中断，继续后续 RAG
+                    }
+                }
 
-                    // V0.8.5: 如果有 query，执行 RAG 召回
-                    if (result.query) {
+                // 2. RAG 召回 (如果启用)
+                if (recallConfig.enabled) {
+                    try {
                         Logger.info('Injector', '🔍 执行 RAG 召回', {
-                            query: result.query.substring(0, 100)
+                            queryCount: queries.length,
+                            firstQuery: queries[0] || userInput.substring(0, 50)
                         });
 
+                        // 执行检索 (Retriever 内部会根据 recallConfig 处理策略)
+                        const recallResult = await retriever.search(
+                            userInput,
+                            queries.length > 0 ? queries : undefined
+                        );
+
+                        if (recallResult.nodes.length > 0) {
+                            Logger.info('Injector', '✅ RAG 召回完成', {
+                                nodeCount: recallResult.nodes.length,
+                                entries: recallResult.entries.length,
+                            });
+
+                            // 刷新 MacroService 缓存，使 {{engramSummaries}} 包含召回结果
+                            await MacroService.refreshCacheWithNodes(recallResult.nodes);
+                        } else {
+                            Logger.debug('Injector', 'RAG 无匹配结果');
+                        }
+                    } catch (e) {
+                        Logger.error('Injector', 'RAG 召回失败', e);
+                    }
+                }
+
+                // 3. 更新用户消息 (如果内容发生了变化)
+                // 3. 更新用户消息 (如果内容发生了变化)
+                if (finalOutput !== userInput) {
+                    if (targetSource === 'chat') {
+                        // 策略1：直接修改消息对象
+                        lastMessage.mes = finalOutput;
+
+                        // 触发消息更新事件刷新 UI
                         try {
-                            // 执行向量检索
-                            const recallResult = await retriever.search(
-                                userInput,
-                                [result.query]
-                            );
-
-                            if (recallResult.nodes.length > 0) {
-                                Logger.info('Injector', '✅ RAG 召回完成', {
-                                    nodeCount: recallResult.nodes.length,
-                                    entries: recallResult.entries.length,
-                                });
-
-                                // 刷新 MacroService 缓存，使 {{engramSummaries}} 包含召回结果
-                                await MacroService.refreshCacheWithNodes(recallResult.nodes);
-                            } else {
-                                Logger.debug('Injector', 'RAG 无匹配结果');
+                            const eventSource = context.eventSource;
+                            const eventTypes = context.event_types;
+                            if (eventSource && eventTypes?.MESSAGE_UPDATED) {
+                                eventSource.emit(eventTypes.MESSAGE_UPDATED, lastMessageIndex);
+                                Logger.debug('Injector', '已触发 MESSAGE_UPDATED 事件');
                             }
                         } catch (e) {
-                            Logger.error('Injector', 'RAG 召回失败', e);
+                            Logger.warn('Injector', '触发 MESSAGE_UPDATED 失败', e);
+                        }
+
+                        // 同步清空输入框 (仅当输入框内容仍为旧内容时)
+                        try {
+                            const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+                            if (textarea && textarea.value === userInput) {
+                                textarea.value = '';
+                                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                        } catch (e) { }
+
+                    } else if (targetSource === 'textarea') {
+                        // 策略2：修改输入框内容，并尝试修改 params.prompt
+                        Logger.info('Injector', '回写到 Textarea (Strategy 2)');
+                        try {
+                            const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+                            if (textarea) {
+                                textarea.value = finalOutput;
+                                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                            // 尝试修改本次生成的 prompt (如果 params 可写)
+                            if (params) {
+                                // @ts-ignore
+                                params.prompt = finalOutput;
+                            }
+                        } catch (e) {
+                            Logger.warn('Injector', '回写 Textarea 失败', e);
                         }
                     }
-
-                    // 关键：修改最后一条用户消息的内容
-                    // 这样酒馆在后续构建 prompt 时会使用修改后的内容
-                    lastMessage.mes = result.output;
-
-                    // 触发消息更新事件刷新 UI
-                    try {
-                        const eventSource = context.eventSource;
-                        const eventTypes = context.eventTypes;
-                        if (eventSource && eventTypes?.MESSAGE_UPDATED) {
-                            eventSource.emit(eventTypes.MESSAGE_UPDATED, lastMessageIndex);
-                            Logger.debug('Injector', '已触发 MESSAGE_UPDATED 事件');
-                        }
-                    } catch (e) {
-                        Logger.warn('Injector', '触发 MESSAGE_UPDATED 失败', e);
-                    }
-
-                    // 同步清空输入框（如果内容还是原始输入）
-                    try {
-                        const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
-                        if (textarea && textarea.value === userInput) {
-                            textarea.value = '';
-                            textarea.dispatchEvent(new Event('input', { bubbles: true }));
-                        }
-                    } catch (e) {
-                        // 忽略
-                    }
-
-                } else if (result.error) {
-                    Logger.error('Injector', '预处理失败', { error: result.error });
                 }
 
             } finally {
@@ -257,9 +332,12 @@ export class Injector {
                 }, 1000);
             }
 
-        } catch (e) {
+        } catch (e: any) {
             this.isProcessing = false;
-            Logger.error('Injector', 'handleGenerationAfterCommands 失败', e);
+            Logger.error('Injector', 'handleGenerationAfterCommands 失败', {
+                message: e?.message || e,
+                stack: e?.stack
+            });
             console.error('[Injector] Error:', e);
         }
     }

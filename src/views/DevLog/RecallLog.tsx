@@ -63,8 +63,8 @@ const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }
             {/* 头部：标签 + 时间 */}
             <div className="flex items-center gap-2 mb-1">
                 <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${entry.mode === 'hybrid'
-                        ? 'bg-purple-500/20 text-purple-400'
-                        : 'bg-blue-500/20 text-blue-400'
+                    ? 'bg-purple-500/20 text-purple-400'
+                    : 'bg-blue-500/20 text-blue-400'
                     }`}>
                     {entry.mode === 'hybrid' ? '混合' : 'Embed'}
                 </span>
@@ -255,8 +255,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
             <div className="mb-4 pb-4 border-b border-border shrink-0">
                 <div className="flex items-center gap-2 mb-2">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${entry.mode === 'hybrid'
-                            ? 'bg-purple-500/20 text-purple-400'
-                            : 'bg-blue-500/20 text-blue-400'
+                        ? 'bg-purple-500/20 text-purple-400'
+                        : 'bg-blue-500/20 text-blue-400'
                         }`}>
                         {entry.mode === 'hybrid' ? '混合召回' : '向量召回'}
                     </span>
@@ -292,8 +292,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                         <button
                             key={mode}
                             className={`px-2 py-1 rounded transition-colors ${viewMode === mode
-                                    ? 'bg-primary/20 text-primary'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-primary/20 text-primary'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             onClick={() => setViewMode(mode)}
                         >
@@ -310,8 +310,8 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                         <button
                             key={mode}
                             className={`px-2 py-1 rounded transition-colors ${sortMode === mode
-                                    ? 'bg-primary/20 text-primary'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-primary/20 text-primary'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                             onClick={() => setSortMode(mode)}
                         >

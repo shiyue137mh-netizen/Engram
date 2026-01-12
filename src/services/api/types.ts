@@ -173,6 +173,8 @@ export interface PromptTemplate {
   userPromptTemplate: string;
   /** 输出格式 */
   outputFormat: 'json' | 'markdown' | 'plain';
+  /** 注入模式: 'replace'=覆盖用户输入, 'append'=追加到用户输入之后, 'prepend'=添加到用户输入之前 */
+  injectionMode?: 'replace' | 'append' | 'prepend';
   /** 可用变量列表 */
   availableVariables: string[];
   /** 创建时间 */
@@ -287,56 +289,35 @@ export const DEFAULT_REGEX_CONFIG: GlobalRegexConfig = {
 // ==================== RAG 召回配置 (V0.8.5) ====================
 
 /**
- * 召回模式
- * - full: 预处理 + Embedding + Rerank (顶配)
- * - standard: Embedding + Rerank (标准)
- * - light: 仅 Embedding (轻量)
- * - llm_only: LLM 直接召回 (暴力，无向量模型兜底)
- */
-export type RecallMode = 'full' | 'standard' | 'light' | 'llm_only';
-
-/**
  * 召回配置 (V0.8.5)
  */
 export interface RecallConfig {
-  /** 是否启用召回 */
+  /** 是否启用召回 (总开关) */
+  /** 是否启用 RAG 召回系统 (总开关) */
   enabled: boolean;
-  /** 召回模式 */
-  mode: RecallMode;
-  /** Embedding 设置 */
-  embedding: {
-    /** 初筛数量 (Top-K) */
-    topK: number;
-    /** 最低相似度阈值 (0-1) */
-    minScoreThreshold: number;
-  };
-  /** 黏性系统设置 */
-  sticky?: {
-    /** 是否启用 */
-    enabled: boolean;
-    /** 衰减系数：每次连续召回增加的惩罚 (0-1) */
-    decayFactor: number;
-    /** 最大停留轮数：超过此轮数不再惩罚 */
-    maxStickRounds: number;
-  };
-  // 注: Rerank 设置复用 RerankConfig，不在此重复定义
+
+  /** 策略 1: 是否使用 Embedding 语义检索 */
+  useEmbedding: boolean;
+
+  /** 策略 2: 是否使用 Rerank 重排序 */
+  useRerank: boolean;
+
+  /** 策略 3: 是否使用 LLM 预处理 (Query 增强/剧情编排) */
+  usePreprocessing: boolean;
+
+  /** 策略 4: 是否使用暴力召回 (滚动窗口) */
+  useBruteForce: boolean;
 }
 
 /**
  * 默认召回配置
  */
 export const DEFAULT_RECALL_CONFIG: RecallConfig = {
-  enabled: false,
-  mode: 'standard',
-  embedding: {
-    topK: 20,
-    minScoreThreshold: 0.3,
-  },
-  sticky: {
-    enabled: true,
-    decayFactor: 0.15,
-    maxStickRounds: 3,
-  },
+  enabled: true,
+  useEmbedding: true,
+  useRerank: false,
+  usePreprocessing: false,
+  useBruteForce: false, // 默认不开启，由 Embedding 失败时兜底，或者用户强制开启
 };
 
 // ==================== 完整配置 ====================
@@ -439,11 +420,11 @@ export function createDefaultLLMPreset(name: string = '默认预设'): LLMPreset
 export function createPromptTemplate(
   name: string,
   category: PromptCategory,
-  options: Partial<Omit<PromptTemplate, 'id' | 'name' | 'category' | 'createdAt' | 'updatedAt'>> = {}
+  options: Partial<Omit<PromptTemplate, 'name' | 'category' | 'createdAt' | 'updatedAt'>> & { id?: string } = {}
 ): PromptTemplate {
   const now = Date.now();
   return {
-    id: `template_${now}_${Math.random().toString(36).slice(2, 8)}`,
+    id: options.id || `template_${now}_${Math.random().toString(36).slice(2, 8)}`,
     name,
     category,
     enabled: options.enabled ?? false,
@@ -464,6 +445,7 @@ export function createPromptTemplate(
 export function getBuiltInPromptTemplates(): PromptTemplate[] {
   return [
     createPromptTemplate('剧情摘要', 'summary', {
+      id: 'builtin_summary',
       enabled: true,
       isBuiltIn: true,
       systemPrompt: summaryPrompt,
@@ -477,6 +459,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       outputFormat: 'json',
     }),
     createPromptTemplate('记忆精简', 'trim', {
+      id: 'builtin_trim',
       enabled: true,
       isBuiltIn: true,
       systemPrompt: trimPrompt,
@@ -491,6 +474,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       outputFormat: 'json',
     }),
     createPromptTemplate('Query 增强', 'preprocessing', {
+      id: 'builtin_query_enhance',
       enabled: true,
       isBuiltIn: true,
       systemPrompt: queryEnhancePrompt,
@@ -509,6 +493,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       availableVariables: ['{{worldbookContext}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
     }),
     createPromptTemplate('剧情编排', 'preprocessing', {
+      id: 'builtin_plot_director',
       enabled: false,  // 默认不启用，用户按需开启
       isBuiltIn: true,
       systemPrompt: plotDirectorPrompt,
@@ -524,9 +509,11 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 ---
 请根据以上信息，进行剧情规划并输出导演指令框架。`,
       outputFormat: 'plain',
+      injectionMode: 'append', // 剧情编排通常是给 AI 的指令，追加在用户输入后
       availableVariables: ['{{worldbookContext}}', '{{context}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
     }),
     createPromptTemplate('描写增强', 'preprocessing', {
+      id: 'builtin_description_enhance',
       enabled: false,  // 默认不启用，用户按需开启
       isBuiltIn: true,
       systemPrompt: descriptionPrompt,
@@ -539,9 +526,19 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 ---
 请根据以上信息，输出增强后的描写内容。`,
       outputFormat: 'plain',
+      injectionMode: 'replace', // 描写增强通常是完全重写用户的输入
       availableVariables: ['{{context}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
     }),
   ];
+}
+
+/**
+ * 通过 ID 获取内置模板
+ * @param id 模板 ID
+ * @returns 内置模板，如果不存在返回 undefined
+ */
+export function getBuiltInTemplateById(id: string): PromptTemplate | undefined {
+  return getBuiltInPromptTemplates().find(t => t.id === id);
 }
 
 /**

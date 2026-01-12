@@ -53,11 +53,38 @@ async function stopSTGeneration(): Promise<void> {
     }
 }
 
+// Helper functions to get context info safely
+function getCharacterName(): string | undefined {
+    try {
+        // @ts-ignore
+        const context = window.SillyTavern?.getContext?.();
+        // @ts-ignore
+        const chars = window.characters;
+        if (context && chars && typeof context.characterId !== 'undefined' && chars[context.characterId]) {
+            return chars[context.characterId].name;
+        }
+    } catch (e) { }
+    return undefined;
+}
+
+function getModelName(): string | undefined {
+    // Try to get model name from various global settings
+    try {
+        // @ts-ignore
+        return window.text_generation_settings?.model_name || window.oai_settings?.openai_model;
+    } catch (e) { }
+    return undefined;
+}
+
 export class Preprocessor {
     private static instance: Preprocessor;
     private cancelRequested = false;
 
     private constructor() { }
+
+    // ... (rest of class)
+
+
 
     static getInstance(): Preprocessor {
         if (!Preprocessor.instance) {
@@ -112,12 +139,11 @@ export class Preprocessor {
         });
 
         try {
-            // 1. 获取提示词模板 (templateId 映射到 PromptCategory)
-            const category = config.templateId as PromptCategory;
-            const template = SettingsManager.getEnabledPromptTemplate(category);
+            // 1. 获取提示词模板 (templateId 现在是具体的 UUID，或者是兼容的 category 字符串)
+            const template = SettingsManager.getPromptTemplateById(config.templateId);
 
             Logger.debug('Preprocessor', '查找模板', {
-                category,
+                templateId: config.templateId,
                 found: !!template,
                 templateName: template?.name
             });
@@ -165,8 +191,10 @@ export class Preprocessor {
             // 2. 调用 LLM - 记录模型日志
             const logId = ModelLogger.logSend({
                 type: 'query',
-                systemPrompt: systemPrompt.substring(0, 200) + '...',
+                systemPrompt: systemPrompt,
                 userPrompt: userPrompt,
+                model: getModelName() || 'Unknown',
+                character: getCharacterName() || 'System',
             });
 
             const response = await llmAdapter.generate({
@@ -175,7 +203,7 @@ export class Preprocessor {
             });
 
             ModelLogger.logReceive(logId, {
-                response: response.content?.substring(0, 200),
+                response: response.content,
                 status: response.success ? 'success' : 'error',
                 error: response.error,
                 duration: Date.now() - startTime,

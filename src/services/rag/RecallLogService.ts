@@ -33,7 +33,6 @@ class RecallLogServiceClass {
 
         Logger.debug('RecallLogService', '记录召回日志', {
             query: entry.query.substring(0, 50),
-            mode: entry.mode,
             resultCount: entry.results.length,
         });
 
@@ -69,6 +68,28 @@ class RecallLogServiceClass {
     private notifySubscribers(): void {
         const logs = this.getLogs();
         this.subscribers.forEach(cb => cb(logs));
+    }
+
+    /**
+     * 导出日志为 JSON 文件
+     */
+    exportLogs(): void {
+        const { VERSION } = require('@/constants');
+        const exportData = {
+            version: VERSION,
+            exportedAt: Date.now(),
+            logs: this.getLogs(),
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `engram_debug_log_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 }
 

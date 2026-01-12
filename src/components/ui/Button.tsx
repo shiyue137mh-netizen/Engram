@@ -21,7 +21,7 @@ export const ModernButton: React.FC<ModernButtonProps> = ({
             ${size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-5 py-2.5 text-sm'}
             ${primary
                 ? 'bg-primary text-primary-foreground hover:opacity-90 shadow-[0_0_15px_var(--primary)] border border-transparent'
-                : 'text-muted-foreground hover:text-foreground border border-border hover:border-input bg-muted/50 hover:bg-muted'
+                : 'text-muted-foreground hover:text-foreground border border-border hover:border-input'
             }
             ${className}
         `}

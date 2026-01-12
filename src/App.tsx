@@ -31,6 +31,18 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
     const [showWelcome, setShowWelcome] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);
 
+    // Deep Link Navigation Handler
+    const handleNavigate = (path: string) => {
+        // e.g. "presets:prompt" -> activeTab="presets:prompt"
+        // The renderContent will split it.
+        // We might want to just set the raw string as activeTab if our logic supports it.
+        // Looking at renderContent, it splits activeTab. So we just set it directly.
+        // But we should strip leading slash just in case.
+        const cleanPath = path.replace(/^\//, '');
+        console.debug('[Engram] Navigating to:', cleanPath);
+        setActiveTab(cleanPath);
+    };
+
     // 检查是否首次安装 - 延迟读取确保 ST 设置已加载
     useEffect(() => {
         // 延迟检查，等待 ST 完全加载
@@ -87,7 +99,7 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
                 <WelcomeAnimation onComplete={handleWelcomeComplete} />
             )}
 
-            <MainLayout activeTab={activeTab} setActiveTab={setActiveTab} onClose={onClose}>
+            <MainLayout activeTab={activeTab} setActiveTab={handleNavigate} onClose={onClose}>
                 <Suspense fallback={<LoadingFallback />}>
                     {renderContent()}
                 </Suspense>
@@ -97,3 +109,4 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
 };
 
 export default App;
+

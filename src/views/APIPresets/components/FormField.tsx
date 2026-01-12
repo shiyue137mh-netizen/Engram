@@ -138,13 +138,13 @@ export const NumberField: React.FC<NumberFieldProps> = ({
         background: 'transparent',
         backgroundColor: 'transparent',
         border: 'none',
-        borderBottom: '1px solid var(--border)',
         borderRadius: 0,
         boxShadow: 'none',
         outline: 'none',
-        padding: '4px 0',
+        padding: '0',
         fontSize: '12px',
-        width: '64px',
+        width: 'auto',
+        minWidth: '40px',
         textAlign: 'right' as const,
         fontFamily: 'monospace',
         color: 'var(--foreground, inherit)',
@@ -162,12 +162,21 @@ export const NumberField: React.FC<NumberFieldProps> = ({
                     {label}
                     {required && <span className="text-destructive">*</span>}
                 </label>
+                <input
+                    type="number"
+                    min={min}
+                    max={max}
+                    step={step}
+                    value={value}
+                    onChange={(e) => onChange(Number(e.target.value))}
+                    style={numberInputStyle}
+                    className="focus:text-primary transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pt-1">
                 {showSlider && min !== undefined && max !== undefined && (
                     <div className="flex-1 relative h-4 flex items-center group cursor-pointer">
-                        {/* 极简滑块轨道 - 1px 细线 - 与 UI 分割线一致 */}
                         {/* 极简滑块轨道 - 1px 细线 - 与 UI 分割线一致 */}
                         <div
                             className="absolute inset-x-0 h-[1px]"
@@ -196,16 +205,6 @@ export const NumberField: React.FC<NumberFieldProps> = ({
                         />
                     </div>
                 )}
-                <input
-                    type="number"
-                    min={min}
-                    max={max}
-                    step={step}
-                    value={value}
-                    onChange={(e) => onChange(Number(e.target.value))}
-                    style={numberInputStyle}
-                    className="focus:border-primary transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
             </div>
             {description && <p className="text-[10px] text-muted-foreground/70 break-words">{description}</p>}
             {error && <p className="text-[10px] text-destructive">{error}</p>}

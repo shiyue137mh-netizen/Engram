@@ -40,7 +40,7 @@
     transform: none;
 }
 
-/* Reset specific ST inputs if they leak */
+
 /* Reset specific ST inputs if they leak */
 :where(#engram-panel-root) input[type="text"],
 :where(#engram-panel-root) textarea {

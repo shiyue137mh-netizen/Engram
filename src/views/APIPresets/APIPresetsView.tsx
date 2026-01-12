@@ -7,13 +7,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Key, Cpu, Layers, Plus, Save, FileText, Regex, Book, ArrowLeft } from 'lucide-react';
+import { Key, Cpu, Layers, Plus, Save, FileText, Regex, Book, ArrowLeft, Network } from 'lucide-react';
 // Components
 import { PresetCard } from './components/PresetCard';
 import { LLMPresetForm } from './components/LLMPresetForm';
 import { VectorConfigForm } from './components/VectorConfigForm';
 import { Divider } from "@/components/layout/Divider";
 import { RerankConfigForm } from './components/RerankConfigForm';
+import { RecallConfigForm } from './components/RecallConfigForm'; // New Import
 import { PromptTemplateList } from './components/PromptTemplateList';
 import { PromptTemplateForm } from './components/PromptTemplateForm';
 import { RegexRuleList } from './components/RegexRuleList';
@@ -31,13 +32,14 @@ const DESKTOP_BREAKPOINT = 768;
 
 // Tab 类型
 type MainTabType = 'model' | 'prompt' | 'regex' | 'worldbook';
-type ModelSubTabType = 'llm' | 'vector' | 'rerank';
+type ModelSubTabType = 'llm' | 'vector' | 'rerank' | 'recall'; // Added 'recall'
 
 // 子 Tab 配置
 const MODEL_SUB_TABS: { id: ModelSubTabType; label: string; icon: React.ElementType }[] = [
     { id: 'llm', label: 'LLM 预设', icon: Key },
     { id: 'vector', label: '向量化', icon: Cpu },
     { id: 'rerank', label: 'Rerank', icon: Layers },
+    { id: 'recall', label: '召回策略', icon: Network }, // Added tab
 ];
 
 interface APIPresetsProps {
@@ -280,6 +282,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
 
                         {modelSubTab === 'vector' && <VectorConfigForm config={settings.vectorConfig} onChange={updateVectorConfig} />}
                         {modelSubTab === 'rerank' && <RerankConfigForm config={settings.rerankConfig} onChange={updateRerankConfig} />}
+                        {modelSubTab === 'recall' && settings.recallConfig && <RecallConfigForm config={settings.recallConfig} onChange={updateRecallConfig} />}
                     </div>
                 )}
 

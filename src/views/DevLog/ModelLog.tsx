@@ -1,6 +1,6 @@
 /**
  * ModelLog - 模型日志可视化组件
- * 
+ *
  * 伪聊天式布局展示 LLM 调用记录
  */
 import React, { useState, useEffect } from 'react';
@@ -68,14 +68,14 @@ const LogCard: React.FC<{
 
                 {/* Model Badge */}
                 {sent.model && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 truncate max-w-[100px]" title={`模型: ${sent.model}`}>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 truncate max-w-[150px]" title={`模型: ${sent.model}`}>
                         {sent.model}
                     </span>
                 )}
 
                 {/* Character Badge */}
                 {sent.character && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 truncate max-w-[80px]" title={`角色: ${sent.character}`}>
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 truncate max-w-[120px]" title={`角色: ${sent.character}`}>
                         {sent.character}
                     </span>
                 )}
@@ -110,7 +110,7 @@ const LogCard: React.FC<{
                         {sent.systemPrompt && (
                             <div className="mb-3">
                                 <div className="text-xs text-muted-foreground mb-1">System</div>
-                                <div className="text-sm p-2 bg-muted-20 rounded max-h-32 overflow-y-auto whitespace-pre-wrap">
+                                <div className="text-sm p-2 bg-muted-20 rounded max-h-[500px] overflow-y-auto whitespace-pre-wrap">
                                     {sent.systemPrompt}
                                 </div>
                             </div>
@@ -119,7 +119,7 @@ const LogCard: React.FC<{
                         {sent.userPrompt && (
                             <div>
                                 <div className="text-xs text-muted-foreground mb-1">User</div>
-                                <div className="text-sm p-2 bg-muted-20 rounded max-h-48 overflow-y-auto whitespace-pre-wrap">
+                                <div className="text-sm p-2 bg-muted-20 rounded max-h-[500px] overflow-y-auto whitespace-pre-wrap">
                                     {sent.userPrompt}
                                 </div>
                             </div>
@@ -145,7 +145,7 @@ const LogCard: React.FC<{
                         )}
 
                         {received?.response && (
-                            <div className="text-sm p-2 bg-muted-20 rounded max-h-48 overflow-y-auto whitespace-pre-wrap">
+                            <div className="text-sm p-2 bg-muted-20 rounded max-h-[500px] overflow-y-auto whitespace-pre-wrap">
                                 {received.response}
                             </div>
                         )}

@@ -4,8 +4,10 @@ export * from './navigation';
 /** 插件名称 */
 export const PLUGIN_NAME = 'Engram';
 
+import manifest from '../../manifest.json';
+
 /** 版本号 */
-export const VERSION = '0.1.0';
+export const VERSION = manifest.version;
 
 /** 存储相关 */
 export const STORAGE = {

@@ -60,8 +60,13 @@ export function injectQuickPanelButton(): boolean {
         color: var(--SmartThemeBodyColor, #ccc);
         opacity: 0.6;
         transition: all 0.2s ease;
-        z-index: 36;
+        z-index: 1000;
     `;
+
+    // 增加左侧内边距，防止按钮遮挡输入框内容
+    const currentPaddingLeft = window.getComputedStyle(sendForm).paddingLeft;
+    const newPaddingLeft = parseFloat(currentPaddingLeft) < 30 ? '30px' : currentPaddingLeft;
+    sendForm.style.paddingLeft = newPaddingLeft;
 
     // 悬停效果
     button.addEventListener('mouseenter', () => {

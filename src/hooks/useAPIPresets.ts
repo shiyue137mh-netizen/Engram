@@ -14,6 +14,7 @@ import type {
     PromptTemplate,
     WorldbookConfig,
     GlobalRegexConfig,
+    RecallConfig,
 } from '@/services/api/types';
 import {
     getDefaultAPISettings,
@@ -61,6 +62,7 @@ export interface UseAPIPresetsReturn {
     updateRerankConfig: (config: RerankConfig) => void;
     updateWorldbookConfig: (config: WorldbookConfig) => void;
     updateRegexConfig: (config: GlobalRegexConfig) => void;
+    updateRecallConfig: (config: RecallConfig) => void; // New
 
     // 正则规则操作
     selectRule: (id: string) => void;
@@ -88,14 +90,26 @@ function mergePromptTemplates(
 
     // 处理每个默认内置模板
     for (const defaultTemplate of defaultTemplates.filter(t => t.isBuiltIn)) {
-        // 查找用户保存的同 category 内置模板
-        const savedBuiltIn = savedTemplates.find(
-            t => t.isBuiltIn && t.category === defaultTemplate.category
-        );
+        // 1. 优先尝试 ID 匹配 (New Standard)
+        let savedBuiltIn = savedTemplates.find(t => t.id === defaultTemplate.id);
+
+        // 2. 只有当没有找到 ID 匹配时，才尝试 Name + Category 匹配 (Legacy Migration)
+        // 这一步是为了防止旧的随机 ID 模板丢失，将它们迁移到新的固定 ID
+        if (!savedBuiltIn) {
+            savedBuiltIn = savedTemplates.find(
+                t => t.isBuiltIn &&
+                    t.category === defaultTemplate.category &&
+                    t.name === defaultTemplate.name
+            );
+        }
 
         if (savedBuiltIn) {
             // 使用用户保存的版本（保留了用户的修改：启用状态、内容等）
-            result.push(savedBuiltIn);
+            // 关键修复：强制使用 defaultTemplate 的固定 ID，完成迁移
+            result.push({
+                ...savedBuiltIn,
+                id: defaultTemplate.id
+            });
         } else {
             // 没有保存过，使用默认版本
             result.push(defaultTemplate);
@@ -393,6 +407,14 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         setHasChanges(false);
     }, [settings, regexRules, currentCharWorldbook, disabledEntries]);
 
+    const updateRecallConfig = useCallback((config: RecallConfig) => {
+        setSettings(prev => ({
+            ...prev,
+            recallConfig: config,
+        }));
+        setHasChanges(true);
+    }, []);
+
     return {
         settings,
         editingPreset,
@@ -422,6 +444,7 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         worldbookStructure,
         disabledEntries,
         currentCharWorldbook,
+        updateRecallConfig,
 
         selectRule,
         addRule,

@@ -42,6 +42,14 @@ export class Retriever {
     }
 
     /**
+     * 获取全局向量配置
+     */
+    private getVectorConfig(): VectorConfig | undefined {
+        const apiSettings = SettingsManager.get('apiSettings');
+        return apiSettings?.vectorConfig;
+    }
+
+    /**
      * 获取 Rerank 配置
      */
     private getRerankConfig(): RerankConfig | null {
@@ -57,34 +65,40 @@ export class Retriever {
      * @returns 召回结果
      */
     async search(userInput: string, unifiedQueries?: string[]): Promise<RetrievalResult> {
-        const config = this.getRecallConfig();
+        const recallConfig = this.getRecallConfig();
+        const vectorConfig = this.getVectorConfig();
+
+        // 确保 EmbeddingService 获取最新配置
+        if (recallConfig.useEmbedding && vectorConfig) {
+            embeddingService.setConfig(vectorConfig);
+        }
 
         // 新一轮召回，更新黏性缓存轮次
         stickyCache.nextRound();
 
         // 未启用召回，使用滚动窗口策略
-        if (!config.enabled) {
+        if (!recallConfig.enabled) {
             Logger.debug('Retriever', '召回未启用，使用滚动窗口策略');
-            return this.rollingSearch(config.embedding.topK);
+            // 注意：这里原本用 config.embedding.topK，现在不能用了
+            // 滚动窗口暂时给个默认值或者读取 Config，这里先默认 20
+            const limit = vectorConfig?.topK || 20;
+            return this.rollingSearch(limit);
         }
 
-        // 根据模式分发
-        switch (config.mode) {
-            case 'full':
-            case 'standard':
-                return this.hybridSearch(userInput, unifiedQueries, config);
-
-            case 'light':
-                return this.embeddingOnlySearch(userInput, unifiedQueries, config);
-
-            case 'llm_only':
-                // 暂未实现，后续可通过宏 {{engramArchivedSummaries}} 支持
-                Logger.warn('Retriever', 'LLM Only 模式暂未实现，回退到滚动窗口');
-                return this.rollingSearch(config.embedding.topK);
-
-            default:
-                return this.rollingSearch(config.embedding.topK);
+        // 暴力召回模式 (优先)
+        if (recallConfig.useBruteForce) {
+            Logger.debug('Retriever', '使用暴力召回 (滚动窗口)');
+            const limit = vectorConfig?.topK || 20;
+            return this.rollingSearch(limit);
         }
+
+        // 向量检索 (含 Rerank)
+        if (recallConfig.useEmbedding) {
+            return this.hybridSearch(userInput, unifiedQueries, recallConfig);
+        }
+
+        // 默认回退
+        return this.rollingSearch(config.embedding.topK);
     }
 
     /**
@@ -111,11 +125,11 @@ export class Retriever {
             return { entries: [], nodes: [] };
         }
 
-        // 2. Rerank 重排序 (如果启用)
+        // 2. Rerank 重排序 (如果启用且服务可用)
         let finalCandidates = embeddingCandidates;
         let rerankTime = 0;
 
-        if (rerankService.isEnabled()) {
+        if (config.useRerank && rerankService.isEnabled()) {
             const rerankStart = Date.now();
 
             // 构建用于 Rerank 的查询 (优先使用预处理结果)
@@ -197,7 +211,8 @@ export class Retriever {
         const entries = finalCandidates.map(c => c.summary);
 
         Logger.info('Retriever', '召回完成', {
-            mode: config.mode,
+            useEmbedding: config.useEmbedding,
+            useRerank: config.useRerank,
             totalTime,
             resultCount: nodes.length,
             stickyRound: stickyCache.getCurrentRound(),
@@ -293,15 +308,19 @@ export class Retriever {
                         });
                     }
                 }
-            } catch (error) {
-                Logger.error('Retriever', `Query 向量化失败: ${query}`, error);
+            } catch (error: any) {
+                Logger.error('Retriever', `Query 向量化失败: ${query}`, {
+                    message: error?.message || error,
+                    stack: error?.stack
+                });
             }
         }
 
+        const vectorConfig = this.getVectorConfig();
         // 按 Embedding 分数排序，返回 Top-K
         const candidates = Array.from(candidateMap.values())
             .sort((a, b) => (b.embeddingScore || 0) - (a.embeddingScore || 0))
-            .slice(0, config.embedding.topK);
+            .slice(0, vectorConfig?.topK || 20);
 
         Logger.debug('Retriever', 'Embedding 检索完成', {
             totalMatched: candidateMap.size,
