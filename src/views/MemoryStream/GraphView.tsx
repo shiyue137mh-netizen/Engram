@@ -6,7 +6,7 @@
  * - 语义缩放 (LOD)
  * - 节点拖拽
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
     ReactFlow,
     Node,
@@ -20,6 +20,7 @@ import {
     Handle,
     Position,
     MarkerType,
+    ReactFlowInstance,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { LayoutGrid, RefreshCw } from 'lucide-react';
@@ -52,12 +53,12 @@ interface EntityFlowNodeData {
 const EventNodeComponent: React.FC<{ data: EventFlowNodeData }> = ({ data }) => {
     const zoom = useStore((s) => s.transform[2]);
 
-    // LOD 0: 极简模式 (zoom < 0.4)
-    if (zoom < 0.4) {
+    // LOD 0: 极简模式 - 降低阈值到 0.15，让默认缩放下显示更多信息
+    if (zoom < 0.15) {
         return (
-            <div className="w-8 h-8 rounded-full bg-primary/80 border-2 border-primary flex items-center justify-center">
-                <Handle type="target" position={Position.Top} className="!bg-primary" />
-                <Handle type="source" position={Position.Bottom} className="!bg-primary" />
+            <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#e07850', border: '2px solid #e07850', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Handle type="target" position={Position.Top} style={{ backgroundColor: '#e07850' }} />
+                <Handle type="source" position={Position.Bottom} style={{ backgroundColor: '#e07850' }} />
             </div>
         );
     }
@@ -83,11 +84,11 @@ const EventNodeComponent: React.FC<{ data: EventFlowNodeData }> = ({ data }) => 
 
     // LOD 1: 摘要模式 (默认)
     return (
-        <div className="w-[220px] p-2 rounded-lg border border-border bg-card/90 shadow-sm">
-            <Handle type="target" position={Position.Top} className="!bg-primary" />
-            <div className="text-xs text-muted-foreground mb-1 truncate">{data.time_anchor || '未知时间'}</div>
-            <div className="text-sm text-foreground line-clamp-2">{data.label}</div>
-            <Handle type="source" position={Position.Bottom} className="!bg-primary" />
+        <div style={{ width: 220, padding: 8, borderRadius: 8, border: '1px solid #444', backgroundColor: '#2a2a2a', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>
+            <Handle type="target" position={Position.Top} style={{ backgroundColor: '#e07850' }} />
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.time_anchor || '未知时间'}</div>
+            <div style={{ fontSize: 13, color: '#eee', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{data.label}</div>
+            <Handle type="source" position={Position.Bottom} style={{ backgroundColor: '#e07850' }} />
         </div>
     );
 };
@@ -98,12 +99,12 @@ const EventNodeComponent: React.FC<{ data: EventFlowNodeData }> = ({ data }) => 
 const EntityNodeComponent: React.FC<{ data: EntityFlowNodeData }> = ({ data }) => {
     const zoom = useStore((s) => s.transform[2]);
 
-    // LOD 0: 微缩模式
-    if (zoom < 0.4) {
+    // LOD 0: 微缩模式 - 降低阈值到 0.15
+    if (zoom < 0.15) {
         return (
-            <div className="w-6 h-6 rounded-full bg-accent border border-border flex items-center justify-center">
-                <Handle type="target" position={Position.Top} className="!bg-muted-foreground" />
-                <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground" />
+            <div style={{ width: 24, height: 24, borderRadius: '50%', backgroundColor: '#555', border: '1px solid #666', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Handle type="target" position={Position.Top} style={{ backgroundColor: '#888' }} />
+                <Handle type="source" position={Position.Bottom} style={{ backgroundColor: '#888' }} />
             </div>
         );
     }
@@ -123,10 +124,10 @@ const EntityNodeComponent: React.FC<{ data: EntityFlowNodeData }> = ({ data }) =
 
     // LOD 1: 摘要模式
     return (
-        <div className="w-[120px] p-1.5 rounded-md border border-border bg-muted/30">
-            <Handle type="target" position={Position.Top} className="!bg-muted-foreground" />
-            <div className="text-xs text-foreground truncate">{data.label}</div>
-            <Handle type="source" position={Position.Bottom} className="!bg-muted-foreground" />
+        <div style={{ width: 120, padding: 6, borderRadius: 6, border: '1px solid #555', backgroundColor: '#333' }}>
+            <Handle type="target" position={Position.Top} style={{ backgroundColor: '#888' }} />
+            <div style={{ fontSize: 12, color: '#ddd', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.label}</div>
+            <Handle type="source" position={Position.Bottom} style={{ backgroundColor: '#888' }} />
         </div>
     );
 };
@@ -148,6 +149,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ events, entities }) => {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [isLayouting, setIsLayouting] = useState(false);
+    const reactFlowInstance = useRef<ReactFlowInstance | null>(null);
 
     // 将数据转换为 React Flow 节点和边
     const convertToGraphElements = useCallback(() => {
@@ -222,6 +224,11 @@ export const GraphView: React.FC<GraphViewProps> = ({ events, entities }) => {
         setNodes(layoutedNodes);
         setEdges(layoutedEdges);
         setIsLayouting(false);
+
+        // 布局后调用 fitView 自动适配视口
+        setTimeout(() => {
+            reactFlowInstance.current?.fitView({ padding: 0.2 });
+        }, 50);
     }, [convertToGraphElements, setNodes, setEdges]);
 
     // 初始化加载
@@ -243,7 +250,7 @@ export const GraphView: React.FC<GraphViewProps> = ({ events, entities }) => {
     }
 
     return (
-        <div className="w-full h-full relative">
+        <div style={{ position: 'relative', width: '100%', height: '400px' }}>
             {/* 工具栏 */}
             <div className="absolute top-2 left-2 z-10 flex gap-2">
                 <button
@@ -262,19 +269,21 @@ export const GraphView: React.FC<GraphViewProps> = ({ events, entities }) => {
                 edges={edges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
+                onInit={(instance) => { reactFlowInstance.current = instance; }}
                 nodeTypes={nodeTypes}
                 fitView
                 minZoom={0.1}
                 maxZoom={2}
+                colorMode="dark"
                 defaultEdgeOptions={{
                     type: 'smoothstep',
                 }}
                 proOptions={{ hideAttribution: true }}
             >
-                <Background color="var(--border)" gap={20} />
+                <Background color="#333" gap={20} />
                 <Controls className="!bg-card !border-border" />
                 <MiniMap
-                    nodeColor={(node) => node.type === 'event' ? 'var(--primary)' : 'var(--muted-foreground)'}
+                    nodeColor={(node) => node.type === 'event' ? '#e07850' : '#888'}
                     className="!bg-card !border-border"
                 />
             </ReactFlow>
@@ -283,4 +292,3 @@ export const GraphView: React.FC<GraphViewProps> = ({ events, entities }) => {
 };
 
 export default GraphView;
-

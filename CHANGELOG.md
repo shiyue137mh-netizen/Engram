@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.9.0] - 2026-01-15
+
+### ✨ Graph System (Memory Stream 图谱可视化)[未完全完成,还需要继续修复]
+- **Memory Stream Visualization**: 全新引入的 **记忆流图谱视图** (`GraphView`)，基于 React Flow 打造，将线性的事件日志转化为可视化的知识图谱。
+  - **LOD (Level of Detail)**: 实现了创新的 **语义缩放机制**。节点内容随缩放级别动态变化：
+    - **极简模式 (LOD 0)**: 仅显示节点位置和连接，宏观把控记忆分布。
+    - **摘要模式 (LOD 1)**: 显示时间锚点和关键摘要，浏览剧情脉络。
+    - **详情模式 (LOD 2)**: 针对大缩放比例，展示完整摘要和参与角色，提供深层上下文。
+  - **Auto Layout**: 集成 Dagre 自动布局算法，支持一键自动整理节点布局 (`Top-to-Bottom`)，解决节点重叠混乱问题。
+  - **Mixed Node Types**: 同时支持 **Event (事件)** 和 **Entity (实体)** 两种节点的混合可视化，清晰展示"剧情-角色-物品"之间的关联网络。
+  - **Interactive Canvas**: 支持无极缩放、节点拖拽、Minimap 导航，提供流畅的探索体验。
+
+### 🛠️ Preprocessing & Macro (预处理与宏系统升级)
+- **Injection Mode Strategies (注入模式策略)**:
+  - 解决了预处理结果强制覆盖用户输入的问题。需在提示词模板中配置：
+    - `Replace`: 覆盖 (Overwrite) - 适用于描写增强/改写。
+    - `Append`: 追加 (Append) - 适用于 RAG Query 增强/指令添加 (默认用于 Query 增强)。
+    - `Prepend`: 前置 (Prepend) - 适用于上下文前置。
+- **Custom Macros (自定义宏系统)**:
+  - 新增 **自定义宏** 功能。用户可以在 API 配置中定义自己的变量（如 `{{user_style}}`, `{{current_quest}}`），并在所有提示词模板中通过 Standard Mustache 语法引用。
+- **Preview & Revision (预览与修订优化)**:
+  - 预处理预览弹窗新增 **Re-roll (重试)** 按钮，允许在不关闭弹窗的情况下重新生成预处理结果，直到满意为止。
+
+### 💄 UI/UX Improvements (界面重构)
+- **Processing Panel Redesign**:
+  - 全面重构了 **数据处理 (Processing)** 面板，废弃了旧版列表，采用更现代的 **Grid Card** 布局。
+  - 状态可视化：使用不同颜色的 Badge 清晰标识 Log/Summary/Vector 状态。
+  - 响应式优化：在宽屏下自动切换为多列布局。
+- **API Presets Optimization**:
+  - **Mobile First**: 针对移动端优化了 Master-Detail 交互，新增全屏表单编辑模式，解决小屏幕配置难的问题。
+  - **Template Management**: 提示词模板列表增加了分类折叠和子 Tab 切换（模板/宏），减少视觉干扰。
+
+### 🐛 Bug Fixes
+- 修复了 `{{chatHistory}}` 宏在某些上下文中包含多余系统指令的问题。
+- 修复了 Ollama Embedding 接口在特定端口配置下的连接失败问题。
+- 修正了图谱视图在首次加载时可能出现的节点重叠问题 (通过 `useReactFlow` 钩子优化了初始化布局)。
+- 修复了预处理注入时 `textarea` 也可以被正确回写的问题 (Strategy 2 Fallback)。
+
 ## [0.8.5] - 2026-01-12
 
 ### ✨ New Features (新功能)

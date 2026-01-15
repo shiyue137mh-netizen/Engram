@@ -403,9 +403,16 @@ export const MemoryStream: React.FC = () => {
                 </div>
             )}
 
-            {/* 图谱视图 - V0.9 */}
+            {/* 图谱视图 - V0.9.2: 修复高度问题，React Flow 需要明确高度 */}
             {viewTab === 'graph' && (
-                <div className="flex-1 min-h-0">
+                <div
+                    className="flex-1 min-h-0"
+                    style={{
+                        // 与列表视图相同的计算高度
+                        height: 'calc(100vh - 270px)',
+                        minHeight: '400px',
+                    }}
+                >
                     <GraphView events={events} entities={entities} />
                 </div>
             )}

@@ -577,6 +577,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 ---
 请根据以上信息，输出扩展后的检索查询词。`,
       outputFormat: 'plain',
+      injectionMode: 'append', // 默认追加到用户输入后
       availableVariables: ['{{worldbookContext}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
     }),
     createPromptTemplate('剧情编排', 'preprocessing', {

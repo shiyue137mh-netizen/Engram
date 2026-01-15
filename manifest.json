@@ -8,7 +8,7 @@
     "js": "dist/index.js",
     "css": "dist/style.css",
     "author": "shiyue137",
-    "version": "0.8.5",
+    "version": "0.9.0",
     "homePage": "https://github.com/shiyue137mh-netizen/Engram.git",
     "description": "Graph RAG 记忆操作系统 - Where memories leave their trace."
 }
