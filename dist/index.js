@@ -34724,7 +34724,7 @@ const F$ = ({
           description: "选择用于此模板的 LLM 预设"
         }
       ),
-      /* @__PURE__ */ h.jsx(
+      e.category === "preprocessing" && /* @__PURE__ */ h.jsx(
         Fa,
         {
           label: "注入模式",
