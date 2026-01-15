@@ -16,9 +16,10 @@ import { LayoutTabs } from "@/components/layout/LayoutTabs";
 import { useMemoryStore } from '@/stores/memoryStore';
 import { embeddingService } from '@/services/rag/EmbeddingService';
 import { SettingsManager } from '@/services/settings/Persistence';
-import type { EventNode } from '@/services/types/graph';
+import type { EventNode, EntityNode } from '@/services/types/graph';
 import { EventCard } from './components/EventCard';
 import { EventEditor, type EventEditorHandle } from './components/EventEditor';
+import { GraphView } from './GraphView';
 import { Search, Trash2, RefreshCw, Brain, List, GitBranch, Save, Sparkles } from 'lucide-react';
 
 // 响应式断点
@@ -42,6 +43,8 @@ export const MemoryStream: React.FC = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth < DESKTOP_BREAKPOINT);
     const [showEditor, setShowEditor] = useState(false);
     const [viewTab, setViewTab] = useState<ViewTab>('list');
+    // V0.9: 实体数据
+    const [entities, setEntities] = useState<EntityNode[]>([]);
 
     // 批量修改状态
     const [pendingChanges, setPendingChanges] = useState<Map<string, Partial<EventNode>>>(new Map());
@@ -80,7 +83,18 @@ export const MemoryStream: React.FC = () => {
 
     useEffect(() => {
         loadEvents();
+        loadEntities();
     }, []);
+
+    // V0.9: 加载实体
+    const loadEntities = async () => {
+        try {
+            const allEntities = await store.getAllEntities();
+            setEntities(allEntities);
+        } catch (e) {
+            console.error('[MemoryStream] Failed to load entities:', e);
+        }
+    };
 
     // 过滤事件
     const filteredEvents = useMemo(() => {
@@ -389,11 +403,10 @@ export const MemoryStream: React.FC = () => {
                 </div>
             )}
 
-            {/* 图谱视图 */}
+            {/* 图谱视图 - V0.9 */}
             {viewTab === 'graph' && (
-                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground gap-4">
-                    <GitBranch size={48} className="opacity-20" />
-                    <p className="text-sm font-light">图谱可视化功能开发中...</p>
+                <div className="flex-1 min-h-0">
+                    <GraphView events={events} entities={entities} />
                 </div>
             )}
         </div>

@@ -139,6 +139,8 @@ export class Pipeline {
             // 5. 更新进度
             await store.setLastSummarizedFloor(input.sourceRange.end);
 
+            // V0.9.1: 实体提取触发已移至 SummarizerService
+
             console.log(`[Pipeline] Completed successfully in ${Date.now() - startTime}ms`);
             return { success: true, events: savedEvents };
 

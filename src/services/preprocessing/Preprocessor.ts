@@ -240,6 +240,37 @@ export class Preprocessor {
             if (config.preview && tags.output) {
                 Logger.info('Preprocessor', '请求用户预览修订');
                 try {
+                    // V0.9.2: 封装 LLM 调用逻辑为可复用函数
+                    const callLLMAndGetOutput = async (): Promise<string> => {
+                        const rerollLogId = ModelLogger.logSend({
+                            type: 'query',
+                            systemPrompt: systemPrompt,
+                            userPrompt: userPrompt,
+                            model: getModelName() || 'Unknown',
+                            character: getCharacterName() || 'System',
+                        });
+
+                        const rerollResponse = await llmAdapter.generate({
+                            systemPrompt,
+                            userPrompt,
+                        });
+
+                        ModelLogger.logReceive(rerollLogId, {
+                            response: rerollResponse.content,
+                            status: rerollResponse.success ? 'success' : 'error',
+                            error: rerollResponse.error,
+                            duration: 0,
+                        });
+
+                        if (!rerollResponse.success || !rerollResponse.content) {
+                            throw new Error(rerollResponse.error || 'LLM 调用失败');
+                        }
+
+                        const rerollCleaned = regexProcessor.process(rerollResponse.content, 'output');
+                        const rerollTags = regexProcessor.captureTags(rerollCleaned, ['output', 'query']);
+                        return rerollTags.output || rerollCleaned;
+                    };
+
                     const reviewedContent = await new Promise<string | null>((resolve) => {
                         EventBus.emit(TavernEventType.ENGRAM_REQUEST_REVISION, {
                             title: '预处理结果预览',
@@ -247,6 +278,8 @@ export class Preprocessor {
                             description: '请确认即将注入到用户输入的内容。您可以直接在此修改，确认后将替换原文。',
                             onConfirm: (newContent: string) => resolve(newContent),
                             onCancel: () => resolve(null),
+                            // V0.9.2: 重 Roll 回调
+                            onReroll: callLLMAndGetOutput,
                         });
                     });
 

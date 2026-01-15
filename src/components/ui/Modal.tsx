@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { EventBus, TavernEventType } from "@/tavern/api";
-import { X, Check, AlertTriangle } from 'lucide-react';
+import { X, Check, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 
 interface RevisionRequest {
     title: string;
@@ -9,12 +9,15 @@ interface RevisionRequest {
     description?: string;
     onConfirm: (newContent: string) => void;
     onCancel: () => void;
+    /** V0.9.2: 重 Roll 回调，触发重新处理 pipeline */
+    onReroll?: () => Promise<string>;
 }
 
 export const RevisionModal: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [request, setRequest] = useState<RevisionRequest | null>(null);
     const [content, setContent] = useState('');
+    const [isRerolling, setIsRerolling] = useState(false);
 
     useEffect(() => {
         // 订阅修订请求事件
@@ -46,6 +49,20 @@ export const RevisionModal: React.FC = () => {
         }
         setIsOpen(false);
         setRequest(null);
+    };
+
+    /** V0.9.2: 重 Roll 处理 */
+    const handleReroll = async () => {
+        if (!request?.onReroll) return;
+        setIsRerolling(true);
+        try {
+            const newContent = await request.onReroll();
+            setContent(newContent);
+        } catch (e) {
+            console.error('[RevisionModal] Reroll failed:', e);
+        } finally {
+            setIsRerolling(false);
+        }
     };
 
     if (!isOpen) return null;
@@ -110,20 +127,43 @@ export const RevisionModal: React.FC = () => {
                 </div>
 
                 {/* 底部操作栏 */}
-                <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border bg-muted/30">
-                    <button
-                        onClick={handleCancel}
-                        className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors"
-                    >
-                        取消
-                    </button>
-                    <button
-                        onClick={handleConfirm}
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-primary/20 text-primary border border-primary/50 shadow-[0_0_10px_rgba(var(--primary),0.2)] hover:bg-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary),0.4)] focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    >
-                        <Check size={16} />
-                        确认写入
-                    </button>
+                <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-muted/30">
+                    {/* 左侧：重 Roll 按钮 */}
+                    <div>
+                        {request?.onReroll && (
+                            <button
+                                onClick={handleReroll}
+                                disabled={isRerolling}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 text-muted-foreground border border-border hover:bg-accent hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isRerolling ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <RefreshCw size={16} />
+                                )}
+                                重新生成
+                            </button>
+                        )}
+                    </div>
+
+                    {/* 右侧：取消/确认 */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleCancel}
+                            disabled={isRerolling}
+                            className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+                        >
+                            取消
+                        </button>
+                        <button
+                            onClick={handleConfirm}
+                            disabled={isRerolling}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 bg-primary/20 text-primary border border-primary/50 shadow-[0_0_10px_rgba(var(--primary),0.2)] hover:bg-primary/30 hover:shadow-[0_0_15px_rgba(var(--primary),0.4)] focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                        >
+                            <Check size={16} />
+                            确认写入
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>,

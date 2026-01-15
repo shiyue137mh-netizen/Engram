@@ -2,6 +2,9 @@ import { useMemoryStore } from '@/stores/memoryStore';
 import { Logger } from '@/lib/logger';
 import { regexProcessor } from '@/services/pipeline/RegexProcessor';
 import { WorldInfoService } from '@/tavern/api';
+import { SettingsManager } from '@/services/settings/Persistence';
+import type { SummarizerConfig } from '@/services/summarizer/types';
+import type { CustomMacro } from '@/services/api/types';
 
 declare global {
     interface Window {
@@ -86,9 +89,36 @@ export class MacroService {
                 'Engram: 角色卡设定'
             );
 
+            // V0.9: {{engramGraph}} - 事件和实体的结构化 JSON
+            context.registerMacro(
+                'engramGraph',
+                () => {
+                    return MacroService.cachedGraphData;
+                },
+                'Engram: 事件和实体的结构化 JSON (用于图谱构建)'
+            );
+
+            // V0.9.2: {{engramArchivedSummaries}} - 已归档的历史摘要 (绿灯事件)
+            context.registerMacro(
+                'engramArchivedSummaries',
+                () => {
+                    return MacroService.cachedArchivedSummaries;
+                },
+                'Engram: 已归档的历史摘要 (绿灯事件)'
+            );
+
+            // V0.9.2: {{userPersona}} - 用户角色设定
+            context.registerMacro(
+                'userPersona',
+                () => {
+                    return MacroService.cachedUserPersona;
+                },
+                'Engram: 用户角色设定 (酒馆 Persona Description)'
+            );
+
             this.isInitialized = true;
             Logger.success('MacroService', '全局宏已注册', {
-                macros: ['{{engramSummaries}}', '{{worldbookContext}}', '{{userInput}}', '{{chatHistory}}', '{{context}}']
+                macros: ['{{engramSummaries}}', '{{worldbookContext}}', '{{userInput}}', '{{chatHistory}}', '{{context}}', '{{engramGraph}}', '{{engramArchivedSummaries}}', '{{userPersona}}']
             });
 
             // 初始化缓存
@@ -112,8 +142,14 @@ export class MacroService {
     private static cachedSummaries: string = '';
     private static cachedWorldbookContext: string = '';
     private static cachedUserInput: string = '';
-
     private static cachedCharDescription: string = '';
+    // V0.9: 图谱数据缓存
+    private static cachedGraphData: string = '';
+    // V0.9.2: 新增缓存
+    private static cachedArchivedSummaries: string = '';
+    private static cachedUserPersona: string = '';
+    // V0.9.2: 自定义宏缓存
+    private static cachedCustomMacros: Map<string, string> = new Map();
 
     /**
      * 设置用户输入（预处理时调用）
@@ -141,19 +177,69 @@ export class MacroService {
                 Logger.debug('MacroService', '获取世界书内容失败', e);
                 this.cachedWorldbookContext = '';
             }
-
-
-
             // 刷新角色描述
             this.refreshCharDescription();
+
+            // V0.9.2: 刷新归档摘要
+            await this.refreshArchivedSummaries();
+
+            // V0.9.2: 刷新用户设定
+            this.refreshUserPersona();
+
+            // V0.9.2: 刷新并注册自定义宏
+            this.refreshCustomMacros();
 
             Logger.debug('MacroService', '缓存已刷新', {
                 summariesLength: this.cachedSummaries.length,
                 worldbookLength: this.cachedWorldbookContext.length,
-                recalledCount: recalledIds?.length ?? 0
+                recalledCount: recalledIds?.length ?? 0,
+                customMacrosCount: this.cachedCustomMacros.size
             });
         } catch (e) {
             Logger.warn('MacroService', '刷新缓存失败', e);
+        }
+    }
+
+    /**
+     * V0.9: 刷新图谱数据缓存
+     * 输出结构化的 EventNode JSON（排除 embedding 等系统字段）
+     */
+    static async refreshGraphCache(): Promise<void> {
+        try {
+            const store = useMemoryStore.getState();
+            const events = await store.getAllEvents();
+            const entities = await store.getAllEntities();
+
+            // 过滤掉 embedding 等系统字段
+            const cleanEvents = events.map(e => ({
+                id: e.id,
+                summary: e.summary,
+                structured_kv: e.structured_kv,
+                significance_score: e.significance_score,
+                level: e.level,
+                source_range: e.source_range,
+            }));
+
+            const cleanEntities = entities.map(e => ({
+                id: e.id,
+                name: e.name,
+                type: e.type,
+                aliases: e.aliases || [],
+                description: e.description,
+            }));
+
+            this.cachedGraphData = JSON.stringify({
+                events: cleanEvents,
+                existingEntities: cleanEntities,
+            }, null, 2);
+
+            Logger.debug('MacroService', '图谱缓存已刷新', {
+                eventCount: events.length,
+                entityCount: entities.length,
+            });
+        } catch (e) {
+            Logger.warn('MacroService', '刷新图谱缓存失败', e);
+            this.cachedGraphData = JSON.stringify({ events: [], existingEntities: [] });
         }
     }
 
@@ -245,9 +331,20 @@ export class MacroService {
             let limit = 20;
             if (depthStr) {
                 const parsed = parseInt(depthStr, 10);
-                if (!isNaN(parsed) && parsed > 0) {
-                    limit = parsed;
+                if (!isNaN(parsed)) {
+                    // V0.9.2: 支持负数参数，-1 表示全部历史
+                    if (parsed < 0) {
+                        limit = Infinity; // 全部历史
+                    } else if (parsed > 0) {
+                        limit = parsed;
+                    } else {
+                        // parsed === 0，使用动态计算
+                        limit = this.getDynamicChatHistoryLimit();
+                    }
                 }
+            } else {
+                // 无参数时，使用动态计算
+                limit = this.getDynamicChatHistoryLimit();
             }
 
             Logger.debug('MacroService', 'getChatHistory called', { depthStr, limit });
@@ -315,4 +412,104 @@ export class MacroService {
             Logger.debug('MacroService', '刷新角色描述失败', e);
         }
     }
+
+    /**
+     * V0.9.2: 获取动态计算的 chatHistory 消息条数
+     * 公式: floorInterval - bufferSize
+     * 无参数调用 {{chatHistory}} 时使用
+     */
+    static getDynamicChatHistoryLimit(): number {
+        try {
+            const summarizerConfig = SettingsManager.get('summarizerConfig') as SummarizerConfig | undefined;
+            const floorInterval = summarizerConfig?.floorInterval ?? 20;
+            const bufferSize = summarizerConfig?.bufferSize ?? 3;
+            const limit = Math.max(1, floorInterval - bufferSize);
+            Logger.debug('MacroService', '动态计算 chatHistory limit', { floorInterval, bufferSize, limit });
+            return limit;
+        } catch (e) {
+            Logger.warn('MacroService', '动态计算 limit 失败，使用默认值 17', e);
+            return 17; // 默认 20 - 3 = 17
+        }
+    }
+
+    /**
+     * V0.9.2: 刷新归档摘要缓存
+     * 仅返回 is_archived=true 的事件摘要
+     */
+    private static async refreshArchivedSummaries(): Promise<void> {
+        try {
+            const store = useMemoryStore.getState();
+            this.cachedArchivedSummaries = await store.getArchivedEventSummaries();
+            Logger.debug('MacroService', '归档摘要缓存已刷新', {
+                length: this.cachedArchivedSummaries.length
+            });
+        } catch (e) {
+            Logger.warn('MacroService', '刷新归档摘要失败', e);
+            this.cachedArchivedSummaries = '';
+        }
+    }
+
+    /**
+     * V0.9.2: 刷新用户设定缓存
+     * 从酒馆 power_user.persona_description 读取
+     */
+    private static refreshUserPersona(): void {
+        try {
+            // @ts-ignore - 酒馆全局变量
+            const powerUser = window.power_user;
+            this.cachedUserPersona = powerUser?.persona_description || '';
+            Logger.debug('MacroService', '用户设定缓存已刷新', {
+                length: this.cachedUserPersona.length
+            });
+        } catch (e) {
+            Logger.debug('MacroService', '刷新用户设定失败', e);
+            this.cachedUserPersona = '';
+        }
+    }
+
+    /**
+     * V0.9.2: 刷新并注册自定义宏
+     * 从 apiSettings.customMacros 读取用户定义的宏
+     */
+    private static refreshCustomMacros(): void {
+        try {
+            // @ts-ignore
+            const context = window.SillyTavern?.getContext?.();
+            if (!context?.registerMacro) {
+                Logger.debug('MacroService', '酒馆 registerMacro 不可用，跳过自定义宏注册');
+                return;
+            }
+
+            // 从 apiSettings 读取自定义宏
+            const apiSettings = SettingsManager.get('apiSettings');
+            const customMacros: CustomMacro[] = apiSettings?.customMacros || [];
+
+            // 清空之前的缓存
+            this.cachedCustomMacros.clear();
+
+            // 注册每个启用的自定义宏
+            for (const macro of customMacros) {
+                if (!macro.enabled || !macro.name) continue;
+
+                // 缓存内容
+                this.cachedCustomMacros.set(macro.name, macro.content);
+
+                // 动态注册到酒馆（使用闭包捕获宏名）
+                const macroName = macro.name;
+                context.registerMacro(
+                    macroName,
+                    () => this.cachedCustomMacros.get(macroName) ?? '',
+                    `Engram 自定义宏: {{${macroName}}}`
+                );
+            }
+
+            Logger.debug('MacroService', '自定义宏已刷新', {
+                count: this.cachedCustomMacros.size,
+                names: Array.from(this.cachedCustomMacros.keys())
+            });
+        } catch (e) {
+            Logger.warn('MacroService', '刷新自定义宏失败', e);
+        }
+    }
 }
+

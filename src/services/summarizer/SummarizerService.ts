@@ -3,6 +3,7 @@
  */
 
 import { EventBus, TavernEventType, MessageService, WorldInfoService } from "@/tavern/api";
+import { MacroService } from '@/tavern/MacroService';
 import { TextProcessor, textProcessor } from '@/services/pipeline/TextProcessor';
 import { LLMAdapter, llmAdapter } from '@/services/api/LLMAdapter';
 import { eventWatcher } from '@/lib/EventWatcher';
@@ -302,6 +303,7 @@ export class SummarizerService {
 
     /**
      * 处理消息接收事件
+     * V0.9.1: 同时检查实体提取和 Summary 的触发条件
      */
     private async handleMessageReceived(): Promise<void> {
         const currentFloor = this.getCurrentFloor();
@@ -315,13 +317,40 @@ export class SummarizerService {
             triggerAt: this.config.floorInterval,
         });
 
-        // 检查是否达到触发条件
+        // V0.9.1: 检查实体提取触发
+        await this.checkEntityExtraction(currentFloor);
+
+        // 检查是否达到 Summary 触发条件
         if (pendingFloors >= this.config.floorInterval) {
             this.log('info', '达到触发条件，准备总结', {
                 pendingFloors,
                 interval: this.config.floorInterval,
             });
             await this.triggerSummary();
+        }
+    }
+
+    /**
+     * V0.9.1: 检查并触发实体提取
+     * 实体提取与 Summary 并行，各自有独立的楼层间隔
+     */
+    private async checkEntityExtraction(currentFloor: number): Promise<void> {
+        try {
+            const { entityBuilder } = await import('@/services/graph/EntityBuilder');
+
+            if (entityBuilder.shouldTriggerOnFloor(currentFloor)) {
+                this.log('info', '触发实体提取', { floor: currentFloor });
+
+                // 获取聊天历史
+                const chatHistory = await MacroService.getChatHistory('50');
+
+                // 异步执行，不阻塞 Summary
+                entityBuilder.extractFromChat(chatHistory, currentFloor, false).catch(e => {
+                    this.log('warn', '实体提取失败', { error: e });
+                });
+            }
+        } catch (e) {
+            this.log('warn', '实体提取检查失败', { error: e });
         }
     }
 

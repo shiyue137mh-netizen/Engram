@@ -4,7 +4,8 @@ import { chatManager } from '@/services/database/ChatManager';
 import { WorldInfoService } from '@/tavern/api';
 import { getCurrentChatId } from '@/tavern/context';
 import { generateUUID } from '@/utils';
-import type { EventNode, ScopeState } from '@/services/types/graph';
+import type { EventNode, EntityNode, ScopeState } from '@/services/types/graph';
+import { EntityType } from '@/services/types/graph';
 
 interface MemoryState {
     /** 当前 chatId */
@@ -52,6 +53,20 @@ interface MemoryState {
     resolveScope: (chatId: string, characterName?: string) => Promise<{ id: number }>;
     /** @deprecated 直接使用 chatManager.getCurrentDb() */
     currentScope: { id: number } | null;
+
+    // ==================== V0.9 实体相关 ====================
+    /** 获取所有实体 */
+    getAllEntities: () => Promise<EntityNode[]>;
+    /** 保存实体 */
+    saveEntity: (entity: Omit<EntityNode, 'id' | 'last_updated_at'>) => Promise<EntityNode>;
+    /** 更新实体 */
+    updateEntity: (entityId: string, updates: Partial<EntityNode>) => Promise<void>;
+    /** 删除实体 */
+    deleteEntity: (entityId: string) => Promise<void>;
+    /** 根据名称查找实体 (包含别名匹配) */
+    findEntityByName: (name: string) => Promise<EntityNode | null>;
+    /** V0.9.2: 获取归档事件摘要 (绿灯事件) */
+    getArchivedEventSummaries: () => Promise<string>;
 }
 
 /**
@@ -316,6 +331,118 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         } catch (e) {
             console.error('[MemoryStore] Failed to get all events:', e);
             return [];
+        }
+    },
+
+    // ==================== V0.9 实体相关 ====================
+
+    getAllEntities: async () => {
+        const db = getCurrentDb();
+        if (!db) return [];
+
+        try {
+            return await db.entities.toArray();
+        } catch (e) {
+            console.error('[MemoryStore] Failed to get all entities:', e);
+            return [];
+        }
+    },
+
+    saveEntity: async (entityData) => {
+        const db = getCurrentDb();
+        if (!db) {
+            throw new Error('[MemoryStore] No current chat');
+        }
+
+        const entity: EntityNode = {
+            ...entityData,
+            id: generateUUID(),
+            last_updated_at: Date.now(),
+        };
+
+        await db.entities.add(entity);
+        console.log(`[MemoryStore] Saved entity: ${entity.name}`);
+        return entity;
+    },
+
+    updateEntity: async (entityId, updates) => {
+        if (!entityId) return;
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            const { id: _id, ...safeUpdates } = updates as any;
+            await db.entities.update(entityId, {
+                ...safeUpdates,
+                last_updated_at: Date.now(),
+            });
+            console.log(`[MemoryStore] Updated entity: ${entityId}`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to update entity:', e);
+            throw e;
+        }
+    },
+
+    deleteEntity: async (entityId) => {
+        if (!entityId) return;
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            await db.entities.delete(entityId);
+            console.log(`[MemoryStore] Deleted entity: ${entityId}`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to delete entity:', e);
+            throw e;
+        }
+    },
+
+    findEntityByName: async (name) => {
+        const db = getCurrentDb();
+        if (!db) return null;
+
+        try {
+            // 1. 精确名称匹配
+            const exactMatch = await db.entities.where('name').equals(name).first();
+            if (exactMatch) return exactMatch;
+
+            // 2. 别名匹配 (需要遍历)
+            const allEntities = await db.entities.toArray();
+            return allEntities.find(e => e.aliases?.includes(name)) || null;
+        } catch (e) {
+            console.error('[MemoryStore] Failed to find entity by name:', e);
+            return null;
+        }
+    },
+
+    /**
+     * V0.9.2: 获取归档事件摘要 (绿灯事件)
+     * 仅返回 is_archived=true 的事件
+     */
+    getArchivedEventSummaries: async () => {
+        const db = tryGetCurrentDb();
+        if (!db) return '';
+
+        try {
+            const events = await db.events.toArray();
+            // 过滤出已归档的事件
+            const archivedEvents = events.filter(e => e.is_archived === true);
+
+            if (archivedEvents.length === 0) return '';
+
+            // 按时间线排序
+            archivedEvents.sort((a, b) => {
+                const startA = a.source_range?.start_index ?? 0;
+                const startB = b.source_range?.start_index ?? 0;
+                if (startA !== startB) return startA - startB;
+                return a.timestamp - b.timestamp;
+            });
+
+            const summaries = archivedEvents.map(e => e.summary).join('\n\n');
+            return `<archived_summary>\n${summaries}\n</archived_summary>`;
+        } catch (e) {
+            console.error('[MemoryStore] Failed to get archived event summaries:', e);
+            return '';
         }
     }
 }));

@@ -8,6 +8,7 @@ import trimPrompt from './prompts/trim.md?raw';
 import queryEnhancePrompt from './prompts/query_enhance.md?raw';
 import plotDirectorPrompt from './prompts/plot_director.md?raw';
 import descriptionPrompt from './prompts/description.md?raw';
+import entityExtractionPrompt from './prompts/entity_extraction.md?raw';
 import { StickyConfig, DEFAULT_STICKY_CONFIG } from '@/services/rag/StickyCache';
 
 // ==================== LLM 预设 ====================
@@ -141,7 +142,8 @@ export interface RerankConfig {
 export type PromptCategory =
   | 'summary'           // 剧情摘要 (V0.5 统一为 JSON 输出)
   | 'trim'              // 精简/修剪
-  | 'preprocessing';    // 预处理 (统一分类，包含 Query 增强/剧情编排/描写增强等)
+  | 'preprocessing'     // 预处理 (统一分类，包含 Query 增强/剧情编排/描写增强等)
+  | 'entity_extraction'; // V0.9: 实体提取
 
 /**
  * 提示词分类选项
@@ -150,6 +152,39 @@ export const PROMPT_CATEGORIES: { value: PromptCategory; label: string; descript
   { value: 'summary', label: '剧情摘要', description: '将对话转为结构化 JSON 事件' },
   { value: 'trim', label: '精简/修剪', description: '合并、压缩旧的事件记录' },
   { value: 'preprocessing', label: '预处理', description: '用户输入预处理（Query 增强/剧情编排/描写增强等）' },
+  { value: 'entity_extraction', label: '实体提取', description: '从事件中提取角色、地点、物品等实体' },
+];
+
+// ==================== 自定义宏 (V0.9.2) ====================
+
+/**
+ * 自定义宏
+ * 用户可定义自己的宏名和内容，在模板中使用 {{name}} 引用
+ */
+export interface CustomMacro {
+  /** 唯一标识 */
+  id: string;
+  /** 宏名称（不含花括号，如 "用户画像"） */
+  name: string;
+  /** 宏内容 */
+  content: string;
+  /** 是否启用 */
+  enabled: boolean;
+  /** 创建时间 */
+  createdAt: number;
+}
+
+/**
+ * 默认自定义宏列表（包含示例）
+ */
+export const DEFAULT_CUSTOM_MACROS: CustomMacro[] = [
+  {
+    id: 'custom_user_profile',
+    name: '用户画像',
+    content: '',  // 空内容，用户自行填写
+    enabled: true,
+    createdAt: Date.now(),
+  },
 ];
 
 /**
@@ -269,6 +304,40 @@ export interface EmbeddingConfig {
   keepRecentCount?: number;
 }
 
+// ==================== 实体提取配置 (V0.9.1) ====================
+
+/**
+ * 实体提取触发器类型
+ * - 'floor': 按楼层间隔触发（与 Summary 并行）
+ * - 'manual': 仅手动触发
+ */
+export type EntityTriggerType = 'floor' | 'manual';
+
+/**
+ * 实体提取配置
+ * V0.9.1: 改为楼层触发器，与 SummarizerService 并行
+ */
+export interface EntityExtractConfig {
+  /** 是否启用自动提取 */
+  enabled: boolean;
+  /** 触发器类型 */
+  trigger: EntityTriggerType;
+  /** 楼层间隔 (每 N 楼触发一次，默认 50) */
+  floorInterval: number;
+  /** 保留最近 N 条对话不处理 */
+  keepRecentCount: number;
+}
+
+/**
+ * 默认实体提取配置
+ */
+export const DEFAULT_ENTITY_CONFIG: EntityExtractConfig = {
+  enabled: false,
+  trigger: 'floor',
+  floorInterval: 50,
+  keepRecentCount: 5,
+};
+
 /**
  * 全局正则配置 (V0.8)
  */
@@ -360,6 +429,10 @@ export interface EngramAPISettings {
   embeddingConfig?: EmbeddingConfig;
   /** V0.8.5: 召回配置 */
   recallConfig?: RecallConfig;
+  /** V0.9: 实体提取配置 */
+  entityExtractConfig?: EntityExtractConfig;
+  /** V0.9.2: 自定义宏 */
+  customMacros?: CustomMacro[];
 }
 
 // ==================== 默认值 ====================
@@ -543,6 +616,21 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       injectionMode: 'replace', // 描写增强通常是完全重写用户的输入
       availableVariables: ['{{context}}', '{{chatHistory}}', '{{userInput}}', '{{char}}', '{{user}}'],
     }),
+    // V0.9: 实体提取模板
+    createPromptTemplate('实体提取', 'entity_extraction', {
+      id: 'builtin_entity_extraction',
+      enabled: false,  // 默认不启用，用户按需开启
+      isBuiltIn: true,
+      systemPrompt: entityExtractionPrompt,
+      userPromptTemplate: `请从以下事件数据中提取实体和关系：
+
+{{engramGraph}}
+
+---
+请按要求输出 JSON 格式的实体和关系数据。`,
+      outputFormat: 'json',
+      availableVariables: ['{{engramGraph}}', '{{worldbookContext}}', '{{char}}', '{{user}}'],
+    }),
   ];
 }
 
@@ -601,6 +689,7 @@ export function getDefaultAPISettings(): EngramAPISettings {
     worldbookConfig: { ...DEFAULT_WORLDBOOK_CONFIG },
     regexConfig: { ...DEFAULT_REGEX_CONFIG }, // V0.8
     recallConfig: { ...DEFAULT_RECALL_CONFIG }, // V0.8.5
+    customMacros: [...DEFAULT_CUSTOM_MACROS], // V0.9.2
   };
 }
 

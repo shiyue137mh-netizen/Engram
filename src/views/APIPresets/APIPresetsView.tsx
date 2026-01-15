@@ -7,19 +7,20 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Key, Cpu, Layers, Plus, Save, FileText, Regex, Book, ArrowLeft, Network } from 'lucide-react';
+import { Key, Cpu, Layers, Plus, Save, FileText, Regex, Book, ArrowLeft, Braces } from 'lucide-react';
 // Components
 import { PresetCard } from './components/PresetCard';
 import { LLMPresetForm } from './components/LLMPresetForm';
 import { VectorConfigForm } from './components/VectorConfigForm';
 import { Divider } from "@/components/layout/Divider";
 import { RerankConfigForm } from './components/RerankConfigForm';
-import { RecallConfigForm } from './components/RecallConfigForm'; // New Import
 import { PromptTemplateList } from './components/PromptTemplateList';
 import { PromptTemplateForm } from './components/PromptTemplateForm';
 import { RegexRuleList } from './components/RegexRuleList';
 import { RegexRuleForm } from './components/RegexRuleForm';
 import { WorldbookConfigForm } from './components/WorldbookConfigForm';
+import { CustomMacroList } from './components/CustomMacroList';  // V0.9.2
+import { CustomMacroForm } from './components/CustomMacroForm';  // V0.9.2
 import { PageTitle } from "@/components/common/PageTitle";
 import { TabPills } from "@/components/ui/TabPills";
 import { MobileFullscreenForm } from "@/components/layout/MobileFullscreenForm";
@@ -32,14 +33,14 @@ const DESKTOP_BREAKPOINT = 768;
 
 // Tab 类型
 type MainTabType = 'model' | 'prompt' | 'regex' | 'worldbook';
-type ModelSubTabType = 'llm' | 'vector' | 'rerank' | 'recall'; // Added 'recall'
+type ModelSubTabType = 'llm' | 'vector' | 'rerank';
+type PromptSubTabType = 'templates' | 'macros';  // V0.9.2: 提示词模板子 Tab
 
 // 子 Tab 配置
 const MODEL_SUB_TABS: { id: ModelSubTabType; label: string; icon: React.ElementType }[] = [
     { id: 'llm', label: 'LLM 预设', icon: Key },
     { id: 'vector', label: '向量化', icon: Cpu },
     { id: 'rerank', label: 'Rerank', icon: Layers },
-    { id: 'recall', label: '召回策略', icon: Network }, // Added tab
 ];
 
 interface APIPresetsProps {
@@ -51,6 +52,10 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
     // Tab 状态
     const [mainTab, setMainTab] = useState<MainTabType>(initialTab || 'model');
     const [modelSubTab, setModelSubTab] = useState<ModelSubTabType>('llm');
+    const [promptSubTab, setPromptSubTab] = useState<PromptSubTabType>('templates');  // V0.9.2
+
+    // V0.9.2: 编辑中的自定义宏
+    const [editingMacroId, setEditingMacroId] = useState<string | null>(null);
 
     // 移动端状态
     const [isMobile, setIsMobile] = useState(window.innerWidth < DESKTOP_BREAKPOINT);
@@ -96,12 +101,16 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         resetRules,
 
         save,
-        // Worldbook filtering
-        worldbookStructure,
-        disabledEntries,
         toggleWorldbook,
         toggleEntry,
         refreshWorldbooks,
+        worldbookStructure,
+        disabledEntries,
+        // V0.9.2: 自定义宏
+        addCustomMacro,
+        updateCustomMacro,
+        deleteCustomMacro,
+        toggleCustomMacro,
     } = useAPIPresets();
 
     // 移动端选择处理
@@ -282,29 +291,62 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
 
                         {modelSubTab === 'vector' && <VectorConfigForm config={settings.vectorConfig} onChange={updateVectorConfig} />}
                         {modelSubTab === 'rerank' && <RerankConfigForm config={settings.rerankConfig} onChange={updateRerankConfig} />}
-                        {modelSubTab === 'recall' && settings.recallConfig && <RecallConfigForm config={settings.recallConfig} onChange={updateRecallConfig} />}
                     </div>
                 )}
 
                 {/* 提示词模板 Tab - Master-Detail */}
                 {mainTab === 'prompt' && (
                     <div className={`flex gap-6 h-full ${isMobile ? 'flex-col' : ''}`}>
-                        {/* 列表 */}
+                        {/* 列表区域 */}
                         <div className={`
                             ${isMobile ? 'w-full' : 'w-[30%] min-w-[280px] border-r border-border/50 pr-4'}
                         `}>
-                            <PromptTemplateList
-                                templates={settings.promptTemplates}
-                                selectedId={editingTemplate?.id || null}
-                                onSelect={(t) => handleMobileSelect(() => selectTemplate(t))}
-                                onAdd={addTemplate}
-                                onUpdate={updateTemplate}
-                                onDelete={deleteTemplate}
-                            />
+                            {/* V0.9.2: 子标签切换 */}
+                            <div className="flex items-center gap-2 mb-4">
+                                <button
+                                    onClick={() => setPromptSubTab('templates')}
+                                    className={`text-xs font-bold uppercase tracking-wider transition-colors ${promptSubTab === 'templates'
+                                        ? 'text-primary'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                >
+                                    提示词模板
+                                </button>
+                                <span className="text-muted-foreground/30">|</span>
+                                <button
+                                    onClick={() => setPromptSubTab('macros')}
+                                    className={`text-xs font-bold uppercase tracking-wider transition-colors ${promptSubTab === 'macros'
+                                        ? 'text-primary'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                >
+                                    自定义宏
+                                </button>
+                            </div>
+
+                            {promptSubTab === 'templates' ? (
+                                <PromptTemplateList
+                                    templates={settings.promptTemplates}
+                                    selectedId={editingTemplate?.id || null}
+                                    onSelect={(t) => handleMobileSelect(() => selectTemplate(t))}
+                                    onAdd={addTemplate}
+                                    onUpdate={updateTemplate}
+                                    onDelete={deleteTemplate}
+                                />
+                            ) : (
+                                <CustomMacroList
+                                    macros={settings.customMacros || []}
+                                    selectedId={editingMacroId}
+                                    onSelect={(macro) => handleMobileSelect(() => setEditingMacroId(macro.id))}
+                                    onAdd={addCustomMacro}
+                                    onToggle={toggleCustomMacro}
+                                    onDelete={deleteCustomMacro}
+                                />
+                            )}
                         </div>
 
                         {/* 编辑区域 - 仅桌面端 */}
-                        {!isMobile && (
+                        {!isMobile && promptSubTab === 'templates' && (
                             <div className="flex-1 overflow-y-auto no-scrollbar">
                                 {editingTemplate ? (
                                     <PromptTemplateForm
@@ -319,6 +361,26 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                         <p className="text-sm font-light">选择一个模板进行编辑</p>
                                     </div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* V0.9.2: 自定义宏编辑区域 - 仅桌面端 */}
+                        {!isMobile && promptSubTab === 'macros' && (
+                            <div className="flex-1 overflow-y-auto no-scrollbar">
+                                {(() => {
+                                    const editingMacro = (settings.customMacros || []).find(m => m.id === editingMacroId);
+                                    return editingMacro ? (
+                                        <CustomMacroForm
+                                            macro={editingMacro}
+                                            onChange={(updates) => updateCustomMacro(editingMacro.id, updates)}
+                                        />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center p-12 text-muted-foreground gap-4">
+                                            <Braces size={32} className="opacity-20" />
+                                            <p className="text-sm font-light">选择一个宏进行编辑</p>
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>

@@ -23,6 +23,7 @@ import type { PreprocessingConfig } from '@/services/preprocessing/types';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/services/preprocessing/types';
 import { Search, AlertCircle, Wand2 } from 'lucide-react';
 import { useAPIPresets } from '@/hooks/useAPIPresets';
+import { Logger } from '@/lib/logger';
 
 interface QuickPanelProps {
     isOpen: boolean;
@@ -35,8 +36,8 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
     );
 
     // 获取所有预处理模板
-    const { settings, updateRecallConfig, updateTemplate } = useAPIPresets();
-    const recallConfig = settings.apiSettings?.recallConfig;
+    const { settings, updateRecallConfig, save } = useAPIPresets();
+    const recallConfig = settings.recallConfig;
 
     // 计算当前的启用状态：必须两者都开启才算开启 (但 UI 上我们尽量同步它们)
     const isIdsEnabled = config.enabled && (recallConfig?.usePreprocessing ?? false);
@@ -66,6 +67,8 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         const currentRecallState = recallConfig?.usePreprocessing ?? false;
         const newState = !currentRecallState;
 
+        Logger.debug('QuickPanel', '切换预处理状态', { from: currentRecallState, to: newState });
+
         // 1. 更新全局 Recall Config
         if (recallConfig) {
             updateRecallConfig({ ...recallConfig, usePreprocessing: newState });
@@ -75,10 +78,15 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         const newPreConfig = { ...config, enabled: newState };
         setConfig(newPreConfig);
         preprocessor.saveConfig(newPreConfig);
-    }, [config, recallConfig, updateRecallConfig]);
+
+        // 3. 立即持久化（关键修复：save() 调用）
+        save();
+    }, [config, recallConfig, updateRecallConfig, save]);
 
     // 切换模式 (选中模板时自动开启预处理)
     const handleModeChange = useCallback((templateId: string) => {
+        Logger.debug('QuickPanel', '切换预处理模式', { templateId });
+
         // 1. 更新 Preprocessor Config
         const newPreConfig = { ...config, templateId: templateId, enabled: true };
         setConfig(newPreConfig);
@@ -88,7 +96,10 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         if (recallConfig && !recallConfig.usePreprocessing) {
             updateRecallConfig({ ...recallConfig, usePreprocessing: true });
         }
-    }, [config, recallConfig, updateRecallConfig]);
+
+        // 3. 立即持久化
+        save();
+    }, [config, recallConfig, updateRecallConfig, save]);
 
     // 如果当前选中的模板不在可用列表中（除了默认或未设置），给个提示
     const isCurrentTemplateValid = !config.templateId || availableModes.some(m => m.id === config.templateId);

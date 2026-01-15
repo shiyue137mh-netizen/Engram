@@ -15,6 +15,7 @@ import type {
     WorldbookConfig,
     GlobalRegexConfig,
     RecallConfig,
+    CustomMacro,
 } from '@/services/api/types';
 import {
     getDefaultAPISettings,
@@ -71,6 +72,12 @@ export interface UseAPIPresetsReturn {
     toggleRule: (id: string) => void;
     deleteRule: (id: string) => void;
     resetRules: () => void;
+
+    // V0.9.2: 自定义宏操作
+    addCustomMacro: () => void;
+    updateCustomMacro: (id: string, updates: Partial<CustomMacro>) => void;
+    deleteCustomMacro: (id: string) => void;
+    toggleCustomMacro: (id: string) => void;
 
     // 保存
     save: () => void;
@@ -415,6 +422,51 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         setHasChanges(true);
     }, []);
 
+    // ==================== V0.9.2: 自定义宏操作 ====================
+
+    const addCustomMacro = useCallback(() => {
+        const newMacro: CustomMacro = {
+            id: `custom_${Date.now()}`,
+            name: '新宏',
+            content: '',
+            enabled: true,
+            createdAt: Date.now(),
+        };
+        setSettings(prev => ({
+            ...prev,
+            customMacros: [...(prev.customMacros || []), newMacro],
+        }));
+        setHasChanges(true);
+    }, []);
+
+    const updateCustomMacro = useCallback((id: string, updates: Partial<CustomMacro>) => {
+        setSettings(prev => ({
+            ...prev,
+            customMacros: (prev.customMacros || []).map(m =>
+                m.id === id ? { ...m, ...updates } : m
+            ),
+        }));
+        setHasChanges(true);
+    }, []);
+
+    const deleteCustomMacro = useCallback((id: string) => {
+        setSettings(prev => ({
+            ...prev,
+            customMacros: (prev.customMacros || []).filter(m => m.id !== id),
+        }));
+        setHasChanges(true);
+    }, []);
+
+    const toggleCustomMacro = useCallback((id: string) => {
+        setSettings(prev => ({
+            ...prev,
+            customMacros: (prev.customMacros || []).map(m =>
+                m.id === id ? { ...m, enabled: !m.enabled } : m
+            ),
+        }));
+        setHasChanges(true);
+    }, []);
+
     return {
         settings,
         editingPreset,
@@ -452,6 +504,12 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         toggleRule,
         deleteRule,
         resetRules,
+
+        // V0.9.2: 自定义宏
+        addCustomMacro,
+        updateCustomMacro,
+        deleteCustomMacro,
+        toggleCustomMacro,
 
         save,
     };

@@ -48,11 +48,11 @@ export const Settings: React.FC = () => {
                 <section>
                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">毛玻璃特效 (Glass Effect)</h3>
                     <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div>
-                                    <h4 className="font-medium text-foreground">启用毛玻璃</h4>
-                                    <p className="text-sm text-muted-foreground break-words max-w-[200px] sm:max-w-none">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-medium text-foreground truncate">启用毛玻璃</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">
                                         开启后，面板背景将具有磨砂质感
                                     </p>
                                 </div>
@@ -128,14 +128,14 @@ export const Settings: React.FC = () => {
                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">功能</h3>
 
                     <div className="bg-muted/30 border border-border rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="p-2 rounded-lg bg-primary/10 text-primary flex-shrink-0">
                                     <Eye size={20} />
                                 </div>
-                                <div>
-                                    <h4 className="font-medium text-foreground">启用修订模式</h4>
-                                    <p className="text-sm text-muted-foreground break-words">在写入长期记忆前，弹出预览窗口</p>
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-medium text-foreground truncate">启用修订模式</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">在写入长期记忆前，弹出预览窗口</p>
                                 </div>
                             </div>
                             <Switch
@@ -153,14 +153,14 @@ export const Settings: React.FC = () => {
                 <section>
                     <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">输入预处理</h3>
                     <div className="bg-muted/30 border border-border rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="p-2 rounded-lg bg-primary/10 text-primary flex-shrink-0">
                                     <Eye size={20} />
                                 </div>
-                                <div>
-                                    <h4 className="font-medium text-foreground">预处理修订模式</h4>
-                                    <p className="text-sm text-muted-foreground break-words">在注入用户输入前，弹出预览窗口</p>
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-medium text-foreground truncate">预处理修订模式</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">在注入用户输入前，弹出预览窗口</p>
                                 </div>
                             </div>
                             <Switch
@@ -181,14 +181,14 @@ export const Settings: React.FC = () => {
 
                     <div className="bg-muted/30 border border-border rounded-lg p-4 space-y-4">
                         {/* 联动删除 */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="p-2 rounded-lg bg-red-500/10 text-red-500 flex-shrink-0">
                                     <Trash2 size={20} />
                                 </div>
-                                <div>
-                                    <h4 className="font-medium text-foreground">联动删除</h4>
-                                    <p className="text-sm text-muted-foreground break-words">删除角色/聊天时，自动清理记忆库</p>
+                                <div className="min-w-0 flex-1">
+                                    <h4 className="font-medium text-foreground truncate">联动删除</h4>
+                                    <p className="text-sm text-muted-foreground line-clamp-2">删除角色/聊天时，自动清理记忆库</p>
                                 </div>
                             </div>
                             <Switch
@@ -215,10 +215,10 @@ export const Settings: React.FC = () => {
                                         className="scale-90"
                                     />
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <div>
-                                        <span className="text-sm text-muted-foreground">删除聊天时同步删除 Worldbook</span>
-                                        <p className="text-xs text-muted-foreground/60 break-words">危险: 多聊天共享 Worldbook 时可能误删</p>
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <span className="text-sm text-muted-foreground block truncate">删除聊天时同步删除 Worldbook</span>
+                                        <p className="text-xs text-muted-foreground/60 line-clamp-2">危险: 多聊天共享 Worldbook 时可能误删</p>
                                     </div>
                                     <Switch
                                         checked={linkedDeletion.deleteChatWorldbook ?? false}

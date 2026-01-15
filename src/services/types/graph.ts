@@ -88,19 +88,66 @@ export interface EventNode {
 }
 
 /**
+ * EntityType - 实体类型枚举
+ * V0.9: 新增
+ */
+export enum EntityType {
+    Character = 'char',      // 角色/人物
+    Location = 'loc',        // 地点
+    Item = 'item',           // 物品
+    Concept = 'concept'      // 概念/组织/势力
+}
+
+/**
  * EntityNode - Graph Entities
  * Represents static or slowly changing entities (People, Places, Items).
+ *
+ * V0.9: 完善字段，支持图谱可视化和扩展性
  */
 export interface EntityNode {
+    /** UUID */
     id: string;
+
+    /** 实体主名称 */
     name: string;
-    type: string; // 'Character' | 'Location' | 'Item' | 'Concept'
+
+    /** 实体类型 */
+    type: EntityType;
+
+    /** 简短描述 */
     description: string;
 
-    /** Associated Event IDs */
-    related_events?: string[];
+    /** 别名列表 (用于消歧和匹配) */
+    aliases: string[];
 
+    /** 关联的事件 ID 列表 */
+    related_events: string[];
+
+    /** 初次登场事件 ID */
+    first_seen_event_id?: string;
+
+    /** 重要度权重 (0.0 - 1.0) */
+    significance: number;
+
+    /** 最后更新时间 */
     last_updated_at: number;
+
+    // ========== 图谱可视化 ==========
+
+    /** 布局 X 坐标 (用户拖拽后持久化) */
+    layout_x?: number;
+
+    /** 布局 Y 坐标 */
+    layout_y?: number;
+
+    // ========== 扩展性预留 (V1.0+) ==========
+
+    /**
+     * 扩展数据容器
+     * 命名空间隔离，允许外部扩展添加自定义属性
+     * 例如: { affinity_system: { value: 50 }, physiology: { hunger: 80 } }
+     */
+    ext?: Record<string, unknown>;
 }
 
 /**
@@ -112,6 +159,8 @@ export interface ScopeState {
     token_usage_accumulated: number;
     last_compressed_at: number;
     active_summary_order: number;
+    /** V0.9.1: 上次实体提取的楼层 */
+    last_extracted_floor: number;
 }
 
 /**
@@ -122,4 +171,5 @@ export const DEFAULT_SCOPE_STATE: ScopeState = {
     token_usage_accumulated: 0,
     last_compressed_at: 0,
     active_summary_order: 9000,
+    last_extracted_floor: 0,
 };

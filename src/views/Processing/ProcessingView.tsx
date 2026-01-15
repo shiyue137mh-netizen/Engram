@@ -5,7 +5,7 @@
  * 类似 APIPresetsView 的架构设计
  */
 import React, { useState } from 'react';
-import { FileText, Database, Layers, Boxes, ScrollText, BookOpen, Search } from 'lucide-react';
+import { FileText, Database, Layers, Network, ScrollText, BookOpen, Search } from 'lucide-react';
 import { Tab } from "@/components/ui/TabPills";
 import { LayoutTabs } from "@/components/layout/LayoutTabs";
 import { Divider } from "@/components/layout/Divider";
@@ -13,15 +13,16 @@ import { QuickLinks, QuickLink } from '@/components/common/QuickLinks';
 import { SummaryPanel } from './SummaryPanel';
 import { VectorizationPanel } from './VectorizationPanel';
 import { RecallPanel } from './RecallPanel';
+import { EntityConfigPanel } from './EntityConfigPanel';
 
-type ProcessingTab = 'summary' | 'vectorization' | 'recall' | 'batch';
+type ProcessingTab = 'summary' | 'vectorization' | 'recall' | 'entity';
 
-// 主 Tab 配置
+// 主 Tab 配置 - V0.9.2: 实体提取放在记忆摘要后（同级）
 const MAIN_TABS: Tab[] = [
     { id: 'summary', label: '记忆摘要', icon: <FileText size={16} /> },
+    { id: 'entity', label: '实体提取', icon: <Network size={16} /> },
     { id: 'vectorization', label: '向量化', icon: <Database size={16} /> },
     { id: 'recall', label: '召回配置', icon: <Search size={16} /> },
-    { id: 'batch', label: '批量处理', icon: <Layers size={16} /> },
 ];
 
 // 快速跳转链接配置（使用 page:subtab 格式精确跳转）
@@ -70,16 +71,12 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                 {/* 召回配置 Tab - V0.8.5 */}
                 {activeTab === 'recall' && <RecallPanel />}
 
-                {/* 批量处理 Tab */}
-                {activeTab === 'batch' && (
-                    <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-                        <Boxes size={32} strokeWidth={1} className="opacity-30" />
-                        <p className="text-sm font-light">批量处理功能开发中...</p>
-                    </div>
-                )}
+                {/* 实体提取 Tab - V0.9 */}
+                {activeTab === 'entity' && <EntityConfigPanel />}
             </div>
         </div>
     );
 };
 
 export default ProcessingView;
+
