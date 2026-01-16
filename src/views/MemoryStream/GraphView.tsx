@@ -24,7 +24,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { LayoutGrid, RefreshCw } from 'lucide-react';
-import type { EventNode as EventNodeDataType, EntityNode as EntityNodeDataType } from '@/services/types/graph';
+import type { EventNode as EventNodeDataType, EntityNode as EntityNodeDataType, EntityRelation } from '@/services/types/graph';
 import { getLayoutedElements } from './layoutHelper';
 
 // ==================== 节点数据类型定义 ====================
@@ -42,6 +42,7 @@ interface EntityFlowNodeData {
     label: string;
     type: string;
     description: string;
+    profile?: Record<string, unknown>;
     [key: string]: unknown;
 }
 
@@ -195,21 +196,51 @@ export const GraphView: React.FC<GraphViewProps> = ({ events, entities }) => {
                     label: entity.name,
                     type: entity.type,
                     description: entity.description,
+                    profile: entity.profile,
                 } as EntityFlowNodeData,
             });
+        });
 
-            // 4. 创建 INVOLVED_IN 边
-            entity.related_events?.forEach((eventId) => {
-                if (events.find(e => e.id === eventId)) {
-                    newEdges.push({
-                        id: `e-${entity.id}-${eventId}`,
-                        source: entity.id,
-                        target: eventId,
-                        type: 'smoothstep',
-                        animated: false,
-                        style: { stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '4 2' },
-                    });
-                }
+        // 4. V0.9.4: 创建显式关系边 (从 profile.relations)
+        entities.forEach((entity) => {
+            const relations = entity.profile?.relations as EntityRelation[] | undefined;
+            if (relations && Array.isArray(relations)) {
+                relations.forEach((rel) => {
+                    // 查找目标实体
+                    const targetEntity = entities.find(e => e.name === rel.target);
+                    if (targetEntity) {
+                        newEdges.push({
+                            id: `rel-${entity.id}-${targetEntity.id}`,
+                            source: entity.id,
+                            target: targetEntity.id,
+                            type: 'smoothstep',
+                            animated: false,
+                            label: rel.type,
+                            style: { stroke: '#888', strokeWidth: 1 },
+                            labelStyle: { fontSize: 10, fill: '#aaa' },
+                        });
+                    }
+                });
+            }
+        });
+
+        // 5. V0.9.4: 创建隐式共现边 (从 EventNode.role 反查)
+        events.forEach((event) => {
+            const roles = event.structured_kv?.role || [];
+            // 找到这些角色对应的实体节点
+            const involvedEntities = entities.filter(e =>
+                roles.includes(e.name) || e.aliases?.some(alias => roles.includes(alias))
+            );
+            // 将每个实体连接到该事件
+            involvedEntities.forEach((entity) => {
+                newEdges.push({
+                    id: `co-${entity.id}-${event.id}`,
+                    source: entity.id,
+                    target: event.id,
+                    type: 'smoothstep',
+                    animated: false,
+                    style: { stroke: 'var(--muted-foreground)', strokeWidth: 1, strokeDasharray: '4 2' },
+                });
             });
         });
 

@@ -95,39 +95,61 @@ export enum EntityType {
     Character = 'char',      // 角色/人物
     Location = 'loc',        // 地点
     Item = 'item',           // 物品
-    Concept = 'concept'      // 概念/组织/势力
+    Concept = 'concept',     // 概念/组织/势力
+    Unknown = 'unknown'      // 未知类型
+}
+
+/**
+ * 实体关系的推荐结构 (Soft Contract)
+ * 存放在 profile.relations 中
+ * V0.9.4: 新增
+ */
+export interface EntityRelation {
+    /** 目标实体名称 */
+    target: string;
+    /** 关系类型 (friend/enemy/master/servant/ally 等) */
+    type: string;
+    /** 关系细节描述 */
+    description?: string;
 }
 
 /**
  * EntityNode - Graph Entities
- * Represents static or slowly changing entities (People, Places, Items).
+ * V0.9.4: 重构为 "无边设计 + 双重结构" 范式
  *
- * V0.9: 完善字段，支持图谱可视化和扩展性
+ * 设计理念:
+ * - For Model: description 字段存储 YAML 格式的烧录文本
+ * - For Machine: profile 字段存储开放式 JSON 结构
  */
 export interface EntityNode {
     /** UUID */
     id: string;
 
-    /** 实体主名称 */
+    /** 索引键: 实体主名称 */
     name: string;
 
     /** 实体类型 */
     type: EntityType;
 
-    /** 简短描述 */
-    description: string;
-
-    /** 别名列表 (用于消歧和匹配) */
+    /** MultiEntry索引: 别名列表 (用于消歧) */
     aliases: string[];
 
-    /** 关联的事件 ID 列表 */
-    related_events: string[];
+    /**
+     * [For Model] Burn-in YAML
+     * 由 profile 序列化而成的 YAML 字符串。
+     * RAG 检索时直接读取此字段作为 LLM 上下文。
+     */
+    description: string;
 
-    /** 初次登场事件 ID */
-    first_seen_event_id?: string;
-
-    /** 重要度权重 (0.0 - 1.0) */
-    significance: number;
+    /**
+     * [For Machine] Open KV Container
+     * 完全开放的 JSON 对象。AI 可自由写入。
+     * 约定字段:
+     * - relations: EntityRelation[] (用于多跳检索)
+     * - identity: string (核心身份)
+     * - tags: string[] (特征标签)
+     */
+    profile: Record<string, unknown>;
 
     /** 最后更新时间 */
     last_updated_at: number;
@@ -139,15 +161,6 @@ export interface EntityNode {
 
     /** 布局 Y 坐标 */
     layout_y?: number;
-
-    // ========== 扩展性预留 (V1.0+) ==========
-
-    /**
-     * 扩展数据容器
-     * 命名空间隔离，允许外部扩展添加自定义属性
-     * 例如: { affinity_system: { value: 50 }, physiology: { hunger: 80 } }
-     */
-    ext?: Record<string, unknown>;
 }
 
 /**

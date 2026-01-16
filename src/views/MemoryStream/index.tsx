@@ -321,7 +321,7 @@ export const MemoryStream: React.FC = () => {
                     className="flex flex-col overflow-hidden"
                     style={{
                         // 计算可用高度：视口高度 - header(~50px) - tabs(~80px) - title(~60px) - 边距(~80px)
-                        height: 'calc(100vh - 270px)',
+                        height: 'calc(100vh - 100px)',
                         minHeight: '300px',
                     }}
                 >

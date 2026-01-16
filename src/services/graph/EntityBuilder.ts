@@ -23,26 +23,15 @@ import { DEFAULT_ENTITY_CONFIG } from '@/services/api/types';
 import entityExtractionPrompt from '@/services/api/prompts/entity_extraction.md?raw';
 
 /**
- * 实体提取 LLM 响应格式
+ * V0.9.4: 实体提取 LLM 响应格式（开放结构）
  */
 interface EntityExtractionResponse {
-    newEntities: Array<{
+    entities: Array<{
         name: string;
-        type: 'char' | 'loc' | 'item' | 'concept';
+        type: 'char' | 'loc' | 'item' | 'concept' | 'unknown';
         aliases: string[];
-        description: string;
-        significance: number;
-    }>;
-    eventEntityLinks: Array<{
-        entity_name: string;
-        event_id: string;
-        role: 'protagonist' | 'participant' | 'mentioned';
-    }>;
-    entityRelations: Array<{
-        source: string;
-        target: string;
-        relation: string;
-        weight: number;
+        /** 开放式属性容器，AI 自由写入 */
+        profile: Record<string, unknown>;
     }>;
 }
 
@@ -168,9 +157,9 @@ export class EntityBuilder {
                 return { success: false, newEntities: [], updatedEntities: [], error: response.error };
             }
 
-            // 5. 解析 JSON
+            // 5. 解析 JSON (V0.9.4: 使用新的 entities 字段)
             const parsed = RobustJsonParser.parse<EntityExtractionResponse>(response.content);
-            if (!parsed || !parsed.newEntities) {
+            if (!parsed || !parsed.entities) {
                 Logger.error('EntityBuilder', 'JSON 解析失败');
                 if (manual) {
                     notificationService.error('实体提取失败：无法解析结果', 'Engram');
@@ -224,6 +213,7 @@ export class EntityBuilder {
 
     /**
      * 保存实体到数据库
+     * V0.9.4: 适配开放式 profile 结构
      */
     private async saveEntities(
         data: EntityExtractionResponse,
@@ -234,19 +224,37 @@ export class EntityBuilder {
         const newEntities: EntityNode[] = [];
         const updatedEntities: EntityNode[] = [];
 
-        for (const newEntity of data.newEntities) {
+        for (const extracted of data.entities) {
             // 1. 检查是否已存在
-            const existing = this.resolveEntity(newEntity.name, newEntity.aliases, existingEntities);
+            const existing = this.resolveEntity(extracted.name, extracted.aliases, existingEntities);
+
+            // 2. 从 profile 生成 YAML 格式的 description (For Model)
+            const description = this.profileToYaml(extracted.name, extracted.type, extracted.profile);
 
             if (existing) {
-                // 更新现有实体
+                // 更新现有实体: 合并 profile
+                const mergedProfile = {
+                    ...existing.profile,
+                    ...extracted.profile,
+                };
+                // 合并 relations 数组
+                if (Array.isArray(extracted.profile?.relations)) {
+                    const existingRelations = (existing.profile?.relations as Array<{ target: string }>) || [];
+                    const newRelations = extracted.profile.relations as Array<{ target: string }>;
+                    const relationMap = new Map(existingRelations.map(r => [r.target, r]));
+                    for (const rel of newRelations) {
+                        relationMap.set(rel.target, rel);
+                    }
+                    mergedProfile.relations = Array.from(relationMap.values());
+                }
+
                 const updates: Partial<EntityNode> = {
-                    description: newEntity.description || existing.description,
-                    significance: Math.max(newEntity.significance, existing.significance),
+                    description: this.profileToYaml(existing.name, existing.type, mergedProfile),
+                    profile: mergedProfile,
                 };
 
                 // 合并别名
-                const allAliases = new Set([...(existing.aliases || []), ...newEntity.aliases]);
+                const allAliases = new Set([...(existing.aliases || []), ...extracted.aliases]);
                 updates.aliases = Array.from(allAliases);
 
                 await store.updateEntity(existing.id, updates);
@@ -258,28 +266,49 @@ export class EntityBuilder {
                     'loc': EntityType.Location,
                     'item': EntityType.Item,
                     'concept': EntityType.Concept,
+                    'unknown': EntityType.Unknown,
                 };
 
                 const entity = await store.saveEntity({
-                    name: newEntity.name,
-                    type: typeMap[newEntity.type] || EntityType.Concept,
-                    description: newEntity.description,
-                    aliases: newEntity.aliases || [],
-                    related_events: [],
-                    significance: newEntity.significance,
+                    name: extracted.name,
+                    type: typeMap[extracted.type] || EntityType.Unknown,
+                    description,
+                    aliases: extracted.aliases || [],
+                    profile: extracted.profile || {},
                 });
                 newEntities.push(entity);
             }
         }
-
-        // 2. entityRelations 暂不持久化，运行时计算
-        // TODO: V0.10+ 可以考虑持久化关系数据
 
         return {
             success: true,
             newEntities,
             updatedEntities,
         };
+    }
+
+    /**
+     * 将 profile 转换为 YAML 格式的描述文本 (For Model)
+     * V0.9.4: 新增
+     */
+    private profileToYaml(name: string, type: string, profile: Record<string, unknown>): string {
+        const lines: string[] = [`${name} (${type})`];
+
+        for (const [key, value] of Object.entries(profile)) {
+            if (key === 'relations' && Array.isArray(value)) {
+                lines.push(`关系:`);
+                for (const rel of value as Array<{ target: string; type: string; description?: string }>) {
+                    const desc = rel.description ? ` - ${rel.description}` : '';
+                    lines.push(`  - ${rel.target}: ${rel.type}${desc}`);
+                }
+            } else if (typeof value === 'string') {
+                lines.push(`${key}: ${value}`);
+            } else if (Array.isArray(value)) {
+                lines.push(`${key}: ${value.join(', ')}`);
+            }
+        }
+
+        return lines.join('\n');
     }
 
     /**

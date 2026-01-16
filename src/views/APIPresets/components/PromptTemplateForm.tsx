@@ -13,16 +13,61 @@ interface PromptTemplateFormProps {
     onChange: (template: PromptTemplate) => void;
 }
 
+import { Plus, Copy, Check } from 'lucide-react';
+import { useState } from 'react';
+
+// ... imports
+
+interface MacroDef {
+    name: string;
+    desc: string;
+    category: 'Context (上下文)' | 'Text Generation (文本生成)' | 'Data Layer (数据层)';
+}
+
 // 可用宏定义及说明
-const AVAILABLE_MACROS = [
-    { name: '{{chatHistory}}', desc: '待处理的对话历史' },
-    { name: '{{context}}', desc: '角色卡设定' },
-    { name: '{{char}}', desc: '角色名' },
-    { name: '{{user}}', desc: '用户名' },
-    { name: '{{userInput}}', desc: '当前用户输入' },
-    { name: '{{worldbookContext}}', desc: '世界书激活内容' },
-    { name: '{{engramSummaries}}', desc: 'Engram 所有摘要（用于精简）' },
+const AVAILABLE_MACROS: MacroDef[] = [
+    // Context
+    { name: '{{userInput}}', desc: '当前用户输入的内容', category: 'Context (上下文)' },
+    { name: '{{chatHistory}}', desc: '最近的对话历史。支持参数: {{chatHistory:20}}', category: 'Context (上下文)' },
+    { name: '{{context}}', desc: '角色卡原始设定 (Description/Persona...)', category: 'Context (上下文)' },
+    { name: '{{worldbookContext}}', desc: '当前激活的世界书条目内容', category: 'Context (上下文)' },
+    { name: '{{userPersona}}', desc: '用户角色设定 (Persona Description)', category: 'Context (上下文)' },
+    { name: '{{char}}', desc: '当前角色名称', category: 'Context (上下文)' },
+    { name: '{{user}}', desc: '用户名称', category: 'Context (上下文)' },
+
+    // Text Generation
+    { name: '{{engramSummaries}}', desc: '所有已生成的事件摘要 (纯文本, 用于剧情回顾/精简)', category: 'Text Generation (文本生成)' },
+    { name: '{{engramArchivedSummaries}}', desc: '已归档的历史摘要 (绿灯事件)', category: 'Text Generation (文本生成)' },
+
+    // Data Layer
+    { name: '{{engramGraph}}', desc: '完整的图谱数据 JSON (用于实体提取/图谱操作)', category: 'Data Layer (数据层)' },
 ];
+
+const MacroItem = ({ macro }: { macro: MacroDef }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(macro.name);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="flex items-center justify-between gap-2 p-1.5 rounded hover:bg-muted/50 group transition-colors">
+            <div className="flex flex-col gap-0.5">
+                <code className="text-[11px] text-primary font-mono font-medium">{macro.name}</code>
+                <span className="text-[10px] text-muted-foreground">{macro.desc}</span>
+            </div>
+            <button
+                onClick={handleCopy}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
+                title="复制宏"
+            >
+                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+            </button>
+        </div>
+    );
+};
 
 export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
     template,
@@ -40,6 +85,13 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
     const updateTemplate = (updates: Partial<PromptTemplate>) => {
         onChange({ ...template, ...updates, updatedAt: Date.now() });
     };
+
+    // Group macros
+    const groupedMacros = AVAILABLE_MACROS.reduce((acc, macro) => {
+        if (!acc[macro.category]) acc[macro.category] = [];
+        acc[macro.category].push(macro);
+        return acc;
+    }, {} as Record<string, MacroDef[]>);
 
     return (
         <div className="flex flex-col gap-4">
@@ -83,8 +135,6 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                         description="预处理结果如何与用户输入组合"
                     />
                 )}
-
-
             </FormSection>
 
             {/* 提示词内容 */}
@@ -109,15 +159,23 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
             </FormSection>
 
             {/* 可用宏提示 */}
-            <div className="px-3 py-2 bg-muted/30 rounded border border-border">
-                <div className="text-[10px] text-muted-foreground mb-2 font-medium uppercase tracking-wider">可用宏</div>
-                <div className="flex flex-col gap-1">
-                    {AVAILABLE_MACROS.map((m) => (
-                        <div key={m.name} className="flex items-center gap-2 text-[10px]">
-                            <code className="px-1.5 py-0.5 bg-muted rounded text-primary font-mono whitespace-nowrap">
-                                {m.name}
-                            </code>
-                            <span className="text-muted-foreground">{m.desc}</span>
+            <div className="px-3 py-3 bg-muted/20 rounded-md border border-border/50 space-y-3">
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <span>可用宏变量</span>
+                    <div className="h-px bg-border flex-1"></div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                    {Object.entries(groupedMacros).map(([category, macros]) => (
+                        <div key={category} className="flex flex-col gap-1">
+                            <div className="text-[10px] text-primary/70 font-medium px-1 mb-0.5">{category}</div>
+                            <div className="grid grid-cols-1 gap-px bg-border/20 rounded overflow-hidden">
+                                {macros.map((m) => (
+                                    <div key={m.name} className="bg-background/50">
+                                        <MacroItem macro={m} />
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </div>

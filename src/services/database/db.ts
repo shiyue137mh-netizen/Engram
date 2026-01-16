@@ -28,11 +28,13 @@ export class ChatDatabase extends Dexie {
         // 数据库名格式: Engram_{chatId}
         super(`Engram_${chatId}`);
 
-        this.version(1).stores({
+        // V0.9.4: Schema 升级
+        // - entities 表添加 *aliases MultiEntry 索引支持高效别名查询
+        this.version(2).stores({
             // Events: 核心记忆单元
             events: 'id, timestamp, significance_score, level',
-            // Entities: 图谱实体
-            entities: 'id, type, name',
+            // Entities: 图谱实体 (V0.9.4: 添加 aliases 索引)
+            entities: 'id, type, name, *aliases',
             // Meta: 状态存储 (lastSummarizedFloor 等)
             meta: 'key'
         });

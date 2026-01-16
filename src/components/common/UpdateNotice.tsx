@@ -20,13 +20,41 @@ interface UpdateNoticeProps {
 const EXTENSION_NAME = 'Engram_project';
 
 /**
+ * 获取酒馆请求头（用于认证）
+ * 从 SillyTavern 上下文或全局变量获取
+ */
+function getTavernRequestHeaders(): Record<string, string> {
+    try {
+        // @ts-ignore - 酒馆全局函数
+        if (typeof window.getRequestHeaders === 'function') {
+            return window.getRequestHeaders();
+        }
+        // 备用方案：从 SillyTavern context 获取
+        // @ts-ignore
+        const context = window.SillyTavern?.getContext?.();
+        if (context?.getRequestHeaders) {
+            return context.getRequestHeaders();
+        }
+    } catch (e) {
+        console.warn('[Engram] 无法获取酒馆请求头', e);
+    }
+    // 返回最小必要头
+    return {
+        'Content-Type': 'application/json',
+    };
+}
+
+/**
  * 调用酒馆扩展更新 API
  */
 async function updateEngramExtension(): Promise<{ success: boolean; message: string; isUpToDate?: boolean }> {
     try {
+        const headers = getTavernRequestHeaders();
+
         const response = await fetch('/api/extensions/update', {
             method: 'POST',
             headers: {
+                ...headers,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({

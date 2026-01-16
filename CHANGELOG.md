@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.9.4] - 2026-01-16
+
+### 🏗️ Graph System Refactoring (图谱系统重构)
+- **无边设计 (No-Edge Design)**: 移除独立的 Edges 表，采用更轻量的拓扑逻辑
+  - **显式关系**: 通过 `EntityNode.profile.relations` 存储静态逻辑关系
+  - **隐式关系**: 通过 `EventNode.structured_kv.role` 反查建立动态共现连接
+- **双重结构 (Double-Structure)**: 所有实体节点遵循 "Store as JSON, Prompt as Text" 模式
+  - `description`: [For Model] YAML 烧录文本，直接注入 LLM 上下文
+  - `profile`: [For Machine] 开放式 KV 容器，AI 可自由写入任何属性
+- **EntityNode 重构**:
+  - ✅ 新增 `profile: Record<string, unknown>` 开放容器
+  - ✅ 新增 `EntityRelation` 接口 (`target`, `type`, `description`)
+  - ❌ 移除 `significance` 字段 (对实体无意义)
+  - ❌ 移除 `related_events` 字段 (改用 EventNode.role 反查)
+  - ❌ 移除 `first_seen_event_id` 和 `ext` 字段
+
+### 🗄️ Database (数据库升级)
+- Schema 升级到 **v2**
+- 为 `entities` 表添加 `*aliases` **MultiEntry 索引**，支持高效别名查询
+
+### ✨ EntityBuilder 升级
+- LLM 输出改为开放式 `profile` 结构
+- 新增 `profileToYaml()` 方法将 profile 序列化为烧录文本
+- 更新消歧逻辑，支持 profile.relations 合并
+
+### 📊 GraphView 优化
+- 显式边: 从 `profile.relations` 生成实体间关系连线
+- 隐式边: 从 `EventNode.structured_kv.role` 反查生成实体-事件共现连线
+
+### 📄 Documentation
+- 更新 `entity_extraction.md` 提示词模板，适配开放式输出格式
+- 更新 `项目文件架构.md`、`项目总体架构.md`、`项目系统流程架构.md`
+
+---
+
 ## [0.9.0] - 2026-01-15
 
 ### ✨ Graph System (Memory Stream 图谱可视化)[未完全完成,还需要继续修复]

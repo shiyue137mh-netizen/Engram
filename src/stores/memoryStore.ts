@@ -354,10 +354,13 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
             throw new Error('[MemoryStore] No current chat');
         }
 
+        // V0.9.4: 确保必要字段有默认值
         const entity: EntityNode = {
             ...entityData,
             id: generateUUID(),
             last_updated_at: Date.now(),
+            aliases: entityData.aliases || [],
+            profile: entityData.profile || {},
         };
 
         await db.entities.add(entity);
@@ -406,9 +409,9 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
             const exactMatch = await db.entities.where('name').equals(name).first();
             if (exactMatch) return exactMatch;
 
-            // 2. 别名匹配 (需要遍历)
-            const allEntities = await db.entities.toArray();
-            return allEntities.find(e => e.aliases?.includes(name)) || null;
+            // 2. V0.9.4: 使用 MultiEntry 索引查询别名
+            const aliasMatch = await db.entities.where('aliases').equals(name).first();
+            return aliasMatch || null;
         } catch (e) {
             console.error('[MemoryStore] Failed to find entity by name:', e);
             return null;
