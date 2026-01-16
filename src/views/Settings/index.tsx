@@ -249,3 +249,123 @@ export const Settings: React.FC = () => {
         </div>
     );
 };
+
+// 提取的 SyncSection 组件避免重新渲染整个 Settings
+const SyncSection: React.FC = () => {
+    const [syncConfig, setSyncConfig] = useState(SettingsManager.getSettings().syncConfig || { enabled: false, autoSync: true });
+    const [syncStatus, setSyncStatus] = useState<'idle' | 'check' | 'syncing' | 'success' | 'error'>('idle');
+    const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+
+    const handleConfigChange = (key: keyof typeof syncConfig) => (checked: boolean) => {
+        const newConfig = { ...syncConfig, [key]: checked };
+        setSyncConfig(newConfig);
+        SettingsManager.set('syncConfig', newConfig);
+    };
+
+    const handleManualSync = async () => {
+        try {
+            setSyncStatus('check');
+            const { getSTContext } = await import('@/tavern/context');
+            if (!getSTContext().chatId) {
+                alert('请先打开一个聊天以进行同步测试');
+                setSyncStatus('idle');
+                return;
+            }
+
+            const chatId = getSTContext().chatId;
+            setSyncStatus('syncing');
+
+            // 1. 先检查远程状态
+            const { syncService } = await import('@/services/SyncService');
+            // const status = await syncService.getRemoteStatus(chatId);
+
+            // 简单逻辑：如果远程有更新则下载，否则上传
+            // 这里为了演示，我们强制先上传
+            const success = await syncService.upload(chatId);
+
+            if (success) {
+                setSyncStatus('success');
+                setLastSyncTime(Date.now());
+                setTimeout(() => setSyncStatus('idle'), 3000);
+            } else {
+                setSyncStatus('error');
+            }
+        } catch (e) {
+            console.error(e);
+            setSyncStatus('error');
+        }
+    };
+
+    return (
+        <div className="bg-muted/30 border border-border rounded-lg p-4 mt-4">
+            <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 flex-shrink-0">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                            <path d="M3 3v5h5" />
+                            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                            <path d="M16 16h5v5" />
+                        </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                            <h4 className="font-medium text-foreground truncate">多端数据同步 (Beta)</h4>
+                            {syncStatus === 'syncing' && <span className="text-xs text-blue-500 animate-pulse">同步中...</span>}
+                            {syncStatus === 'success' && <span className="text-xs text-green-500">同步成功</span>}
+                            {syncStatus === 'error' && <span className="text-xs text-red-500">同步失败</span>}
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                            利用 WebLLM 向量接口存储与同步
+                        </p>
+                    </div>
+                </div>
+                <Switch
+                    checked={syncConfig.enabled}
+                    onChange={handleConfigChange('enabled')}
+                />
+            </div>
+
+            {syncConfig.enabled && (
+                <div className="pl-14 space-y-3 border-t border-border pt-3">
+                    <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                            <span className="text-sm text-muted-foreground">自动同步</span>
+                            <p className="text-xs text-muted-foreground/60">数据变动3秒后自动上传</p>
+                        </div>
+                        <Switch
+                            checked={syncConfig.autoSync}
+                            onChange={handleConfigChange('autoSync')}
+                            className="scale-90"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                            <span className="text-sm text-muted-foreground">上次同步</span>
+                            <p className="text-xs text-muted-foreground/60">
+                                {lastSyncTime > 0 ? new Date(lastSyncTime).toLocaleString() : '暂无记录'}
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleManualSync}
+                            disabled={syncStatus === 'syncing'}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-background border border-border hover:bg-muted transition-colors disabled:opacity-50"
+                        >
+                            立即上传
+                        </button>
+                    </div>
+
+                    <div className="mt-2 text-xs text-muted-foreground/60 p-2 bg-background/50 rounded">
+                        <p>⚠️ Beta 注意事项：</p>
+                        <ul className="list-disc pl-4 mt-1 space-y-1">
+                            <li>数据存储路径: `data/default-user/vectors/webllm`</li>
+                            <li>跨设备同步需手动点击"上传"或开启自动同步</li>
+                            <li>请定期备份重要数据</li>
+                        </ul>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};

@@ -2,6 +2,7 @@ import { Logger } from '@/lib/logger';
 import { getSTContext } from '@/tavern/context';
 import { ChatDatabase, getDbForChat, exportChatData, importChatData } from '@/services/database/db';
 import { debounce } from 'lodash';
+import { SettingsManager } from '@/services/settings/Persistence';
 
 // 类型定义：存储在向量 Metadata 中的同步数据结构
 interface SyncMetadata {
@@ -52,8 +53,20 @@ export class SyncService {
      * 调度自动上传（防抖）
      */
     public scheduleUpload(chatId: string) {
+        // 检查配置
+        const config = SettingsManager.getSettings().syncConfig;
+        if (!config?.enabled || !config?.autoSync) {
+            return;
+        }
+
         if (!this.debouncedUploads.has(chatId)) {
             const uploadFn = debounce(() => {
+                // 再次检查配置，防止在 debounce 期间被关闭
+                const currentConfig = SettingsManager.getSettings().syncConfig;
+                if (!currentConfig?.enabled || !currentConfig?.autoSync) {
+                    return;
+                }
+
                 this.upload(chatId).catch(err => {
                     Logger.error(MODULE, `Auto-upload failed for ${chatId}`, err);
                 });

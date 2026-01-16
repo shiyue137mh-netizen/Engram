@@ -28,6 +28,10 @@ export interface EngramSettings {
         opacity: number; // 0-1
         blur: number;    // px
     };
+    syncConfig: {
+        enabled: boolean;  // 总开关：是否启用同步功能
+        autoSync: boolean; // 是否在数据变动时自动上传
+    };
 }
 
 /** 默认设置 */
@@ -54,6 +58,10 @@ const defaultSettings: EngramSettings = Object.freeze({
         enabled: true,
         opacity: 0.3,
         blur: 10,
+    },
+    syncConfig: {
+        enabled: false, // 默认关闭（Beta功能）
+        autoSync: true, // 启用后默认开启自动同步
     },
 });
 
