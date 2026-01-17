@@ -99,6 +99,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         toggleRule,
         deleteRule,
         resetRules,
+        reorderRules,
 
         save,
         toggleWorldbook,
@@ -401,6 +402,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                 onDelete={deleteRule}
                                 onAdd={addRule}
                                 onReset={resetRules}
+                                onReorder={reorderRules}
                                 enableNativeRegex={settings.regexConfig?.enableNativeRegex ?? true}
                                 onToggleNativeRegex={(enabled) => updateRegexConfig({
                                     ...settings.regexConfig,

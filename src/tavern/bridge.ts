@@ -26,6 +26,14 @@ export async function initializeEngram(): Promise<void> {
     SettingsManager.initSettings();
     Logger.info('STBridge', 'SettingsManager initialized');
 
+    // 加载保存的正则规则到全局处理器
+    const savedRegexRules = SettingsManager.getRegexRules();
+    if (savedRegexRules && savedRegexRules.length > 0) {
+        const { regexProcessor } = await import('@/services/pipeline/RegexProcessor');
+        regexProcessor.setRules(savedRegexRules);
+        Logger.info('STBridge', `Loaded ${savedRegexRules.length} regex rules`);
+    }
+
     // 检查酒馆接口对接状态
     try {
         const { checkTavernIntegration } = await import('@/tavern/api');

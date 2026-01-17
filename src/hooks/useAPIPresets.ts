@@ -72,6 +72,7 @@ export interface UseAPIPresetsReturn {
     toggleRule: (id: string) => void;
     deleteRule: (id: string) => void;
     resetRules: () => void;
+    reorderRules: (rules: RegexRule[]) => void;
 
     // V0.9.2: 自定义宏操作
     addCustomMacro: () => void;
@@ -395,6 +396,11 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         setHasChanges(true);
     }, []);
 
+    const reorderRules = useCallback((newOrder: RegexRule[]) => {
+        setRegexRules(newOrder);
+        setHasChanges(true);
+    }, []);
+
     // ==================== 保存 ====================
 
     const save = useCallback(async () => {
@@ -402,6 +408,10 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         SettingsManager.set('apiSettings', settings);
         // 保存正则规则到 SettingsManager
         SettingsManager.setRegexRules(regexRules);
+
+        // 同步更新全局 regexProcessor
+        const { regexProcessor } = await import('@/services/pipeline/RegexProcessor');
+        regexProcessor.setRules(regexRules);
 
         // 保存角色特定的世界书状态
         if (currentCharWorldbook) {
@@ -504,6 +514,7 @@ export function useAPIPresets(): UseAPIPresetsReturn {
         toggleRule,
         deleteRule,
         resetRules,
+        reorderRules,
 
         // V0.9.2: 自定义宏
         addCustomMacro,

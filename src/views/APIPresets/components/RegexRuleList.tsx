@@ -1,5 +1,6 @@
 import React from 'react';
-import { Regex, Trash2, Power } from 'lucide-react';
+import { Reorder } from 'framer-motion';
+import { Regex, Trash2, Power, GripVertical } from 'lucide-react';
 import { Switch } from '@/components/ui/Switch';
 import type { RegexRule } from '@/services/pipeline/RegexProcessor';
 
@@ -11,6 +12,7 @@ interface RegexRuleListProps {
     onDelete: (id: string) => void;
     onAdd: () => void;
     onReset: () => void;
+    onReorder: (rules: RegexRule[]) => void;
     enableNativeRegex?: boolean;
     onToggleNativeRegex?: (enabled: boolean) => void;
 }
@@ -23,6 +25,7 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
     onDelete,
     onAdd,
     onReset,
+    onReorder,
     enableNativeRegex,
     onToggleNativeRegex,
 }) => {
@@ -64,10 +67,11 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
                 </div>
             </div>
 
-            <div className="flex flex-col gap-1">
+            <Reorder.Group axis="y" values={rules} onReorder={onReorder} className="flex flex-col gap-1">
                 {rules.map((rule) => (
-                    <div
+                    <Reorder.Item
                         key={rule.id}
+                        value={rule}
                         className={`
                             group p-3 rounded-lg transition-all duration-200 cursor-pointer border flex items-center gap-3
                             ${selectedId === rule.id
@@ -78,6 +82,11 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
                         `}
                         onClick={() => onSelect(rule.id)}
                     >
+                        {/* Drag Handle */}
+                        <div className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground transition-colors">
+                            <GripVertical size={14} />
+                        </div>
+
                         {/* Status/Toggle Icon */}
                         <button
                             className={`
@@ -121,15 +130,15 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
                                 <Trash2 size={12} />
                             </button>
                         </div>
-                    </div>
+                    </Reorder.Item>
                 ))}
+            </Reorder.Group>
 
-                {rules.length === 0 && (
-                    <div className="text-center p-8 border border-dashed border-border rounded-lg">
-                        <p className="text-xs text-muted-foreground">无规则</p>
-                    </div>
-                )}
-            </div>
+            {rules.length === 0 && (
+                <div className="text-center p-8 border border-dashed border-border rounded-lg">
+                    <p className="text-xs text-muted-foreground">无规则</p>
+                </div>
+            )}
         </div >
     );
 };
