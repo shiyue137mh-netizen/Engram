@@ -18,10 +18,11 @@ import { rerankService } from './RerankService';
 import { scoreAndSort, mergeResults, applySticky, type ScoredEvent, type RecallResult } from './HybridScorer';
 import { RecallLogService } from './RecallLogService';
 import { stickyCache, DEFAULT_STICKY_CONFIG, type StickyConfig } from './StickyCache';
+import { brainRecallCache, type RecallCandidate } from './BrainRecallCache';
 import { Logger } from '@/lib/logger';
 import type { EventNode } from '@/services/types/graph';
-import type { RecallConfig, RerankConfig } from '@/services/api/types';
-import { DEFAULT_RECALL_CONFIG } from '@/services/api/types';
+import type { RecallConfig, RerankConfig, BrainRecallConfig } from '@/services/api/types';
+import { DEFAULT_RECALL_CONFIG, DEFAULT_BRAIN_RECALL_CONFIG } from '@/services/api/types';
 
 // ==================== 类型定义 ====================
 
@@ -183,13 +184,48 @@ export class Retriever {
             finalCandidates = scoreAndSort(embeddingCandidates, 0);
         }
 
-        // 3. 应用黏性惩罚
+        // 3. 应用记忆缓存系统
+        const brainConfig: BrainRecallConfig = config.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
         const stickyConfig: StickyConfig = config.sticky || DEFAULT_STICKY_CONFIG;
-        if (stickyConfig.enabled) {
+
+        if (brainConfig.enabled) {
+            // V0.9.5: 类脑召回系统
+            brainRecallCache.setConfig(brainConfig);
+            brainRecallCache.nextRound();
+
+            // 转换为 RecallCandidate 格式
+            const candidates: RecallCandidate[] = finalCandidates.map(c => ({
+                id: c.id,
+                score: c.hybridScore || c.embeddingScore || 0,
+            }));
+
+            // 类脑召回处理
+            const brainResults = brainRecallCache.process(candidates);
+
+            // 重新构建 finalCandidates（保留 node 引用）
+            const candidateMap = new Map(finalCandidates.map(c => [c.id, c]));
+            finalCandidates = brainResults
+                .filter(slot => candidateMap.has(slot.id))
+                .map(slot => {
+                    const original = candidateMap.get(slot.id)!;
+                    return {
+                        ...original,
+                        hybridScore: slot.strength, // 用 strength 替代原有分数
+                    };
+                });
+
+            Logger.info('Retriever', '类脑召回已应用', {
+                inputCount: candidates.length,
+                outputCount: finalCandidates.length,
+                round: brainRecallCache.getCurrentRound(),
+            });
+        } else if (stickyConfig.enabled) {
+            // 旧版黏性惩罚 (向后兼容)
             finalCandidates = applySticky(finalCandidates, stickyCache, stickyConfig);
             Logger.debug('Retriever', '已应用黏性惩罚', {
                 candidatesWithPenalty: finalCandidates.filter(c => (c.stickyPenalty || 0) > 0).length,
             });
+            stickyCache.nextRound();
         }
 
         // 4. 记录召回日志
@@ -217,12 +253,12 @@ export class Retriever {
             },
         });
 
-        // 5. 标记召回的事件（用于黏性系统）
-        const recalledIds = finalCandidates.map(c => c.id);
-        stickyCache.markRecalledBatch(recalledIds);
-
-        // 定期清理过期缓存
-        stickyCache.cleanup(10);
+        // 5. 标记召回的事件（仅旧版黏性系统使用）
+        if (!brainConfig.enabled && stickyConfig.enabled) {
+            const recalledIds = finalCandidates.map(c => c.id);
+            stickyCache.markRecalledBatch(recalledIds);
+            stickyCache.cleanup(10);
+        }
 
         // 6. 返回结果
         const nodes = finalCandidates

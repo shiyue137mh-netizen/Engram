@@ -176,35 +176,167 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                 />
             </div>
 
-            {/* 黏性系统简单配置 */}
-            <div className="space-y-4 pt-4 border-t border-border/30">
-                <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                        黏性系统 (Sticky)
-                    </h3>
-                    <Switch
-                        checked={config.sticky?.enabled ?? true}
-                        onChange={(val) => updateConfig({
-                            sticky: {
-                                ...(config.sticky || { decayFactor: 0.15, maxStickRounds: 3 }),
-                                enabled: val
-                            }
-                        })}
-                    />
-                </div>
-                {config.sticky?.enabled && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <NumberField
-                            label="衰减系数"
-                            description="每次连续召回的惩罚权重 (0-1)"
-                            min={0}
-                            max={1}
-                            step={0.05}
-                            value={config.sticky.decayFactor}
+            {/* 类脑召回系统 (V0.9.5 实验性) */}
+            <div
+                className={`space-y-4 pt-4 border-t border-border/30 relative transition-all duration-300 ${config.brainRecall?.enabled
+                        ? 'p-4 rounded-lg border border-primary/30 bg-primary/5'
+                        : ''
+                    }`}
+                style={config.brainRecall?.enabled ? {
+                    boxShadow: '0 0 15px -3px color-mix(in srgb, var(--primary) 20%, transparent)'
+                } : undefined}
+            >
+
+                <div className="relative">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div
+                                className={`p-1.5 rounded-md transition-colors ${config.brainRecall?.enabled
+                                        ? 'bg-primary/20 text-primary'
+                                        : 'bg-muted text-muted-foreground'
+                                    }`}
+                                style={config.brainRecall?.enabled ? {
+                                    boxShadow: '0 0 10px color-mix(in srgb, var(--primary) 40%, transparent)'
+                                } : undefined}
+                            >
+                                <BrainCircuit size={16} />
+                            </div>
+                            <h3
+                                className={`text-sm font-medium uppercase tracking-wider transition-all ${config.brainRecall?.enabled
+                                        ? 'text-primary'
+                                        : 'text-muted-foreground'
+                                    }`}
+                                style={config.brainRecall?.enabled ? {
+                                    textShadow: '0 0 8px color-mix(in srgb, var(--primary) 60%, transparent)'
+                                } : undefined}
+                            >
+                                类脑召回
+                            </h3>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium border ${config.brainRecall?.enabled
+                                    ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+                                    : 'bg-muted text-muted-foreground border-transparent'
+                                }`}>
+                                EXPERIMENTAL
+                            </span>
+                        </div>
+                        <Switch
+                            checked={config.brainRecall?.enabled ?? false}
                             onChange={(val) => updateConfig({
-                                sticky: { ...config.sticky!, decayFactor: val }
+                                brainRecall: {
+                                    enabled: val,
+                                    workingLimit: config.brainRecall?.workingLimit ?? 10,
+                                    shortTermLimit: config.brainRecall?.shortTermLimit ?? 35,
+                                    reinforceFactor: config.brainRecall?.reinforceFactor ?? 0.2,
+                                    decayRate: config.brainRecall?.decayRate ?? 0.08,
+                                    evictionThreshold: config.brainRecall?.evictionThreshold ?? 0.25,
+                                    contextSwitchThreshold: config.brainRecall?.contextSwitchThreshold ?? 0.4,
+                                },
+                                // 开启类脑时确保 sticky 关闭
+                                sticky: val ? { ...config.sticky!, enabled: false } : config.sticky
                             })}
                         />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 pl-8 leading-relaxed">
+                        模拟人脑记忆机制：强化、衰减、竞争淘汰、上下文感知。
+                        <span className="opacity-70 ml-1">替代旧版黏性系统。</span>
+                    </p>
+                </div>
+
+                {config.brainRecall?.enabled && (
+                    <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                        {/* 容量配置 */}
+                        <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                            <div className="flex items-center gap-2 text-xs text-primary/80 font-medium uppercase tracking-wider">
+                                <Layers size={12} />
+                                记忆容量
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <NumberField
+                                    label="工作记忆"
+                                    description="当前轮使用的记忆数量"
+                                    min={1}
+                                    max={20}
+                                    step={1}
+                                    value={config.brainRecall.workingLimit}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, workingLimit: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="短期记忆"
+                                    description="缓存的记忆总量上限"
+                                    min={1}
+                                    max={50}
+                                    step={1}
+                                    value={config.brainRecall.shortTermLimit}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, shortTermLimit: val }
+                                    })}
+                                />
+                            </div>
+                        </div>
+
+                        {/* 动态参数 */}
+                        <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                            <div className="flex items-center gap-2 text-xs text-primary/80 font-medium uppercase tracking-wider">
+                                <Zap size={12} />
+                                动态参数
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <NumberField
+                                    label="强化系数"
+                                    description="再次召回时增强"
+                                    min={0}
+                                    max={1}
+                                    step={0.05}
+                                    value={config.brainRecall.reinforceFactor}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, reinforceFactor: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="衰减速率"
+                                    description="每轮未召回的衰减"
+                                    min={0}
+                                    max={1}
+                                    step={0.01}
+                                    value={config.brainRecall.decayRate}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, decayRate: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="淘汰阈值"
+                                    description="低于此值被移除"
+                                    min={0}
+                                    max={1}
+                                    step={0.05}
+                                    value={config.brainRecall.evictionThreshold}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, evictionThreshold: val }
+                                    })}
+                                />
+                            </div>
+                        </div>
+
+                        {/* 上下文感知 */}
+                        <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                            <div className="flex items-center gap-2 text-xs text-primary/80 font-medium uppercase tracking-wider">
+                                <AlertTriangle size={12} />
+                                上下文感知
+                            </div>
+                            <NumberField
+                                label="切换阈值"
+                                description="当前分/首次分低于此值时重置短期记忆"
+                                min={0}
+                                max={1}
+                                step={0.1}
+                                value={config.brainRecall.contextSwitchThreshold}
+                                onChange={(val) => updateConfig({
+                                    brainRecall: { ...config.brainRecall!, contextSwitchThreshold: val }
+                                })}
+                            />
+                        </div>
                     </div>
                 )}
             </div>

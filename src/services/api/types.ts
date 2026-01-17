@@ -325,12 +325,12 @@ export interface EntityExtractConfig {
 }
 
 /**
- * 默认实体提取配置
+ * 默认实体提取配置 (V0.9.5 推荐参数)
  */
 export const DEFAULT_ENTITY_CONFIG: EntityExtractConfig = {
   enabled: false,
   trigger: 'floor',
-  floorInterval: 50,
+  floorInterval: 15,     // V0.9.5: 10-20 层一次
   keepRecentCount: 5,
 };
 
@@ -379,24 +379,70 @@ export interface RecallConfig {
     minScoreThreshold: number;
   };
 
-  /** 黏性配置 */
+  /** 黏性配置 (已废弃，使用 brainRecall) */
   sticky?: StickyConfig;
+
+  /** 类脑召回配置 (V0.9.5 实验性) */
+  brainRecall?: BrainRecallConfig;
 }
 
 /**
+ * 类脑召回配置 (V0.9.5 实验性)
+ * 模拟人脑记忆机制的召回缓存系统
+ */
+export interface BrainRecallConfig {
+  /** 是否启用 */
+  enabled: boolean;
+
+  // 容量配置
+  /** 工作记忆容量 (当前轮使用的) */
+  workingLimit: number;
+  /** 短期记忆容量 (近几轮召回过的) */
+  shortTermLimit: number;
+
+  // 强化/衰减参数
+  /** 再次召回的强化系数 */
+  reinforceFactor: number;
+  /** 每轮衰减速率 */
+  decayRate: number;
+  /** 淘汰阈值 (低于此值移出短期记忆) */
+  evictionThreshold: number;
+
+  // 上下文感知
+  /** 上下文切换阈值 (当前分/首次分 < 此值触发 softReset) */
+  contextSwitchThreshold: number;
+}
+
+/**
+ * 默认类脑召回配置
+ * V0.9.5: 推荐参数
+ */
+export const DEFAULT_BRAIN_RECALL_CONFIG: BrainRecallConfig = {
+  enabled: false, // 默认关闭，实验性功能
+  workingLimit: 10,        // 工作记忆：当前轮使用的
+  shortTermLimit: 35,      // 短期记忆：缓存上限 (35 约 3-4 轮累积)
+  reinforceFactor: 0.2,    // 强化系数
+  decayRate: 0.08,         // 衰减速率 (稍慢，保留更多)
+  evictionThreshold: 0.25, // 淘汰阈值 (降低，保留更多)
+  contextSwitchThreshold: 0.4,
+};
+
+/**
  * 默认召回配置
+ * V0.9.5: 推荐参数
  */
 export const DEFAULT_RECALL_CONFIG: RecallConfig = {
   enabled: true,
   useEmbedding: true,
   useRerank: false,
   usePreprocessing: false,
-  useBruteForce: false, // 默认不开启，由 Embedding 失败时兜底，或者用户强制开启
+  useBruteForce: false,
   embedding: {
-    topK: 20,
-    minScoreThreshold: 0.3,
+    topK: 50,               // Embedding 初筛 50 条
+    minScoreThreshold: 0.35, // 过滤阈值 (稍高，过滤不相关)
   },
-  sticky: { ...DEFAULT_STICKY_CONFIG, enabled: true },
+  sticky: { ...DEFAULT_STICKY_CONFIG, enabled: false }, // 默认关闭旧版
+  brainRecall: DEFAULT_BRAIN_RECALL_CONFIG,
 };
 
 // ==================== 完整配置 ====================

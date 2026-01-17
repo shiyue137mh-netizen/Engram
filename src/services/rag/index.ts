@@ -20,3 +20,7 @@ export { RecallLogService } from './RecallLogService';
 
 export { stickyCache, StickyCache, DEFAULT_STICKY_CONFIG } from './StickyCache';
 export type { StickyConfig } from './StickyCache';
+
+// V0.9.5: 类脑召回系统
+export { brainRecallCache, BrainRecallCache } from './BrainRecallCache';
+export type { MemorySlot, RecallCandidate } from './BrainRecallCache';
