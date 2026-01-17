@@ -16,6 +16,35 @@ import { setQuickPanelCallback } from '@/tavern/QuickPanelButton';
 let quickPanelOpen = false;
 let setQuickPanelOpenCallback: ((open: boolean) => void) | null = null;
 
+// 全局 CommandPalette 控制
+let openCommandPaletteCallback: (() => void) | null = null;
+
+/**
+ * 切换快捷面板（供键盘快捷键调用）
+ */
+export function toggleQuickPanel(): void {
+    if (setQuickPanelOpenCallback) {
+        quickPanelOpen = !quickPanelOpen;
+        setQuickPanelOpenCallback(quickPanelOpen);
+    }
+}
+
+/**
+ * 打开命令面板（供键盘快捷键调用）
+ */
+export function openCommandPalette(): void {
+    if (openCommandPaletteCallback) {
+        openCommandPaletteCallback();
+    }
+}
+
+/**
+ * 设置 CommandPalette 打开回调
+ */
+export function setCommandPaletteCallback(callback: () => void): void {
+    openCommandPaletteCallback = callback;
+}
+
 // 设置 React 渲染器
 setReactRenderer((container: HTMLElement, onClose: () => void) => {
     const root = ReactDOM.createRoot(container);

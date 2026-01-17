@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { RecallConfig } from '@/services/api/types';
+import { RecallConfig, RerankConfig } from '@/services/api/types';
 import { NumberField, SwitchField } from './FormField';
 import { Switch } from '@/components/ui/Switch';
 import { Network, Database, BrainCircuit, Zap, AlertTriangle, Layers } from 'lucide-react';
@@ -8,9 +8,12 @@ import { Network, Database, BrainCircuit, Zap, AlertTriangle, Layers } from 'luc
 interface RecallConfigFormProps {
     config: RecallConfig;
     onChange: (config: RecallConfig) => void;
+    /** Rerank 配置（用于业务参数） */
+    rerankConfig?: RerankConfig;
+    onRerankChange?: (config: RerankConfig) => void;
 }
 
-export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onChange }) => {
+export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onChange, rerankConfig, onRerankChange }) => {
 
     // 更新配置的辅助函数
     const updateConfig = (updates: Partial<RecallConfig>) => {
@@ -114,6 +117,29 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                             对初筛结果进行二次精排。需要配置 Rerank 模型。
                             {!config.useEmbedding && <span className="text-yellow-500 block mt-1 text-[10px] flex items-center gap-1"><AlertTriangle size={10} /> 需要先启用向量检索</span>}
                         </p>
+                        {/* Rerank 业务参数 - 仅当 useRerank 启用时显示 */}
+                        {config.useRerank && rerankConfig && (
+                            <div className="mt-3 pt-3 border-t border-border/30 space-y-3">
+                                <NumberField
+                                    label="Top-N"
+                                    description="重排后返回的结果数量"
+                                    min={1}
+                                    max={50}
+                                    step={1}
+                                    value={rerankConfig.topN}
+                                    onChange={(val) => onRerankChange?.({ ...rerankConfig, topN: val })}
+                                />
+                                <NumberField
+                                    label="混合权重 (Hybrid Alpha)"
+                                    description="0 = 纯向量评分，1 = 纯 Rerank 评分"
+                                    min={0}
+                                    max={1}
+                                    step={0.1}
+                                    value={rerankConfig.hybridAlpha}
+                                    onChange={(val) => onRerankChange?.({ ...rerankConfig, hybridAlpha: val })}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -76,6 +76,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
         }
     }, [isOpen]);
 
+    // 注册外部打开回调（供键盘快捷键调用）
+    useEffect(() => {
+        // 动态导入避免循环依赖
+        import('@/index').then(({ setCommandPaletteCallback }) => {
+            setCommandPaletteCallback(() => setIsOpen(true));
+        }).catch(() => {
+            // 忽略导入失败
+        });
+    }, []);
+
     // Navigation
     const handleKeyDown = (e: React.KeyboardEvent) => {
         const totalItems = results.length + (query ? 1 : 0); // +1 for "Search Memory"

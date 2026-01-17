@@ -71,13 +71,13 @@ export class MacroService {
                 'Engram: 当前用户输入（预处理专用）'
             );
 
-            // {{chatHistory}} - 最近对话历史 (支持参数: {{chatHistory:20}})
+            // {{chatHistory}} - 最近对话历史 (从配置读取 floorInterval - bufferSize)
             context.registerMacro(
                 'chatHistory',
-                (arg: string) => {
-                    return MacroService.getChatHistory(arg);
+                () => {
+                    return MacroService.getChatHistory();
                 },
-                'Engram: 最近对话历史 (可选参数: 条数, 默认20)'
+                'Engram: 最近对话历史 (从总结配置读取数量)'
             );
 
             // {{context}} - 角色卡设定（同酒馆 description）
@@ -322,32 +322,15 @@ export class MacroService {
     }
 
     /**
-     * 获取对话历史 (动态计算)
-     * @param depthStr 回溯深度 (默认 20)
+     * 获取对话历史
+     * 从配置读取 floorInterval - bufferSize 作为消息数量
      */
-    static getChatHistory(depthStr?: string): string {
+    static getChatHistory(): string {
         try {
-            // 解析深度参数
-            let limit = 20;
-            if (depthStr) {
-                const parsed = parseInt(depthStr, 10);
-                if (!isNaN(parsed)) {
-                    // V0.9.2: 支持负数参数，-1 表示全部历史
-                    if (parsed < 0) {
-                        limit = Infinity; // 全部历史
-                    } else if (parsed > 0) {
-                        limit = parsed;
-                    } else {
-                        // parsed === 0，使用动态计算
-                        limit = this.getDynamicChatHistoryLimit();
-                    }
-                }
-            } else {
-                // 无参数时，使用动态计算
-                limit = this.getDynamicChatHistoryLimit();
-            }
+            // 统一从配置读取 limit
+            const limit = this.getDynamicChatHistoryLimit();
 
-            Logger.debug('MacroService', 'getChatHistory called', { depthStr, limit });
+            Logger.debug('MacroService', 'getChatHistory called', { limit });
 
             // @ts-ignore
             const context = window.SillyTavern?.getContext?.();

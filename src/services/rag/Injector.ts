@@ -38,6 +38,7 @@ interface GenerationAfterCommandsParams {
 export class Injector {
     private isInitialized = false;
     private isProcessing = false; // 防止重入
+    private cacheInvalid = false; // V0.9.5: 缓存失效标记（用户编辑消息后设为 true）
 
     /**
      * Initialize the Injector
@@ -65,9 +66,21 @@ export class Injector {
         EventBus.on(TavernEventType.CHAT_CHANGED, () => {
             Logger.debug('Injector', '捕获到 CHAT_CHANGED 事件');
             this.isProcessing = false;
+            this.cacheInvalid = false; // 切换聊天时重置缓存状态
             MacroService.refreshCache().catch(e => {
                 Logger.warn('Injector', '聊天切换时刷新缓存失败', e);
             });
+        });
+
+        // V0.9.5: 监听消息编辑事件，用户编辑自己的消息后标记缓存失效
+        EventBus.on(TavernEventType.MESSAGE_EDITED, (...args: unknown[]) => {
+            const msgIndex = args[0] as number;
+            const context = getSTContext();
+            const msg = context?.chat?.[msgIndex];
+            if (msg?.is_user) {
+                this.cacheInvalid = true;
+                Logger.info('Injector', '用户消息被编辑，标记召回缓存失效', { msgIndex });
+            }
         });
 
         this.isInitialized = true;
@@ -91,10 +104,21 @@ export class Injector {
                 return;
             }
 
-            // 只处理正常生成，跳过 regenerate、swipe、quiet 等
-            if (type === 'regenerate' || type === 'swipe' || type === 'quiet' || type === 'impersonate') {
+            // V0.9.5: 改进的跳过逻辑
+            // quiet/impersonate 始终跳过
+            if (type === 'quiet' || type === 'impersonate') {
                 Logger.debug('Injector', `跳过 ${type} 类型生成`);
                 return;
+            }
+
+            // regenerate/swipe 时检查缓存是否失效
+            if (type === 'regenerate' || type === 'swipe') {
+                if (!this.cacheInvalid) {
+                    Logger.debug('Injector', `${type} 使用召回缓存，跳过重新召回`);
+                    return;
+                }
+                Logger.info('Injector', `${type} 检测到缓存失效（用户编辑了消息），执行重新召回`);
+                // 继续执行，不 return
             }
 
             // 检查是否已被处理（防止重复）
@@ -199,6 +223,7 @@ export class Injector {
 
             // 开始处理
             this.isProcessing = true;
+            this.cacheInvalid = false; // 重置缓存失效标记
             params._engram_processed = true; // 标记 Params 已处理
             if (lastMessage) {
                 // @ts-ignore

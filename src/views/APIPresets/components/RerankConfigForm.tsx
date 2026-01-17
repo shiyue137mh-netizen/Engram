@@ -141,28 +141,6 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                             )}
                         </div>
                     </FormSection>
-
-                    <FormSection title="参数设置">
-                        <NumberField
-                            label="Top-N"
-                            value={config.topN}
-                            onChange={(value) => updateConfig({ topN: value })}
-                            min={1}
-                            max={50}
-                            step={1}
-                            description="重排后返回的结果数量"
-                        />
-
-                        <NumberField
-                            label="混合权重 (Hybrid Alpha)"
-                            value={config.hybridAlpha}
-                            onChange={(value) => updateConfig({ hybridAlpha: value })}
-                            min={0}
-                            max={1}
-                            step={0.1}
-                            description="0 = 纯向量检索评分，1 = 纯 Rerank 评分"
-                        />
-                    </FormSection>
                 </>
             )}
         </div>

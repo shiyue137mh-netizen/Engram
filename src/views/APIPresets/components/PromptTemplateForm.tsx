@@ -27,7 +27,7 @@ interface MacroDef {
 const AVAILABLE_MACROS: MacroDef[] = [
     // Context
     { name: '{{userInput}}', desc: '当前用户输入的内容', category: 'Context (上下文)' },
-    { name: '{{chatHistory}}', desc: '最近的对话历史。支持参数: {{chatHistory:20}}', category: 'Context (上下文)' },
+    { name: '{{chatHistory}}', desc: '最近的对话历史（从总结配置读取数量）', category: 'Context (上下文)' },
     { name: '{{context}}', desc: '角色卡原始设定 (Description/Persona...)', category: 'Context (上下文)' },
     { name: '{{worldbookContext}}', desc: '当前激活的世界书条目内容', category: 'Context (上下文)' },
     { name: '{{userPersona}}', desc: '用户角色设定 (Persona Description)', category: 'Context (上下文)' },

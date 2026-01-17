@@ -104,6 +104,20 @@ export async function initializeEngram(): Promise<void> {
         Logger.warn('STBridge', 'Failed to initialize CharacterDeleteService', { error: String(e) });
     }
 
+    // V0.9.5: 初始化键盘快捷键
+    try {
+        const { setupKeyboardShortcuts } = await import('@/lib/KeyboardManager');
+        const { toggleQuickPanel, openCommandPalette } = await import('@/index');
+        setupKeyboardShortcuts({
+            toggleMainPanel: toggleMainPanel,
+            toggleQuickPanel: toggleQuickPanel,
+            openCommandPalette: openCommandPalette,
+        });
+        Logger.info('STBridge', 'Keyboard shortcuts initialized');
+    } catch (e) {
+        Logger.warn('STBridge', 'Failed to initialize keyboard shortcuts', { error: String(e) });
+    }
+
     Logger.success('STBridge', 'Engram 初始化完成 - Where memories leave their trace.');
 }
 

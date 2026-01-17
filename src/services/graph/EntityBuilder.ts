@@ -225,7 +225,7 @@ export class EntityBuilder {
      */
     async extractManual(): Promise<EntityBuildResult | null> {
         // 获取当前聊天历史
-        const chatHistory = await MacroService.getChatHistory('50');
+        const chatHistory = await MacroService.getChatHistory();
         const state = await chatManager.getState();
         return this.extractFromChat(chatHistory, state.last_summarized_floor, true);
     }

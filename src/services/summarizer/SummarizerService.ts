@@ -342,7 +342,7 @@ export class SummarizerService {
                 this.log('info', '触发实体提取', { floor: currentFloor });
 
                 // 获取聊天历史
-                const chatHistory = await MacroService.getChatHistory('50');
+                const chatHistory = await MacroService.getChatHistory();
 
                 // 异步执行，不阻塞 Summary
                 entityBuilder.extractFromChat(chatHistory, currentFloor, false).catch(e => {

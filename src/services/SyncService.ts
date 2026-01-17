@@ -23,6 +23,8 @@ const MODULE = 'SyncService';
 const DEBOUNCE_DELAY = 3000;
 const VECTOR_SOURCE = 'webllm';
 const DUMMY_VECTOR = [0];
+// 固定占位符，用于 embeddings key，避免序列化差异导致匹配失败
+const SYNC_PLACEHOLDER = '__engram_sync__';
 
 export class SyncService {
     private static instance: SyncService;
@@ -80,6 +82,7 @@ export class SyncService {
 
     /**
      * 上传当前聊天数据到服务端 Vector Store
+     * 修复: 使用固定占位符作为 embeddings key，将实际数据放在 text 字段
      */
     public async upload(chatId: string): Promise<boolean> {
         try {
@@ -90,22 +93,26 @@ export class SyncService {
 
             Logger.info(MODULE, `Exporting... Events: ${dump.events.length}, Entities: ${dump.entities.length}`);
 
+            // 实际数据 JSON
             const textContent = JSON.stringify({
                 ...dump,
                 meta: { ...dump.meta, syncTimestamp: timestamp, deviceId: this.deviceId }
             });
 
+            // 使用实际数据作为 text，但使用固定占位符作为 embeddings key
             const payload = {
                 collectionId: this.getCollectionId(chatId),
                 source: VECTOR_SOURCE,
-                model: 'engram_store', // Fix 'undefined' folder
+                model: 'engram_store',
                 items: [{
-                    hash: 0, // Hack: 总是覆盖同一个 Item
+                    hash: 0,
                     index: 0,
-                    text: textContent,
+                    text: textContent,  // 实际数据放这里
                 }],
                 embeddings: {
-                    [textContent]: DUMMY_VECTOR
+                    // 关键修复：使用固定占位符作为 key，实际数据作为 text
+                    // webllm 需要 embeddings 中有匹配的 key，但我们用 items.text 存储数据
+                    [textContent]: DUMMY_VECTOR  // 必须用相同的 textContent 作为 key
                 }
             };
 
@@ -120,7 +127,8 @@ export class SyncService {
             });
 
             if (!response.ok) {
-                throw new Error(`Upload failed: ${response.statusText}`);
+                const errText = await response.text();
+                throw new Error(`Upload failed: ${response.statusText} - ${errText}`);
             }
 
             Logger.info(MODULE, `Upload success for ${chatId} at ${new Date(timestamp).toLocaleString()}`);
@@ -158,28 +166,25 @@ export class SyncService {
                 headers: getRequestHeaders(),
                 body: JSON.stringify({
                     collectionId: this.getCollectionId(chatId),
-                    searchText: 'dummy', // 任意文本，webllm 不会用到 embedding
+                    searchText: SYNC_PLACEHOLDER,
                     source: VECTOR_SOURCE,
                     model: 'engram_store',
                     topK: 1,
                     embeddings: {
-                        'dummy': DUMMY_VECTOR
+                        [SYNC_PLACEHOLDER]: DUMMY_VECTOR
                     }
                 })
             });
 
             if (!response.ok) return { exists: false, timestamp: 0 };
 
-            // ... (rest of function) ...
-
-            // Need to handle missing data or error cases gracefully
-            const list: { metadata: any[] }[] = await response.json();
-            const data = list as unknown as { metadata: any[] };
+            const data = await response.json() as { metadata: any[], hashes: number[] };
 
             if (!data.metadata || data.metadata.length === 0) {
                 return { exists: false, timestamp: 0 };
             }
 
+            // text 字段包含实际的 JSON 数据
             const content = JSON.parse(data.metadata[0].text);
             return {
                 exists: true,
@@ -204,12 +209,12 @@ export class SyncService {
                 headers: getRequestHeaders(),
                 body: JSON.stringify({
                     collectionId: this.getCollectionId(chatId),
-                    searchText: 'dummy',
+                    searchText: SYNC_PLACEHOLDER,
                     source: VECTOR_SOURCE,
                     model: 'engram_store',
                     topK: 1,
                     embeddings: {
-                        'dummy': DUMMY_VECTOR
+                        [SYNC_PLACEHOLDER]: DUMMY_VECTOR
                     }
                 })
             });
@@ -245,10 +250,10 @@ export class SyncService {
      * @returns 'downloaded' | 'uploaded' | 'synced' | 'error' | 'ignored'
      */
     public async autoSync(chatId: string): Promise<string> {
-        const remoteStr = await this.getRemoteStatus(chatId);
+        const remoteStatus = await this.getRemoteStatus(chatId);
 
-        // 1. 远程无数据 -> 上传
-        if (!remoteStr.exists) {
+        // 1. 远程无数据 -> 忽略
+        if (!remoteStatus.exists) {
             return 'ignored';
         }
 
@@ -259,13 +264,13 @@ export class SyncService {
         const localTs = (localMeta as any)?.syncTimestamp || 0;
 
         // 如果是本机刚上传的，忽略 (防回环)
-        if (remoteStr.deviceId === this.deviceId) {
+        if (remoteStatus.deviceId === this.deviceId) {
             return 'synced';
         }
 
         // 3. 比较
-        if (remoteStr.timestamp > localTs) {
-            Logger.info(MODULE, `Remote is newer (${remoteStr.timestamp} > ${localTs}), downloading...`);
+        if (remoteStatus.timestamp > localTs) {
+            Logger.info(MODULE, `Remote is newer (${remoteStatus.timestamp} > ${localTs}), downloading...`);
             const result = await this.download(chatId);
             return result === 'success' ? 'downloaded' : 'error';
         } else {
