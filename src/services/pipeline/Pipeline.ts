@@ -106,7 +106,18 @@ export class Pipeline {
                 const logicLine = logicParts.length > 0 ? `\n${logicParts.join(' ')}` : '';
 
                 // 完整烧录文本：标题 + 元数据 + 摘要 + 逻辑因果
-                const burnedSummary = `${titleLine}${metaLine}${parsedEvent.summary}${logicLine}`;
+                let rawSummary = parsedEvent.summary;
+
+                // 调试日志：检查解析出的 summary
+                console.log(`[Pipeline] Processing event: ${meta.event || 'Unknown'}, Summary length: ${rawSummary?.length}`);
+
+                // 兜底逻辑：防止 summary 丢失导致只显示 KV
+                if (!rawSummary || rawSummary.trim() === '') {
+                    console.warn('[Pipeline] Event summary is empty! Using fallback.', parsedEvent);
+                    rawSummary = `[Summary Missing] ${meta.event || '无摘要内容'}`;
+                }
+
+                const burnedSummary = `${titleLine}${metaLine}${rawSummary}${logicLine}`;
 
                 const eventNode = await store.saveEvent({
                     summary: burnedSummary,

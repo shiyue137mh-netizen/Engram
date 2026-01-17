@@ -248,23 +248,56 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                 />
             </div>
 
-            {/* 摘要 - 自动生成，只读预览 */}
-            <TextField
-                label="摘要 (自动生成)"
-                value={generateSummaryFromKV({
-                    event: eventType,
-                    time_anchor: timeAnchor,
-                    location,
-                    role: roleText.split(',').map(s => s.trim()).filter(Boolean),
-                    logic: logicText.split(',').map(s => s.trim()).filter(Boolean),
-                })}
-                onChange={() => { }}
-                multiline
-                rows={4}
-                readOnly
-                placeholder="填写下方字段自动生成..."
-                className="font-mono text-sm"
-            />
+            {/* 摘要 */}
+            <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center">
+                    <label className="text-xs text-muted-foreground">摘要内容</label>
+                    <button
+                        onClick={() => {
+                            const autoSummary = generateSummaryFromKV({
+                                event: eventType,
+                                time_anchor: timeAnchor,
+                                location,
+                                role: roleText.split(',').map(s => s.trim()).filter(Boolean),
+                                logic: logicText.split(',').map(s => s.trim()).filter(Boolean),
+                            });
+                            setSummary(autoSummary);
+                            setIsDirty(true);
+                            syncToParent({ ...{ summary: autoSummary } } as any); // Hacky pass but works via closure
+                        }}
+                        className="text-[10px] text-primary hover:underline"
+                    >
+                        使用 KV 生成
+                    </button>
+                </div>
+                <TextField
+                    label=""
+                    value={summary}
+                    onChange={(value: string) => {
+                        setSummary(value);
+                        setIsDirty(true);
+                        // Summary 变更不立即 sync，依赖 blur 或 save?
+                        // 为了保持一致性，还是 sync 吧，但要注意 updateField 逻辑
+                        // 这里直接手动 sync
+                        onSave?.(event.id, {
+                            summary: value,
+                            structured_kv: {
+                                event: eventType,
+                                time_anchor: timeAnchor,
+                                location,
+                                role: roleText.split(',').map(s => s.trim()).filter(Boolean),
+                                logic: logicText.split(',').map(s => s.trim()).filter(Boolean),
+                                causality: event.structured_kv?.causality || '',
+                            },
+                            significance_score: score,
+                        });
+                    }}
+                    multiline
+                    rows={6}
+                    placeholder="输入事件摘要..."
+                    className="font-mono text-sm"
+                />
+            </div>
 
             {/* 时间锚点 */}
             <div className="flex flex-col gap-1">
