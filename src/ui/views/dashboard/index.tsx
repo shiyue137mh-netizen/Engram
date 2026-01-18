@@ -90,9 +90,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </div>
             <Divider className="mb-6" />
 
-            {/* 主内容区 - 双栏 */}
+            {/* 主内容区 - 双栏 + 阶梯动画 */}
             <div className="flex-1 overflow-y-auto no-scrollbar">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 engram-stagger-children">
 
                     {/* ========== 左栏：系统状态 ========== */}
                     <section className="space-y-8">
@@ -181,9 +181,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                     <button
                                         key={id}
                                         onClick={() => handleNavigate(path.replace('/', ''))}
-                                        className="flex flex-col items-center gap-2 p-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all group"
+                                        className="flex flex-col items-center gap-2 p-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-[var(--duration-fast)] group hover:translate-y-[-2px] active:scale-95"
                                     >
-                                        <Icon size={20} className="text-primary group-hover:scale-110 transition-transform" />
+                                        <Icon size={20} className="text-primary transition-transform duration-[var(--duration-fast)] group-hover:scale-110" />
                                         <span className="text-xs">{label}</span>
                                     </button>
                                 ))}

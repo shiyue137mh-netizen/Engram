@@ -23098,11 +23098,18 @@ const NU = ({ onNavigate: e }) => {
       "button",
       {
         onClick: s,
-        className: "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/10 text-left",
+        className: "w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-[var(--duration-fast)] text-muted-foreground hover:text-foreground hover:bg-muted/10 text-left",
         children: [
           /* @__PURE__ */ p.jsxs("div", { className: "relative", children: [
-            /* @__PURE__ */ p.jsx(xB, { size: 16, strokeWidth: 1.5 }),
-            o && /* @__PURE__ */ p.jsx("span", { className: "absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" })
+            /* @__PURE__ */ p.jsx(
+              xB,
+              {
+                size: 16,
+                strokeWidth: 1.5,
+                className: o ? "engram-animate-bell-ring" : ""
+              }
+            ),
+            o && /* @__PURE__ */ p.jsx("span", { className: "absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full engram-animate-pulse" })
           ] }),
           /* @__PURE__ */ p.jsx("span", { className: "text-xs", children: "更新通知" }),
           o && /* @__PURE__ */ p.jsx("span", { className: "ml-auto text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded-full", children: "NEW" })
@@ -32325,7 +32332,14 @@ const sW = ({ isOpen: e, onClose: t }) => {
         ),
         /* @__PURE__ */ p.jsx("div", { id: "engram-header-extension", className: "z-40 flex-shrink-0 bg-transparent transition-all empty:hidden" })
       ] }),
-      /* @__PURE__ */ p.jsx("main", { className: "flex-1 flex flex-col relative w-full overflow-hidden bg-background", children: /* @__PURE__ */ p.jsx("div", { className: "flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth animate-blur-in fill-mode-both", style: { animationDelay: "200ms", animationFillMode: "both" }, children: /* @__PURE__ */ p.jsx("div", { className: "max-w-6xl mx-auto min-h-full pb-20", children: e }) }) })
+      /* @__PURE__ */ p.jsx("main", { className: "flex-1 flex flex-col relative w-full overflow-hidden bg-background", children: /* @__PURE__ */ p.jsx(
+        "div",
+        {
+          className: "flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth engram-page-enter",
+          children: /* @__PURE__ */ p.jsx("div", { className: "max-w-6xl mx-auto min-h-full pb-20", children: e })
+        },
+        t
+      ) })
     ] }),
     "  "
   ] });
@@ -36197,7 +36211,7 @@ const IW = (e) => {
       /* @__PURE__ */ p.jsx("p", { className: "text-sm text-muted-foreground", children: "系统状态概览与快速操作" })
     ] }),
     /* @__PURE__ */ p.jsx(ei, { className: "mb-6" }),
-    /* @__PURE__ */ p.jsx("div", { className: "flex-1 overflow-y-auto no-scrollbar", children: /* @__PURE__ */ p.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12", children: [
+    /* @__PURE__ */ p.jsx("div", { className: "flex-1 overflow-y-auto no-scrollbar", children: /* @__PURE__ */ p.jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 engram-stagger-children", children: [
       /* @__PURE__ */ p.jsxs("section", { className: "space-y-8", children: [
         /* @__PURE__ */ p.jsxs("div", { children: [
           /* @__PURE__ */ p.jsx("h2", { className: "text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4", children: "系统状态" }),
@@ -36278,9 +36292,9 @@ const IW = (e) => {
             "button",
             {
               onClick: () => m(E.replace("/", "")),
-              className: "flex flex-col items-center gap-2 p-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all group",
+              className: "flex flex-col items-center gap-2 p-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-[var(--duration-fast)] group hover:translate-y-[-2px] active:scale-95",
               children: [
-                /* @__PURE__ */ p.jsx(k, { size: 20, className: "text-primary group-hover:scale-110 transition-transform" }),
+                /* @__PURE__ */ p.jsx(k, { size: 20, className: "text-primary transition-transform duration-[var(--duration-fast)] group-hover:scale-110" }),
                 /* @__PURE__ */ p.jsx("span", { className: "text-xs", children: _ })
               ]
             },
@@ -36432,7 +36446,7 @@ const IW = (e) => {
                 "button",
                 {
                   onClick: d,
-                  className: "p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors",
+                  className: "p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-all duration-[var(--duration-fast)] hover:rotate-90",
                   "aria-label": "关闭",
                   children: /* @__PURE__ */ p.jsx(Hm, { size: 18 })
                 }
@@ -36464,9 +36478,9 @@ const IW = (e) => {
                 {
                   onClick: m,
                   disabled: o,
-                  className: "inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors disabled:opacity-50",
+                  className: "group inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-all duration-[var(--duration-fast)] hover:scale-[1.02] active:scale-95 disabled:opacity-50",
                   children: [
-                    o ? /* @__PURE__ */ p.jsx(Nu, { size: 16, className: "animate-spin" }) : /* @__PURE__ */ p.jsx(Tr, { size: 16 }),
+                    o ? /* @__PURE__ */ p.jsx(Nu, { size: 16, className: "animate-spin" }) : /* @__PURE__ */ p.jsx(Tr, { size: 16, className: "transition-transform duration-[var(--duration-slow)] group-hover:rotate-180" }),
                     "重新生成"
                   ]
                 }
@@ -36477,7 +36491,7 @@ const IW = (e) => {
                   {
                     onClick: d,
                     disabled: o,
-                    className: "inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors disabled:opacity-50",
+                    className: "inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-all duration-[var(--duration-fast)] hover:scale-[1.02] active:scale-95 disabled:opacity-50",
                     children: "取消"
                   }
                 ),
@@ -36486,7 +36500,7 @@ const IW = (e) => {
                   {
                     onClick: c,
                     disabled: o,
-                    className: "inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm",
+                    className: "inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all duration-[var(--duration-fast)] hover:scale-[1.02] hover:shadow-[0_0_15px_var(--primary)] active:scale-95 disabled:opacity-50 shadow-sm",
                     children: [
                       /* @__PURE__ */ p.jsx(Jv, { size: 16 }),
                       "确认写入"

@@ -94,7 +94,7 @@ export const RevisionModal: React.FC = () => {
                     </div>
                     <button
                         onClick={handleCancel}
-                        className="p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                        className="p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-all duration-[var(--duration-fast)] hover:rotate-90"
                         aria-label="关闭"
                     >
                         <X size={18} />
@@ -134,12 +134,12 @@ export const RevisionModal: React.FC = () => {
                             <button
                                 onClick={handleReroll}
                                 disabled={isRerolling}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors disabled:opacity-50"
+                                className="group inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-all duration-[var(--duration-fast)] hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                             >
                                 {isRerolling ? (
                                     <Loader2 size={16} className="animate-spin" />
                                 ) : (
-                                    <RefreshCw size={16} />
+                                    <RefreshCw size={16} className="transition-transform duration-[var(--duration-slow)] group-hover:rotate-180" />
                                 )}
                                 重新生成
                             </button>
@@ -151,14 +151,14 @@ export const RevisionModal: React.FC = () => {
                         <button
                             onClick={handleCancel}
                             disabled={isRerolling}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors disabled:opacity-50"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-all duration-[var(--duration-fast)] hover:scale-[1.02] active:scale-95 disabled:opacity-50"
                         >
                             取消
                         </button>
                         <button
                             onClick={handleConfirm}
                             disabled={isRerolling}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all duration-[var(--duration-fast)] hover:scale-[1.02] hover:shadow-[0_0_15px_var(--primary)] active:scale-95 disabled:opacity-50 shadow-sm"
                         >
                             <Check size={16} />
                             确认写入
@@ -217,7 +217,7 @@ export const Modal: React.FC<ModalProps> = ({
                         </h3>
                         <button
                             onClick={onClose}
-                            className="p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
+                            className="p-2 -m-2 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-all duration-[var(--duration-fast)] hover:rotate-90"
                             aria-label="关闭"
                         >
                             <X size={18} />

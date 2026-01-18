@@ -84,9 +84,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                     <div id="engram-header-extension" className="z-40 flex-shrink-0 bg-transparent transition-all empty:hidden" />
                 </div>
 
-                {/* Main Content Area - Staged Animation Step 3 (Delay 200ms) with Blur */}
+                {/* Main Content Area - Page Transition on Tab Change */}
                 <main className="flex-1 flex flex-col relative w-full overflow-hidden bg-background">
-                    <div className="flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth animate-blur-in fill-mode-both" style={{ animationDelay: '200ms', animationFillMode: 'both' }}>
+                    <div
+                        key={activeTab}
+                        className="flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth engram-page-enter"
+                    >
                         <div className="max-w-6xl mx-auto min-h-full pb-20">
                             {children}
                         </div>

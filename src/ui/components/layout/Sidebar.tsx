@@ -46,12 +46,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {/* 第一行：更新通知 */}
             <button
                 onClick={onShowUpdateNotice}
-                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-muted/10 text-left"
+                className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-[var(--duration-fast)] text-muted-foreground hover:text-foreground hover:bg-muted/10 text-left"
             >
                 <div className="relative">
-                    <Bell size={16} strokeWidth={1.5} />
+                    <Bell
+                        size={16}
+                        strokeWidth={1.5}
+                        className={hasUnreadUpdate ? 'engram-animate-bell-ring' : ''}
+                    />
                     {hasUnreadUpdate && (
-                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full engram-animate-pulse" />
                     )}
                 </div>
                 <span className="text-xs">更新通知</span>

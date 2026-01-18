@@ -91,10 +91,68 @@
 
 ---
 
-## 5. 交互 (Interaction)
+## 5. 交互与动画 (Interaction & Animation)
 
--   **Hover**: 微妙的透明度/位移变化
--   **Transition**: `duration-200 ease-out`
+### 5.1 动画设计原则
+
+| 原则 | 说明 |
+|------|------|
+| **有意义 (Purposeful)** | 每个动画都应传达状态变化或引导注意力 |
+| **微妙 (Subtle)** | 不抢眼、不延迟操作，让用户感知而非注意 |
+| **一致 (Consistent)** | 相同类型的交互使用相同的动画模式 |
+| **性能优先 (Performance)** | 仅使用 GPU 加速属性：`transform`, `opacity`, `filter` |
+
+### 5.2 时长标准 (Duration Tokens)
+
+```css
+--duration-fast: 150ms;      /* 按钮点击、hover */
+--duration-normal: 200ms;    /* 状态切换、面板展开 */
+--duration-slow: 300ms;      /* 页面过渡、加载动画 */
+--duration-emphasis: 500ms;  /* 首次加载、重要提示 */
+```
+
+### 5.3 缓动函数 (Easing)
+
+```css
+--ease-out: cubic-bezier(0.16, 1, 0.3, 1);       /* 标准交互 */
+--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性效果 */
+--ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);   /* 进入效果 */
+```
+
+### 5.4 动画工具类 (`animations.css`)
+
+> [!IMPORTANT]
+> 所有类名使用 `engram-` 前缀避免与宿主环境 CSS 冲突。
+
+| 类名 | 效果 | 使用场景 |
+|------|------|----------|
+| `engram-animate-fade-up` | 淡入上滑 | 页面/元素进入 |
+| `engram-animate-scale-in` | 缩放弹入 | Modal/Popover |
+| `engram-animate-spin-once` | 旋转一圈 | 刷新按钮 |
+| `engram-animate-shake` | 抖动 | 警告/错误 |
+| `engram-animate-bell-ring` | 铃铛摇晃 | 更新通知 |
+| `engram-animate-bounce-in` | 弹跳进入 | 成功图标 |
+| `engram-hover-lift` | 悬浮抬起 | 卡片 |
+| `engram-hover-scale` | 悬浮缩放 | 图标按钮 |
+| `engram-hover-glow` | 悬浮发光 | 主按钮 |
+| `engram-stagger-children` | 子元素阶梯动画 | 列表/Grid |
+| `engram-page-enter` | 页面切换过渡 | 视图容器 |
+
+### 5.5 使用示例
+
+```tsx
+// ✅ 正确：使用 CSS 变量控制过渡
+<button className="transition-all duration-[var(--duration-fast)] ease-[var(--ease-spring)]
+                   hover:scale-[1.02] active:scale-95">
+
+// ✅ 正确：使用带命名空间的工具类
+<div className="engram-hover-lift">悬浮抬起的卡片</div>
+<div className="engram-stagger-children">阶梯动画容器</div>
+<Bell className={hasUnread ? 'engram-animate-bell-ring' : ''} />
+
+// ❌ 错误：硬编码时长
+<button className="transition-all duration-200">
+```
 
 ---
 
