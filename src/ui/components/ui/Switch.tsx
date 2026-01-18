@@ -38,7 +38,9 @@ export const Switch: React.FC<SwitchProps> = ({
             onClick={handleClick}
             disabled={disabled}
             className={`
-                relative inline-flex h-3.5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-all duration-300 focus:outline-none
+                relative inline-flex h-3.5 w-9 shrink-0 cursor-pointer items-center rounded-full border
+                transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)]
+                focus:outline-none active:scale-95
                 ${checked
                     ? 'bg-primary/20 border-primary/50 shadow-[0_0_10px_rgba(var(--primary),0.2)]'
                     : 'bg-black/20 border-border shadow-inner'
@@ -50,7 +52,8 @@ export const Switch: React.FC<SwitchProps> = ({
             {/* 辉光 Thumb */}
             <span
                 className={`
-                    pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-sm ring-0 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
+                    pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-sm ring-0
+                    transition-all duration-[var(--duration-normal)] ease-[var(--ease-spring)]
                     ${checked
                         ? 'bg-primary shadow-[0_0_8px_rgba(var(--primary),0.8)] border border-primary-foreground/20'
                         : 'bg-muted-foreground border border-transparent opacity-60'

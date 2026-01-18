@@ -169,7 +169,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
                             {results.map((item, index) => (
                                 <div
                                     key={item.id}
-                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${index === selectedIndex
+                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-[var(--duration-fast)] ${index === selectedIndex
                                         ? 'bg-primary/10 text-primary'
                                         : 'text-foreground hover:bg-muted/50'
                                         }`}
@@ -245,7 +245,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground"
+                className="p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-all duration-[var(--duration-fast)] text-muted-foreground hover:scale-110 active:scale-95"
                 title="搜索 (Cmd+K)"
             >
                 <Search size={20} />

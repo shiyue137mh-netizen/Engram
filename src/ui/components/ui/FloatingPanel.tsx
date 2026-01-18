@@ -124,7 +124,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     return ReactDOM.createPortal(
         <div
             ref={panelRef}
-            className="fixed z-[11000] flex flex-col rounded-lg shadow-2xl border border-border overflow-hidden"
+            className="fixed z-[11000] flex flex-col rounded-lg shadow-2xl border border-border overflow-hidden engram-animate-scale-in"
             style={{
                 left: position.x,
                 top: position.y,
@@ -151,7 +151,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
+                    className="p-1 text-muted-foreground hover:text-foreground rounded transition-all duration-[var(--duration-fast)] hover:rotate-90 hover:bg-accent"
                     style={{ backgroundColor: 'transparent' }}
                     aria-label="关闭"
                     onMouseDown={(e) => e.stopPropagation()}

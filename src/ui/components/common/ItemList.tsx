@@ -1,6 +1,6 @@
 /**
  * ItemList - 通用列表容器组件
- * 
+ *
  * 提供统一的列表布局：标题栏 + 添加按钮 + 列表项 + 空状态
  * 支持分组展示
  */
@@ -70,7 +70,7 @@ export function ItemList<T>({
                     {headerActions}
                     {onAdd && (
                         <button
-                            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                            className="text-muted-foreground hover:text-foreground transition-all duration-[var(--duration-fast)] p-1 hover:scale-110 active:scale-95"
                             onClick={onAdd}
                             title={addLabel || '添加'}
                         >
@@ -81,7 +81,7 @@ export function ItemList<T>({
             </div>
 
             {/* 列表内容 */}
-            <div className="flex flex-col gap-1 flex-1 overflow-y-auto no-scrollbar">
+            <div className="flex flex-col gap-1 flex-1 overflow-y-auto no-scrollbar engram-stagger-children">
                 {/* 分组模式 */}
                 {groups && groups.map((group) => (
                     group.items.length > 0 && (

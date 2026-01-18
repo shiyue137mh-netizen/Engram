@@ -1,6 +1,6 @@
 /**
  * QuickLinks - 快速跳转链接组件
- * 
+ *
  * 用于页面右上角的快速导航跳转，统一的小图标 + 文字样式
  * 支持自定义图标和跳转目标
  */
@@ -30,11 +30,11 @@ export const QuickLinks: React.FC<QuickLinksProps> = ({ links, onNavigate, class
                 return (
                     <button
                         key={link.id}
-                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        className="group inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-[var(--duration-fast)]"
                         onClick={() => onNavigate(link.linkTo)}
                         title={link.label}
                     >
-                        <Icon size={12} />
+                        <Icon size={12} className="transition-transform duration-[var(--duration-fast)] group-hover:scale-110" />
                         <span>{link.label}</span>
                     </button>
                 );

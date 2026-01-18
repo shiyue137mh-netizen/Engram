@@ -22869,7 +22869,7 @@ const NU = ({ onNavigate: e }) => {
               u.length > 0 && /* @__PURE__ */ p.jsx("div", { className: "space-y-1", children: u.map((b, _) => /* @__PURE__ */ p.jsxs(
                 "div",
                 {
-                  className: `flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors ${_ === s ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted/50"}`,
+                  className: `flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-[var(--duration-fast)] ${_ === s ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted/50"}`,
                   onClick: () => {
                     b.action(e), i(!1), n("");
                   },
@@ -22930,7 +22930,7 @@ const NU = ({ onNavigate: e }) => {
       "button",
       {
         onClick: () => i(!0),
-        className: "p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors text-muted-foreground",
+        className: "p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-all duration-[var(--duration-fast)] text-muted-foreground hover:scale-110 active:scale-95",
         title: "搜索 (Cmd+K)",
         children: /* @__PURE__ */ p.jsx(qs, { size: 20 })
       }
@@ -32482,7 +32482,9 @@ const sW = ({ isOpen: e, onClose: t }) => {
       onClick: s,
       disabled: n,
       className: `
-                relative inline-flex h-3.5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-all duration-300 focus:outline-none
+                relative inline-flex h-3.5 w-9 shrink-0 cursor-pointer items-center rounded-full border
+                transition-all duration-[var(--duration-normal)] ease-[var(--ease-out)]
+                focus:outline-none active:scale-95
                 ${e ? "bg-primary/20 border-primary/50 shadow-[0_0_10px_rgba(var(--primary),0.2)]" : "bg-black/20 border-border shadow-inner"}
                 ${n ? "opacity-50 cursor-not-allowed" : ""}
                 ${r}
@@ -32491,7 +32493,8 @@ const sW = ({ isOpen: e, onClose: t }) => {
         "span",
         {
           className: `
-                    pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-sm ring-0 transition-all duration-300 cubic-bezier(0.34, 1.56, 0.64, 1)
+                    pointer-events-none inline-block h-2.5 w-2.5 transform rounded-full shadow-sm ring-0
+                    transition-all duration-[var(--duration-normal)] ease-[var(--ease-spring)]
                     ${e ? "bg-primary shadow-[0_0_8px_rgba(var(--primary),0.8)] border border-primary-foreground/20" : "bg-muted-foreground border border-transparent opacity-60"}
                 `,
           style: { transform: e ? "translateX(24px)" : "translateX(2px)" }
@@ -36571,7 +36574,7 @@ const IW = (e) => {
       "div",
       {
         ref: m,
-        className: "fixed z-[11000] flex flex-col rounded-lg shadow-2xl border border-border overflow-hidden",
+        className: "fixed z-[11000] flex flex-col rounded-lg shadow-2xl border border-border overflow-hidden engram-animate-scale-in",
         style: {
           left: g.x,
           top: g.y,
@@ -36601,7 +36604,7 @@ const IW = (e) => {
                   "button",
                   {
                     onClick: t,
-                    className: "p-1 text-muted-foreground hover:text-foreground rounded transition-colors",
+                    className: "p-1 text-muted-foreground hover:text-foreground rounded transition-all duration-[var(--duration-fast)] hover:rotate-90 hover:bg-accent",
                     style: { backgroundColor: "transparent" },
                     "aria-label": "关闭",
                     onMouseDown: (Z) => Z.stopPropagation(),
@@ -58235,11 +58238,11 @@ const ade = ({ data: e }) => {
   return /* @__PURE__ */ p.jsxs(
     "button",
     {
-      className: "inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors",
+      className: "group inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors duration-[var(--duration-fast)]",
       onClick: () => t(r.linkTo),
       title: r.label,
       children: [
-        /* @__PURE__ */ p.jsx(i, { size: 12 }),
+        /* @__PURE__ */ p.jsx(i, { size: 12, className: "transition-transform duration-[var(--duration-fast)] group-hover:scale-110" }),
         /* @__PURE__ */ p.jsx("span", { children: r.label })
       ]
     },
