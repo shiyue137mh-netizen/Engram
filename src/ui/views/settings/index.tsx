@@ -8,6 +8,9 @@ import { summarizerService } from "@/modules/memory";
 import { preprocessor } from "@/modules/preprocessing";
 import { SettingsManager } from "@/config/settings";
 import { DEFAULT_PREPROCESSING_CONFIG } from "@/modules/preprocessing/types";
+import { useMemoryStore } from "@/state/memoryStore";
+import { getCurrentChatId } from "@/integrations/tavern/context";
+import { RefreshCw } from 'lucide-react';
 
 export const Settings: React.FC = () => {
     const [previewEnabled, setPreviewEnabled] = useState(SettingsManager.getSettings().summarizerConfig?.previewEnabled ?? true);
@@ -234,6 +237,9 @@ export const Settings: React.FC = () => {
                         )}
                     </div>
 
+                    {/* Database Operations */}
+                    <DatabaseOperations />
+
                     {/* Data Synchronization Section */}
                     <SyncSection />
                 </section>
@@ -398,6 +404,86 @@ const SyncSection: React.FC = () => {
                     </div>
                 </div>
             )}
+        </div>
+    );
+};
+
+const DatabaseOperations: React.FC = () => {
+    const memoryStore = useMemoryStore();
+
+    // 强制刷新状态
+    const [_, forceUpdate] = useState({});
+
+    const handleReset = async () => {
+        const chatId = getCurrentChatId();
+        if (!chatId) {
+            alert('未连接到聊天');
+            return;
+        }
+
+        if (confirm('确定要清空当前聊天的 IndexedDB 数据吗？\n警告：这将删除所有记忆、实体和总结！数据库文件保留。')) {
+            if (confirm('再次确认：此操作不可逆！')) {
+                try {
+                    await memoryStore.clearChatDatabase();
+                    alert('重置成功');
+                    forceUpdate({});
+                } catch (e) {
+                    alert('重置失败: ' + e);
+                }
+            }
+        }
+    };
+
+    const handleDelete = async () => {
+        const chatId = getCurrentChatId();
+        if (!chatId) {
+            alert('未连接到聊天');
+            return;
+        }
+
+        if (confirm('确定要彻底删除当前聊天的数据库文件吗？\n警告：这将完全移除 Engram 为此聊天存储的所有数据！')) {
+            if (confirm('再次确认：这相当于完全卸载此聊天的记忆模块！')) {
+                try {
+                    await memoryStore.deleteChatDatabase();
+                    alert('删除成功');
+                    forceUpdate({});
+                } catch (e) {
+                    alert('删除失败: ' + e);
+                }
+            }
+        }
+    };
+
+    return (
+        <div className="bg-muted/30 border border-border rounded-lg p-4 mt-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500 flex-shrink-0">
+                        <RefreshCw size={20} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h4 className="font-medium text-foreground truncate">手动维护</h4>
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                            手动清空或删除当前聊天的数据库
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="pl-14 flex gap-4">
+                <button
+                    onClick={handleReset}
+                    className="px-3 py-1.5 text-xs font-medium rounded-md bg-background border border-border hover:bg-muted text-yellow-600 transition-colors"
+                >
+                    重置当前数据 (保留DB)
+                </button>
+                <button
+                    onClick={handleDelete}
+                    className="px-3 py-1.5 text-xs font-medium rounded-md bg-background border border-border hover:bg-red-500/10 text-red-600 transition-colors"
+                >
+                    删除数据库 (删库)
+                </button>
+            </div>
         </div>
     );
 };

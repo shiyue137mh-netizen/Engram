@@ -1,6 +1,6 @@
 /**
  * WorldInfoService - SillyTavern 世界书服务封装
- * 
+ *
  * 提供世界书操作和 Token 计数功能
  */
 
@@ -227,7 +227,7 @@ export class WorldInfoService {
      * 获取或创建当前角色的 Engram 世界书
      * 如果不存在则创建并绑定到角色
      * **仅在需要写入时调用**
-     * 
+     *
      * 学习自 the_world 插件的成功实现：
      * 1. TavernHelper.createWorldbook() 创建世界书
      * 2. TavernHelper.getCharWorldbookNames() 获取角色世界书配置
@@ -725,11 +725,17 @@ export class WorldInfoService {
      * 获取所有激活的世界书条目内容（用于总结）
      * 使用酒馆原生 getWorldInfoPrompt 进行扫描，获取所有激活的条目
      * 支持：蓝灯（常驻）+ 绿灯（关键词触发）
-     * 
-     * @param chatMessages 可选，用于关键词扫描的聊天消息
+     *
+     * @param chatMessages 可选，用于关键词扫描的聊天消息（已废弃，请使用 options）
+     * @param options 可选配置
+     *   - floorRange: [start, end] 指定扫描的楼层范围（1-indexed），用于 Summary 场景
+     *   - 如果不指定，默认扫描最近 4 条消息（用于预处理/实体提取）
      * @returns 格式化后的世界书内容字符串
      */
-    static async getActivatedWorldInfo(chatMessages?: string[]): Promise<string> {
+    static async getActivatedWorldInfo(
+        chatMessages?: string[],
+        options?: { floorRange?: [number, number] }
+    ): Promise<string> {
         // 延迟导入 Logger 避免循环依赖
         const { Logger } = await import('@/core/logger');
 
@@ -763,13 +769,36 @@ export class WorldInfoService {
                 return this.getConstantWorldInfo();
             }
 
-            // 获取聊天消息用于关键词扫描
+            // V0.9.9: 根据场景选择不同的消息获取策略
+            // - Summary 场景：传入 floorRange，扫描指定楼层范围
+            // - 预处理场景：默认扫描最近 4 条消息
+            const DEFAULT_SCAN_LIMIT = 4;
             let messages = chatMessages;
-            if (!messages || messages.length === 0) {
-                // @ts-ignore - 酒馆全局对象
-                const context = window.SillyTavern?.getContext?.();
+
+            // @ts-ignore - 酒馆全局对象
+            const context = window.SillyTavern?.getContext?.();
+
+            if (options?.floorRange) {
+                // Summary 场景：扫描指定楼层范围
+                const [startFloor, endFloor] = options.floorRange;
                 if (context?.chat && Array.isArray(context.chat)) {
-                    messages = context.chat.map((m: { mes?: string }) => m.mes || '').reverse();
+                    // floor 1 = index 0, slice(start-1, end) 取 [start, end]
+                    const rangeChat = context.chat.slice(startFloor - 1, endFloor);
+                    messages = rangeChat.map((m: { mes?: string }) => m.mes || '').reverse();
+                    Logger.debug('WorldInfo', '使用楼层范围扫描', {
+                        floorRange: options.floorRange,
+                        messageCount: messages.length
+                    });
+                }
+            } else if (!messages || messages.length === 0) {
+                // 预处理场景：只取最近 N 条消息，避免扫描整个聊天历史
+                if (context?.chat && Array.isArray(context.chat)) {
+                    const recentChat = context.chat.slice(-DEFAULT_SCAN_LIMIT);
+                    messages = recentChat.map((m: { mes?: string }) => m.mes || '').reverse();
+                    Logger.debug('WorldInfo', '使用默认最近消息扫描', {
+                        scanLimit: DEFAULT_SCAN_LIMIT,
+                        messageCount: messages.length
+                    });
                 }
             }
 
@@ -783,8 +812,9 @@ export class WorldInfoService {
             });
 
             // 1. 调用世界书扫描 (使用 checkWorldInfo 获取详细数据)
-            // 用户要求：不要有 maxContext 限制，或者设置很高，确保不影响扫描
-            const maxContextScan = 1000000;
+            // 根据消息数量动态调整 maxContext
+            const avgTokensPerMessage = 500;
+            const maxContextScan = Math.max(10000, messages.length * avgTokensPerMessage);
             // @ts-ignore - 动态类型
             const checkWorldInfo = worldInfoModule?.checkWorldInfo;
 
@@ -824,12 +854,12 @@ export class WorldInfoService {
             filteredEntries.sort((a, b) => (a.order || 0) - (b.order || 0));
 
             // 6. 提取内容并合并
-            const context = filteredEntries
+            const worldbookContent = filteredEntries
                 .map(e => e.content)
                 .filter(Boolean)
                 .join('\n\n');
 
-            return context;
+            return worldbookContent;
         } catch (e) {
             Logger.error('WorldInfo', '获取激活世界书失败', e);
             return this.getConstantWorldInfo();

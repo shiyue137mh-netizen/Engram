@@ -142,13 +142,13 @@ export class Pipeline {
             }
             console.log(`[Pipeline] Saved ${savedEvents.length} events to DB (${Date.now() - startTime}ms)`);
 
-            // 4. 刷新宏缓存 (让 {{engramSummaries}} 立即可用)
-            const { MacroService } = await import('@/integrations/tavern/macros');
-            await MacroService.refreshCache();
-            console.log(`[Pipeline] Macro cache refreshed (${Date.now() - startTime}ms)`);
-
             // 5. 更新进度
             await store.setLastSummarizedFloor(input.sourceRange.end);
+
+            // 4. 刷新宏缓存 (优化：只刷新 Engram DB 数据，不扫描世界书)
+            const { MacroService } = await import('@/integrations/tavern/macros');
+            await MacroService.refreshEngramCache();
+            console.log(`[Pipeline] Macro cache refreshed (Fast) (${Date.now() - startTime}ms)`);
 
             // V0.9.1: 实体提取触发已移至 SummarizerService
 

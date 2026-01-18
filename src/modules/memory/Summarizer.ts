@@ -402,19 +402,25 @@ export class SummarizerService {
             manual,
         });
 
+        // 准备取消信号
+        let triggerCancel: () => void;
+        const cancellationPromise = new Promise<{ success: false; error: string }>((_, reject) => {
+            triggerCancel = () => reject(new Error('SummaryCancelled'));
+        });
+
         // 显示运行中通知（支持点击取消）
         const runningToast = notificationService.running('总结运行中...', 'Engram', () => {
             this.cancelRequested = true;
             this.log('info', '用户请求取消总结');
             // 调用酒馆 stopGeneration API
             try {
-                // @ts-expect-error - SillyTavern 全局对象
                 window.SillyTavern?.getContext?.()?.stopGeneration?.();
                 this.log('info', '已调用酒馆 stopGeneration');
             } catch (e) {
                 this.log('warn', '调用 stopGeneration 失败', e);
             }
             notificationService.warning('正在取消总结...', 'Engram');
+            triggerCancel(); // 触发 Promise.race 取消
         });
 
         try {
@@ -497,9 +503,12 @@ export class SummarizerService {
             });
 
             // 2. 获取世界书内容（使用新方法）
+            // V0.9.9: 传入当前总结的楼层范围，确保扫描正确的消息
             let worldbookContext = '';
             try {
-                const worldInfo = await WorldInfoService.getActivatedWorldInfo();
+                const worldInfo = await WorldInfoService.getActivatedWorldInfo(undefined, {
+                    floorRange: request.floorRange
+                });
                 if (worldInfo) {
                     worldbookContext = '【背景设定】\n' + worldInfo + '\n\n';
                     this.log('debug', '已加载世界书内容', { length: worldInfo.length });
@@ -549,10 +558,13 @@ export class SummarizerService {
             });
 
             const startTime = Date.now();
-            const response = await this.llmAdapter.generate({
-                systemPrompt,
-                userPrompt,
-            });
+            const response = await Promise.race([
+                this.llmAdapter.generate({
+                    systemPrompt,
+                    userPrompt,
+                }),
+                cancellationPromise
+            ]);
 
             // 记录响应
             ModelLogger.logReceive(logId, {
@@ -666,6 +678,13 @@ export class SummarizerService {
             return result;
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
+
+            if (errorMsg === 'SummaryCancelled') {
+                this.log('info', '总结已被用户取消 (Promise Race)');
+                notificationService.info('总结已取消', 'Engram');
+                return null;
+            }
+
             this.log('error', '总结执行异常', { error: errorMsg });
             notificationService.error(`总结异常: ${errorMsg}`, 'Engram 错误');
             return null;

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { getDbForChat, tryGetDbForChat, type ChatDatabase } from '@/data/db';
+import { getDbForChat, tryGetDbForChat, deleteDatabase, type ChatDatabase } from '@/data/db';
 import { chatManager } from '@/data/ChatManager';
 import { WorldInfoService } from '@/integrations/tavern/api';
 import { getCurrentChatId } from '@/integrations/tavern/context';
@@ -66,7 +66,14 @@ interface MemoryState {
     /** 根据名称查找实体 (包含别名匹配) */
     findEntityByName: (name: string) => Promise<EntityNode | null>;
     /** V0.9.2: 获取归档事件摘要 (绿灯事件) */
+    /** V0.9.2: 获取归档事件摘要 (绿灯事件) */
     getArchivedEventSummaries: () => Promise<string>;
+
+    // ==================== 数据库管理 ====================
+    /** 清空当前聊天数据库 (重置) */
+    clearChatDatabase: () => Promise<void>;
+    /** 删除当前聊天数据库 (删库) */
+    deleteChatDatabase: () => Promise<void>;
 }
 
 /**
@@ -446,6 +453,46 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         } catch (e) {
             console.error('[MemoryStore] Failed to get archived event summaries:', e);
             return '';
+        }
+    },
+
+    // ==================== 数据库管理 ====================
+
+    clearChatDatabase: async () => {
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            await db.transaction('rw', db.events, db.entities, db.meta, async () => {
+                await db.events.clear();
+                await db.entities.clear();
+                await db.meta.clear();
+            });
+            // 重置状态
+            set({
+                lastSummarizedFloor: 0,
+                recentEvents: []
+            });
+            console.info('[MemoryStore] Database cleared successfully');
+        } catch (e) {
+            console.error('[MemoryStore] Failed to clear database:', e);
+            throw e;
+        }
+    },
+
+    deleteChatDatabase: async () => {
+        const chatId = get().currentChatId;
+        if (!chatId) return;
+
+        try {
+            // 删除数据库文件
+            await deleteDatabase(chatId);
+            // 重置状态
+            get().reset();
+            console.info('[MemoryStore] Database deleted successfully');
+        } catch (e) {
+            console.error('[MemoryStore] Failed to delete database:', e);
+            throw e;
         }
     }
 }));

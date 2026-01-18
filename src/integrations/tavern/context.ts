@@ -32,6 +32,10 @@ export interface STContext {
     event_types?: Record<string, string>;
     // 工具函数
     getRequestHeaders?: (options?: { omitContentType?: boolean }) => Record<string, string>;
+    // Token 计数
+    getTokenCountAsync?: (text: string) => Promise<number>;
+    // 生成控制
+    stopGeneration?: () => void;
 
     // 宏系统
     registerMacro?: (key: string, callback: () => string | Promise<string>, description?: string) => void;

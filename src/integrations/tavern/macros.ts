@@ -159,44 +159,67 @@ export class MacroService {
     }
 
     /**
-     * 刷新缓存 - 从 IndexedDB 读取事件摘要，从世界书读取激活内容
-     * @param recalledIds 可选，RAG 召回的事件 ID 列表（绿灯事件临时显示）
+     * 刷新所有缓存 (包括耗时的世界书扫描)
+     * @param recalledIds 可选，RAG 召回的事件 ID 列表
      */
     static async refreshCache(recalledIds?: string[]): Promise<void> {
+        await Promise.all([
+            this.refreshEngramCache(recalledIds),
+            this.refreshWorldbookCache()
+        ]);
+
+        // 刷新用户设定 (轻量)
+        this.refreshUserPersona();
+        // 刷新自定义宏 (轻量)
+        this.refreshCustomMacros();
+    }
+
+    /**
+     * 仅刷新 Engram 相关的 DB 缓存 (快速)
+     * 用于 Pipeline 结束后的快速更新，避免触发全量世界书扫描
+     */
+    static async refreshEngramCache(recalledIds?: string[]): Promise<void> {
         try {
-            // 刷新 Engram 摘要
             const store = useMemoryStore.getState();
+
+            // 1. 刷新事件摘要
             this.cachedSummaries = await store.getEventSummaries(recalledIds);
 
+            // 2. 刷新归档摘要
+            await this.refreshArchivedSummaries();
+
+            // 3. 刷新图谱数据 (可选，视性能而定)
+            // await this.refreshGraphCache();
+
+            Logger.debug('MacroService', 'Engram DB 缓存已刷新', {
+                summariesLength: this.cachedSummaries.length,
+                recalledCount: recalledIds?.length ?? 0
+            });
+        } catch (e) {
+            Logger.warn('MacroService', '刷新 Engram DB 缓存失败', e);
+        }
+    }
+
+    /**
+     * 仅刷新世界书上下文 (耗时操作)
+     * 涉及全量历史扫描，仅在初始化或明确需要时调用
+     */
+    static async refreshWorldbookCache(): Promise<void> {
+        try {
             // 刷新世界书上下文 (支持 EJS)
-            try {
-                const rawContext = await WorldInfoService.getActivatedWorldInfo();
-                const sanitized = await this.processEJSMacros([rawContext]);
-                this.cachedWorldbookContext = sanitized[0] || '';
-            } catch (e) {
-                Logger.debug('MacroService', '获取世界书内容失败', e);
-                this.cachedWorldbookContext = '';
-            }
+            const rawContext = await WorldInfoService.getActivatedWorldInfo();
+            const sanitized = await this.processEJSMacros([rawContext]);
+            this.cachedWorldbookContext = sanitized[0] || '';
+
             // 刷新角色描述
             this.refreshCharDescription();
 
-            // V0.9.2: 刷新归档摘要
-            await this.refreshArchivedSummaries();
-
-            // V0.9.2: 刷新用户设定
-            this.refreshUserPersona();
-
-            // V0.9.2: 刷新并注册自定义宏
-            this.refreshCustomMacros();
-
-            Logger.debug('MacroService', '缓存已刷新', {
-                summariesLength: this.cachedSummaries.length,
-                worldbookLength: this.cachedWorldbookContext.length,
-                recalledCount: recalledIds?.length ?? 0,
-                customMacrosCount: this.cachedCustomMacros.size
+            Logger.debug('MacroService', '世界书上下文已刷新', {
+                worldbookLength: this.cachedWorldbookContext.length
             });
         } catch (e) {
-            Logger.warn('MacroService', '刷新缓存失败', e);
+            Logger.debug('MacroService', '获取世界书内容失败', e);
+            this.cachedWorldbookContext = '';
         }
     }
 
@@ -360,24 +383,65 @@ export class MacroService {
                     const originalContent = content;
 
                     // 1. 酒馆原生正则清洗
-                    if (TavernHelper && typeof TavernHelper.formatAsTavernRegexedString === 'function') {
+                    // V0.9.9: 增加详细调试日志
+                    const hasTavernHelper = !!TavernHelper;
+                    const hasFormatFunc = typeof TavernHelper?.formatAsTavernRegexedString === 'function';
+
+                    // 只在第一条消息输出一次诊断信息
+                    if (index === 0) {
+                        Logger.debug('MacroService', 'TavernHelper 诊断', {
+                            hasTavernHelper,
+                            hasFormatFunc,
+                            availableMethods: TavernHelper ? Object.keys(TavernHelper).slice(0, 10) : []
+                        });
+                    }
+
+                    if (hasTavernHelper && hasFormatFunc) {
                         try {
                             // usage: text, placement (2=AI Output), options
-                            content = TavernHelper.formatAsTavernRegexedString(content, 'ai_output', { isPrompt: true });
+                            // WARN: 强行退回 Object 传参并 cast as any，因为传 'prompt' 字符串导致了清空 bug
+                            const prev = content;
+                            content = TavernHelper.formatAsTavernRegexedString(content, 'ai_output', { isPrompt: true } as any);
+
+                            // 检查正则是否有实际效果
+                            const didChange = prev !== content;
+                            if (index === 0) {
+                                Logger.debug('MacroService', 'TavernHelper 正则结果', {
+                                    didChange,
+                                    prevLength: prev.length,
+                                    afterLength: content.length
+                                });
+                            }
+
+                            if (!content && prev) {
+                                Logger.warn('MacroService', 'TavernHelper stripped content empty!', { prev, content });
+                                content = prev; // 兜底恢复
+                            }
                         } catch (err) {
                             Logger.warn('MacroService', '酒馆原生正则清洗失败', err);
                         }
+                    } else if (index === 0) {
+                        Logger.warn('MacroService', 'TavernHelper.formatAsTavernRegexedString 不可用', {
+                            hasTavernHelper,
+                            hasFormatFunc
+                        });
                     }
 
+                    const preRegex = content;
                     // 2. Engram 内部正则清洗 (关键：逐条清洗)
                     content = regexProcessor.process(content, 'both');
+
+                    if (!content && preRegex) {
+                        Logger.warn('MacroService', 'RegexProcessor stripped content empty!', { preRegex, content });
+                    }
 
                     // Log first and last message processing for debugging
                     if (index === 0 || index === messages.length - 1) {
                         Logger.debug('MacroService', 'Message processed', {
                             index,
                             original: originalContent.substring(0, 50),
-                            processed: content.substring(0, 50)
+                            step1_tavern: preRegex.substring(0, 50),
+                            step2_regex: content.substring(0, 50)
                         });
                     }
 
