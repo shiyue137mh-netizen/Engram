@@ -14149,12 +14149,23 @@ function ux() {
       enabled: !0,
       isBuiltIn: !0,
       systemPrompt: e$,
-      userPromptTemplate: `{{worldbookContext}}
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**世界书**:
+{{worldbookContext}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
+
+---
 请将以下对话内容总结为结构化事件：
 
 {{chatHistory}}
 
----
 请按要求输出 JSON 格式的剧情总结：`
     }),
     kl("记忆精简", "trim", {
@@ -14176,8 +14187,17 @@ function ux() {
       enabled: !0,
       isBuiltIn: !0,
       systemPrompt: t$,
-      userPromptTemplate: `**世界书激活内容**:
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**世界书激活内容**:
 {{worldbookContext}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
 
 **最近对话历史**:
 {{chatHistory}}
@@ -14194,8 +14214,17 @@ function ux() {
       // 默认不启用，用户按需开启
       isBuiltIn: !0,
       systemPrompt: n$,
-      userPromptTemplate: `**世界书激活内容**:
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**世界书激活内容**:
 {{worldbookContext}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
 
 **最近对话历史**:
 {{chatHistory}}
@@ -14212,7 +14241,16 @@ function ux() {
       // 默认不启用，用户按需开启
       isBuiltIn: !0,
       systemPrompt: r$,
-      userPromptTemplate: `**最近对话历史**:
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
+
+**最近对话历史**:
 {{chatHistory}}
 
 **用户本轮输入**:

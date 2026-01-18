@@ -576,12 +576,23 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       enabled: true,
       isBuiltIn: true,
       systemPrompt: summaryPrompt,
-      userPromptTemplate: `{{worldbookContext}}
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**世界书**:
+{{worldbookContext}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
+
+---
 请将以下对话内容总结为结构化事件：
 
 {{chatHistory}}
 
----
 请按要求输出 JSON 格式的剧情总结：`,
     }),
     createPromptTemplate('记忆精简', 'trim', {
@@ -603,8 +614,17 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       enabled: true,
       isBuiltIn: true,
       systemPrompt: queryEnhancePrompt,
-      userPromptTemplate: `**世界书激活内容**:
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**世界书激活内容**:
 {{worldbookContext}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
 
 **最近对话历史**:
 {{chatHistory}}
@@ -621,8 +641,17 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       enabled: false,  // 默认不启用，用户按需开启
       isBuiltIn: true,
       systemPrompt: plotDirectorPrompt,
-      userPromptTemplate: `**世界书激活内容**:
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**世界书激活内容**:
 {{worldbookContext}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
 
 **最近对话历史**:
 {{chatHistory}}
@@ -639,7 +668,16 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
       enabled: false,  // 默认不启用，用户按需开启
       isBuiltIn: true,
       systemPrompt: descriptionPrompt,
-      userPromptTemplate: `**最近对话历史**:
+      userPromptTemplate: `**角色设定**:
+{{context}}
+
+**用户人设**:
+{{userPersona}}
+
+**已有剧情摘要**:
+{{engramSummaries}}
+
+**最近对话历史**:
 {{chatHistory}}
 
 **用户本轮输入**:
