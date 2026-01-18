@@ -55,7 +55,7 @@
 
 ## 4. 组件规范 (Component Specs)
 
-### 4.1 导航 (Navigation)
+### 4.1 导航 (Navigation) (`src/ui/components/layout`)
 
 ```tsx
 // ✅ 正确：使用主题类
@@ -77,13 +77,13 @@
 - **样式**: `border-t border-border` (不使用透明度/30)。
 - **间距**: 配合 `PageTitle` 的 `mb-2` 使用，保持紧凑。
 
-### 4.3 按钮 (Buttons)
+### 4.3 按钮 (Buttons) (`src/ui/components/ui/Button.tsx`)
 
 -   **Primary**: `bg-primary text-primary-foreground`
 -   **Secondary/Ghost**: `bg-transparent border-border text-muted-foreground hover:bg-accent`
 -   **Icon Button**: 无背景，hover 时 `bg-accent`
 
-### 4.3 输入框 (Inputs)
+### 4.3 输入框 (Inputs) (`src/ui/components/ui/Input.tsx`)
 
 -   **边框**: `border-input` 或 `border-border`
 -   **背景**: `bg-background` 或透明
@@ -98,7 +98,7 @@
 
 ---
 
-## 6. 布局结构
+## 6. 布局结构 (`src/ui/views`)
 
 -   **Sidebar**: 左侧固定，使用 `border-r border-sidebar-border` 分割
 -   **Panel Controls**: Z-index 最高层

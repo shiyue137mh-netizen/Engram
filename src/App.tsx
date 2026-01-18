@@ -1,17 +1,17 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { WelcomeAnimation } from '@/components/visual/WelcomeAnimation';
-import { SettingsManager } from '@/services/settings/Persistence';
+import { MainLayout } from '@/ui/components/layout/MainLayout';
+import { WelcomeAnimation } from '@/ui/components/visual/WelcomeAnimation';
+import { SettingsManager } from '@/config/settings';
 
 // 首屏视图同步导入
-import { Dashboard } from '@/views/Dashboard';
+import { Dashboard } from '@/ui/views/dashboard';
 
 // 非首屏视图懒加载 - 减少首屏 bundle 大小
-const DevLog = lazy(() => import('@/views/DevLog').then(m => ({ default: m.DevLog })));
-const APIPresets = lazy(() => import('@/views/APIPresets/APIPresetsView').then(m => ({ default: m.APIPresets })));
-const Settings = lazy(() => import('@/views/Settings').then(m => ({ default: m.Settings })));
-const MemoryStream = lazy(() => import('@/views/MemoryStream').then(m => ({ default: m.MemoryStream })));
-const ProcessingView = lazy(() => import('@/views/Processing/ProcessingView').then(m => ({ default: m.ProcessingView })));
+const DevLog = lazy(() => import('@/ui/views/dev-log').then(m => ({ default: m.DevLog })));
+const APIPresets = lazy(() => import('@/ui/views/api-presets/APIPresetsView').then(m => ({ default: m.APIPresets })));
+const Settings = lazy(() => import('@/ui/views/settings').then(m => ({ default: m.Settings })));
+const MemoryStream = lazy(() => import('@/ui/views/memory-stream').then(m => ({ default: m.MemoryStream })));
+const ProcessingView = lazy(() => import('@/ui/views/processing/ProcessingView').then(m => ({ default: m.ProcessingView })));
 
 // 懒加载 Loading 占位符
 const LoadingFallback = () => (

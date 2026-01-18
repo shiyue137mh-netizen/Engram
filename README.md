@@ -88,26 +88,22 @@ npm run dev:watch
 
 ```
 src/
-├── assets/                # 静态资源 (icons, styles)
-├── components/            # 展示组件
-│   ├── ui/                # 原子组件 (Button, Switch...)
-│   ├── layout/            # 布局组件 (Header, Sidebar...)
-│   ├── visual/            # 视觉组件 (NeuralOrb...)
-│   └── common/            # 通用组件
-├── lib/                   # 基础设施 (logger, events)
-├── services/              # 核心业务逻辑
-│   ├── api/               # LLM API 交互
-│   ├── database/          # Dexie 数据库
-│   ├── summarizer/        # 总结服务
-│   ├── settings/          # 设置持久化
-│   └── updater/           # 更新检查
-├── tavern/                # SillyTavern 适配层 (Bridge, Context)
-├── types/                 # TypeScript 类型定义
-├── views/                 # 页面级视图 (Dashboard, Graph...)
-├── hooks/                 # React Hooks
-├── contexts/              # React Context
-├── constants/             # 常量配置
-└── utils/                 # 工具函数
+├── core/                  # [L0] 核心层：类型与事件
+├── config/                # [L1] 配置层：设置管理
+├── data/                  # [L2] 数据层：IndexedDB 与 ChatManager
+├── integrations/          # [L3] 集成层：SillyTavern 与 LLM 适配
+├── modules/               # [L4] 模块层：核心业务逻辑
+│   ├── batch/             # 批处理
+│   ├── graph/             # 知识图谱
+│   ├── memory/            # 记忆管理
+│   ├── preprocessing/     # 输入预处理
+│   ├── rag/               # Graph RAG
+│   └── summarizer/        # 剧情总结
+├── state/                 # [L5] 状态层：Zustand Store
+└── ui/                    # [L6] 表现层：React 组件
+    ├── components/
+    ├── hooks/
+    └── views/
 ```
 
 ---

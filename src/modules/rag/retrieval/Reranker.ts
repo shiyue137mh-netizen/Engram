@@ -1,0 +1,153 @@
+/**
+ * RerankService - Rerank API 调用服务
+ *
+ * V0.8.5: 用于对向量检索结果进行重排序
+ * 支持 OpenAI 兼容格式的 Rerank API
+ */
+
+import { SettingsManager } from '@/config/settings';
+import { Logger } from '@/core/logger';
+import type { RerankConfig } from '@/config/types/rag';
+
+// ==================== 类型定义 ====================
+
+/**
+ * Rerank 结果项
+ */
+export interface RerankResultItem {
+    /** 文档在原始列表中的索引 */
+    index: number;
+    /** 相关性分数 (通常 0-1) */
+    relevance_score: number;
+}
+
+/**
+ * Rerank API 响应格式
+ */
+interface RerankAPIResponse {
+    results?: RerankResultItem[];
+    data?: RerankResultItem[];
+}
+
+// ==================== RerankService ====================
+
+export class RerankService {
+    private static instance: RerankService;
+
+    private constructor() { }
+
+    static getInstance(): RerankService {
+        if (!RerankService.instance) {
+            RerankService.instance = new RerankService();
+        }
+        return RerankService.instance;
+    }
+
+    /**
+     * 获取 Rerank 配置
+     */
+    private getConfig(): RerankConfig | null {
+        const apiSettings = SettingsManager.get('apiSettings');
+        return apiSettings?.rerankConfig || null;
+    }
+
+    /**
+     * 检查 Rerank 是否启用且配置有效
+     */
+    isEnabled(): boolean {
+        const config = this.getConfig();
+        return !!(config?.enabled && config.url && config.model);
+    }
+
+    /**
+     * 调用 Rerank API 对文档进行重排序
+     *
+     * @param query 查询文本
+     * @param documents 待排序的文档列表
+     * @returns 排序后的结果，按相关性降序排列
+     */
+    async rerank(query: string, documents: string[]): Promise<RerankResultItem[]> {
+        const config = this.getConfig();
+
+        if (!config?.enabled) {
+            Logger.debug('RerankService', 'Rerank 未启用，返回原始顺序');
+            return documents.map((_, i) => ({ index: i, relevance_score: 0 }));
+        }
+
+        if (!config.url || !config.model) {
+            Logger.warn('RerankService', 'Rerank 配置不完整', { url: config.url, model: config.model });
+            return documents.map((_, i) => ({ index: i, relevance_score: 0 }));
+        }
+
+        if (documents.length === 0) {
+            return [];
+        }
+
+        try {
+            // 构建 API 端点
+            const endpoint = config.url.endsWith('/rerank')
+                ? config.url
+                : `${config.url.replace(/\/$/, '')}/rerank`;
+
+            Logger.debug('RerankService', '调用 Rerank API', {
+                endpoint,
+                model: config.model,
+                queryLength: query.length,
+                documentCount: documents.length,
+            });
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(config.apiKey && {
+                        'Authorization': `Bearer ${config.apiKey}`
+                    })
+                },
+                body: JSON.stringify({
+                    model: config.model,
+                    query,
+                    documents,
+                    top_n: config.topN || 5,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Rerank API 错误 (${response.status}): ${errorText}`);
+            }
+
+            const data: RerankAPIResponse = await response.json();
+
+            // 兼容不同 API 返回格式
+            const results = data.results || data.data || [];
+
+            Logger.info('RerankService', 'Rerank 完成', {
+                resultCount: results.length,
+                topScore: results[0]?.relevance_score,
+            });
+
+            // 按相关性降序排列
+            return results.sort((a, b) => b.relevance_score - a.relevance_score);
+
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : '未知错误';
+            Logger.error('RerankService', 'Rerank 调用失败', { error: errorMsg });
+
+            // 失败时返回原始顺序
+            return documents.map((_, i) => ({ index: i, relevance_score: 0 }));
+        }
+    }
+
+    /**
+     * 获取混合权重 (alpha)
+     * 0 = 纯向量检索评分，1 = 纯 Rerank 评分
+     */
+    getHybridAlpha(): number {
+        const config = this.getConfig();
+        return config?.hybridAlpha ?? 0.5;
+    }
+}
+
+/** 单例导出 */
+export const rerankService = RerankService.getInstance();

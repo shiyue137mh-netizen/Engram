@@ -5,12 +5,12 @@
 
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import './styles/main.css';
+import './ui/styles/main.css';
 import App from './App';
-import { initializeEngram, setReactRenderer, setGlobalRenderer } from '@/tavern/bridge';
-import { RevisionModal } from '@/components/ui/Modal';
-import { QuickPanel } from '@/views/QuickPanel';
-import { setQuickPanelCallback } from '@/tavern/QuickPanelButton';
+import { initializeEngram, setReactRenderer, setGlobalRenderer } from '@/integrations/tavern/bridge';
+import { RevisionModal } from '@/ui/components/ui/Modal';
+import { QuickPanel } from '@/ui/views/quick-panel';
+import { setQuickPanelCallback } from '@/integrations/tavern/ui';
 
 // 全局 QuickPanel 状态
 let quickPanelOpen = false;
