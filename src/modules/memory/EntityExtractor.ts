@@ -6,6 +6,8 @@
  * - 输入从原始对话提取，而非 Summary
  */
 
+import { z } from 'zod';
+import * as jsonpatch from 'fast-json-patch';
 import { useMemoryStore } from '@/state/memoryStore';
 import { chatManager } from '@/data/ChatManager';
 import { MacroService } from '@/integrations/tavern/macros';
@@ -27,15 +29,27 @@ import entityExtractionPrompt from '@/integrations/llm/prompts/entity_extraction
 /**
  * V0.9.4: 实体提取 LLM 响应格式（开放结构）
  */
-interface EntityExtractionResponse {
-    entities: Array<{
-        name: string;
-        type: 'char' | 'loc' | 'item' | 'concept' | 'unknown';
-        aliases: string[];
-        /** 开放式属性容器，AI 自由写入 */
-        profile: Record<string, unknown>;
-    }>;
-}
+const PatchOpSchema = z.object({
+    op: z.enum(['add', 'remove', 'replace', 'move', 'copy', 'test']),
+    path: z.string(),
+    value: z.any().optional(),
+    from: z.string().optional(),
+});
+
+const EntitySchema = z.object({
+    name: z.string(),
+    type: z.enum(['char', 'loc', 'item', 'concept', 'unknown']),
+    aliases: z.array(z.string()).optional(),
+    profile: z.record(z.unknown()).optional(),
+});
+
+const ExtractionSchema = z.object({
+    entities: z.array(EntitySchema).optional(),
+    patches: z.array(z.object({
+        name: z.string(),
+        ops: z.array(PatchOpSchema)
+    })).optional()
+});
 
 /**
  * 实体构建结果
@@ -176,9 +190,9 @@ export class EntityBuilder {
                 return { success: false, newEntities: [], updatedEntities: [], error: response.error };
             }
 
-            // 5. 解析 JSON (V0.9.4: 使用新的 entities 字段)
-            const parsed = RobustJsonParser.parse<EntityExtractionResponse>(response.content);
-            if (!parsed || !parsed.entities) {
+            // 5. 解析 JSON (Generic Parse first, validation later)
+            const parsed = RobustJsonParser.parse<unknown>(response.content);
+            if (!parsed) {
                 Logger.error('EntityBuilder', 'JSON 解析失败');
                 if (manual) {
                     notificationService.error('实体提取失败：无法解析结果', 'Engram');
@@ -257,52 +271,36 @@ export class EntityBuilder {
      * 保存实体到数据库
      * V0.9.4: 适配开放式 profile 结构
      */
+    /**
+     * 保存实体到数据库 (V0.9.9: Support JSON Patch & Zod Validation)
+     */
     private async saveEntities(
-        data: EntityExtractionResponse,
+        data: unknown,
         existingEntities: EntityNode[]
     ): Promise<EntityBuildResult> {
         const store = useMemoryStore.getState();
-
         const newEntities: EntityNode[] = [];
         const updatedEntities: EntityNode[] = [];
 
-        for (const extracted of data.entities) {
-            // 1. 检查是否已存在
-            const existing = this.resolveEntity(extracted.name, extracted.aliases, existingEntities);
+        // 1. Validate with Zod
+        let parsedData: z.infer<typeof ExtractionSchema>;
+        try {
+            parsedData = ExtractionSchema.parse(data);
+        } catch (e) {
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            return { success: false, newEntities: [], updatedEntities: [], error: `Zod Validation Failed: ${errorMsg}` };
+        }
 
-            // 2. 从 profile 生成 YAML 格式的 description (For Model)
-            const description = this.profileToYaml(extracted.name, extracted.type, extracted.profile);
-
-            if (existing) {
-                // 更新现有实体: 合并 profile
-                const mergedProfile = {
-                    ...existing.profile,
-                    ...extracted.profile,
-                };
-                // 合并 relations 数组
-                if (Array.isArray(extracted.profile?.relations)) {
-                    const existingRelations = (existing.profile?.relations as Array<{ target: string }>) || [];
-                    const newRelations = extracted.profile.relations as Array<{ target: string }>;
-                    const relationMap = new Map(existingRelations.map(r => [r.target, r]));
-                    for (const rel of newRelations) {
-                        relationMap.set(rel.target, rel);
-                    }
-                    mergedProfile.relations = Array.from(relationMap.values());
+        // 2. Process New Entities
+        if (parsedData.entities) {
+            for (const extracted of parsedData.entities) {
+                // Check exact dupe before creation
+                const existing = this.resolveEntity(extracted.name, extracted.aliases || [], existingEntities);
+                if (existing) {
+                    Logger.warn('EntityBuilder', 'Skipping duplicate creation for existing entity', { name: extracted.name });
+                    continue;
                 }
 
-                const updates: Partial<EntityNode> = {
-                    description: this.profileToYaml(existing.name, existing.type, mergedProfile),
-                    profile: mergedProfile,
-                };
-
-                // 合并别名
-                const allAliases = new Set([...(existing.aliases || []), ...extracted.aliases]);
-                updates.aliases = Array.from(allAliases);
-
-                await store.updateEntity(existing.id, updates);
-                updatedEntities.push({ ...existing, ...updates });
-            } else {
-                // 创建新实体
                 const typeMap: Record<string, EntityType> = {
                     'char': EntityType.Character,
                     'loc': EntityType.Location,
@@ -311,6 +309,7 @@ export class EntityBuilder {
                     'unknown': EntityType.Unknown,
                 };
 
+                const description = this.profileToYaml(extracted.name, extracted.type, extracted.profile || {});
                 const entity = await store.saveEntity({
                     name: extracted.name,
                     type: typeMap[extracted.type] || EntityType.Unknown,
@@ -319,6 +318,51 @@ export class EntityBuilder {
                     profile: extracted.profile || {},
                 });
                 newEntities.push(entity);
+            }
+        }
+
+        // 3. Process Patches for Existing Entities
+        if (parsedData.patches) {
+            for (const patch of parsedData.patches) {
+                // 3.1 Find Target
+                const target = existingEntities.find(e => e.name === patch.name || e.id === patch.name);
+                if (!target) {
+                    Logger.warn('EntityBuilder', 'Patch target not found', { name: patch.name });
+                    continue;
+                }
+
+                // 3.2 Apply Patch
+                try {
+                    // Clone to avoid mutating state directly (though applyPatch mutates in place)
+                    const targetDoc = JSON.parse(JSON.stringify(target));
+                    // applyPatch returns validation error if fails
+                    const patchOps = patch.ops as any; // Cast to any to avoid strict Operation type mismatch
+                    const patchError = jsonpatch.validate(patchOps, targetDoc);
+                    if (patchError) {
+                        throw new Error(`Invalid patch: ${patchError.message}`);
+                    }
+
+                    jsonpatch.applyPatch(targetDoc, patchOps);
+
+                    // 3.3 Update Stores
+                    // Re-generate description if profile changed
+                    const description = this.profileToYaml(targetDoc.name, targetDoc.type, targetDoc.profile || {});
+
+                    const updates: Partial<EntityNode> = {
+                        profile: targetDoc.profile,
+                        aliases: targetDoc.aliases,
+                        description,
+                        // Update other fields if patched
+                        name: targetDoc.name,
+                        type: targetDoc.type
+                    };
+
+                    await store.updateEntity(target.id, updates);
+                    updatedEntities.push({ ...target, ...updates });
+
+                } catch (e) {
+                    Logger.error('EntityBuilder', `Failed to apply patch for ${patch.name}`, { error: e });
+                }
             }
         }
 

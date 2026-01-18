@@ -63,8 +63,24 @@
         - 若"小艾"与"艾莉丝"指代同一人，输出 entity 时 name 统一为全名 "艾莉丝"，将 "小艾" 加入 aliases。
   </logic_protocol>
 
+  <update_strategy>
+    标准: RFC 6902 (JSON Patch)
+    原则:
+      - 对于 existingEntities 中已有的实体，使用 patches 数组输出更新操作。
+      - 仅输出变动部分 (op: replace/add/remove)。
+      - path 必须是合法的 JSON Pointer (例如 /profile/status)。
+    示例:
+      已有: { name: "A", profile: { status: "健康" } }
+      变更: A 受伤了。
+      输出:
+        patches:
+          - name: "A"
+            ops:
+              - { op: "replace", path: "/profile/status", value: "受伤" }
+  </update_strategy>
+
   <profile_structure>
-    profile 是完全开放的 JSON 对象，你可以根据实体类型自由写入任何属性。
+    profile 是完全开放的 JSON 对象，你可以根据实体类型自由写入任何属性。 
     
     约定字段 (强制):
       - relations: EntityRelation[] — 与其他实体的关系
@@ -100,6 +116,11 @@
         - 显著性检查: 该实体是否对剧情有长期价值？(排除背景装饰)
         - 整体性检查: 是否误提取了某个实体的部件？
       
+      已有实体发生了什么状态变更？(JSON Patch)
+        - 检查 existingEntities 的状态
+        - 仅对发生变化的属性生成 replace/add/remove 操作
+        - 忽略无变化的字段
+      
       这些实体之间发生了什么样的交互与关系变化？
         - 分析对话中涉及的实体交互
         - 识别实体之间的持续性关系
@@ -132,28 +153,6 @@
 
     输出:
       ```json
-      {
-        "entities": [
-          {
-            "name": "A",
-            "type": "char",
-            "aliases": ["穿越者A"],
-            "profile": {
-              "identity": "穿越者，后成为见习守护骑士",
-              "personality": "坚韧",
-              "relations": [
-                { "target": "B公主", "type": "主仆", "description": "A是B公主的守护骑士" }
-              ]
-            }
-          },
-          {
-            "name": "B公主",
-            "type": "char",
-            "aliases": ["B"],
-            "profile": {
-              "identity": "公主，救助并收留了A",
-              "affiliation": "王国",
-              "relations": [
                 { "target": "A", "type": "主人", "description": "A的契约主人" }
               ]
             }
