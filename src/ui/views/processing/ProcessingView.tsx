@@ -41,7 +41,7 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
     const [activeTab, setActiveTab] = useState<ProcessingTab>('summary');
 
     return (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full w-full overflow-x-hidden">
             {/* 页面标题 - 统一样式：大标题 + 简短介绍 */}
             <div className="mb-6">
                 <h1 className="text-2xl font-light text-foreground tracking-tight mb-2">数据处理</h1>
@@ -55,10 +55,12 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                 activeTab={activeTab}
                 onChange={(id) => setActiveTab(id as ProcessingTab)}
                 actions={
-                    <QuickLinks
-                        links={QUICK_LINKS}
-                        onNavigate={(path) => onNavigate?.(path)}
-                    />
+                    <div className="hidden md:block">
+                        <QuickLinks
+                            links={QUICK_LINKS}
+                            onNavigate={(path) => onNavigate?.(path)}
+                        />
+                    </div>
                 }
             />
 

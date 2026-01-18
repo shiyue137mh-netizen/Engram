@@ -351,7 +351,12 @@ export class BatchProcessor {
 
     private notifyProgress(): void {
         if (this.onProgress) {
-            this.onProgress({ ...this.queue });
+            try {
+                this.onProgress({ ...this.queue });
+            } catch (e) {
+                // Ignore UI callback errors to keep process running
+                Logger.debug('BatchProcessor', 'Progress callback failed (likely UI unmounted)', e);
+            }
         }
     }
 

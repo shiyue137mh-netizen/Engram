@@ -279,7 +279,6 @@ export const MemoryStream: React.FC = () => {
                                 onClick={handleBatchSave}
                             >
                                 <Save size={12} />
-                                <Save size={12} />
                                 保存 ({pendingChanges.size})
                             </button>
                         )}
