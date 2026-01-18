@@ -13,6 +13,9 @@ import { entityBuilder } from '@/services/graph/EntityBuilder';
 import { eventTrimmer } from '@/services/pipeline/EventTrimmer';
 import { embeddingService } from '@/services/rag/EmbeddingService';
 import { Logger } from '@/lib/logger';
+import { llmAdapter } from '@/services/api/LLMAdapter';
+import { pipeline } from '@/services/pipeline/Pipeline';
+import { getBuiltInTemplateByCategory } from '@/services/api/types';
 
 // ==================== 类型定义 ====================
 
@@ -334,6 +337,31 @@ export class BatchProcessor {
         return chunks;
     }
 
+    /**
+     * V0.9.7: 调用 LLM 对单个文本块生成结构化摘要
+     */
+    private async summarizeChunk(chunk: string, chunkIndex: number): Promise<string> {
+        const template = getBuiltInTemplateByCategory('summary');
+        const systemPrompt = template?.systemPrompt || '';
+        const userPrompt = `请对以下外部导入的文本片段进行结构化摘要，按照系统提示的格式输出 JSON：
+
+---
+${chunk}
+---`;
+
+        try {
+            const response = await llmAdapter.generate({ systemPrompt, userPrompt });
+            if (response.success && response.content) {
+                Logger.debug('BatchProcessor', `Chunk ${chunkIndex} summarized`);
+                return response.content;
+            }
+        } catch (error) {
+            Logger.warn('BatchProcessor', `Chunk ${chunkIndex} summarize failed: ${error}`);
+        }
+        // 降级：返回空，让调用方使用原文
+        return '';
+    }
+
     async importText(
         text: string,
         config: ImportConfig = DEFAULT_IMPORT_CONFIG,
@@ -369,15 +397,36 @@ export class BatchProcessor {
             const chunk = chunks[i];
 
             try {
-                let summary = chunk;
-
                 if (config.mode === 'detailed') {
-                    // TODO: 调用 LLM 生成结构化摘要
-                    summary = chunk;
+                    // V0.9.7: 调用 LLM 生成结构化摘要
+                    const llmResult = await this.summarizeChunk(chunk, i);
+
+                    if (llmResult) {
+                        // 尝试用 Pipeline 解析 JSON 并存储
+                        const pipelineResult = await pipeline.run({
+                            jsonContent: llmResult,
+                            sourceRange: { start: i, end: i },
+                        });
+
+                        if (pipelineResult.success && pipelineResult.events?.length) {
+                            // Pipeline 已处理存储，只需嵌入
+                            for (const evt of pipelineResult.events) {
+                                await embeddingService.embedEvent(evt);
+                            }
+                            success++;
+                            this.queue.tasks[0].progress.current = i + 1;
+                            this.queue.overallProgress.current = i + 1;
+                            this.notifyProgress();
+                            continue;  // 跳过后续的直接存储逻辑
+                        }
+                    }
+                    // 降级：LLM 失败或 Pipeline 解析失败，使用原文
+                    Logger.warn('BatchProcessor', `Chunk ${i} fallback to raw text`);
                 }
 
+                // 快速模式 或 降级：直接存储原文
                 const eventNode = await store.saveEvent({
-                    summary,
+                    summary: chunk,
                     structured_kv: {
                         time_anchor: '',
                         role: [],
@@ -386,7 +435,7 @@ export class BatchProcessor {
                         logic: [],
                         causality: '',
                     },
-                    significance_score: 5,
+                    significance_score: 0.5,
                     level: 0,
                     is_embedded: false,
                     is_archived: false,

@@ -284,7 +284,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                     )}
                 </div>
 
-                {/* Footer */}
+                {/* Footer - 更新按钮始终可见 */}
                 <div className="px-5 py-4 border-t border-border/50 flex justify-end gap-3">
                     <button
                         onClick={onClose}
@@ -292,34 +292,42 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                     >
                         关闭
                     </button>
+                    {/* 仅在有更新时显示"稍后再说" */}
                     {hasUpdate && (
-                        <>
-                            <button
-                                onClick={handleMarkAsRead}
-                                disabled={isMarking || isUpdating}
-                                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors disabled:opacity-50"
-                            >
-                                稍后再说
-                            </button>
-                            <button
-                                onClick={handleUpdate}
-                                disabled={isUpdating || isMarking}
-                                className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
-                            >
-                                {isUpdating ? (
-                                    <>
-                                        <Loader2 size={14} className="animate-spin" />
-                                        更新中...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Download size={14} />
-                                        立即更新
-                                    </>
-                                )}
-                            </button>
-                        </>
+                        <button
+                            onClick={handleMarkAsRead}
+                            disabled={isMarking || isUpdating}
+                            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors disabled:opacity-50"
+                        >
+                            稍后再说
+                        </button>
                     )}
+                    {/* 更新按钮始终可见 */}
+                    <button
+                        onClick={handleUpdate}
+                        disabled={isUpdating || isMarking}
+                        className={`px-4 py-2 text-sm rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 ${hasUpdate
+                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                : 'border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'
+                            }`}
+                    >
+                        {isUpdating ? (
+                            <>
+                                <Loader2 size={14} className="animate-spin" />
+                                更新中...
+                            </>
+                        ) : hasUpdate ? (
+                            <>
+                                <Download size={14} />
+                                立即更新
+                            </>
+                        ) : (
+                            <>
+                                <RefreshCw size={14} />
+                                重新拉取
+                            </>
+                        )}
+                    </button>
                 </div>
             </div>
         </div>
