@@ -23080,7 +23080,7 @@ const NU = ({ onNavigate: e }) => {
       ]
     }
   );
-}, RU = "0.9.6", tO = {
+}, RU = "0.9.9", tO = {
   version: RU
 }, u6 = ({
   activeTab: e,
