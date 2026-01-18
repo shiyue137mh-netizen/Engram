@@ -49,6 +49,14 @@ const MODEL_SUB_TABS: { id: ModelSubTabType; label: string; icon: React.ElementT
     { id: 'rerank', label: 'Rerank', icon: Layers },
 ];
 
+// Tab 信息映射
+const TAB_INFO: Record<MainTabType, { title: string; subtitle: string }> = {
+    model: { title: '模型配置', subtitle: '管理 LLM、向量模型和重排序模型参数' },
+    prompt: { title: '提示词模板', subtitle: '管理系统提示词、剧情推进和自定义宏' },
+    regex: { title: '正则规则', subtitle: '配置基于正则的文本替换和处理规则' },
+    worldbook: { title: '世界书', subtitle: '管理世界观设定和通过关键词触发的条目' },
+};
+
 interface APIPresetsProps {
     onNavigate?: (path: string) => void;
     initialTab?: MainTabType;
@@ -57,6 +65,7 @@ interface APIPresetsProps {
 export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
     // Tab 状态
     const [mainTab, setMainTab] = useState<MainTabType>(initialTab || 'model');
+    const currentInfo = TAB_INFO[mainTab];
     const [modelSubTab, setModelSubTab] = useState<ModelSubTabType>('llm');
     const [promptSubTab, setPromptSubTab] = useState<PromptSubTabType>('templates');  // V0.9.2
 
@@ -186,8 +195,9 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
     return (
         <div className="flex flex-col h-full animate-in fade-in">
             <PageTitle
-                title="API 配置"
-                subtitle="管理模型参数和上下文规则"
+                breadcrumbs={['API 配置']}
+                title={currentInfo.title}
+                subtitle={currentInfo.subtitle}
                 className="mb-2"
             />
 

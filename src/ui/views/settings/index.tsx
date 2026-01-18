@@ -39,7 +39,11 @@ export const Settings: React.FC = () => {
 
     return (
         <div className="flex flex-col h-full animate-in fade-in">
-            <PageTitle title="设置" subtitle="扩展全局选项" />
+            <PageTitle
+                breadcrumbs={['设置']}
+                title="全局选项"
+                subtitle="扩展全局选项与外观配置"
+            />
             <div className="p-6 space-y-8">
                 {/* Theme Section */}
                 <section>

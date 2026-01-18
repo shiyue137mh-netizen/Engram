@@ -37,16 +37,36 @@ interface ProcessingViewProps {
     onNavigate?: (path: string) => void;
 }
 
+import { PageTitle } from "@/ui/components/common/PageTitle";
+
+// ... (existing imports)
+
+interface TabInfo {
+    title: string;
+    subtitle: string;
+}
+
+const TAB_INFO: Record<ProcessingTab, TabInfo> = {
+    summary: { title: '记忆摘要', subtitle: '查看和管理自动生成的剧情摘要' },
+    vectorization: { title: '向量化', subtitle: '管理记忆事件的向量嵌入状态' },
+    recall: { title: '召回配置', subtitle: '配置 RAG 召回策略和参数' },
+    entity: { title: '实体提取', subtitle: '配置实体提取规则和提取结果' },
+    batch: { title: '批量处理', subtitle: '批量处理历史消息和外部文本导入' },
+};
+
 export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) => {
     const [activeTab, setActiveTab] = useState<ProcessingTab>('summary');
+    const currentInfo = TAB_INFO[activeTab];
 
     return (
         <div className="flex flex-col h-full w-full overflow-x-hidden">
             {/* 页面标题 - 统一样式：大标题 + 简短介绍 */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-light text-foreground tracking-tight mb-2">数据处理</h1>
-                <p className="text-sm text-muted-foreground">记忆摘要、向量化存储和 RAG 召回配置</p>
-            </div>
+            <PageTitle
+                breadcrumbs={['数据处理']}
+                title={currentInfo.title}
+                subtitle={currentInfo.subtitle}
+                className="mb-6"
+            />
             <Divider className="mb-6" />
 
             {/* 标签导航 - 自动 Portal 到 Header */}

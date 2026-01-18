@@ -260,9 +260,19 @@ export const MemoryStream: React.FC = () => {
         );
     }
 
+    const TAB_INFO: Record<ViewTab, { title: string; subtitle: string }> = {
+        list: { title: '列表视图', subtitle: '查看和管理记忆事件' },
+        graph: { title: '图谱视图', subtitle: '记忆事件的可视化关联' },
+    };
+    const currentInfo = TAB_INFO[viewTab];
+
     return (
         <div className="flex flex-col h-full animate-in fade-in overflow-hidden">
-            <PageTitle title="记忆编辑" subtitle="查看和管理记忆事件" />
+            <PageTitle
+                breadcrumbs={['记忆编辑']}
+                title={currentInfo.title}
+                subtitle={currentInfo.subtitle}
+            />
             <Divider className="mb-6" />
 
             {/* Tab 导航 */}

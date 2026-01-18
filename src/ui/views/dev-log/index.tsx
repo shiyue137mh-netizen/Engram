@@ -18,6 +18,7 @@ import {
     Zap,
     Target,
 } from 'lucide-react';
+import { PageTitle } from "@/ui/components/common/PageTitle";
 import { Logger, LogEntry, LogLevel, LogLevelConfig } from "@/core/logger";
 import { LogEntryItem } from './LogEntryItem';
 import { ModelLog } from './ModelLog';
@@ -35,6 +36,13 @@ const TABS: Tab[] = [
     { id: 'model', label: '模型日志', icon: <Zap size={14} /> },
     { id: 'recall', label: '召回日志', icon: <Target size={14} /> },
 ];
+
+// Tab 信息映射
+const TAB_INFO: Record<TabType, { title: string; subtitle: string }> = {
+    runtime: { title: '运行日志', subtitle: '查看系统运行时日志' },
+    model: { title: '模型日志', subtitle: '查看 LLM 调用记录' },
+    recall: { title: '召回日志', subtitle: '查看 RAG 召回记录' },
+};
 
 // 模块列表（用于过滤）
 const MODULES = [
@@ -55,6 +63,7 @@ interface DevLogProps {
 
 export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
     const [activeTab, setActiveTab] = useState<TabType>(initialTab || 'runtime');
+    const currentInfo = TAB_INFO[activeTab];
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -123,10 +132,13 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
     return (
         <div className="flex flex-col h-full">
             {/* 页面标题 - 统一样式 */}
-            <div className="mb-2">
-                <h1 className="text-2xl font-light text-foreground tracking-tight mb-2">开发日志</h1>
-                <p className="text-sm text-muted-foreground">运行时日志和模型调用记录</p>
-            </div>
+            {/* 页面标题 - 统一样式 */}
+            <PageTitle
+                breadcrumbs={['开发日志']}
+                title={currentInfo.title}
+                subtitle={currentInfo.subtitle}
+                className="mb-2"
+            />
 
             {/* Tab 切换 - 使用 LayoutTabs */}
             <LayoutTabs

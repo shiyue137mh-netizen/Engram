@@ -11,6 +11,7 @@ import {
     Loader2, CheckCircle2, AlertCircle,
     Brain, Sparkles, Search, Wand2, ChevronRight
 } from 'lucide-react';
+import { PageTitle } from "@/ui/components/common/PageTitle";
 import { Switch } from '@/ui/components/ui/Switch';
 import { Divider } from '@/ui/components/layout/Divider';
 import { Logger } from "@/core/logger";
@@ -84,10 +85,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     return (
         <div className="flex flex-col h-full">
             {/* 页面标题 */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-light text-foreground tracking-tight mb-2">仪表盘</h1>
-                <p className="text-sm text-muted-foreground">系统状态概览与快速操作</p>
-            </div>
+            <PageTitle
+                title="仪表盘"
+                subtitle="系统状态概览与快速操作"
+                className="mb-6"
+            />
             <Divider className="mb-6" />
 
             {/* 主内容区 - 双栏 + 阶梯动画 */}
