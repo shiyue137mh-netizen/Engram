@@ -21,6 +21,8 @@ import { EventCard } from './components/EventCard';
 import { EventEditor, type EventEditorHandle } from './components/EventEditor';
 import { GraphView } from './GraphView';
 import { Search, Trash2, RefreshCw, Brain, List, GitBranch, Save, Sparkles } from 'lucide-react';
+import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
+import { EmptyState } from '@/ui/components/common/EmptyState';
 
 // 响应式断点
 const DESKTOP_BREAKPOINT = 768;
@@ -277,6 +279,7 @@ export const MemoryStream: React.FC = () => {
                                 onClick={handleBatchSave}
                             >
                                 <Save size={12} />
+                                <Save size={12} />
                                 保存 ({pendingChanges.size})
                             </button>
                         )}
@@ -315,91 +318,88 @@ export const MemoryStream: React.FC = () => {
                 }
             />
 
-            {/* 列表视图 - 使用固定计算高度实现独立滚动 */}
             {viewTab === 'list' && (
                 <div
                     className="flex flex-col overflow-hidden"
                     style={{
-                        // 计算可用高度：视口高度 - header(~50px) - tabs(~80px) - title(~60px) - 边距(~80px)
+                        // 恢复手动高度计算以确保双列滚动在现有布局中生效
                         height: 'calc(100vh - 100px)',
                         minHeight: '300px',
                     }}
                 >
-                    {/* 搜索框 */}
-                    <div className="relative mb-4 shrink-0">
-                        <Search size={14} className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="搜索事件..."
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                borderBottom: '1px solid var(--border)',
-                                borderRadius: 0,
-                                outline: 'none',
-                                padding: '8px 0 8px 24px',
-                                fontSize: '14px',
-                                width: '100%',
-                                color: 'var(--foreground)',
-                            }}
-                            className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
-                        />
-                    </div>
-
-                    {/* 主内容区 - Master-Detail 布局，flex-1 占满剩余空间 */}
-                    <div className="flex-1 flex gap-6 min-h-0">
-                        {/* 左侧：事件列表 - 独立滚动 */}
-                        <div className={`
-                            ${isMobile ? 'w-full' : 'w-[30%] min-w-[240px]'}
-                            overflow-y-auto no-scrollbar
-                            ${!isMobile ? 'border-r border-border/50 pr-4' : ''}
-                        `}>
-                            {isLoading ? (
-                                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-                                    <RefreshCw size={24} className="animate-spin" />
-                                    <p className="text-sm font-light">加载中...</p>
-                                </div>
-                            ) : filteredEvents.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-4">
-                                    <Brain size={48} className="opacity-20" />
-                                    <p className="text-sm font-light">
-                                        {searchQuery ? '没有找到匹配的事件' : '暂无记忆事件'}
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className={isMobile ? '' : 'space-y-1 pb-4'}>
-                                    {filteredEvents.map(event => (
-                                        <EventCard
-                                            key={event.id}
-                                            event={event}
-                                            isSelected={event.id === selectedId}
-                                            isCompact={isMobile}
-                                            checked={checkedIds.has(event.id)}
-                                            hasChanges={pendingChanges.has(event.id)}
-                                            onSelect={() => handleSelect(event.id)}
-                                            onCheck={(checked) => handleCheck(event.id, checked)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* 右侧：编辑面板 - 独立滚动 */}
-                        {!isMobile && (
-                            <div className="flex-1 overflow-y-auto no-scrollbar">
-                                <EventEditor
-                                    ref={editorRef}
-                                    event={selectedEvent}
-                                    isFullScreen={false}
-                                    onSave={handleEventChange}
-                                    onDelete={handleDelete}
-                                    onClose={() => setSelectedId(null)}
+                    <MasterDetailLayout
+                        mobileDetailOpen={isMobile && showEditor}
+                        onMobileDetailClose={handleCloseEditor}
+                        mobileDetailTitle="编辑事件"
+                        mobileDetailActions={
+                            <button
+                                onClick={() => selectedId && handleDelete(selectedId)}
+                                className="p-2 text-destructive hover:bg-destructive/10 rounded"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        }
+                        header={
+                            <div className="relative mb-4 shrink-0">
+                                <Search size={14} className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="搜索事件..."
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        borderBottom: '1px solid var(--border)',
+                                        borderRadius: 0,
+                                        outline: 'none',
+                                        padding: '8px 0 8px 24px',
+                                        fontSize: '14px',
+                                        width: '100%',
+                                        color: 'var(--foreground)',
+                                    }}
+                                    className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
                                 />
                             </div>
+                        }
+                        list={isLoading ? (
+                            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
+                                <RefreshCw size={24} className="animate-spin" />
+                                <p className="text-sm font-light">加载中...</p>
+                            </div>
+                        ) : filteredEvents.length === 0 ? (
+                            <EmptyState
+                                icon={Brain}
+                                title={searchQuery ? '没有找到匹配的事件' : '暂无记忆事件'}
+                                description={!searchQuery ? "开始聊天后将自动记录" : undefined}
+                            />
+                        ) : (
+                            <div className={isMobile ? '' : 'space-y-1 pb-4'}>
+                                {filteredEvents.map(event => (
+                                    <EventCard
+                                        key={event.id}
+                                        event={event}
+                                        isSelected={event.id === selectedId}
+                                        isCompact={isMobile}
+                                        checked={checkedIds.has(event.id)}
+                                        hasChanges={pendingChanges.has(event.id)}
+                                        onSelect={() => handleSelect(event.id)}
+                                        onCheck={(checked) => handleCheck(event.id, checked)}
+                                    />
+                                ))}
+                            </div>
                         )}
-                    </div>
+                        detail={
+                            <EventEditor
+                                ref={editorRef}
+                                event={selectedEvent}
+                                isFullScreen={false} // MasterDetailLayout handles fullscreen wrapper provided we don't duplicate logic
+                                onSave={handleEventChange}
+                                onDelete={handleDelete}
+                                onClose={() => setSelectedId(null)}
+                            />
+                        }
+                    />
                 </div>
             )}
 

@@ -7,7 +7,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Key, Cpu, Layers, Plus, Save, FileText, Regex, Book, ArrowLeft, Braces } from 'lucide-react';
+import { Key, Cpu, Layers, Plus, Save, FileText, Regex, Book, Braces } from 'lucide-react';
 // Components
 import { PresetCard } from './components/PresetCard';
 import { LLMPresetForm } from './components/LLMPresetForm';
@@ -23,8 +23,11 @@ import { CustomMacroList } from './components/CustomMacroList';  // V0.9.2
 import { CustomMacroForm } from './components/CustomMacroForm';  // V0.9.2
 import { PageTitle } from "@/ui/components/common/PageTitle";
 import { TabPills } from "@/ui/components/ui/TabPills";
-import { MobileFullscreenForm } from "@/ui/components/layout/MobileFullscreenForm";
+
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
+import { MasterDetailLayout } from "@/ui/components/layout/MasterDetailLayout";
+import { EmptyState } from "@/ui/components/common/EmptyState";
+import { useResponsive } from "@/ui/hooks/useResponsive";
 // Hooks
 import { useLLMPresets } from '../../hooks/useLLMPresets';
 import { useConfig } from '../../hooks/useConfig';
@@ -61,19 +64,16 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
     const [editingMacroId, setEditingMacroId] = useState<string | null>(null);
 
     // 移动端状态
-    const [isMobile, setIsMobile] = useState(window.innerWidth < DESKTOP_BREAKPOINT);
+    // V0.9.7: 使用统一的 useResponsive Hook
+    const { isMobile } = useResponsive();
     const [showMobileForm, setShowMobileForm] = useState(false);
 
-    // 响应式检测
+    // 监听 isMobile 变化，自动关闭全屏表单
     useEffect(() => {
-        const handleResize = () => {
-            const mobile = window.innerWidth < DESKTOP_BREAKPOINT;
-            setIsMobile(mobile);
-            if (!mobile) setShowMobileForm(false); // 切换到桌面端时关闭全屏
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        if (!isMobile) {
+            setShowMobileForm(false);
+        }
+    }, [isMobile]);
 
     // 使用 Hook 管理业务状态
     // 使用组合 Hooks 管理业务状态
@@ -175,78 +175,12 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         setShowMobileForm(false);
     };
 
-    // =============== 移动端全屏表单 ===============
 
-    // LLM 预设全屏编辑
-    if (isMobile && showMobileForm && modelSubTab === 'llm' && editingPreset) {
-        return (
-            <MobileFullscreenForm
-                title="编辑 LLM 预设"
-                onClose={handleMobileClose}
-                actions={
-                    hasChanges && (
-                        <button
-                            className="p-2 text-primary"
-                            onClick={save}
-                        >
-                            <Save size={18} />
-                        </button>
-                    )
-                }
-            >
-                <LLMPresetForm preset={editingPreset} onChange={updatePreset} />
-            </MobileFullscreenForm>
-        );
-    }
 
-    // 提示词模板全屏编辑
-    if (isMobile && showMobileForm && mainTab === 'prompt' && editingTemplate) {
-        return (
-            <MobileFullscreenForm
-                title="编辑提示词模板"
-                onClose={handleMobileClose}
-                actions={
-                    hasChanges && (
-                        <button
-                            className="p-2 text-primary"
-                            onClick={save}
-                        >
-                            <Save size={18} />
-                        </button>
-                    )
-                }
-            >
-                <PromptTemplateForm
-                    template={editingTemplate}
-                    llmPresets={settings.llmPresets}
-                    defaultPresetId={settings.selectedPresetId}
-                    onChange={updateTemplate}
-                />
-            </MobileFullscreenForm>
-        );
-    }
-
-    // 正则规则全屏编辑
-    if (isMobile && showMobileForm && mainTab === 'regex' && editingRule) {
-        return (
-            <MobileFullscreenForm
-                title="编辑正则规则"
-                onClose={handleMobileClose}
-                actions={
-                    hasChanges && (
-                        <button
-                            className="p-2 text-primary"
-                            onClick={save}
-                        >
-                            <Save size={18} />
-                        </button>
-                    )
-                }
-            >
-                <RegexRuleForm rule={editingRule} onChange={updateRule} />
-            </MobileFullscreenForm>
-        );
-    }
+    // 判断当前是否应该使用 Master-Detail 布局 (需要独立滚动)
+    const isMasterDetail =
+        ['prompt', 'regex'].includes(mainTab) ||
+        (mainTab === 'model' && modelSubTab === 'llm');
 
     // =============== 主视图 ===============
     return (
@@ -278,7 +212,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                 )}
             />
 
-            <div className="flex-1 overflow-y-auto no-scrollbar">
+            <div className={`flex-1 ${isMasterDetail ? 'overflow-hidden flex flex-col' : 'overflow-y-auto no-scrollbar'}`}>
                 {/* 模型配置 Tab */}
                 {mainTab === 'model' && (
                     <div className="flex flex-col gap-2">
@@ -294,49 +228,56 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
 
                         {/* LLM 预设 - Master-Detail */}
                         {modelSubTab === 'llm' && (
-                            <div className={`flex gap-6 ${isMobile ? 'flex-col' : ''}`}>
-                                {/* 列表 */}
-                                <div className={`
-                                    flex flex-col gap-4
-                                    ${isMobile ? 'w-full' : 'w-[30%] min-w-[240px] border-r border-border/50 pr-4'}
-                                `}>
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">预设列表</h3>
-                                        <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={addPreset}>
-                                            <Plus size={16} />
+                            <MasterDetailLayout
+                                className="h-full"
+                                mobileDetailOpen={isMobile && showMobileForm}
+                                onMobileDetailClose={handleMobileClose}
+                                mobileDetailTitle="编辑 LLM 预设"
+                                mobileDetailActions={
+                                    hasChanges && (
+                                        <button className="p-2 text-primary" onClick={save}>
+                                            <Save size={18} />
                                         </button>
+                                    )
+                                }
+                                listWidth="30%"
+                                list={
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">预设列表</h3>
+                                            <button className="text-muted-foreground hover:text-foreground transition-colors" onClick={addPreset}>
+                                                <Plus size={16} />
+                                            </button>
+                                        </div>
+                                        <div className="flex flex-col gap-1">
+                                            {settings.llmPresets.map((preset) => (
+                                                <PresetCard
+                                                    key={preset.id}
+                                                    preset={preset}
+                                                    isSelected={settings.selectedPresetId === preset.id}
+                                                    onSelect={() => handleMobileSelect(() => selectPreset(preset))}
+                                                    onEdit={() => handleMobileSelect(() => selectPreset(preset))}
+                                                    onCopy={() => copyPreset(preset)}
+                                                    onDelete={() => deletePreset(preset)}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col gap-1">
-                                        {settings.llmPresets.map((preset) => (
-                                            <PresetCard
-                                                key={preset.id}
-                                                preset={preset}
-                                                isSelected={settings.selectedPresetId === preset.id}
-                                                onSelect={() => handleMobileSelect(() => selectPreset(preset))}
-                                                onEdit={() => handleMobileSelect(() => selectPreset(preset))}
-                                                onCopy={() => copyPreset(preset)}
-                                                onDelete={() => deletePreset(preset)}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* 编辑区域 - 仅桌面端 */}
-                                {!isMobile && (
-                                    <div className="flex-1">
-                                        {editingPreset ? (
-                                            <div className="animate-in fade-in slide-in-from-right-2 duration-300">
-                                                <LLMPresetForm preset={editingPreset} onChange={updatePreset} />
-                                            </div>
-                                        ) : (
-                                            <div className="flex flex-col items-center justify-center p-12 text-muted-foreground gap-4">
-                                                <Key size={32} className="opacity-20" />
-                                                <p className="text-sm font-light">选择或创建一个预设开始配置</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                                }
+                                detail={
+                                    editingPreset ? (
+                                        <div className="animate-in fade-in slide-in-from-right-2 duration-300">
+                                            <LLMPresetForm preset={editingPreset} onChange={updatePreset} />
+                                        </div>
+                                    ) : (
+                                        <EmptyState
+                                            icon={Key}
+                                            title="未选择预设"
+                                            description="选择从列表选择一个预设或创建新预设"
+                                        />
+                                    )
+                                }
+                            />
                         )}
 
                         {modelSubTab === 'vector' && <VectorConfigForm config={settings.vectorConfig} onChange={updateVectorConfig} />}
@@ -346,103 +287,120 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
 
                 {/* 提示词模板 Tab - Master-Detail */}
                 {mainTab === 'prompt' && (
-                    <div className={`flex gap-6 h-full ${isMobile ? 'flex-col' : ''}`}>
-                        {/* 列表区域 */}
-                        <div className={`
-                            ${isMobile ? 'w-full' : 'w-[30%] min-w-[280px] border-r border-border/50 pr-4'}
-                        `}>
-                            {/* V0.9.2: 子标签切换 */}
-                            <div className="flex items-center gap-2 mb-4">
-                                <button
-                                    onClick={() => setPromptSubTab('templates')}
-                                    className={`text-xs font-bold uppercase tracking-wider transition-colors ${promptSubTab === 'templates'
-                                        ? 'text-primary'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                        }`}
-                                >
-                                    提示词模板
+                    <MasterDetailLayout
+                        mobileDetailOpen={isMobile && showMobileForm}
+                        onMobileDetailClose={handleMobileClose}
+                        mobileDetailTitle={promptSubTab === 'templates' ? "编辑提示词模板" : "编辑自定义宏"}
+                        mobileDetailActions={
+                            hasChanges && (
+                                <button className="p-2 text-primary" onClick={save}>
+                                    <Save size={18} />
                                 </button>
-                                <span className="text-muted-foreground/30">|</span>
-                                <button
-                                    onClick={() => setPromptSubTab('macros')}
-                                    className={`text-xs font-bold uppercase tracking-wider transition-colors ${promptSubTab === 'macros'
-                                        ? 'text-primary'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                        }`}
-                                >
-                                    自定义宏
-                                </button>
-                            </div>
+                            )
+                        }
+                        listWidth="30%"
+                        list={
+                            <>
+                                {/* V0.9.2: 子标签切换 */}
+                                <div className="flex items-center gap-2 mb-4">
+                                    <button
+                                        onClick={() => setPromptSubTab('templates')}
+                                        className={`text-xs font-bold uppercase tracking-wider transition-colors ${promptSubTab === 'templates'
+                                            ? 'text-primary'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                    >
+                                        提示词模板
+                                    </button>
+                                    <span className="text-muted-foreground/30">|</span>
+                                    <button
+                                        onClick={() => setPromptSubTab('macros')}
+                                        className={`text-xs font-bold uppercase tracking-wider transition-colors ${promptSubTab === 'macros'
+                                            ? 'text-primary'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                            }`}
+                                    >
+                                        自定义宏
+                                    </button>
+                                </div>
 
-                            {promptSubTab === 'templates' ? (
-                                <PromptTemplateList
-                                    templates={settings.promptTemplates}
-                                    selectedId={editingTemplate?.id || null}
-                                    onSelect={(t) => handleMobileSelect(() => selectTemplate(t))}
-                                    onAdd={addTemplate}
-                                    onUpdate={updateTemplate}
-                                    onDelete={deleteTemplate}
-                                />
-                            ) : (
-                                <CustomMacroList
-                                    macros={settings.customMacros || []}
-                                    selectedId={editingMacroId}
-                                    onSelect={(macro) => handleMobileSelect(() => setEditingMacroId(macro.id))}
-                                    onAdd={addCustomMacro}
-                                    onToggle={toggleCustomMacro}
-                                    onDelete={deleteCustomMacro}
-                                />
-                            )}
-                        </div>
-
-                        {/* 编辑区域 - 仅桌面端 */}
-                        {!isMobile && promptSubTab === 'templates' && (
-                            <div className="flex-1 overflow-y-auto no-scrollbar">
-                                {editingTemplate ? (
-                                    <PromptTemplateForm
-                                        template={editingTemplate}
-                                        llmPresets={settings.llmPresets}
-                                        defaultPresetId={settings.selectedPresetId}
-                                        onChange={updateTemplate}
+                                {promptSubTab === 'templates' ? (
+                                    <PromptTemplateList
+                                        templates={settings.promptTemplates}
+                                        selectedId={editingTemplate?.id || null}
+                                        onSelect={(t) => handleMobileSelect(() => selectTemplate(t))}
+                                        onAdd={addTemplate}
+                                        onUpdate={updateTemplate}
+                                        onDelete={deleteTemplate}
                                     />
                                 ) : (
-                                    <div className="flex flex-col items-center justify-center p-12 text-muted-foreground gap-4">
-                                        <FileText size={32} className="opacity-20" />
-                                        <p className="text-sm font-light">选择一个模板进行编辑</p>
-                                    </div>
+                                    <CustomMacroList
+                                        macros={settings.customMacros || []}
+                                        selectedId={editingMacroId}
+                                        onSelect={(macro) => handleMobileSelect(() => setEditingMacroId(macro.id))}
+                                        onAdd={addCustomMacro}
+                                        onToggle={toggleCustomMacro}
+                                        onDelete={deleteCustomMacro}
+                                    />
                                 )}
-                            </div>
-                        )}
-
-                        {/* V0.9.2: 自定义宏编辑区域 - 仅桌面端 */}
-                        {!isMobile && promptSubTab === 'macros' && (
-                            <div className="flex-1 overflow-y-auto no-scrollbar">
-                                {(() => {
+                            </>
+                        }
+                        detail={
+                            promptSubTab === 'templates' ? (
+                                editingTemplate ? (
+                                    <div className="animate-in fade-in slide-in-from-right-2 duration-300">
+                                        <PromptTemplateForm
+                                            template={editingTemplate}
+                                            llmPresets={settings.llmPresets}
+                                            defaultPresetId={settings.selectedPresetId}
+                                            onChange={updateTemplate}
+                                        />
+                                    </div>
+                                ) : (
+                                    <EmptyState
+                                        icon={FileText}
+                                        title="未选择模板"
+                                        description="选择一个模板进行编辑"
+                                    />
+                                )
+                            ) : (
+                                (() => {
                                     const editingMacro = (settings.customMacros || []).find(m => m.id === editingMacroId);
                                     return editingMacro ? (
-                                        <CustomMacroForm
-                                            macro={editingMacro}
-                                            onChange={(updates) => updateCustomMacro(editingMacro.id, updates)}
-                                        />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center p-12 text-muted-foreground gap-4">
-                                            <Braces size={32} className="opacity-20" />
-                                            <p className="text-sm font-light">选择一个宏进行编辑</p>
+                                        <div className="animate-in fade-in slide-in-from-right-2 duration-300">
+                                            <CustomMacroForm
+                                                macro={editingMacro}
+                                                onChange={(updates) => updateCustomMacro(editingMacro.id, updates)}
+                                            />
                                         </div>
+                                    ) : (
+                                        <EmptyState
+                                            icon={Braces}
+                                            title="未选择宏"
+                                            description="选择一个宏进行编辑"
+                                        />
                                     );
-                                })()}
-                            </div>
-                        )}
-                    </div>
+                                })()
+                            )
+                        }
+                    />
                 )}
 
                 {/* 正则规则 Tab - Master-Detail */}
                 {mainTab === 'regex' && (
-                    <div className={`flex gap-6 h-full ${isMobile ? 'flex-col' : ''}`}>
-                        {/* 列表 */}
-                        <div className={`
-                            ${isMobile ? 'w-full' : 'w-[30%] min-w-[280px] border-r border-border/50 pr-4'}
-                        `}>
+                    <MasterDetailLayout
+                        mobileDetailOpen={isMobile && showMobileForm}
+                        onMobileDetailClose={handleMobileClose}
+                        mobileDetailTitle="编辑正则规则"
+                        mobileDetailActions={
+                            hasChanges && (
+                                <button className="p-2 text-primary" onClick={save}>
+                                    <Save size={18} />
+                                </button>
+                            )
+                        }
+                        listWidth="30%"
+                        list={
                             <RegexRuleList
                                 rules={regexRules}
                                 selectedId={editingRule?.id || null}
@@ -458,29 +416,28 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                     enableNativeRegex: enabled
                                 })}
                             />
-                        </div>
-
-                        {/* 编辑区域 - 仅桌面端 */}
-                        {!isMobile && (
-                            <div className="flex-1 overflow-y-auto no-scrollbar">
-                                {editingRule ? (
+                        }
+                        detail={
+                            editingRule ? (
+                                <div className="animate-in fade-in slide-in-from-right-2 duration-300">
                                     <RegexRuleForm rule={editingRule} onChange={updateRule} />
-                                ) : (
-                                    <div className="flex flex-col items-center justify-center p-12 text-muted-foreground gap-4">
-                                        <Regex size={32} className="opacity-20" />
-                                        <p className="text-sm font-light">选择或创建一个正则规则</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
+                                </div>
+                            ) : (
+                                <EmptyState
+                                    icon={Regex}
+                                    title="未选择规则"
+                                    description="选择从列表选择一个规则或创建新规则"
+                                />
+                            )
+                        }
+                    />
                 )}
 
                 {/* 世界书配置 Tab */}
                 {mainTab === 'worldbook' && (
                     <div className="max-w-2xl py-4">
                         <WorldbookConfigForm
-                            config={settings.worldbookConfig}
+                            config={settings.worldbookConfig || { enabled: false, includeGlobal: false, disabledWorldbooks: [] }}
                             onChange={updateWorldbookConfig}
                             worldbookStructure={worldbookStructure}
                             disabledEntries={disabledEntries}
