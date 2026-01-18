@@ -24,12 +24,20 @@ export interface STContext {
     // 事件系统
     eventSource?: {
         on: (event: string, callback: (data: any) => void) => void;
+        once: (event: string, callback: (data: any) => void) => void;
         off: (event: string, callback: (data: any) => void) => void;
         emit: (event: string, data: any) => void;
+        removeListener: (event: string, callback: (data: any) => void) => void;
     };
     event_types?: Record<string, string>;
     // 工具函数
     getRequestHeaders?: (options?: { omitContentType?: boolean }) => Record<string, string>;
+
+    // 宏系统
+    registerMacro?: (key: string, callback: () => string | Promise<string>, description?: string) => void;
+
+    // 聊天元数据
+    chat_metadata?: Record<string, any>;
 }
 
 /** ST 消息类型 */

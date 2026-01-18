@@ -2,7 +2,7 @@ import React from 'react';
 
 export interface SearchResult {
     id: string;
-    type: 'command' | 'setting' | 'log' | 'memory';
+    type: 'command' | 'setting' | 'log' | 'memory' | 'navigation';
     title: string;
     description?: string;
     icon?: React.ElementType;

@@ -221,13 +221,36 @@ export class EntityBuilder {
     }
 
     /**
+     * 按楼层范围提取实体
+     * V0.9.9: 统一调用 MacroService 获取指定范围的历史
+     */
+    async extractByRange(range: [number, number], manual = false): Promise<EntityBuildResult | null> {
+        // 同步获取清洗后的历史记录
+        const chatHistory = MacroService.getChatHistory(range);
+
+        if (!chatHistory) {
+            Logger.warn('EntityBuilder', '指定范围的历史记录为空', { range });
+            return null;
+        }
+
+        // 调用核心提取逻辑 (floor 参数传入结束楼层)
+        return this.extractFromChat(chatHistory, range[1], manual);
+    }
+
+    /**
      * 手动提取（从当前聊天历史）
      */
     async extractManual(): Promise<EntityBuildResult | null> {
-        // 获取当前聊天历史
-        const chatHistory = await MacroService.getChatHistory();
+        // 获取当前聊天历史 (不传参使用默认 recent)
+        const chatHistory = MacroService.getChatHistory();
         const state = await chatManager.getState();
-        return this.extractFromChat(chatHistory, state.last_summarized_floor, true);
+        // 使用当前楼层作为标记
+        const currentFloor = state.last_summarized_floor || 0; // Fallback, usually we might want actual current floor?
+
+        // 如果是从 recent 提取，floor 标记应该大概是当前最新楼层
+        // 这里沿用旧逻辑，或者优化？
+        // 既然是 Manual，一般意味着针对"当前上下文"。
+        return this.extractFromChat(chatHistory, currentFloor, true);
     }
 
     /**

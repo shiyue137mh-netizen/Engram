@@ -3,8 +3,8 @@
  */
 
 export { SummarizerService, summarizerService } from './Summarizer';
-export { TrimmerService, trimmerService, DEFAULT_TRIMMER_CONFIG } from './Trimmer';
-export type { TrimmerConfig, TrimRequest, TrimResult, TrimmerStatus } from './TrimmerService';
+export { EntityBuilder, entityBuilder } from './EntityExtractor';
+export { EventTrimmer, eventTrimmer, DEFAULT_TRIM_CONFIG, type TrimConfig, type TrimResult, type TrimmerStatus } from './EventTrimmer';
 
 // Re-export 通用服务（保持向后兼容）
 export { TextProcessor, textProcessor } from '@/modules/memory/extractors/TextProcessor';

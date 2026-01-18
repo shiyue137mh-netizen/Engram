@@ -323,27 +323,40 @@ export class MacroService {
 
     /**
      * 获取对话历史
-     * 从配置读取 floorInterval - bufferSize 作为消息数量
+     * @param floorRange 可选：指定楼层范围 [start, end] (1-based, inclusive)
+     * 如果未指定，则从配置读取 limit 获取最近消息
      */
-    static getChatHistory(): string {
+    static getChatHistory(floorRange?: [number, number]): string {
         try {
-            // 统一从配置读取 limit
-            const limit = this.getDynamicChatHistoryLimit();
-
-            Logger.debug('MacroService', 'getChatHistory called', { limit });
-
             // @ts-ignore
             const context = window.SillyTavern?.getContext?.();
             // @ts-ignore
             const TavernHelper = window.TavernHelper;
 
             if (context?.chat && Array.isArray(context.chat)) {
-                // 获取最近 N 条消息
-                const recentMessages = context.chat.slice(-limit);
-                Logger.debug('MacroService', 'Got recent messages', { count: recentMessages.length });
+                let messages: any[] = [];
 
-                return recentMessages.map((m: any, index: number) => {
-                    let content = m.mes || '';
+                if (floorRange) {
+                    // 指定范围模式 (Summarizer 用)
+                    const [start, end] = floorRange;
+                    // slice(start, end) end is exclusive, but we want inclusive end floor.
+                    // floor 1 is index 0.
+                    // startFloor 21 -> index 20. endFloor 40 -> index 39.
+                    // slice(20, 40) -> returns indices 20..39 (length 20). Correct.
+                    messages = context.chat.slice(start - 1, end);
+                    Logger.debug('MacroService', 'getChatHistory (Range)', { range: floorRange, count: messages.length });
+                } else {
+                    // 默认模式：最近 N 条
+                    const limit = this.getDynamicChatHistoryLimit();
+                    messages = context.chat.slice(-limit);
+                    Logger.debug('MacroService', 'getChatHistory (Recent)', { limit, count: messages.length });
+                }
+
+                if (messages.length === 0) return '';
+
+                return messages.map((m: any, index: number) => {
+                    // 鲁棒的 content 获取
+                    let content = m.mes || m.content || m.message || '';
                     const originalContent = content;
 
                     // 1. 酒馆原生正则清洗
@@ -356,11 +369,11 @@ export class MacroService {
                         }
                     }
 
-                    // 2. Engram 内部正则清洗
+                    // 2. Engram 内部正则清洗 (关键：逐条清洗)
                     content = regexProcessor.process(content, 'both');
 
                     // Log first and last message processing for debugging
-                    if (index === 0 || index === recentMessages.length - 1) {
+                    if (index === 0 || index === messages.length - 1) {
                         Logger.debug('MacroService', 'Message processed', {
                             index,
                             original: originalContent.substring(0, 50),
@@ -370,7 +383,7 @@ export class MacroService {
 
                     // 3. 返回纯内容 (去除角色名前缀)
                     return content;
-                }).join('\n');
+                }).join('\n\n'); // 使用双换行分隔，更清晰
             }
             Logger.warn('MacroService', 'Context chat is empty or invalid');
             return '';

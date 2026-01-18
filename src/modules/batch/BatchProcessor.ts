@@ -9,7 +9,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { useMemoryStore } from '@/state/memoryStore';
 import { summarizerService } from '@/modules/memory';
-import { entityBuilder } from '@/modules/memory/extractors/EntityExtractor';
+import { entityBuilder } from '@/modules/memory/EntityExtractor';
 import { eventTrimmer } from '@/modules/memory/EventTrimmer';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { Logger } from '@/core/logger';
@@ -261,7 +261,8 @@ export class BatchProcessor {
 
     private async executeEntityTask(task: BatchTask): Promise<void> {
         if (!task.floorRange) return;
-        const result = await entityBuilder.extractManual();
+        // V0.9.9: 使用 extractByRange 传入准确的任务范围
+        const result = await entityBuilder.extractByRange([task.floorRange.start, task.floorRange.end], true);
         if (!result) task.status = 'skipped';
     }
 

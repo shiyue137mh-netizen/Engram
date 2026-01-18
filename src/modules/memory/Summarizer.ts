@@ -336,16 +336,23 @@ export class SummarizerService {
      */
     private async checkEntityExtraction(currentFloor: number): Promise<void> {
         try {
-            const { entityBuilder } = await import('@/modules/memory/extractors/EntityExtractor');
+            const { entityBuilder } = await import('@/modules/memory/EntityExtractor');
+            // 动态导入 ChatManager 以避免循环依赖
+            const { chatManager } = await import('@/data/ChatManager');
 
             if (entityBuilder.shouldTriggerOnFloor(currentFloor)) {
                 this.log('info', '触发实体提取', { floor: currentFloor });
 
-                // 获取聊天历史
-                const chatHistory = await MacroService.getChatHistory();
+                // 计算范围：上次提取楼层+1 到 当前楼层
+                const state = await chatManager.getState();
+                const lastExtracted = state.last_extracted_floor || 0;
+                const startFloor = lastExtracted + 1;
+                const range: [number, number] = [startFloor, currentFloor];
+
+                this.log('debug', '实体提取范围', { range });
 
                 // 异步执行，不阻塞 Summary
-                entityBuilder.extractFromChat(chatHistory, currentFloor, false).catch(e => {
+                entityBuilder.extractByRange(range, false).catch(e => {
                     this.log('warn', '实体提取失败', { error: e });
                 });
             }
@@ -481,16 +488,12 @@ export class SummarizerService {
             };
 
             // 1. 获取聊天记录并应用正则清洗
-            // 用户要求：不要 A: xxx 格式，直接传清洗后的内容
-            // 同时务必正确读取 mes 字段
-            const rawChatHistory = slicedMessages.map(m => {
-                const content = m.mes || (m as any).content || (m as any).message || '';
-                return content;
-            }).join('\n\n');
-            const cleanedChatHistory = regexProcessor.process(rawChatHistory, 'input');
-            this.log('debug', '应用正则清洗', {
-                originalLength: rawChatHistory.length,
-                cleanedLength: cleanedChatHistory.length,
+            // V0.9.9: 统一调用 MacroService，确保逻辑一致 (包含逐条正则清洗)
+            const cleanedChatHistory = MacroService.getChatHistory(request.floorRange);
+
+            this.log('debug', '已获取并清洗聊天历史', {
+                range: request.floorRange,
+                length: cleanedChatHistory.length,
             });
 
             // 2. 获取世界书内容（使用新方法）

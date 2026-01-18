@@ -12,7 +12,7 @@ export class CommandAdapter implements SearchAdapter {
         // This ensures what you see in the sidebar is always searchable
         const navResults: SearchResult[] = NAV_ITEMS.map((item: NavItem) => ({
             id: `nav-${item.id}`,
-            type: 'navigation', // Explicitly cast to 'navigation' | 'action' | 'setting' | 'log'
+            type: 'navigation' as const, // Explicitly cast to 'navigation' | 'action' | 'setting' | 'log'
             title: item.label,
             description: `Navigate to ${item.label}`, // Auto-generated description
             icon: item.icon,
@@ -32,7 +32,7 @@ export class CommandAdapter implements SearchAdapter {
             cmd.keywords.some(k => k.toLowerCase().includes(lowerQuery))
         ).map(cmd => ({
             id: cmd.id,
-            type: 'command',
+            type: 'command' as const,
             title: cmd.label,
             description: cmd.description,
             icon: cmd.icon,
@@ -55,7 +55,7 @@ export class CommandAdapter implements SearchAdapter {
         return [
             {
                 id: 'theme-paper-light',
-                type: 'command',
+                type: 'command' as const,
                 title: '主题: Paper Light (Twitter)',
                 description: '清爽明亮的推特风格',
                 icon: Sun,
@@ -65,7 +65,7 @@ export class CommandAdapter implements SearchAdapter {
             },
             {
                 id: 'theme-twitter-dark',
-                type: 'command',
+                type: 'command' as const,
                 title: '主题: Twitter Dark',
                 description: '纯黑、高对比度的推特深色风格',
                 icon: Moon,
@@ -75,7 +75,7 @@ export class CommandAdapter implements SearchAdapter {
             },
             {
                 id: 'theme-claude-dark',
-                type: 'command',
+                type: 'command' as const,
                 title: '主题: Claude Dark',
                 description: '深色纸感风格',
                 icon: Moon,
@@ -85,7 +85,7 @@ export class CommandAdapter implements SearchAdapter {
             },
             {
                 id: 'theme-catppuccin',
-                type: 'command',
+                type: 'command' as const,
                 title: '主题: Catppuccin Mocha',
                 description: '柔和的粉彩深色主题',
                 icon: Palette,
@@ -95,7 +95,7 @@ export class CommandAdapter implements SearchAdapter {
             },
             {
                 id: 'theme-discord',
-                type: 'command',
+                type: 'command' as const,
                 title: '主题: Discord Dark',
                 description: '经典的 Discord 深色风格',
                 icon: Palette,

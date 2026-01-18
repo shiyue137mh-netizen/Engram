@@ -73,7 +73,7 @@ export function useAPIPresets(): UseAPIPresetsReturn {
 
     const save = useCallback(() => {
         llm.saveLLMSettings();
-        worldInfo.saveWorldInfoState();
+        worldInfo.saveWorldInfo();
         regex.saveRegexRules();
         config.saveConfig();
     }, [llm, worldInfo, regex, config]);

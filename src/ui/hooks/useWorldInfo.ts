@@ -7,7 +7,7 @@ import { WorldBookStateService } from "@/integrations/tavern/WorldBookState";
 import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
 import { getTavernHelper } from '@/integrations/tavern/api/WorldInfo';
 import { SettingsManager } from "@/config/settings";
-import type { WorldBookConfig } from '@/config/types/defaults';
+import type { WorldbookConfig, EngramAPISettings } from '@/config/types/defaults';
 import { getDefaultAPISettings } from '@/config/types/defaults';
 
 export interface UseWorldInfoReturn {
@@ -15,11 +15,11 @@ export interface UseWorldInfoReturn {
     disabledEntries: Record<string, number[]>;
     disabledWorldbooks: string[];
     currentCharWorldbook: string | null;
-    worldbookConfig: WorldBookConfig | undefined; // Added
+    worldbookConfig: WorldbookConfig | undefined; // Added
 
     toggleWorldbook: (name: string, disabled: boolean) => void;
     toggleEntry: (worldbook: string, uid: number, disabled: boolean) => void;
-    updateWorldbookConfig: (config: WorldBookConfig) => void; // Added
+    updateWorldbookConfig: (config: WorldbookConfig) => void; // Added
     refreshWorldbooks: () => Promise<void>;
     saveWorldInfo: () => Promise<void>; // Renamed
     hasChanges: boolean; // Added
@@ -30,7 +30,7 @@ export function useWorldInfo(): UseWorldInfoReturn {
     const [disabledEntries, setDisabledEntries] = useState<Record<string, number[]>>({});
     const [disabledWorldbooks, setDisabledWorldbooks] = useState<string[]>([]);
     const [currentCharWorldbook, setCurrentCharWorldbook] = useState<string | null>(null);
-    const [worldbookConfig, setWorldbookConfig] = useState<WorldBookConfig | undefined>(SettingsManager.get('apiSettings')?.worldbookConfig || getDefaultAPISettings().worldbookConfig);
+    const [worldbookConfig, setWorldbookConfig] = useState<WorldbookConfig | undefined>(SettingsManager.get('apiSettings')?.worldbookConfig || getDefaultAPISettings().worldbookConfig);
     const [hasChanges, setHasChanges] = useState(false);
 
     const loadWorldbookState = useCallback(async () => {
@@ -65,7 +65,7 @@ export function useWorldInfo(): UseWorldInfoReturn {
         setDisabledWorldbooks(prev => {
             const next = disabled ? [...new Set([...prev, name])] : prev.filter(n => n !== name);
             // Updating local config state as well
-            setWorldbookConfig(prevConfig => prevConfig ? { ...prevConfig, disabledWorldbooks: next } : { disabledWorldbooks: next });
+            setWorldbookConfig((prevConfig: WorldbookConfig | undefined) => prevConfig ? { ...prevConfig, disabledWorldbooks: next } : { ...getDefaultAPISettings().worldbookConfig, disabledWorldbooks: next });
             return next;
         });
         setHasChanges(true);
@@ -80,7 +80,7 @@ export function useWorldInfo(): UseWorldInfoReturn {
         setHasChanges(true);
     }, []);
 
-    const updateWorldbookConfig = useCallback((config: WorldBookConfig) => {
+    const updateWorldbookConfig = useCallback((config: WorldbookConfig) => {
         setWorldbookConfig(config);
         if (config.disabledWorldbooks) {
             setDisabledWorldbooks(config.disabledWorldbooks);
@@ -90,7 +90,7 @@ export function useWorldInfo(): UseWorldInfoReturn {
 
     const saveWorldInfo = useCallback(async () => {
         // 保存全局配置 (disabledWorldbooks)
-        const currentSettings = SettingsManager.get('apiSettings') || {};
+        const currentSettings = (SettingsManager.get('apiSettings') || {}) as EngramAPISettings;
         const newWorldbookConfig = {
             ...currentSettings.worldbookConfig,
             ...worldbookConfig,
@@ -100,7 +100,7 @@ export function useWorldInfo(): UseWorldInfoReturn {
         SettingsManager.set('apiSettings', {
             ...currentSettings,
             worldbookConfig: newWorldbookConfig
-        } as any);
+        });
 
         // 保存角色状态
         if (currentCharWorldbook) {

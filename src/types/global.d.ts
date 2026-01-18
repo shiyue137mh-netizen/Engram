@@ -53,6 +53,11 @@ declare global {
                 mode: 'current',
                 books: { primary?: string; additional: string[] }
             ) => Promise<void>;
+            formatAsTavernRegexedString?: (
+                text: string,
+                placement: string, // 'ai_output' | 'user_input' etc
+                options?: { isPrompt: boolean }
+            ) => string;
         };
     }
 }

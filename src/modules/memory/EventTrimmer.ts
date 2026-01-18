@@ -64,6 +64,18 @@ interface TrimResponse {
 }
 
 /**
+ * 精简状态
+ */
+export interface TrimmerStatus {
+    triggered: boolean;
+    triggerType: 'token' | 'count';
+    currentValue: number;
+    threshold: number;
+    pendingEntryCount: number;
+    isTrimming: boolean;
+}
+
+/**
  * EventTrimmer 类
  */
 export class EventTrimmer {

@@ -8,7 +8,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, Save } from 'lucide-react';
-import { entityBuilder } from '@/modules/memory/extractors/EntityExtractor';
+import { EntityBuilder, entityBuilder } from "@/modules/memory/EntityExtractor";
 import { SwitchField } from '../api-presets/components/FormField';
 import { Divider } from '@/ui/components/layout/Divider';
 import { useConfig } from '@/ui/hooks/useConfig';
