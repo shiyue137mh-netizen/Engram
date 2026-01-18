@@ -3,6 +3,9 @@
 /* Design Token 系统 - 暂时保留，以防万一，但主要依赖 ThemeContext */
 @import './variables.css';
 
+/* Animation System V1.0 */
+@import './animations.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

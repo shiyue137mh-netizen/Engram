@@ -23170,11 +23170,19 @@ const NU = ({ onNavigate: e }) => {
                   {
                     onClick: () => u(d.id),
                     className: `
-                                    w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left transition-all duration-200
+                                    group w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left
+                                    transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)]
+                                    active:scale-[0.98]
                                     ${g ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground"}
                                 `,
                     children: [
-                      /* @__PURE__ */ p.jsx(m, { size: 22, className: g ? "text-primary" : "text-muted-foreground/70" }),
+                      /* @__PURE__ */ p.jsx(
+                        m,
+                        {
+                          size: 22,
+                          className: `transition-transform duration-[var(--duration-fast)] group-hover:scale-110 ${g ? "text-primary" : "text-muted-foreground/70"}`
+                        }
+                      ),
                       /* @__PURE__ */ p.jsx("span", { children: d.label })
                     ]
                   },
@@ -23195,11 +23203,19 @@ const NU = ({ onNavigate: e }) => {
         {
           onClick: () => u(d.id),
           className: `
-                                    w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-all duration-200 text-left
+                                    group w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left
+                                    transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)]
                                     ${g ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted/10"}
                                 `,
           children: [
-            /* @__PURE__ */ p.jsx(m, { size: 18, strokeWidth: g ? 2 : 1.5, className: "flex-shrink-0" }),
+            /* @__PURE__ */ p.jsx(
+              m,
+              {
+                size: 18,
+                strokeWidth: g ? 2 : 1.5,
+                className: "flex-shrink-0 transition-transform duration-[var(--duration-fast)] group-hover:scale-110"
+              }
+            ),
             /* @__PURE__ */ p.jsx("span", { className: `text-xs ${g ? "font-medium" : "font-normal"}`, children: d.label })
           ]
         },
@@ -37714,11 +37730,23 @@ const lX = {
         "button",
         {
           onClick: () => n(u.id),
-          className: `flex items-center gap-2 whitespace-nowrap px-4 py-1.5 text-sm transition-all relative ${t === u.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"}`,
+          className: `
+                        group flex items-center gap-2 whitespace-nowrap px-4 py-1.5 text-sm relative
+                        transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]
+                        ${t === u.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"}
+                    `,
           children: [
-            u.icon && /* @__PURE__ */ p.jsx("span", { className: "w-4 h-4", children: u.icon }),
+            u.icon && /* @__PURE__ */ p.jsx("span", { className: "w-4 h-4 transition-transform duration-[var(--duration-fast)] group-hover:scale-110", children: u.icon }),
             u.label,
-            t === u.id && /* @__PURE__ */ p.jsx("div", { className: "absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_var(--primary)] z-10 transition-all duration-300" })
+            t === u.id && /* @__PURE__ */ p.jsx(
+              "div",
+              {
+                className: "absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_var(--primary)] z-10",
+                style: {
+                  animation: "scale-in var(--duration-fast, 150ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1))"
+                }
+              }
+            )
           ]
         },
         u.id
@@ -37952,9 +37980,11 @@ const lX = {
     "div",
     {
       className: `
-                group relative flex items-center gap-3 
+                group relative flex items-center gap-3
                 ${g ? "py-2 px-2" : "py-3 px-3"}
-                rounded-lg cursor-pointer transition-all duration-150
+                rounded-lg cursor-pointer
+                transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)]
+                hover:translate-y-[-1px] hover:shadow-sm
                 ${s ? "bg-accent/60" : "hover:bg-muted/40"}
                 ${o ? "opacity-50 pointer-events-none" : ""}
                 ${m}

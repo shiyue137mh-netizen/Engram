@@ -101,13 +101,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 key={item.id}
                                 onClick={() => handleNavClick(item.id)}
                                 className={`
-                                    w-full flex items-center gap-2 px-2 py-2 rounded-lg transition-all duration-200 text-left
+                                    group w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left
+                                    transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)]
                                     ${isActive
                                         ? 'bg-primary/10 text-primary'
                                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'}
                                 `}
                             >
-                                <Icon size={18} strokeWidth={isActive ? 2 : 1.5} className="flex-shrink-0" />
+                                <Icon
+                                    size={18}
+                                    strokeWidth={isActive ? 2 : 1.5}
+                                    className="flex-shrink-0 transition-transform duration-[var(--duration-fast)] group-hover:scale-110"
+                                />
                                 <span className={`text-xs ${isActive ? 'font-medium' : 'font-normal'}`}>{item.label}</span>
                             </button>
                         );
@@ -159,13 +164,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 key={item.id}
                                 onClick={() => handleNavClick(item.id)}
                                 className={`
-                                    w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left transition-all duration-200
+                                    group w-full flex items-center gap-4 px-4 py-3 rounded-xl text-left
+                                    transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)]
+                                    active:scale-[0.98]
                                     ${isActive
                                         ? 'bg-primary/10 text-primary font-medium'
                                         : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'}
                                 `}
                             >
-                                <Icon size={22} className={isActive ? 'text-primary' : 'text-muted-foreground/70'} />
+                                <Icon
+                                    size={22}
+                                    className={`transition-transform duration-[var(--duration-fast)] group-hover:scale-110 ${isActive ? 'text-primary' : 'text-muted-foreground/70'}`}
+                                />
                                 <span>{item.label}</span>
                             </button>
                         );

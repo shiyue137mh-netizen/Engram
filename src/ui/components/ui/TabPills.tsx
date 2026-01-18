@@ -39,15 +39,28 @@ export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onChange, s
                 <button
                     key={tab.id}
                     onClick={() => onChange(tab.id)}
-                    className={`flex items-center gap-2 whitespace-nowrap px-4 py-1.5 text-sm transition-all relative ${activeTab === tab.id
-                        ? 'text-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                        }`}
+                    className={`
+                        group flex items-center gap-2 whitespace-nowrap px-4 py-1.5 text-sm relative
+                        transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]
+                        ${activeTab === tab.id
+                            ? 'text-foreground'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }
+                    `}
                 >
-                    {tab.icon && <span className="w-4 h-4">{tab.icon}</span>}
+                    {tab.icon && (
+                        <span className="w-4 h-4 transition-transform duration-[var(--duration-fast)] group-hover:scale-110">
+                            {tab.icon}
+                        </span>
+                    )}
                     {tab.label}
                     {activeTab === tab.id && (
-                        <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_var(--primary)] z-10 transition-all duration-300"></div>
+                        <div
+                            className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_var(--primary)] z-10"
+                            style={{
+                                animation: 'scale-in var(--duration-fast, 150ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1))'
+                            }}
+                        />
                     )}
                 </button>
             ))}

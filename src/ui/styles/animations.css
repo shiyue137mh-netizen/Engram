@@ -1,0 +1,395 @@
+/**
+ * Engram Animation System V1.0
+ *
+ * 统一的动画系统，提供可复用的关键帧和工具类
+ * 遵循"无框流体"设计理念
+ */
+
+/* ==================== Keyframes ==================== */
+
+/* 淡入上滑 - 页面/元素进入 */
+@keyframes fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 淡入下滑 - 下拉菜单 */
+@keyframes fade-down {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 缩放弹入 - Modal/Popover */
+@keyframes scale-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 缩放弹出 - 关闭动画 */
+@keyframes scale-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+/* 左滑入 - 侧边栏项目 */
+@keyframes slide-in-left {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 右滑入 - 面板展开 */
+@keyframes slide-in-right {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 旋转一圈 - 刷新图标 */
+@keyframes spin-once {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 持续旋转 - 加载图标 */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* 抖动 - 警告/错误 */
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    20% {
+        transform: translateX(-4px);
+    }
+    40% {
+        transform: translateX(4px);
+    }
+    60% {
+        transform: translateX(-4px);
+    }
+    80% {
+        transform: translateX(4px);
+    }
+}
+
+/* 脉冲 - 骨架屏/加载 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* 弹跳进入 - 成功图标 */
+@keyframes bounce-in {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.15);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 轻微弹跳 - 按钮点击 */
+@keyframes bounce-subtle {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.97);
+    }
+}
+
+/* 闪烁 - 新消息提示 */
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* 呼吸效果 - 状态指示 */
+@keyframes breathe {
+    0%, 100% {
+        transform: scale(0.95);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+/* 下划线展开 - 链接 hover */
+@keyframes underline-expand {
+    from {
+        transform: scaleX(0);
+        transform-origin: left;
+    }
+    to {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+}
+
+/* ==================== Animation Utility Classes ==================== */
+
+/* 基础动画 */
+.animate-fade-up {
+    animation: fade-up var(--duration-normal, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.animate-fade-down {
+    animation: fade-down var(--duration-normal, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.animate-scale-in {
+    animation: scale-in var(--duration-normal, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.animate-scale-out {
+    animation: scale-out var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.animate-slide-in-left {
+    animation: slide-in-left var(--duration-normal, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.animate-slide-in-right {
+    animation: slide-in-right var(--duration-normal, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+/* 图标动画 */
+.animate-spin-once {
+    animation: spin-once var(--duration-slow, 300ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+.animate-shake {
+    animation: shake var(--duration-normal, 200ms) ease-in-out;
+}
+
+.animate-bounce-in {
+    animation: bounce-in var(--duration-slow, 300ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.animate-bounce-subtle {
+    animation: bounce-subtle var(--duration-fast, 150ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+/* 状态动画 */
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-blink {
+    animation: blink 1s ease-in-out infinite;
+}
+
+.animate-breathe {
+    animation: breathe 3s ease-in-out infinite;
+}
+
+/* ==================== Hover Utility Classes ==================== */
+
+/* 悬浮抬起 - 卡片 */
+.hover-lift {
+    transition: transform var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+                box-shadow var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 悬浮缩放 - 图标按钮 */
+.hover-scale {
+    transition: transform var(--duration-fast, 150ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.hover-scale:hover {
+    transform: scale(1.1);
+}
+
+/* 悬浮微缩放 - 普通按钮 */
+.hover-scale-subtle {
+    transition: transform var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.hover-scale-subtle:hover {
+    transform: scale(1.02);
+}
+
+/* 悬浮发光 - 主按钮 */
+.hover-glow {
+    transition: box-shadow var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.hover-glow:hover {
+    box-shadow: 0 0 20px var(--primary, #3b82f6);
+}
+
+/* 悬浮旋转 - 设置图标 */
+.hover-rotate {
+    transition: transform var(--duration-normal, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.hover-rotate:hover {
+    transform: rotate(90deg);
+}
+
+/* 悬浮微旋转 - 刷新图标 */
+.hover-rotate-subtle {
+    transition: transform var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.hover-rotate-subtle:hover {
+    transform: rotate(15deg);
+}
+
+/* ==================== Transition Utilities ==================== */
+
+/* 通用过渡 */
+.transition-fast {
+    transition-duration: var(--duration-fast, 150ms);
+    transition-timing-function: var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.transition-normal {
+    transition-duration: var(--duration-normal, 200ms);
+    transition-timing-function: var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.transition-slow {
+    transition-duration: var(--duration-slow, 300ms);
+    transition-timing-function: var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+/* 带弹性的过渡 */
+.transition-spring {
+    transition-timing-function: var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+/* ==================== Stagger Animation ==================== */
+
+/* 子元素阶梯动画 */
+.stagger-children > * {
+    opacity: 0;
+    animation: fade-up var(--duration-normal, 200ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* 快速阶梯 */
+.stagger-fast > * {
+    opacity: 0;
+    animation: fade-up var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+
+.stagger-fast > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-fast > *:nth-child(2) { animation-delay: 30ms; }
+.stagger-fast > *:nth-child(3) { animation-delay: 60ms; }
+.stagger-fast > *:nth-child(4) { animation-delay: 90ms; }
+.stagger-fast > *:nth-child(5) { animation-delay: 120ms; }
+
+/* ==================== Interactive States ==================== */
+
+/* Active 状态按压效果 */
+.active-press:active {
+    transform: scale(0.97);
+}
+
+/* Focus 可见状态 */
+.focus-visible-ring:focus-visible {
+    outline: 2px solid var(--ring, #3b82f6);
+    outline-offset: 2px;
+}
+
+/* ==================== Link Underline Animation ==================== */
+
+.link-underline {
+    position: relative;
+}
+
+.link-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: currentColor;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--duration-fast, 150ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.link-underline:hover::after {
+    transform: scaleX(1);
+}

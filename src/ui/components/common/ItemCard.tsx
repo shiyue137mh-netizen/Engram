@@ -1,6 +1,6 @@
 /**
  * ItemCard - 通用列表项卡片组件
- * 
+ *
  * 应用「无框流体」设计语言 - 弱卡片化：
  * - 默认无边框，hover 时显示微妙分隔
  * - 选中态使用轻背景而非边框
@@ -81,9 +81,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     return (
         <div
             className={`
-                group relative flex items-center gap-3 
+                group relative flex items-center gap-3
                 ${compact ? 'py-2 px-2' : 'py-3 px-3'}
-                rounded-lg cursor-pointer transition-all duration-150
+                rounded-lg cursor-pointer
+                transition-all duration-[var(--duration-fast)] ease-[var(--ease-out)]
+                hover:translate-y-[-1px] hover:shadow-sm
                 ${selected
                     ? 'bg-accent/60'
                     : 'hover:bg-muted/40'
