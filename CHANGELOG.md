@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.9.9] - 2026-01-18
+
+### 🏗️ Layered Modular Architecture (分层模块化架构重构)
+- **目录结构重组**: 采用 L0-L6 分层架构
+  - `core/` - 核心层：基础类型、事件总线、日志系统
+  - `config/` - 配置层：SettingsManager
+  - `data/` - 数据层：IndexedDB (EngramDB) + ChatManager
+  - `integrations/` - 集成层：SillyTavern 适配 + LLM 调用
+  - `modules/` - 模块层：业务核心 (memory, rag, workflow, preprocessing)
+  - `state/` - 状态层：Zustand Store
+  - `ui/` - 表现层：React 视图
+
+### ⚡ Performance (性能优化)
+- **世界书扫描优化**: 从扫描全量聊天历史改为按场景智能扫描
+  - Summary 场景：扫描指定楼层范围 (通过 `floorRange` 参数)
+  - 预处理场景：仅扫描最近 4 条消息
+  - 扫描时间从 30s~1min 降至秒级响应
+- **动态 maxContext**: 根据消息数量动态调整扫描深度
+
+### 🛠️ API Changes
+- `WorldInfoService.getActivatedWorldInfo()` 新增 `options.floorRange` 参数
+- `STContext` 类型新增 `getTokenCountAsync` 和 `stopGeneration` 方法声明
+
+### 🐛 Bug Fixes
+- 修复 `{{chatHistory}}` 宏在旧版本未 build 时返回空的问题
+- 修复变量名冲突导致的 lint 错误
+
+---
+
 ## [0.9.6] - 2026-01-16
 
 ### ✨ Batch Processing (批量处理)
