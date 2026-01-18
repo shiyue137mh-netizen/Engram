@@ -34597,11 +34597,7 @@ class EW {
    */
   async callOpenAICompatible(t, n) {
     let r = n.apiUrl || b2[n.source] || "";
-    if ((n.source === "custom" || n.source === "openai") && r) {
-      const o = r.replace(/\/+$/, "");
-      !o.endsWith("embeddings") && !o.endsWith("embed") && (o.endsWith("/v1") ? r = `${o}/embeddings` : r = `${o}/v1/embeddings`, me.debug("EmbeddingService", `自动修正 API URL: ${n.apiUrl} -> ${r}`));
-    }
-    if (!r)
+    if (r && (r = r.replace(/\/+$/, "")), !r)
       throw new Error("API endpoint not configured");
     const i = {
       "Content-Type": "application/json"
@@ -38417,7 +38413,7 @@ class Nl {
    * 适用于: OpenAI, Azure, 自定义 OpenAI 兼容服务
    */
   static async fetchOpenAIModels(t) {
-    const { apiUrl: n, apiKey: r, timeout: i = this.DEFAULT_TIMEOUT } = t, s = n.replace(/\/+$/, ""), o = s.endsWith("/v1") ? `${s}/models` : `${s}/v1/models`;
+    const { apiUrl: n, apiKey: r, timeout: i = this.DEFAULT_TIMEOUT } = t, o = `${n.replace(/\/+$/, "")}/models`;
     try {
       const u = new AbortController(), c = setTimeout(() => u.abort(), i), d = {
         "Content-Type": "application/json"

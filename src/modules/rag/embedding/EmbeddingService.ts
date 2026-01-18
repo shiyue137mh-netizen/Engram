@@ -211,22 +211,10 @@ export class EmbeddingService {
     private async callOpenAICompatible(text: string, config: VectorConfig): Promise<number[]> {
         let endpoint = config.apiUrl || DEFAULT_ENDPOINTS[config.source] || '';
 
-        // 智能修正 URL: 如果是 Custom/OpenAI 且看起来像 Base URL
-        if ((config.source === 'custom' || config.source === 'openai') && endpoint) {
-            // 移除末尾斜杠
-            const cleanEndpoint = endpoint.replace(/\/+$/, '');
-            // 如果不以 embeddings 或 embed 结尾，且不包含 /v1/embeddings
-            if (!cleanEndpoint.endsWith('embeddings') && !cleanEndpoint.endsWith('embed')) {
-                // 如果以 /v1 结尾，追加 /embeddings
-                if (cleanEndpoint.endsWith('/v1')) {
-                    endpoint = `${cleanEndpoint}/embeddings`;
-                }
-                // 否则假设是 base url，追加 /v1/embeddings
-                else {
-                    endpoint = `${cleanEndpoint}/v1/embeddings`;
-                }
-                Logger.debug('EmbeddingService', `自动修正 API URL: ${config.apiUrl} -> ${endpoint}`);
-            }
+        // V0.9.9: 移除自动填充 /v1/embeddings 逻辑，要求用户填写完整 URL
+        // 只做基本清理：移除末尾斜杠
+        if (endpoint) {
+            endpoint = endpoint.replace(/\/+$/, '');
         }
 
         if (!endpoint) {

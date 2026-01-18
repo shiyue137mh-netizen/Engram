@@ -1,6 +1,6 @@
 /**
  * ModelService - 统一的模型列表获取服务
- * 
+ *
  * 支持从各类 API 端点获取可用模型列表
  */
 
@@ -63,11 +63,10 @@ export class ModelService {
     static async fetchOpenAIModels(config: FetchModelsConfig): Promise<ModelInfo[]> {
         const { apiUrl, apiKey, timeout = this.DEFAULT_TIMEOUT } = config;
 
-        // 规范化 URL
+        // V0.9.9: 移除自动填充 /v1 逻辑
+        // 假设用户已提供正确的 base URL (如 http://localhost:8000/v1)
         const baseUrl = apiUrl.replace(/\/+$/, '');
-        const modelsUrl = baseUrl.endsWith('/v1')
-            ? `${baseUrl}/models`
-            : `${baseUrl}/v1/models`;
+        const modelsUrl = `${baseUrl}/models`;
 
         try {
             const controller = new AbortController();
