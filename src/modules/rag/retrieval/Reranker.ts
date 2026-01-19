@@ -6,7 +6,7 @@
  */
 
 import { SettingsManager } from '@/config/settings';
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import type { RerankConfig } from '@/config/types/rag';
 
 // ==================== 类型定义 ====================
@@ -70,12 +70,12 @@ export class RerankService {
         const config = this.getConfig();
 
         if (!config?.enabled) {
-            Logger.debug('RerankService', 'Rerank 未启用，返回原始顺序');
+            Logger.debug(LogModule.RAG_RERANK, 'Rerank 未启用，返回原始顺序');
             return documents.map((_, i) => ({ index: i, relevance_score: 0 }));
         }
 
         if (!config.url || !config.model) {
-            Logger.warn('RerankService', 'Rerank 配置不完整', { url: config.url, model: config.model });
+            Logger.warn(LogModule.RAG_RERANK, 'Rerank 配置不完整', { url: config.url, model: config.model });
             return documents.map((_, i) => ({ index: i, relevance_score: 0 }));
         }
 
@@ -89,7 +89,7 @@ export class RerankService {
                 ? config.url
                 : `${config.url.replace(/\/$/, '')}/rerank`;
 
-            Logger.debug('RerankService', '调用 Rerank API', {
+            Logger.debug(LogModule.RAG_RERANK, '调用 Rerank API', {
                 endpoint,
                 model: config.model,
                 queryLength: query.length,
@@ -122,7 +122,7 @@ export class RerankService {
             // 兼容不同 API 返回格式
             const results = data.results || data.data || [];
 
-            Logger.info('RerankService', 'Rerank 完成', {
+            Logger.info(LogModule.RAG_RERANK, 'Rerank 完成', {
                 resultCount: results.length,
                 topScore: results[0]?.relevance_score,
             });
@@ -132,7 +132,7 @@ export class RerankService {
 
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : '未知错误';
-            Logger.error('RerankService', 'Rerank 调用失败', { error: errorMsg });
+            Logger.error(LogModule.RAG_RERANK, 'Rerank 调用失败', { error: errorMsg });
 
             // 失败时返回原始顺序
             return documents.map((_, i) => ({ index: i, relevance_score: 0 }));

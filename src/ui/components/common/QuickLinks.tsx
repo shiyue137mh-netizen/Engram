@@ -24,7 +24,7 @@ export const QuickLinks: React.FC<QuickLinksProps> = ({ links, onNavigate, class
     if (links.length === 0) return null;
 
     return (
-        <div className={`flex items-center gap-4 ${className}`}>
+        <div className={`hidden sm:flex items-center gap-4 ${className}`}>
             {links.map((link) => {
                 const Icon = link.icon || ExternalLink;
                 return (

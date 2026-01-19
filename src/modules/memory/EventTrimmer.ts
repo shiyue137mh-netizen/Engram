@@ -6,7 +6,7 @@
 
 import { useMemoryStore } from '@/state/memoryStore';
 import { MacroService } from '@/integrations/tavern/macros';
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 import { revisionService } from '@/core/events/RevisionBridge';
 import { llmAdapter } from '@/integrations/llm';
@@ -114,7 +114,7 @@ export class EventTrimmer {
      */
     async trim(manual = false): Promise<TrimResult | null> {
         if (this.isTrimming) {
-            Logger.warn('EventTrimmer', '正在执行精简，跳过本次触发');
+            Logger.warn(LogModule.MEMORY_TRIM, '正在执行精简，跳过本次触发');
             return null;
         }
 
@@ -130,7 +130,7 @@ export class EventTrimmer {
         }
 
         this.isTrimming = true;
-        Logger.info('EventTrimmer', '开始执行精简', { eventCount: eventsToMerge.length });
+        Logger.info(LogModule.MEMORY_TRIM, '开始执行精简', { eventCount: eventsToMerge.length });
 
         try {
             // 2. 组装待精简的文本 (烧录格式)
@@ -143,7 +143,7 @@ export class EventTrimmer {
             });
 
             if (!response.success || !response.content) {
-                Logger.error('EventTrimmer', 'LLM 调用失败', { error: response.error });
+                Logger.error(LogModule.MEMORY_TRIM, 'LLM 调用失败', { error: response.error });
                 notificationService.error('精简失败：LLM 调用失败', 'Engram');
                 return null;
             }
@@ -151,7 +151,7 @@ export class EventTrimmer {
             // 4. 解析 JSON
             const parsed = RobustJsonParser.parse<TrimResponse>(response.content);
             if (!parsed || !parsed.events || parsed.events.length === 0) {
-                Logger.error('EventTrimmer', 'JSON 解析失败或无事件');
+                Logger.error(LogModule.MEMORY_TRIM, 'JSON 解析失败或无事件');
                 notificationService.error('精简失败：无法解析结果', 'Engram');
                 return null;
             }
@@ -166,7 +166,7 @@ export class EventTrimmer {
                         finalSummary
                     );
                 } catch {
-                    Logger.warn('EventTrimmer', '用户取消了精简');
+                    Logger.warn(LogModule.MEMORY_TRIM, '用户取消了精简');
                     notificationService.info('已取消精简操作', '操作取消');
                     return null;
                 }
@@ -202,14 +202,14 @@ export class EventTrimmer {
             const embeddingConfig = settings?.embeddingConfig;
 
             if (embeddingConfig?.enabled && embeddingConfig.trigger === 'with_trim') {
-                Logger.info('EventTrimmer', '触发联动嵌入', { count: eventsToMerge.length });
+                Logger.info(LogModule.MEMORY_TRIM, '触发联动嵌入', { count: eventsToMerge.length });
                 try {
                     // 1. 生成向量
                     await embeddingService.embedEvents(eventsToMerge);
                     // 2. 标记为已嵌入
                     await store.markEventsAsEmbedded(sourceEventIds);
                 } catch (embedError) {
-                    Logger.error('EventTrimmer', '联动嵌入失败', { error: embedError });
+                    Logger.error(LogModule.MEMORY_TRIM, '联动嵌入失败', { error: embedError });
                     notificationService.warning('联动嵌入失败，但精简已完成', 'Engram');
                 }
             }
@@ -221,7 +221,7 @@ export class EventTrimmer {
             // 9. 刷新宏缓存
             await MacroService.refreshCache();
 
-            Logger.success('EventTrimmer', '精简完成', {
+            Logger.success(LogModule.MEMORY_TRIM, '精简完成', {
                 merged: eventsToMerge.length,
                 newEventId: newEvent.id
             });
@@ -239,7 +239,7 @@ export class EventTrimmer {
 
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
-            Logger.error('EventTrimmer', '精简执行异常', { error: errorMsg });
+            Logger.error(LogModule.MEMORY_TRIM, '精简执行异常', { error: errorMsg });
             notificationService.error(`精简异常: ${errorMsg}`, 'Engram 错误');
             return null;
         } finally {

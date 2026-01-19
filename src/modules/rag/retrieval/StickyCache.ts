@@ -7,7 +7,7 @@
  * 生命周期：内存缓存，Retriever 单例持有，重启后失效
  */
 
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 
 /**
  * 黏性配置
@@ -54,7 +54,7 @@ export class StickyCache {
      */
     nextRound(): void {
         this.currentRound++;
-        Logger.debug('StickyCache', `开始第 ${this.currentRound} 轮召回`);
+        Logger.debug(LogModule.RAG_CACHE, `开始第 ${this.currentRound} 轮召回`);
     }
 
     /**
@@ -141,7 +141,7 @@ export class StickyCache {
         }
 
         if (cleanedCount > 0) {
-            Logger.debug('StickyCache', `清理了 ${cleanedCount} 条过期缓存`);
+            Logger.debug(LogModule.RAG_CACHE, `清理了 ${cleanedCount} 条过期缓存`);
         }
     }
 
@@ -151,7 +151,7 @@ export class StickyCache {
     clear(): void {
         this.cache.clear();
         this.currentRound = 0;
-        Logger.debug('StickyCache', '缓存已清空');
+        Logger.debug(LogModule.RAG_CACHE, '缓存已清空');
     }
 
     /**

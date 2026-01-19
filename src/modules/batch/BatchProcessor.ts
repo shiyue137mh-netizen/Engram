@@ -12,7 +12,7 @@ import { summarizerService } from '@/modules/memory';
 import { entityBuilder } from '@/modules/memory/EntityExtractor';
 import { eventTrimmer } from '@/modules/memory/EventTrimmer';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import { llmAdapter } from '@/integrations/llm/Adapter';
 import { pipeline } from '@/modules/workflow/Pipeline';
 import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
@@ -178,7 +178,7 @@ export class BatchProcessor {
     /** 开始批处理 */
     async start(startFloor = 0, endFloor?: number, onProgress?: BatchProgressCallback): Promise<void> {
         if (this.queue.isRunning) {
-            Logger.warn('BatchProcessor', 'Already running');
+            Logger.warn(LogModule.BATCH, '已在运行中');
             return;
         }
 
@@ -192,7 +192,7 @@ export class BatchProcessor {
         this.queue.currentTaskIndex = 0;
         this.queue.overallProgress = { current: 0, total: this.queue.tasks.length };
 
-        Logger.info('BatchProcessor', `Starting: ${this.queue.tasks.length} tasks`);
+        Logger.info(LogModule.BATCH, `开始执行 ${this.queue.tasks.length} 个任务`);
         this.notifyProgress();
         await this.runQueue();
     }
@@ -201,7 +201,7 @@ export class BatchProcessor {
     private async runQueue(): Promise<void> {
         while (this.queue.currentTaskIndex < this.queue.tasks.length) {
             if (this.stopSignal) {
-                Logger.info('BatchProcessor', 'Stopped by user');
+                Logger.info(LogModule.BATCH, '用户停止');
                 break;
             }
 
@@ -221,7 +221,7 @@ export class BatchProcessor {
             } catch (error) {
                 task.status = 'error';
                 task.error = String(error);
-                Logger.error('BatchProcessor', `Task ${task.type} failed: ${String(error)}`);
+                Logger.error(LogModule.BATCH, `任务 ${task.type} 失败`, { error: String(error) });
             }
 
             this.queue.currentTaskIndex++;
@@ -230,7 +230,7 @@ export class BatchProcessor {
         }
 
         this.queue.isRunning = false;
-        Logger.info('BatchProcessor', 'Completed');
+        Logger.success(LogModule.BATCH, '批处理完成');
         this.notifyProgress();
     }
 
@@ -286,20 +286,20 @@ export class BatchProcessor {
 
     pause(): void {
         this.queue.isPaused = true;
-        Logger.info('BatchProcessor', 'Paused');
+        Logger.info(LogModule.BATCH, '已暂停');
         this.notifyProgress();
     }
 
     resume(): void {
         this.queue.isPaused = false;
-        Logger.info('BatchProcessor', 'Resumed');
+        Logger.info(LogModule.BATCH, '已恢复');
         this.notifyProgress();
     }
 
     stop(): void {
         this.stopSignal = true;
         this.queue.isPaused = false;
-        Logger.info('BatchProcessor', 'Stopping...');
+        Logger.info(LogModule.BATCH, '正在停止');
     }
 
     reset(): void {
@@ -355,7 +355,7 @@ export class BatchProcessor {
                 this.onProgress({ ...this.queue });
             } catch (e) {
                 // Ignore UI callback errors to keep process running
-                Logger.debug('BatchProcessor', 'Progress callback failed (likely UI unmounted)', e);
+                Logger.debug(LogModule.BATCH, '进度回调失败（UI 已卸载）', e);
             }
         }
     }
@@ -389,11 +389,11 @@ ${chunk}
         try {
             const response = await llmAdapter.generate({ systemPrompt, userPrompt });
             if (response.success && response.content) {
-                Logger.debug('BatchProcessor', `Chunk ${chunkIndex} summarized`);
+                Logger.debug(LogModule.BATCH, `分块 ${chunkIndex} 总结完成`);
                 return response.content;
             }
         } catch (error) {
-            Logger.warn('BatchProcessor', `Chunk ${chunkIndex} summarize failed: ${error}`);
+            Logger.warn(LogModule.BATCH, `分块 ${chunkIndex} 总结失败`, { error });
         }
         // 降级：返回空，让调用方使用原文
         return '';
@@ -458,7 +458,7 @@ ${chunk}
                         }
                     }
                     // 降级：LLM 失败或 Pipeline 解析失败，使用原文
-                    Logger.warn('BatchProcessor', `Chunk ${i} fallback to raw text`);
+                    Logger.warn(LogModule.BATCH, `分块 ${i} 回退为原文`);
                 }
 
                 // 快速模式 或 降级：直接存储原文
@@ -482,7 +482,7 @@ ${chunk}
                 await embeddingService.embedEvent(eventNode);
                 success++;
             } catch (error) {
-                Logger.error('BatchProcessor', `Import chunk ${i} failed: ${String(error)}`);
+                Logger.error(LogModule.BATCH, `导入分块 ${i} 失败`, { error: String(error) });
                 failed++;
             }
 
@@ -495,7 +495,7 @@ ${chunk}
         this.queue.tasks[0].status = 'done';
         this.notifyProgress();
 
-        Logger.info('BatchProcessor', `Import completed: ${success} success, ${failed} failed`);
+        Logger.success(LogModule.BATCH, `导入完成: ${success} 成功, ${failed} 失败`);
         return { success, failed };
     }
 }

@@ -19,7 +19,7 @@ import {
     Target,
 } from 'lucide-react';
 import { PageTitle } from "@/ui/components/common/PageTitle";
-import { Logger, LogEntry, LogLevel, LogLevelConfig } from "@/core/logger";
+import { Logger, LogEntry, LogLevel, LogLevelConfig, ALL_MODULES } from "@/core/logger";
 import { LogEntryItem } from './LogEntryItem';
 import { ModelLog } from './ModelLog';
 import { RecallLog } from './RecallLog';
@@ -44,18 +44,8 @@ const TAB_INFO: Record<TabType, { title: string; subtitle: string }> = {
     recall: { title: '召回日志', subtitle: '查看 RAG 召回记录' },
 };
 
-// 模块列表（用于过滤）
-const MODULES = [
-    'ALL',
-    'Logger',
-    'EventBus',
-    'Summarizer',
-    'CORE/Pipeline',
-    'CORE/RAG',
-    'CORE/Memory',
-    'UI/GraphView',
-    'UI/MemoryStream',
-];
+// V0.9.10: 模块列表自动生成（不再硬编码）
+const MODULES = ['ALL', ...ALL_MODULES];
 
 interface DevLogProps {
     initialTab?: TabType;

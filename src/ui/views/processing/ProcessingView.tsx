@@ -75,12 +75,10 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
                 activeTab={activeTab}
                 onChange={(id) => setActiveTab(id as ProcessingTab)}
                 actions={
-                    <div className="hidden md:block">
-                        <QuickLinks
-                            links={QUICK_LINKS}
-                            onNavigate={(path) => onNavigate?.(path)}
-                        />
-                    </div>
+                    <QuickLinks
+                        links={QUICK_LINKS}
+                        onNavigate={(path) => onNavigate?.(path)}
+                    />
                 }
             />
 

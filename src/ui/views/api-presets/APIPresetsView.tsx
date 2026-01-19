@@ -26,6 +26,7 @@ import { TabPills } from "@/ui/components/ui/TabPills";
 
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { MasterDetailLayout } from "@/ui/components/layout/MasterDetailLayout";
+import { MobileFullscreenForm } from "@/ui/components/layout/MobileFullscreenForm"; // Added import
 import { EmptyState } from "@/ui/components/common/EmptyState";
 import { useResponsive } from "@/ui/hooks/useResponsive";
 // Hooks
@@ -191,6 +192,88 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         ['prompt', 'regex'].includes(mainTab) ||
         (mainTab === 'model' && modelSubTab === 'llm');
 
+    // =============== 移动端独立渲染 (顶层覆盖) ===============
+    if (isMobile && showMobileForm) {
+        // 1. LLM 预设编辑
+        if (mainTab === 'model' && modelSubTab === 'llm' && editingPreset) {
+            return (
+                <MobileFullscreenForm
+                    title="编辑 LLM 预设"
+                    onClose={handleMobileClose}
+                    actions={hasChanges && (
+                        <button className="p-2 text-primary" onClick={save}>
+                            <Save size={18} />
+                        </button>
+                    )}
+                >
+                    <LLMPresetForm preset={editingPreset} onChange={updatePreset} />
+                </MobileFullscreenForm>
+            );
+        }
+
+        // 2. 提示词模板 / 宏
+        if (mainTab === 'prompt') {
+            if (promptSubTab === 'templates' && editingTemplate) {
+                return (
+                    <MobileFullscreenForm
+                        title="编辑提示词模板"
+                        onClose={handleMobileClose}
+                        actions={hasChanges && (
+                            <button className="p-2 text-primary" onClick={save}>
+                                <Save size={18} />
+                            </button>
+                        )}
+                    >
+                        <PromptTemplateForm
+                            template={editingTemplate}
+                            llmPresets={settings.llmPresets}
+                            defaultPresetId={settings.selectedPresetId}
+                            onChange={updateTemplate}
+                        />
+                    </MobileFullscreenForm>
+                );
+            }
+            if (promptSubTab === 'macros') {
+                const editingMacro = (settings.customMacros || []).find(m => m.id === editingMacroId);
+                if (editingMacro) {
+                    return (
+                        <MobileFullscreenForm
+                            title="编辑自定义宏"
+                            onClose={handleMobileClose}
+                            actions={hasChanges && (
+                                <button className="p-2 text-primary" onClick={save}>
+                                    <Save size={18} />
+                                </button>
+                            )}
+                        >
+                            <CustomMacroForm
+                                macro={editingMacro}
+                                onChange={(updates) => updateCustomMacro(editingMacro.id, updates)}
+                            />
+                        </MobileFullscreenForm>
+                    );
+                }
+            }
+        }
+
+        // 3. 正则规则
+        if (mainTab === 'regex' && editingRule) {
+            return (
+                <MobileFullscreenForm
+                    title="编辑正则规则"
+                    onClose={handleMobileClose}
+                    actions={hasChanges && (
+                        <button className="p-2 text-primary" onClick={save}>
+                            <Save size={18} />
+                        </button>
+                    )}
+                >
+                    <RegexRuleForm rule={editingRule} onChange={updateRule} />
+                </MobileFullscreenForm>
+            );
+        }
+    }
+
     // =============== 主视图 ===============
     return (
         <div className="flex flex-col h-full animate-in fade-in">
@@ -233,23 +316,15 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                             onChange={(id) => setModelSubTab(id as ModelSubTabType)}
                             sticky={false}
                             top={0}
-                            className="-mx-4 px-4 !mb-4"
+                            className="!mb-4"
                         />
 
                         {/* LLM 预设 - Master-Detail */}
                         {modelSubTab === 'llm' && (
                             <MasterDetailLayout
                                 className="h-full"
-                                mobileDetailOpen={isMobile && showMobileForm}
+                                mobileDetailOpen={false} // Handled by early return
                                 onMobileDetailClose={handleMobileClose}
-                                mobileDetailTitle="编辑 LLM 预设"
-                                mobileDetailActions={
-                                    hasChanges && (
-                                        <button className="p-2 text-primary" onClick={save}>
-                                            <Save size={18} />
-                                        </button>
-                                    )
-                                }
                                 listWidth="30%"
                                 list={
                                     <div className="flex flex-col gap-4">
@@ -298,16 +373,6 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                 {/* 提示词模板 Tab - Master-Detail */}
                 {mainTab === 'prompt' && (
                     <MasterDetailLayout
-                        mobileDetailOpen={isMobile && showMobileForm}
-                        onMobileDetailClose={handleMobileClose}
-                        mobileDetailTitle={promptSubTab === 'templates' ? "编辑提示词模板" : "编辑自定义宏"}
-                        mobileDetailActions={
-                            hasChanges && (
-                                <button className="p-2 text-primary" onClick={save}>
-                                    <Save size={18} />
-                                </button>
-                            )
-                        }
                         listWidth="30%"
                         list={
                             <>
@@ -399,16 +464,8 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                 {/* 正则规则 Tab - Master-Detail */}
                 {mainTab === 'regex' && (
                     <MasterDetailLayout
-                        mobileDetailOpen={isMobile && showMobileForm}
+                        mobileDetailOpen={false} // Already handled by early return
                         onMobileDetailClose={handleMobileClose}
-                        mobileDetailTitle="编辑正则规则"
-                        mobileDetailActions={
-                            hasChanges && (
-                                <button className="p-2 text-primary" onClick={save}>
-                                    <Save size={18} />
-                                </button>
-                            )
-                        }
                         listWidth="30%"
                         list={
                             <RegexRuleList

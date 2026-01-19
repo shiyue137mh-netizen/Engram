@@ -8,29 +8,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { Subject } from 'rxjs';
 import { EventBus, EngramEvent } from '../events';
 import { LogLevel, LogEntry, LoggerConfig, DEFAULT_LOGGER_CONFIG } from './types';
+import type { LogModule } from './LogModule';
 
 // 日志流 Subject
 const logSubject = new Subject<LogEntry>();
 
 // 内存中的日志缓存（用于快速访问）
+// 注意：模块级变量在 HMR 时可能被保留，但完整页面刷新会重置
 let logCache: LogEntry[] = [];
 
 // 配置
 let config: LoggerConfig = { ...DEFAULT_LOGGER_CONFIG };
 
-// 数据库引用（延迟初始化，避免循环依赖）
-let dbInstance: typeof import('@/services/database/db').db | null = null;
-
-/**
- * 获取数据库实例
- */
-async function getDB() {
-    if (!dbInstance) {
-        const { db } = await import('@/data/db');
-        dbInstance = db;
-    }
-    return dbInstance;
-}
+// 标记是否已初始化（防止重复订阅 EventBus）
+let isInitialized = false;
 
 /**
  * 格式化时间为 HH:MM:SS
@@ -68,23 +59,6 @@ function writeLog(level: LogLevel, module: string, message: string, data?: unkno
 }
 
 /**
- * 清理旧日志
- */
-async function pruneOldLogs(deleteCount: number): Promise<void> {
-    try {
-        const db = await getDB();
-        const oldLogs = await db.logs.orderBy('timestamp').limit(deleteCount).toArray();
-        const idsToDelete = oldLogs.map((log) => log.id);
-        await db.logs.bulkDelete(idsToDelete);
-
-        // 同步清理缓存
-        logCache = logCache.slice(-config.maxEntries);
-    } catch (err) {
-        console.error('[Engram/Logger] 清理旧日志失败:', err);
-    }
-}
-
-/**
  * 设置 EventBus 监听
  */
 function setupEventBusListener(): void {
@@ -108,58 +82,69 @@ function setupEventBusListener(): void {
 
 /**
  * Logger 公共 API
+ *
+ * V0.9.10: 支持 LogModule 枚举和 string 两种模块类型（向后兼容）
  */
 export const Logger = {
     /**
      * 初始化 Logger（纯内存模式）
+     * 注意：每次调用都会清空日志缓存
      */
     init(userConfig?: Partial<LoggerConfig>): void {
+        // 始终清空缓存（支持硬刷新时重置）
+        logCache = [];
+
         if (userConfig) {
             config = { ...config, ...userConfig };
         }
 
-        // 初始化时清空缓存
-        logCache = [];
+        // 防止重复订阅 EventBus
+        if (!isInitialized) {
+            setupEventBusListener();
+            isInitialized = true;
+        }
 
-        // 设置 EventBus 监听
-        setupEventBusListener();
-
-        Logger.info('Logger', 'Logger 初始化完成');
+        Logger.info('System', 'Logger 初始化完成');
     },
 
     /**
      * DEBUG 级别日志
+     * @param module 模块名（推荐使用 LogModule 枚举）
      */
-    debug(module: string, message: string, data?: unknown): void {
-        writeLog(LogLevel.DEBUG, module, message, data);
+    debug(module: LogModule | string, message: string, data?: unknown): void {
+        writeLog(LogLevel.DEBUG, module as string, message, data);
     },
 
     /**
      * INFO 级别日志
+     * @param module 模块名（推荐使用 LogModule 枚举）
      */
-    info(module: string, message: string, data?: unknown): void {
-        writeLog(LogLevel.INFO, module, message, data);
+    info(module: LogModule | string, message: string, data?: unknown): void {
+        writeLog(LogLevel.INFO, module as string, message, data);
     },
 
     /**
      * SUCCESS 级别日志
+     * @param module 模块名（推荐使用 LogModule 枚举）
      */
-    success(module: string, message: string, data?: unknown): void {
-        writeLog(LogLevel.SUCCESS, module, message, data);
+    success(module: LogModule | string, message: string, data?: unknown): void {
+        writeLog(LogLevel.SUCCESS, module as string, message, data);
     },
 
     /**
      * WARN 级别日志
+     * @param module 模块名（推荐使用 LogModule 枚举）
      */
-    warn(module: string, message: string, data?: unknown): void {
-        writeLog(LogLevel.WARN, module, message, data);
+    warn(module: LogModule | string, message: string, data?: unknown): void {
+        writeLog(LogLevel.WARN, module as string, message, data);
     },
 
     /**
      * ERROR 级别日志
+     * @param module 模块名（推荐使用 LogModule 枚举）
      */
-    error(module: string, message: string, data?: unknown): void {
-        writeLog(LogLevel.ERROR, module, message, data);
+    error(module: LogModule | string, message: string, data?: unknown): void {
+        writeLog(LogLevel.ERROR, module as string, message, data);
     },
 
     /**

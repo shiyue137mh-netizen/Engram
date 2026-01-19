@@ -11,7 +11,7 @@ import type { VectorConfig, VectorSource } from '@/config/types/rag';
 import type { EventNode } from '@/data/types/graph';
 import { getDbForChat, tryGetDbForChat } from '@/data/db';
 import { getCurrentChatId } from '@/integrations/tavern/context';
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 
 // ==================== 类型定义 ====================
 
@@ -157,7 +157,7 @@ export class EmbeddingService {
             } catch (e: any) {
                 errors++;
                 results[index] = { id: req.id, embedding: [], error: e.message };
-                Logger.warn('EmbeddingService', `嵌入失败: ${req.id}`, { error: e.message });
+                Logger.warn(LogModule.RAG_EMBED, `嵌入失败: ${req.id}`, { error: e.message });
             } finally {
                 completed++;
                 onProgress?.(completed, requests.length, errors);
@@ -380,7 +380,7 @@ export class EmbeddingService {
             return { success: 0, failed: 0 };
         }
 
-        Logger.info('EmbeddingService', `开始嵌入 ${events.length} 个事件`);
+        Logger.info(LogModule.RAG_EMBED, `开始嵌入 ${events.length} 个事件`);
 
         // 构建请求
         const requests: EmbedRequest[] = events.map(e => ({
@@ -408,7 +408,7 @@ export class EmbeddingService {
             success++;
         }
 
-        Logger.info('EmbeddingService', `嵌入完成: ${success} 成功, ${failed} 失败`);
+        Logger.info(LogModule.RAG_EMBED, `嵌入完成: ${success} 成功, ${failed} 失败`);
         return { success, failed };
     }
 
@@ -497,7 +497,7 @@ export class EmbeddingService {
             return { success: 0, failed: 0 };
         }
 
-        Logger.info('EmbeddingService', `重新嵌入 ${events.length} 个事件`);
+        Logger.info(LogModule.RAG_EMBED, `重新嵌入 ${events.length} 个事件`);
 
         // 清空现有嵌入标记
         for (const event of events) {

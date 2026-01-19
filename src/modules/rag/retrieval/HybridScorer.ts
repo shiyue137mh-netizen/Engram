@@ -4,7 +4,7 @@
  * V0.8.5: 用于合并 Embedding 相似度分数和 Rerank 分数
  */
 
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import type { EventNode } from '@/data/types/graph';
 import type { StickyCache, StickyConfig } from './StickyCache';
 
@@ -119,7 +119,7 @@ export function scoreAndSort(
     // 按混合分数降序排列
     scored.sort((a, b) => (b.hybridScore ?? 0) - (a.hybridScore ?? 0));
 
-    Logger.debug('HybridScorer', '混合打分完成', {
+    Logger.debug(LogModule.RAG_RETRIEVE, '混合打分完成', {
         candidateCount: scored.length,
         topScore: scored[0]?.hybridScore,
         alpha,
@@ -195,7 +195,7 @@ export function applySticky(
     // 按调整后的分数重新排序
     adjusted.sort((a, b) => (b.hybridScore ?? 0) - (a.hybridScore ?? 0));
 
-    Logger.debug('HybridScorer', '应用黏性惩罚', {
+    Logger.debug(LogModule.RAG_RETRIEVE, '应用黏性惩罚', {
         totalCandidates: candidates.length,
         stickyCount: adjusted.filter(e => e.isSticky).length,
         maxPenalty: Math.max(...adjusted.map(e => e.stickyPenalty ?? 0)),

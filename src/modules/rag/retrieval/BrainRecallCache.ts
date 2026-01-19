@@ -6,7 +6,7 @@
  * 实现记忆强化、衰减、竞争淘汰、上下文切换检测
  */
 
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import type { BrainRecallConfig } from '@/config/types/rag';
 import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
 
@@ -48,7 +48,7 @@ export class BrainRecallCache {
     private config: BrainRecallConfig = DEFAULT_BRAIN_RECALL_CONFIG;
 
     constructor() {
-        Logger.debug(MODULE, '类脑召回缓存初始化');
+        Logger.debug(LogModule.RAG_CACHE, '类脑召回缓存初始化');
     }
 
     /**
@@ -70,7 +70,7 @@ export class BrainRecallCache {
      */
     nextRound(): void {
         this.currentRound++;
-        Logger.debug(MODULE, `开始第 ${this.currentRound} 轮类脑召回`);
+        Logger.debug(LogModule.RAG_CACHE, `开始第 ${this.currentRound} 轮类脑召回`);
     }
 
     /**
@@ -105,7 +105,7 @@ export class BrainRecallCache {
 
         // 1. 检测上下文切换
         if (this.shouldSoftReset(candidates)) {
-            Logger.info(MODULE, '检测到上下文切换，执行 softReset');
+            Logger.info(LogModule.RAG_CACHE, '检测到上下文切换，执行 softReset');
             this.softReset();
         }
 
@@ -117,7 +117,7 @@ export class BrainRecallCache {
                 slot.strength = this.reinforce(slot.strength);
                 slot.lastRound = this.currentRound;
                 slot.recallCount++;
-                Logger.debug(MODULE, `强化记忆: ${id}, strength=${slot.strength.toFixed(3)}`);
+                Logger.debug(LogModule.RAG_CACHE, `强化记忆: ${id}, strength=${slot.strength.toFixed(3)}`);
             } else {
                 // 未召回：衰减
                 slot.strength = this.decay(slot.strength);
@@ -138,7 +138,7 @@ export class BrainRecallCache {
                     tier: 'shortTerm',
                 };
                 this.shortTermMemory.set(candidate.id, slot);
-                Logger.debug(MODULE, `新增记忆: ${candidate.id}, score=${candidate.score.toFixed(3)}`);
+                Logger.debug(LogModule.RAG_CACHE, `新增记忆: ${candidate.id}, score=${candidate.score.toFixed(3)}`);
             }
         }
 
@@ -151,7 +151,7 @@ export class BrainRecallCache {
         // 6. 选取工作记忆（Top-K）
         const workingMemory = this.selectWorkingMemory();
 
-        Logger.info(MODULE, '类脑召回完成', {
+        Logger.info(LogModule.RAG_CACHE, '类脑召回完成', {
             round: this.currentRound,
             shortTermSize: this.shortTermMemory.size,
             workingSize: workingMemory.length,
@@ -190,11 +190,11 @@ export class BrainRecallCache {
 
         for (const id of toRemove) {
             this.shortTermMemory.delete(id);
-            Logger.debug(MODULE, `淘汰记忆: ${id}`);
+            Logger.debug(LogModule.RAG_CACHE, `淘汰记忆: ${id}`);
         }
 
         if (toRemove.length > 0) {
-            Logger.debug(MODULE, `淘汰了 ${toRemove.length} 条记忆`);
+            Logger.debug(LogModule.RAG_CACHE, `淘汰了 ${toRemove.length} 条记忆`);
         }
     }
 
@@ -214,7 +214,7 @@ export class BrainRecallCache {
             this.shortTermMemory.delete(slot.id);
         }
 
-        Logger.debug(MODULE, `短期记忆容量限制：移除 ${toRemove.length} 条`);
+        Logger.debug(LogModule.RAG_CACHE, `短期记忆容量限制：移除 ${toRemove.length} 条`);
     }
 
     /**
@@ -277,7 +277,7 @@ export class BrainRecallCache {
      */
     softReset(): void {
         this.shortTermMemory.clear();
-        Logger.info(MODULE, 'softReset: 短期记忆已清空');
+        Logger.info(LogModule.RAG_CACHE, 'softReset: 短期记忆已清空');
     }
 
     /**
@@ -286,7 +286,7 @@ export class BrainRecallCache {
     hardReset(): void {
         this.shortTermMemory.clear();
         this.currentRound = 0;
-        Logger.info(MODULE, 'hardReset: 类脑召回缓存已重置');
+        Logger.info(LogModule.RAG_CACHE, 'hardReset: 类脑召回缓存已重置');
     }
 
     /**

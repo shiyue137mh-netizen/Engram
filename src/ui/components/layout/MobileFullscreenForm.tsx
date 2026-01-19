@@ -21,7 +21,7 @@ export const MobileFullscreenForm: React.FC<MobileFullscreenFormProps> = ({
 }) => {
     return (
         <div
-            className="fixed inset-0 bg-background z-50 flex flex-col animate-in slide-in-from-right-4 duration-200"
+            className="fixed inset-0 bg-background z-[200] flex flex-col animate-in slide-in-from-right-4 duration-200"
             style={{ height: '100dvh', width: '100vw' }}
         >
             {/* 头部 */}

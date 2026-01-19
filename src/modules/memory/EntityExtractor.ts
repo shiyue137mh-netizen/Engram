@@ -11,7 +11,7 @@ import * as jsonpatch from 'fast-json-patch';
 import { useMemoryStore } from '@/state/memoryStore';
 import { chatManager } from '@/data/ChatManager';
 import { MacroService } from '@/integrations/tavern/macros';
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import { ModelLogger } from "@/core/logger/ModelLogger";
 import { getCurrentCharacter, getCurrentModel } from '@/integrations/tavern/context';
 import { notificationService } from '@/ui/services/NotificationService';
@@ -118,13 +118,13 @@ export class EntityBuilder {
         manual = false
     ): Promise<EntityBuildResult | null> {
         if (this.isExtracting) {
-            Logger.warn('EntityBuilder', '正在执行提取，跳过本次触发');
+            Logger.warn(LogModule.MEMORY_ENTITY, '正在执行提取，跳过本次触发');
             return null;
         }
 
         this.isExtracting = true;
         const startTime = Date.now();
-        Logger.info('EntityBuilder', `开始实体提取 (楼层 ${floor})`);
+        Logger.info(LogModule.MEMORY_ENTITY, `开始实体提取 (楼层 ${floor})`);
 
         try {
             const store = useMemoryStore.getState();
@@ -183,7 +183,7 @@ export class EntityBuilder {
             });
 
             if (!response.success || !response.content) {
-                Logger.error('EntityBuilder', 'LLM 调用失败', { error: response.error });
+                Logger.error(LogModule.MEMORY_ENTITY, 'LLM 调用失败', { error: response.error });
                 if (manual) {
                     notificationService.error('实体提取失败：LLM 调用失败', 'Engram');
                 }
@@ -193,7 +193,7 @@ export class EntityBuilder {
             // 5. 解析 JSON (Generic Parse first, validation later)
             const parsed = RobustJsonParser.parse<unknown>(response.content);
             if (!parsed) {
-                Logger.error('EntityBuilder', 'JSON 解析失败');
+                Logger.error(LogModule.MEMORY_ENTITY, 'JSON 解析失败');
                 if (manual) {
                     notificationService.error('实体提取失败：无法解析结果', 'Engram');
                 }
@@ -206,7 +206,7 @@ export class EntityBuilder {
             // 7. 更新 last_extracted_floor
             await chatManager.updateState({ last_extracted_floor: floor });
 
-            Logger.success('EntityBuilder', '实体提取完成', {
+            Logger.success(LogModule.MEMORY_ENTITY, '实体提取完成', {
                 floor,
                 newCount: result.newEntities.length,
                 updatedCount: result.updatedEntities.length,
@@ -224,7 +224,7 @@ export class EntityBuilder {
 
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
-            Logger.error('EntityBuilder', '实体提取异常', { error: errorMsg });
+            Logger.error(LogModule.MEMORY_ENTITY, '实体提取异常', { error: errorMsg });
             if (manual) {
                 notificationService.error(`实体提取异常: ${errorMsg}`, 'Engram 错误');
             }
@@ -243,7 +243,7 @@ export class EntityBuilder {
         const chatHistory = MacroService.getChatHistory(range);
 
         if (!chatHistory) {
-            Logger.warn('EntityBuilder', '指定范围的历史记录为空', { range });
+            Logger.warn(LogModule.MEMORY_ENTITY, '指定范围的历史记录为空', { range });
             return null;
         }
 
@@ -297,7 +297,7 @@ export class EntityBuilder {
                 // Check exact dupe before creation
                 const existing = this.resolveEntity(extracted.name, extracted.aliases || [], existingEntities);
                 if (existing) {
-                    Logger.warn('EntityBuilder', 'Skipping duplicate creation for existing entity', { name: extracted.name });
+                    Logger.warn(LogModule.MEMORY_ENTITY, 'Skipping duplicate creation for existing entity', { name: extracted.name });
                     continue;
                 }
 
@@ -327,7 +327,7 @@ export class EntityBuilder {
                 // 3.1 Find Target
                 const target = existingEntities.find(e => e.name === patch.name || e.id === patch.name);
                 if (!target) {
-                    Logger.warn('EntityBuilder', 'Patch target not found', { name: patch.name });
+                    Logger.warn(LogModule.MEMORY_ENTITY, 'Patch target not found', { name: patch.name });
                     continue;
                 }
 
@@ -361,7 +361,7 @@ export class EntityBuilder {
                     updatedEntities.push({ ...target, ...updates });
 
                 } catch (e) {
-                    Logger.error('EntityBuilder', `Failed to apply patch for ${patch.name}`, { error: e });
+                    Logger.error(LogModule.MEMORY_ENTITY, `Failed to apply patch for ${patch.name}`, { error: e });
                 }
             }
         }

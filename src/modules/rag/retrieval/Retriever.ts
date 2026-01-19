@@ -19,7 +19,7 @@ import { scoreAndSort, mergeResults, applySticky, type ScoredEvent, type RecallR
 import { RecallLogService } from '@/core/logger/RecallLogger';
 import { stickyCache, DEFAULT_STICKY_CONFIG, type StickyConfig } from './StickyCache';
 import { brainRecallCache, type RecallCandidate } from './BrainRecallCache';
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import type { EventNode } from '@/data/types/graph';
 import type { RecallConfig, RerankConfig, BrainRecallConfig, VectorConfig } from '@/config/types/rag';
 import { DEFAULT_RECALL_CONFIG, DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
@@ -100,7 +100,7 @@ export class Retriever {
 
         // 未启用召回，使用滚动窗口策略
         if (!recallConfig.enabled) {
-            Logger.debug('Retriever', '召回未启用，使用滚动窗口策略');
+            Logger.debug(LogModule.RAG_RETRIEVE, '召回未启用，使用滚动窗口策略');
             // 注意：这里原本用 config.embedding.topK，现在不能用了
             // 滚动窗口暂时给个默认值或者读取 Config，这里先默认 20
             const limit = recallConfig.embedding?.topK || 20;
@@ -109,7 +109,7 @@ export class Retriever {
 
         // 暴力召回模式 (优先)
         if (recallConfig.useBruteForce) {
-            Logger.debug('Retriever', '使用暴力召回 (滚动窗口)');
+            Logger.debug(LogModule.RAG_RETRIEVE, '使用暴力召回 (滚动窗口)');
             const limit = recallConfig.embedding?.topK || 20;
             return this.rollingSearch(limit);
         }
@@ -143,7 +143,7 @@ export class Retriever {
         const embeddingTime = Date.now() - embeddingStart;
 
         if (embeddingCandidates.length === 0) {
-            Logger.debug('Retriever', 'Embedding 无匹配结果');
+            Logger.debug(LogModule.RAG_RETRIEVE, 'Embedding 无匹配结果');
             return { entries: [], nodes: [] };
         }
 
@@ -172,7 +172,7 @@ export class Retriever {
                 alpha
             );
 
-            Logger.info('Retriever', '混合检索完成', {
+            Logger.info(LogModule.RAG_RETRIEVE, '混合检索完成', {
                 embeddingCount: embeddingCandidates.length,
                 rerankCount: rerankResults.length,
                 finalCount: finalCandidates.length,
@@ -214,7 +214,7 @@ export class Retriever {
                     };
                 });
 
-            Logger.info('Retriever', '类脑召回已应用', {
+            Logger.info(LogModule.RAG_RETRIEVE, '类脑召回已应用', {
                 inputCount: candidates.length,
                 outputCount: finalCandidates.length,
                 round: brainRecallCache.getCurrentRound(),
@@ -222,7 +222,7 @@ export class Retriever {
         } else if (stickyConfig.enabled) {
             // 旧版黏性惩罚 (向后兼容)
             finalCandidates = applySticky(finalCandidates, stickyCache, stickyConfig);
-            Logger.debug('Retriever', '已应用黏性惩罚', {
+            Logger.debug(LogModule.RAG_RETRIEVE, '已应用黏性惩罚', {
                 candidatesWithPenalty: finalCandidates.filter(c => (c.stickyPenalty || 0) > 0).length,
             });
             stickyCache.nextRound();
@@ -267,7 +267,7 @@ export class Retriever {
 
         const entries = finalCandidates.map(c => c.summary);
 
-        Logger.info('Retriever', '召回完成', {
+        Logger.info(LogModule.RAG_RETRIEVE, '召回完成', {
             useEmbedding: config.useEmbedding,
             useRerank: config.useRerank,
             totalTime,
@@ -321,7 +321,7 @@ export class Retriever {
             .toArray();
 
         if (events.length === 0) {
-            Logger.debug('Retriever', '没有已嵌入的事件');
+            Logger.debug(LogModule.RAG_RETRIEVE, '没有已嵌入的事件');
             return [];
         }
 
@@ -330,7 +330,7 @@ export class Retriever {
             ? unifiedQueries
             : [userInput];
 
-        Logger.debug('Retriever', '开始向量检索', {
+        Logger.debug(LogModule.RAG_RETRIEVE, '开始向量检索', {
             queryCount: queries.length,
             eventCount: events.length,
         });
@@ -367,7 +367,7 @@ export class Retriever {
                     }
                 }
             } catch (error: any) {
-                Logger.error('Retriever', `Query 向量化失败: ${query}`, {
+                Logger.error(LogModule.RAG_RETRIEVE, `Query 向量化失败: ${query}`, {
                     message: error?.message || error,
                     stack: error?.stack
                 });
@@ -380,7 +380,7 @@ export class Retriever {
             .sort((a, b) => (b.embeddingScore || 0) - (a.embeddingScore || 0))
             .slice(0, config?.embedding?.topK || 20);
 
-        Logger.debug('Retriever', 'Embedding 检索完成', {
+        Logger.debug(LogModule.RAG_RETRIEVE, 'Embedding 检索完成', {
             totalMatched: candidateMap.size,
             topK: candidates.length,
             topScore: candidates[0]?.embeddingScore,

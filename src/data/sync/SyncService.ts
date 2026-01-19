@@ -1,4 +1,4 @@
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import { getSTContext, getRequestHeaders } from '@/integrations/tavern/context';
 import { ChatDatabase, getDbForChat, exportChatData, importChatData } from '@/data/db';
 import { debounce } from 'lodash';
@@ -19,7 +19,7 @@ interface VectorQueryResponse {
     hashes: number[];
 }
 
-const MODULE = 'SyncService';
+const MODULE = LogModule.DATA_SYNC;
 const DEBOUNCE_DELAY = 3000;
 const VECTOR_SOURCE = 'webllm';
 const DUMMY_VECTOR = [0];
@@ -91,7 +91,7 @@ export class SyncService {
             const dump = await exportChatData(db);
             const timestamp = Date.now();
 
-            Logger.info(MODULE, `Exporting... Events: ${dump.events.length}, Entities: ${dump.entities.length}`);
+            Logger.debug(MODULE, `导出中: ${dump.events.length} 事件, ${dump.entities.length} 实体`);
 
             // 实际数据 JSON
             const textContent = JSON.stringify({
@@ -131,7 +131,7 @@ export class SyncService {
                 throw new Error(`Upload failed: ${response.statusText} - ${errText}`);
             }
 
-            Logger.info(MODULE, `Upload success for ${chatId} at ${new Date(timestamp).toLocaleString()}`);
+            Logger.success(MODULE, `上传完成: ${chatId}`);
             return true;
         } catch (error) {
             Logger.error(MODULE, `Upload error for ${chatId}`, error);
@@ -228,7 +228,7 @@ export class SyncService {
             }
 
             const dump = JSON.parse(data.metadata[0].text);
-            Logger.info(MODULE, `Received dump: ${dump.events?.length} events, ${dump.entities?.length} entities`);
+            Logger.debug(MODULE, `接收数据: ${dump.events?.length} 事件, ${dump.entities?.length} 实体`);
 
             const db = await getDbForChat(chatId);
             await importChatData(db, dump);
@@ -236,7 +236,7 @@ export class SyncService {
             // 验证写入
             const eventCount = await db.events.count();
             const entityCount = await db.entities.count();
-            Logger.info(MODULE, `Import verification: DB has ${eventCount} events, ${entityCount} entities`);
+            Logger.debug(MODULE, `导入验证: ${eventCount} 事件, ${entityCount} 实体`);
 
             return 'success';
         } catch (error) {

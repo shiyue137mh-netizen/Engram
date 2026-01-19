@@ -11,7 +11,7 @@
 import { llmAdapter } from '@/integrations/llm/Adapter';
 import { regexProcessor } from '@/modules/memory/extractors/RegexProcessor';
 import { SettingsManager } from '@/config/settings';
-import { Logger, ModelLogger } from '@/core/logger';
+import { Logger, ModelLogger, LogModule } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 import { EventBus, TavernEventType } from '@/integrations/tavern/api';
 import type { PromptCategory } from '@/config/types/prompt';
@@ -31,10 +31,10 @@ function substituteParams(text: string): string {
         if (context?.substituteParams) {
             return context.substituteParams(text);
         }
-        Logger.warn('Preprocessor', 'substituteParams 不可用，返回原文');
+        Logger.warn(LogModule.PREPROCESS, 'substituteParams 不可用，返回原文');
         return text;
     } catch (e) {
-        Logger.warn('Preprocessor', 'substituteParams 调用失败', e);
+        Logger.warn(LogModule.PREPROCESS, 'substituteParams 调用失败', e);
         return text;
     }
 }
@@ -48,10 +48,10 @@ async function stopSTGeneration(): Promise<void> {
         const context = window.SillyTavern?.getContext?.();
         if (context?.stopGeneration) {
             context.stopGeneration();
-            Logger.info('Preprocessor', '已调用酒馆 stopGeneration');
+            Logger.info(LogModule.PREPROCESS, '已调用酒馆 stopGeneration');
         }
     } catch (e) {
-        Logger.warn('Preprocessor', '调用 stopGeneration 失败', e);
+        Logger.warn(LogModule.PREPROCESS, '调用 stopGeneration 失败', e);
     }
 }
 
@@ -104,15 +104,8 @@ export class Preprocessor {
         const startTime = Date.now();
         const config = this.getConfig();
 
-        Logger.info('Preprocessor', '开始预处理', {
-            enabled: config.enabled,
-            templateId: config.templateId,
-            inputLength: userInput.length
-        });
-
-        // 如果未启用，直接返回空结果
+        // 只在启用时记录开始日志（避免未启用时也刷日志）
         if (!config.enabled) {
-            Logger.debug('Preprocessor', '预处理未启用，跳过');
             return {
                 success: true,
                 output: null,
@@ -122,13 +115,15 @@ export class Preprocessor {
             };
         }
 
+        Logger.info(LogModule.PREPROCESS, '开始预处理', { inputLength: userInput.length });
+
         // 重置取消标志
         this.cancelRequested = false;
 
         // 显示运行中通知（支持点击取消）
         const runningToast = notificationService.running('预处理中...', 'Engram', () => {
             this.cancelRequested = true;
-            Logger.info('Preprocessor', '用户请求取消预处理');
+            Logger.debug(LogModule.PREPROCESS, '用户请求取消');
             this.requestStopGeneration();
             notificationService.warning('正在取消预处理...', 'Engram');
         });
@@ -137,7 +132,7 @@ export class Preprocessor {
             // 1. 获取提示词模板 (templateId 现在是具体的 UUID，或者是兼容的 category 字符串)
             const template = SettingsManager.getPromptTemplateById(config.templateId);
 
-            Logger.debug('Preprocessor', '查找模板', {
+            Logger.debug(LogModule.PREPROCESS, '查找模板', {
                 templateId: config.templateId,
                 found: !!template,
                 templateName: template?.name
@@ -145,7 +140,7 @@ export class Preprocessor {
 
             if (!template) {
                 const errorMsg = `模板 ${config.templateId} 未找到或未启用。请在 API 配置中创建并启用该分类的模板。`;
-                Logger.warn('Preprocessor', errorMsg);
+                Logger.warn(LogModule.PREPROCESS, errorMsg);
                 return {
                     success: false,
                     output: null,
@@ -177,10 +172,9 @@ export class Preprocessor {
             systemPrompt = substituteParams(systemPrompt);
             userPrompt = substituteParams(userPrompt);
 
-            Logger.debug('Preprocessor', '构建提示词（宏已替换）', {
+            Logger.debug(LogModule.PREPROCESS, '构建提示词', {
                 systemPromptLength: systemPrompt.length,
                 userPromptLength: userPrompt.length,
-                userPromptPreview: userPrompt.substring(0, 100) + '...',
             });
 
             // 2. 调用 LLM - 记录模型日志
@@ -206,7 +200,7 @@ export class Preprocessor {
 
             // 检查是否被取消
             if (this.cancelRequested) {
-                Logger.info('Preprocessor', '预处理已被取消');
+                Logger.debug(LogModule.PREPROCESS, '预处理已取消');
                 return {
                     success: false,
                     output: null,
@@ -219,7 +213,7 @@ export class Preprocessor {
 
             if (!response.success || !response.content) {
                 const errorMsg = response.error || 'LLM 调用失败';
-                Logger.error('Preprocessor', 'LLM 调用失败', { error: errorMsg });
+                Logger.error(LogModule.PREPROCESS, 'LLM 调用失败', { error: errorMsg });
                 return {
                     success: false,
                     output: null,
@@ -238,7 +232,7 @@ export class Preprocessor {
 
             // 5. 预览与修订 (V0.8.6+)
             if (config.preview && tags.output) {
-                Logger.info('Preprocessor', '请求用户预览修订');
+                Logger.debug(LogModule.PREPROCESS, '请求用户预览修订');
                 try {
                     // V0.9.2: 封装 LLM 调用逻辑为可复用函数
                     const callLLMAndGetOutput = async (): Promise<string> => {
@@ -286,10 +280,10 @@ export class Preprocessor {
                     if (reviewedContent !== null) {
                         // 用户确认修改
                         tags.output = reviewedContent;
-                        Logger.info('Preprocessor', '用户已确认修订');
+                        Logger.debug(LogModule.PREPROCESS, '用户确认修订');
                     } else {
                         // 用户取消
-                        Logger.info('Preprocessor', '用户取消了修订，视为放弃预处理结果');
+                        Logger.debug(LogModule.PREPROCESS, '用户取消修订');
                         return {
                             success: false,
                             output: null,
@@ -300,14 +294,12 @@ export class Preprocessor {
                         };
                     }
                 } catch (e) {
-                    Logger.warn('Preprocessor', '预览修订过程出错，将直接使用原结果', e);
+                    Logger.warn(LogModule.PREPROCESS, '预览修订出错，使用原结果', e);
                 }
             }
 
             const processingTime = Date.now() - startTime;
-            Logger.info('Preprocessor', '预处理完成', {
-                hasOutput: !!tags.output,
-                hasQuery: !!tags.query,
+            Logger.success(LogModule.PREPROCESS, '预处理完成', {
                 outputLength: tags.output?.length || 0,
                 processingTime,
             });
@@ -324,7 +316,7 @@ export class Preprocessor {
 
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : '未知错误';
-            Logger.error('Preprocessor', '预处理失败', { error: errorMsg, stack: (e as Error).stack });
+            Logger.error(LogModule.PREPROCESS, '预处理失败', { error: errorMsg });
             notificationService.error(`预处理失败: ${errorMsg}`, 'Engram');
             return {
                 success: false,
@@ -352,7 +344,7 @@ export class Preprocessor {
      * 保存预处理配置
      */
     saveConfig(config: PreprocessingConfig): void {
-        Logger.debug('Preprocessor', '保存配置', config);
+        Logger.debug(LogModule.PREPROCESS, '保存配置', config);
         SettingsManager.set('preprocessingConfig', config);
     }
 
@@ -363,7 +355,7 @@ export class Preprocessor {
         const config = this.getConfig();
         config.enabled = !config.enabled;
         this.saveConfig(config);
-        Logger.info('Preprocessor', `预处理已${config.enabled ? '启用' : '禁用'}`);
+        Logger.info(LogModule.PREPROCESS, config.enabled ? '预处理已启用' : '预处理已禁用');
         return config.enabled;
     }
 }
