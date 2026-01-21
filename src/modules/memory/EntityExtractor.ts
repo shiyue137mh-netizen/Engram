@@ -24,7 +24,7 @@ import type { EntityExtractConfig } from '@/config/types/memory';
 import { DEFAULT_ENTITY_CONFIG } from '@/config/types/defaults';
 
 // 导入提示词模板
-import entityExtractionPrompt from '@/integrations/llm/prompts/entity_extraction.md?raw';
+import entityExtractionPrompt from '@/integrations/llm/prompts/entity_extraction.txt?raw';
 
 /**
  * V0.9.4: 实体提取 LLM 响应格式（开放结构）

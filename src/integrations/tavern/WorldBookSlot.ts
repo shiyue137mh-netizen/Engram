@@ -54,7 +54,7 @@ export class WorldBookSlotService {
              */
             const success = await WorldInfoService.createEntry(worldbookName, {
                 name: SLOT_ENTRY_NAME,
-                content: '{{engramSummaries}}',
+                content: '{{engramSummaries}}\n{{engramEntityStates}}',
                 keys: [SLOT_ENTRY_KEY],
                 constant: true,
                 enabled: true,

@@ -12,12 +12,12 @@ import { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
 import { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, PROMPT_CATEGORIES } from './prompt';
 
 // Import prompts from original location (will be moved in Phase 7)
-import summaryPrompt from '@/integrations/llm/prompts/summary_prompt.md?raw';
-import trimPrompt from '@/integrations/llm/prompts/trim.md?raw';
-import queryEnhancePrompt from '@/integrations/llm/prompts/query_enhance.md?raw';
-import plotDirectorPrompt from '@/integrations/llm/prompts/plot_director.md?raw';
-import descriptionPrompt from '@/integrations/llm/prompts/description.md?raw';
-import entityExtractionPrompt from '@/integrations/llm/prompts/entity_extraction.md?raw';
+import summaryPrompt from '@/integrations/llm/prompts/summary_prompt.txt?raw';
+import trimPrompt from '@/integrations/llm/prompts/trim.txt?raw';
+import queryEnhancePrompt from '@/integrations/llm/prompts/query_enhance.txt?raw';
+import plotDirectorPrompt from '@/integrations/llm/prompts/plot_director.txt?raw';
+import descriptionPrompt from '@/integrations/llm/prompts/description.txt?raw';
+import entityExtractionPrompt from '@/integrations/llm/prompts/entity_extraction.txt?raw';
 
 export const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
     temperature: 0.7,

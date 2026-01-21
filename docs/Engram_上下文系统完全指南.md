@@ -84,7 +84,7 @@ Engram 复用了 SillyTavern 强大的原生检索器 (`WorldInfo.js`)，支持�
 *   **Keyword (关键词)**: 基于聊天内容匹配关键词。
 
 ### 4.2 扫描深度 (Scan Depth)
-Engram 调用 `getWorldInfoPrompt` 时，配置了极高的上下文扫描深度 (`1,000,000` tokens)，确保即使是很久以前的剧情触发词也能被扫描到，从而唤醒沉睡的记忆条目。
+Engram 调用 `getWorldInfoPrompt` 时，配置了上下文扫描深度
 
 ## 5. 上下文聚合 (Context Aggregation - V0.8.5)
 

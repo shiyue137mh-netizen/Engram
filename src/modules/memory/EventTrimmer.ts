@@ -16,7 +16,7 @@ import { RobustJsonParser } from '@/core/utils/JsonParser';
 import type { EventNode } from '@/data/types/graph';
 
 // 精简 Prompt 模板
-import trimPromptRaw from '@/integrations/llm/prompts/trim.md?raw';
+import trimPromptRaw from '@/integrations/llm/prompts/trim.txt?raw';
 
 export interface TrimConfig {
     /** 保留最近 N 条不合并 */

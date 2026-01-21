@@ -68,6 +68,8 @@ interface MemoryState {
     /** V0.9.2: 获取归档事件摘要 (绿灯事件) */
     /** V0.9.2: 获取归档事件摘要 (绿灯事件) */
     getArchivedEventSummaries: () => Promise<string>;
+    /** V1.0.0: 获取实体状态 (分类型 XML 标签包裹) */
+    getEntityStates: () => Promise<string>;
 
     // ==================== 数据库管理 ====================
     /** 清空当前聊天数据库 (重置) */
@@ -452,6 +454,66 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
             return `<archived_summary>\n${summaries}\n</archived_summary>`;
         } catch (e) {
             console.error('[MemoryStore] Failed to get archived event summaries:', e);
+            return '';
+        }
+    },
+
+    /**
+     * V1.0.0: 获取实体状态 (分类型 XML 标签包裹)
+     * 按 EntityType 分组，使用不同的 XML 标签包裹
+     */
+    getEntityStates: async () => {
+        const db = tryGetCurrentDb();
+        if (!db) return '';
+
+        try {
+            const entities = await db.entities.toArray();
+            if (entities.length === 0) return '';
+
+            // 按类型分组
+            const groups: Record<string, EntityNode[]> = {
+                char: [],
+                loc: [],
+                item: [],
+                concept: [],
+                unknown: [],
+            };
+
+            for (const entity of entities) {
+                const typeKey = entity.type || 'unknown';
+                if (groups[typeKey]) {
+                    groups[typeKey].push(entity);
+                } else {
+                    groups.unknown.push(entity);
+                }
+            }
+
+            // 类型 -> XML 标签映射
+            const tagMap: Record<string, string> = {
+                char: 'character_state',
+                loc: 'scene_state',
+                item: 'item_state',
+                concept: 'concept_state',
+                unknown: 'entity_state',
+            };
+
+            // 组装输出
+            const sections: string[] = [];
+            for (const [typeKey, entityList] of Object.entries(groups)) {
+                if (entityList.length === 0) continue;
+
+                const tag = tagMap[typeKey];
+                // 使用 description 字段（已是 YAML 格式）
+                const contents = entityList
+                    .map(e => e.description || `# ${e.name}\n(无详细信息)`)
+                    .join('\n\n');
+
+                sections.push(`<${tag}>\n${contents}\n</${tag}>`);
+            }
+
+            return sections.join('\n\n');
+        } catch (e) {
+            console.error('[MemoryStore] Failed to get entity states:', e);
             return '';
         }
     },

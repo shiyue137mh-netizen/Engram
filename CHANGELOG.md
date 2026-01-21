@@ -1,4 +1,25 @@
 # Changelog
+
+## [1.0.0] - 2026-01-21
+
+### ✨ Entity State Injection (实体状态注入系统)
+- **新增宏 `{{engramEntityStates}}`**: 将实体状态注入 LLM 上下文
+  - 按实体类型分组输出 XML 标签：
+    - `char` → `<character_state>`
+    - `loc` → `<scene_state>`
+    - `item` → `<item_state>`
+    - `concept` → `<concept_state>`
+  - 直接使用 `description` 字段（已由 EntityExtractor 烧录为 YAML 格式）
+  - 所有实体常态触发，无归档逻辑
+- **WorldBook 槽位更新**: 预制条目自动包含 `{{engramSummaries}}` 和 `{{engramEntityStates}}`
+
+### 🛠️ API Changes
+- `memoryStore` 新增 `getEntityStates()` 方法
+- `MacroService` 新增 `cachedEntityStates` 缓存字段
+- `refreshEngramCache()` 现在同时刷新实体状态缓存
+
+---
+
 ## [0.9.11] - 2026-01-21
 
 ### 📚 Built-in Documentation System (内置文档系统)

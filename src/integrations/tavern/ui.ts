@@ -1,7 +1,7 @@
 /**
- * QuickPanelButton - V0.8 快捷面板按钮
+ * QuickPanelButton - V1.0 快捷面板按钮
  *
- * 在酒馆 #send_form 右上角注入 Engram 快捷面板开启按钮
+ * 在酒馆 #leftSendForm 中，#extensionsMenuButton 左边注入 Engram 快捷面板按钮
  */
 
 import { Logger } from '@/core/logger';
@@ -20,8 +20,8 @@ export function setQuickPanelCallback(callback: () => void) {
 }
 
 /**
- * 注入 QR 栏按钮
- * 固定在 #send_form 右上角
+ * 注入快捷面板按钮
+ * 直接 append 到 #leftSendForm（会出现在 extensionsMenuButton 之后）
  */
 export function injectQuickPanelButton(): boolean {
     if (isInjected) {
@@ -29,54 +29,20 @@ export function injectQuickPanelButton(): boolean {
         return true;
     }
 
-    const sendForm = document.querySelector('#send_form') as HTMLElement;
-    if (!sendForm) {
-        Logger.warn('QuickPanelButton', '#send_form 未找到，延迟重试');
+    // 找到 leftSendForm 容器
+    const leftSendForm = document.querySelector('#leftSendForm') as HTMLElement;
+    if (!leftSendForm) {
+        Logger.debug('QuickPanelButton', '#leftSendForm 未找到，延迟重试');
         return false;
     }
 
-    // 确保 send_form 有定位上下文
-    const computedStyle = window.getComputedStyle(sendForm);
-    if (computedStyle.position === 'static') {
-        sendForm.style.position = 'relative';
-    }
-
-    // 创建 Engram 快捷按钮 - 固定在左上角
+    // 创建 Engram 快捷面板按钮 - 使用 Font Awesome 图标
     const button = document.createElement('div');
     button.id = 'engram-quick-panel-trigger';
-    button.className = 'fa-solid fa-brain';
+    button.className = 'fa-solid fa-layer-group interactable';
+    button.tabIndex = 0;
     button.title = 'Engram 快捷面板';
-    button.style.cssText = `
-        position: absolute;
-        top: 0.5em;
-        left: 0.5em;
-        width: 1.5em;
-        height: 1.5em;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.9em;
-        cursor: pointer;
-        color: var(--SmartThemeBodyColor, #ccc);
-        opacity: 0.6;
-        transition: all 0.2s ease;
-        z-index: 1000;
-    `;
-
-    // 增加左侧内边距，防止按钮遮挡输入框内容
-    const currentPaddingLeft = window.getComputedStyle(sendForm).paddingLeft;
-    const newPaddingLeft = parseFloat(currentPaddingLeft) < 30 ? '30px' : currentPaddingLeft;
-    sendForm.style.paddingLeft = newPaddingLeft;
-
-    // 悬停效果
-    button.addEventListener('mouseenter', () => {
-        button.style.opacity = '1';
-        button.style.color = 'var(--SmartThemeEmColor, #fff)';
-    });
-    button.addEventListener('mouseleave', () => {
-        button.style.opacity = '0.7';
-        button.style.color = 'var(--SmartThemeBodyColor, #ccc)';
-    });
+    button.setAttribute('data-i18n', '[title]Engram Quick Panel');
 
     // 点击打开快捷面板
     button.addEventListener('click', (e) => {
@@ -90,11 +56,24 @@ export function injectQuickPanelButton(): boolean {
         }
     });
 
-    // 插入到 send_form
-    sendForm.appendChild(button);
+    // 修正样式：
+    // 1. 设置 order > 4 (magic wand 是 4)，确保显示在最右侧
+    // 2. 显式设置 display: flex 以防 CSS 没正确应用
+    button.style.cssText = `
+        order: 10;
+        display: flex;
+        width: var(--bottomFormBlockSize);
+        height: var(--bottomFormBlockSize);
+        align-items: center;
+        justify-content: center;
+    `;
+
+    // 直接 append 到 leftSendForm
+    leftSendForm.appendChild(button);
 
     isInjected = true;
-    Logger.info('QuickPanelButton', '按钮注入成功 (右上角固定)');
+
+    Logger.info('QuickPanelButton', '按钮注入成功 (#leftSendForm)');
     return true;
 }
 
@@ -119,7 +98,24 @@ export function initQuickPanelButton(): void {
         return;
     }
 
-    // 如果失败，使用 MutationObserver 监听 DOM 变化
+    // 重试计数
+    let retryCount = 0;
+    const maxRetries = 20;
+    const retryInterval = 500;
+
+    const retryInjection = () => {
+        retryCount++;
+        if (injectQuickPanelButton()) {
+            return;
+        }
+        if (retryCount < maxRetries) {
+            setTimeout(retryInjection, retryInterval);
+        } else {
+            Logger.warn('QuickPanelButton', '注入超时，已达到最大重试次数');
+        }
+    };
+
+    // 使用 MutationObserver 监听 DOM 变化
     const observer = new MutationObserver((mutations, obs) => {
         if (injectQuickPanelButton()) {
             obs.disconnect();
@@ -131,11 +127,11 @@ export function initQuickPanelButton(): void {
         subtree: true,
     });
 
+    // 同时启动定时重试
+    setTimeout(retryInjection, retryInterval);
+
     // 超时保护
     setTimeout(() => {
         observer.disconnect();
-        if (!isInjected) {
-            Logger.warn('QuickPanelButton', '注入超时，可能 #send_form 不存在');
-        }
-    }, 10000);
+    }, 15000);
 }

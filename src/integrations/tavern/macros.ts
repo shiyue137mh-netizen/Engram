@@ -116,9 +116,18 @@ export class MacroService {
                 'Engram: 用户角色设定 (酒馆 Persona Description)'
             );
 
+            // V1.0.0: {{engramEntityStates}} - 实体状态
+            context.registerMacro(
+                'engramEntityStates',
+                () => {
+                    return MacroService.cachedEntityStates;
+                },
+                'Engram: 实体状态 (角色/场景/物品)'
+            );
+
             this.isInitialized = true;
             Logger.success('MacroService', '全局宏已注册', {
-                macros: ['{{engramSummaries}}', '{{worldbookContext}}', '{{userInput}}', '{{chatHistory}}', '{{context}}', '{{engramGraph}}', '{{engramArchivedSummaries}}', '{{userPersona}}']
+                macros: ['{{engramSummaries}}', '{{worldbookContext}}', '{{userInput}}', '{{chatHistory}}', '{{context}}', '{{engramGraph}}', '{{engramArchivedSummaries}}', '{{userPersona}}', '{{engramEntityStates}}']
             });
 
             // 初始化缓存
@@ -150,6 +159,8 @@ export class MacroService {
     private static cachedUserPersona: string = '';
     // V0.9.2: 自定义宏缓存
     private static cachedCustomMacros: Map<string, string> = new Map();
+    // V1.0.0: 实体状态缓存
+    private static cachedEntityStates: string = '';
 
     /**
      * 设置用户输入（预处理时调用）
@@ -187,6 +198,9 @@ export class MacroService {
 
             // 2. 刷新归档摘要
             await this.refreshArchivedSummaries();
+
+            // 3. V1.0.0: 刷新实体状态
+            this.cachedEntityStates = await store.getEntityStates();
 
             // 3. 刷新图谱数据 (可选，视性能而定)
             // await this.refreshGraphCache();
