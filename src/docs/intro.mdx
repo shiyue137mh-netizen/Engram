@@ -2,7 +2,7 @@ import { Brain, Database, Network } from 'lucide-react';
 
 # 欢迎使用 Engram
 
-> **Engram** 是 SillyTavern 的增强记忆扩展，通过后台定期总结和向量检索，提供比原生 World Info 更连贯的长期记忆支持。
+> **Engram** 是 SillyTavern 的增强记忆扩展，通过后台定期总结和向量检索，提供更连贯的长期记忆支持。
 
 ---
 
@@ -17,8 +17,8 @@ Engram 在后台维护两条并行的数据流：
     </div>
     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
         <li>自动监控对话进度</li>
-        <li>达到设定间隔（如10楼）时，调用 LLM 提炼剧情摘要</li>
-        <li>摘要存入 IndexedDB，不干扰当前对话</li>
+        <li>达到设定间隔（如10楼）时，调用 LLM 提炼剧情摘要或者提取和更新实体状态</li>
+        <li>摘要和实体状态存入 IndexedDB，不干扰当前对话</li>
     </ul>
   </div>
 
@@ -27,7 +27,7 @@ Engram 在后台维护两条并行的数据流：
       <Network className="w-5 h-5" /> <span>关联召回 (Retrieval)</span>
     </div>
     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
-        <li>发送消息前，对输入进行向量化</li>
+        <li>发送消息前，对输入进行向量化(可选预处理)</li>
         <li>检索数据库中语义相关的历史摘要</li>
         <li>将 Top-K 结果注入到 Prompt 中</li>
     </ul>

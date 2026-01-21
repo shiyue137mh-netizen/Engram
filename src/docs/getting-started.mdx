@@ -11,9 +11,9 @@ import { Settings, Play, Sliders, FileCode, Book } from 'lucide-react';
 进入 **API 预设** 页面，这里是配置的核心。
 
 ### 模型服务 (Model)
-*   **LLM**: 配置用于后台任务（总结、提取）的模型。建议使用 `gpt-4o-mini` 或 `deepseek-chat` 等高性价比模型。
-*   **向量化 (Vector)**: 启用 RAG 的必选项。推荐使用本地 `Transformers.js` (零成本) 或 `text-embedding-3-small`。
-*   **重排序 (Rerank)**: (进阶) 如果检索结果不准，可以配置 Rerank 模型（如 `bge-reranker`）进行二次筛选。
+*   **LLM**: 配置用于后台任务（总结、提取）的模型。建议使用 `gemini-3-flash` 或 `deepseek-v3.2` 等高性价比模型。
+*   **向量化 (Vector)**: 启用 RAG 的必选项。推荐使用`Qwen/Qwen3-Embedding-8B`。
+*   **重排序 (Rerank)**: (进阶) 如果检索结果不准，可以配置 Rerank 模型进行二次混合打分筛选,推荐使用`Qwen/Qwen3-Reranker-8B`。
 
 ## 2. 高级微调 (Fine-tuning)
 
@@ -24,7 +24,7 @@ Engram 的所有后台任务（总结、提取、精简）都基于 Prompt 运�
 *   **微调**: 如果您觉得总结太啰嗦或者想要更加细节，可以修改 `剧情摘要` 模板的 System Prompt。
 *   **实体提取**:  `实体提取` 模板的中支持自定义角色的字段在json模版中的"profile",你可以自由添加任何角色属性之类的扩展,但要符合json格式。
 *   **预处理**:   你可以在`预处理`模版里创建多种自定义模版,通过快捷面板快速切换来为你的下次输入"添油加醋"。
-*   **engram宏和酒馆宏**: 我们支持大部分酒馆原生宏,如{{user}}等,也有我们自己的宏(也被注册到酒馆宏系统中全局使用)。
+*   **engram宏和酒馆宏**: 我们支持大部分酒馆原生宏,如user等,也有我们自己的宏(也被注册到酒馆宏系统中全局使用)。
 *   **自定义宏**: 您可以在这里定义自己的宏逻辑，供模板调用。
 
 ### <Book className="inline-block w-4 h-4 align-text-bottom" /> 世界书配置 (Worldbook)

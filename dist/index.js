@@ -11874,7 +11874,7 @@ function nA(e) {
 `, h.jsxs(t.p, {
         children: [h.jsx(t.strong, {
           children: "Engram"
-        }), " 是 SillyTavern 的增强记忆扩展，通过后台定期总结和向量检索，提供比原生 World Info 更连贯的长期记忆支持。"]
+        }), " 是 SillyTavern 的增强记忆扩展，通过后台定期总结和向量检索，提供更连贯的长期记忆支持。"]
       }), `
 `]
     }), `
@@ -11901,9 +11901,9 @@ function nA(e) {
           children: [h.jsx("li", {
             children: "自动监控对话进度"
           }), h.jsx("li", {
-            children: "达到设定间隔（如10楼）时，调用 LLM 提炼剧情摘要"
+            children: "达到设定间隔（如10楼）时，调用 LLM 提炼剧情摘要或者提取和更新实体状态"
           }), h.jsx("li", {
-            children: "摘要存入 IndexedDB，不干扰当前对话"
+            children: "摘要和实体状态存入 IndexedDB，不干扰当前对话"
           })]
         })]
       }), h.jsxs("div", {
@@ -11918,7 +11918,7 @@ function nA(e) {
         }), h.jsxs("ul", {
           className: "text-sm text-muted-foreground list-disc pl-4 space-y-1",
           children: [h.jsx("li", {
-            children: "发送消息前，对输入进行向量化"
+            children: "发送消息前，对输入进行向量化(可选预处理)"
           }), h.jsx("li", {
             children: "检索数据库中语义相关的历史摘要"
           }), h.jsx("li", {
@@ -12005,26 +12005,24 @@ function rA(e) {
         children: [h.jsx(t.strong, {
           children: "LLM"
         }), ": 配置用于后台任务（总结、提取）的模型。建议使用 ", h.jsx(t.code, {
-          children: "gpt-4o-mini"
+          children: "gemini-3-flash"
         }), " 或 ", h.jsx(t.code, {
-          children: "deepseek-chat"
+          children: "deepseek-v3.2"
         }), " 等高性价比模型。"]
       }), `
 `, h.jsxs(t.li, {
         children: [h.jsx(t.strong, {
           children: "向量化 (Vector)"
-        }), ": 启用 RAG 的必选项。推荐使用本地 ", h.jsx(t.code, {
-          children: "Transformers.js"
-        }), " (零成本) 或 ", h.jsx(t.code, {
-          children: "text-embedding-3-small"
+        }), ": 启用 RAG 的必选项。推荐使用", h.jsx(t.code, {
+          children: "Qwen/Qwen3-Embedding-8B"
         }), "。"]
       }), `
 `, h.jsxs(t.li, {
         children: [h.jsx(t.strong, {
           children: "重排序 (Rerank)"
-        }), ": (进阶) 如果检索结果不准，可以配置 Rerank 模型（如 ", h.jsx(t.code, {
-          children: "bge-reranker"
-        }), "）进行二次筛选。"]
+        }), ": (进阶) 如果检索结果不准，可以配置 Rerank 模型进行二次混合打分筛选,推荐使用", h.jsx(t.code, {
+          children: "Qwen/Qwen3-Reranker-8B"
+        }), "。"]
       }), `
 `]
     }), `
@@ -12068,9 +12066,7 @@ function rA(e) {
 `, h.jsxs(t.li, {
         children: [h.jsx(t.strong, {
           children: "engram宏和酒馆宏"
-        }), ": 我们支持大部分酒馆原生宏,如", {
-          user
-        }, "等,也有我们自己的宏(也被注册到酒馆宏系统中全局使用)。"]
+        }), ": 我们支持大部分酒馆原生宏,如user等,也有我们自己的宏(也被注册到酒馆宏系统中全局使用)。"]
       }), `
 `, h.jsxs(t.li, {
         children: [h.jsx(t.strong, {
@@ -12283,7 +12279,7 @@ function iA(e) {
 `, h.jsxs(t.h2, {
       children: [h.jsx(hy, {
         className: "inline-block w-4 h-4 align-text-bottom"
-      }), " 类脑召回系统 (Sticky Retrieval)"]
+      }), " 类脑召回系统"]
     }), `
 `, h.jsxs(t.p, {
       children: ["为了模拟真实大脑的记忆机制，Engram 实现了 ", h.jsx(t.strong, {
