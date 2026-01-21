@@ -142,10 +142,10 @@ function createTopBarButton(): void {
     const toggle = document.createElement('div');
     toggle.className = 'drawer-toggle drawer-header';
 
-    // drawer-icon 图标 - 使用 Font Awesome brain 图标
+    // drawer-icon 图标 - 使用 Font Awesome "E" 图标
     const icon = document.createElement('div');
     icon.id = 'engram-drawer-icon';
-    icon.className = 'drawer-icon fa-solid fa-brain fa-fw closedIcon';
+    icon.className = 'drawer-icon fa-solid fa-e fa-fw closedIcon';
     icon.title = 'Engram - 记忆操作系统';
     icon.setAttribute('data-i18n', '[title]Engram - Memory OS');
     icon.addEventListener('click', toggleMainPanel);

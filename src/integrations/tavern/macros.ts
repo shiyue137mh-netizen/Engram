@@ -380,8 +380,16 @@ export class MacroService {
                     // floor 1 is index 0.
                     // startFloor 21 -> index 20. endFloor 40 -> index 39.
                     // slice(20, 40) -> returns indices 20..39 (length 20). Correct.
-                    messages = context.chat.slice(start - 1, end);
-                    Logger.debug('MacroService', 'getChatHistory (Range)', { range: floorRange, count: messages.length });
+                    const sliceStart = start - 1;
+                    const sliceEnd = end;
+                    messages = context.chat.slice(sliceStart, sliceEnd);
+                    Logger.info('MacroService', 'getChatHistory Debug', {
+                        inputRange: floorRange,
+                        calcSlice: [sliceStart, sliceEnd],
+                        chatLen: context.chat.length,
+                        firstMsgSummary: messages[0]?.mes?.substring(0, 20) || 'undefined',
+                        firstMsgIndex: context.chat.indexOf(messages[0])
+                    });
                 } else {
                     // 默认模式：最近 N 条
                     const limit = this.getDynamicChatHistoryLimit();
