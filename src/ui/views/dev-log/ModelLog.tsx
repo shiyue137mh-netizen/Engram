@@ -4,7 +4,7 @@
  * 伪聊天式布局展示 LLM 调用记录
  */
 import React, { useState, useEffect } from 'react';
-import { Send, Bot, Clock, Zap, AlertCircle, CheckCircle, Loader2, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Send, Bot, Clock, Zap, AlertCircle, CheckCircle, Loader2, Trash2, ChevronDown, ChevronRight, XCircle } from 'lucide-react';
 import { ModelLogger, ModelLogEntry } from "@/core/logger/ModelLogger";
 
 /** 类型标签配置 */
@@ -13,6 +13,7 @@ const TYPE_LABELS: Record<ModelLogEntry['type'], { label: string; color: string 
     trim: { label: '修剪', color: 'bg-yellow-500/20 text-yellow-500' },
     vectorize: { label: '向量化', color: 'bg-purple-500/20 text-purple-400' },
     query: { label: '查询', color: 'bg-green-500/20 text-green-400' },
+    entity_extraction: { label: '实体提取', color: 'bg-cyan-500/20 text-cyan-400' },
     other: { label: '其他', color: 'bg-gray-500/20 text-gray-400' },
 };
 
@@ -25,6 +26,8 @@ const StatusIcon: React.FC<{ status: ModelLogEntry['status'] }> = ({ status }) =
             return <CheckCircle size={14} className="text-green-400" />;
         case 'error':
             return <AlertCircle size={14} className="text-red-400" />;
+        case 'cancelled':
+            return <XCircle size={14} className="text-orange-400" />;
     }
 };
 

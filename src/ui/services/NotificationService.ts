@@ -1,4 +1,5 @@
 import { Logger } from '@/core/logger';
+import { EventBus } from '@/core/events/types';
 
 /**
  * Toastr 类型定义 (部分)
@@ -22,7 +23,14 @@ export interface NotificationOptions {
     closeButton?: boolean;
     progressBar?: boolean;
     onclick?: () => void;
-    parseHtml?: boolean; // 是否允许 HTML 
+    parseHtml?: boolean; // 是否允许 HTML
+    /** V0.9.10: 点击跳转动作 */
+    action?: {
+        /** 跳转目标路径，如 'devlog' 或 'devlog:model' */
+        goto?: string;
+        /** 自定义点击回调 (优先于 goto) */
+        onClick?: () => void;
+    };
 }
 
 /**
@@ -37,7 +45,7 @@ const DEFAULT_OPTIONS: NotificationOptions = {
 
 /**
  * NotificationService
- * 
+ *
  * 封装 SillyTavern 原生 toastr 通知系统
  * 提供统一的通知接口，便于未来替换或扩展
  */
@@ -63,11 +71,20 @@ export class NotificationService {
 
     /**
      * 发送成功通知
+     * V0.9.10: 支持 action 跳转
      */
     public success(message: string, title: string = 'Engram', options: NotificationOptions = {}): void {
         const toastr = this.getToastr();
+        const finalOnClick = options.action?.onClick
+            ?? (options.action?.goto ? () => this.navigate(options.action!.goto!) : undefined);
+
         if (toastr) {
-            toastr.success(message, title, { ...DEFAULT_OPTIONS, ...options });
+            toastr.success(message, title, {
+                ...DEFAULT_OPTIONS,
+                ...options,
+                onclick: this.buildClickHandler(finalOnClick),
+                tapToDismiss: !!finalOnClick,
+            });
         } else {
             console.log(`[Engram] SUCCESS: ${title} - ${message}`);
         }
@@ -76,11 +93,20 @@ export class NotificationService {
 
     /**
      * 发送信息通知
+     * V0.9.10: 支持 action 跳转
      */
     public info(message: string, title: string = 'Engram', options: NotificationOptions = {}): void {
         const toastr = this.getToastr();
+        const finalOnClick = options.action?.onClick
+            ?? (options.action?.goto ? () => this.navigate(options.action!.goto!) : undefined);
+
         if (toastr) {
-            toastr.info(message, title, { ...DEFAULT_OPTIONS, ...options });
+            toastr.info(message, title, {
+                ...DEFAULT_OPTIONS,
+                ...options,
+                onclick: this.buildClickHandler(finalOnClick),
+                tapToDismiss: !!finalOnClick,
+            });
         } else {
             console.log(`[Engram] INFO: ${title} - ${message}`);
         }
@@ -89,11 +115,20 @@ export class NotificationService {
 
     /**
      * 发送警告通知
+     * V0.9.10: 支持 action 跳转
      */
     public warning(message: string, title: string = 'Engram', options: NotificationOptions = {}): void {
         const toastr = this.getToastr();
+        const finalOnClick = options.action?.onClick
+            ?? (options.action?.goto ? () => this.navigate(options.action!.goto!) : undefined);
+
         if (toastr) {
-            toastr.warning(message, title, { ...DEFAULT_OPTIONS, ...options });
+            toastr.warning(message, title, {
+                ...DEFAULT_OPTIONS,
+                ...options,
+                onclick: this.buildClickHandler(finalOnClick),
+                tapToDismiss: !!finalOnClick,
+            });
         } else {
             console.warn(`[Engram] WARNING: ${title} - ${message}`);
         }
@@ -102,16 +137,49 @@ export class NotificationService {
 
     /**
      * 发送错误通知
+     * V0.9.10: 默认点击跳转到日志页面
      */
     public error(message: string, title: string = 'Engram', options: NotificationOptions = {}): void {
         const toastr = this.getToastr();
+
+        // 默认跳转到 devlog，除非用户明确指定
+        const defaultAction = options.action ?? { goto: 'devlog' };
+        const finalOnClick = this.buildClickHandler(defaultAction.onClick ?? defaultAction.goto ? () => this.navigate(defaultAction.goto!) : undefined);
+
         if (toastr) {
-            // 错误通知默认显示时间更长
-            toastr.error(message, title, { ...DEFAULT_OPTIONS, timeOut: 8000, ...options });
+            toastr.error(message, title, {
+                ...DEFAULT_OPTIONS,
+                timeOut: 8000,
+                ...options,
+                onclick: finalOnClick,
+                tapToDismiss: !!finalOnClick,
+            });
         } else {
             console.error(`[Engram] ERROR: ${title} - ${message}`);
         }
         Logger.error('Notification', `Error: ${message}`);
+    }
+
+    /**
+     * 触发 UI 导航事件
+     */
+    private navigate(path: string): void {
+        Logger.info('Notification', `触发导航: ${path}`);
+        EventBus.emit({ type: 'UI_NAVIGATE_REQUEST', payload: path });
+    }
+
+    /**
+     * 构建点击处理函数
+     */
+    private buildClickHandler(handler?: () => void): (() => void) | undefined {
+        if (!handler) return undefined;
+        return () => {
+            try {
+                handler();
+            } catch (e) {
+                console.error('[Engram] Notification click handler error:', e);
+            }
+        };
     }
 
     /**

@@ -11,6 +11,8 @@ export interface VectorConfig {
     model?: string;
     /** 向量维度 */
     dimensions?: number;
+    /** 自动添加 URL 后缀 (默认 true) */
+    autoSuffix?: boolean;
 }
 
 export type VectorSource =
@@ -36,6 +38,8 @@ export interface RerankConfig {
     topN: number;
     /** 混合评分权重 (0-1, 0=纯向量, 1=纯Rerank) */
     hybridAlpha: number;
+    /** 自动添加 URL 后缀 (默认 true) */
+    autoSuffix?: boolean;
 }
 
 export interface BrainRecallConfig {

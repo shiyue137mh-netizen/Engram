@@ -32,7 +32,7 @@ export interface ModelLogEntry {
 
     // 状态
     /** 状态 */
-    status: 'pending' | 'success' | 'error';
+    status: 'pending' | 'success' | 'error' | 'cancelled';
     /** 错误信息 */
     error?: string;
     /** 耗时 (ms) */
@@ -99,7 +99,7 @@ class ModelLoggerClass {
     logReceive(id: string, data: {
         response?: string;
         tokensReceived?: number;
-        status: 'success' | 'error';
+        status: 'success' | 'error' | 'cancelled';
         error?: string;
         duration?: number;
     }): void {

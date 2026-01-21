@@ -134,18 +134,55 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                 />
 
                 {needsUrl && (
-                    <TextField
-                        label={config.source === 'ollama' ? 'API Endpoint (完整路径)' : '完整 API URL'}
-                        type="url"
-                        value={config.apiUrl || ''}
-                        onChange={(value) => updateConfig({ apiUrl: value })}
-                        placeholder={
-                            config.source === 'ollama'
-                                ? 'http://localhost:11434/api/embeddings'
-                                : 'https://api.openai.com/v1/embeddings'
-                        }
-                        description={config.source === 'ollama' ? '例如: http://localhost:11434/api/embeddings' : '需包含完整的路径，如 /v1/embeddings'}
-                    />
+                    <div className="flex flex-col gap-1">
+                        {/* URL 标签行：包含标签和自动后缀复选框 */}
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs text-muted-foreground">
+                                {config.source === 'ollama' ? 'API Endpoint' : 'API Base URL'}
+                            </label>
+                            {config.source !== 'ollama' && (
+                                <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.autoSuffix !== false}
+                                        onChange={(e) => updateConfig({ autoSuffix: e.target.checked })}
+                                        className="w-3 h-3 rounded border-border accent-primary cursor-pointer"
+                                    />
+                                    自动后缀
+                                </label>
+                            )}
+                        </div>
+                        <input
+                            type="url"
+                            value={config.apiUrl || ''}
+                            onChange={(e) => updateConfig({ apiUrl: e.target.value })}
+                            placeholder={
+                                config.source === 'ollama'
+                                    ? 'http://localhost:11434/api/embeddings'
+                                    : 'http://localhost:8000'
+                            }
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                borderBottom: '1px solid var(--border)',
+                                borderRadius: 0,
+                                padding: '8px 0',
+                                fontSize: '14px',
+                                width: '100%',
+                                color: 'var(--foreground)',
+                                outline: 'none',
+                            }}
+                            className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
+                        />
+                        <p className="text-[10px] text-muted-foreground/70 break-all">
+                            {config.source === 'ollama'
+                                ? '需输入完整路径，如 /api/embeddings'
+                                : (config.autoSuffix !== false && config.apiUrl)
+                                    ? `完整 URL: ${config.apiUrl.replace(/\/+$/, '')}/v1/embeddings`
+                                    : '输入基础 URL，将自动添加 /v1/embeddings 后缀'
+                            }
+                        </p>
+                    </div>
                 )}
 
                 {needsKey && (

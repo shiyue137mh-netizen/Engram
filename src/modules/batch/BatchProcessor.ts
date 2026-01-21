@@ -13,6 +13,7 @@ import { entityBuilder } from '@/modules/memory/EntityExtractor';
 import { eventTrimmer } from '@/modules/memory/EventTrimmer';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { Logger, LogModule } from '@/core/logger';
+import { notificationService } from '@/ui/services/NotificationService';
 import { llmAdapter } from '@/integrations/llm/Adapter';
 import { pipeline } from '@/modules/workflow/Pipeline';
 import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
@@ -222,6 +223,8 @@ export class BatchProcessor {
                 task.status = 'error';
                 task.error = String(error);
                 Logger.error(LogModule.BATCH, `任务 ${task.type} 失败`, { error: String(error) });
+                // V0.9.10: 弹错误通知
+                notificationService.error(`批处理任务失败: ${task.type}`, 'Engram 批处理');
             }
 
             this.queue.currentTaskIndex++;
@@ -230,7 +233,19 @@ export class BatchProcessor {
         }
 
         this.queue.isRunning = false;
+        const completedCount = this.queue.tasks.filter(t => t.status === 'done').length;
+        const errorCount = this.queue.tasks.filter(t => t.status === 'error').length;
         Logger.success(LogModule.BATCH, '批处理完成');
+        // V0.9.10: 弹成功通知（带统计信息）
+        if (errorCount === 0) {
+            notificationService.success(`批处理完成: ${completedCount} 个任务`, 'Engram', {
+                action: { goto: 'processing' }
+            });
+        } else {
+            notificationService.warning(`批处理完成: ${completedCount} 成功, ${errorCount} 失败`, 'Engram', {
+                action: { goto: 'devlog' }
+            });
+        }
         this.notifyProgress();
     }
 
@@ -496,6 +511,16 @@ ${chunk}
         this.notifyProgress();
 
         Logger.success(LogModule.BATCH, `导入完成: ${success} 成功, ${failed} 失败`);
+        // V0.9.10: 弹成功通知
+        if (failed === 0) {
+            notificationService.success(`文本导入完成: ${success} 个分块`, 'Engram', {
+                action: { goto: 'memory' }
+            });
+        } else {
+            notificationService.warning(`文本导入: ${success} 成功, ${failed} 失败`, 'Engram', {
+                action: { goto: 'devlog' }
+            });
+        }
         return { success, failed };
     }
 }

@@ -2,6 +2,9 @@ import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { MainLayout } from '@/ui/components/layout/MainLayout';
 import { WelcomeAnimation } from '@/ui/components/visual/WelcomeAnimation';
 import { SettingsManager } from '@/config/settings';
+import { EventBus } from '@/core/events/types';
+import { UpdateService } from '@/core/updater/Updater';
+import { notificationService } from '@/ui/services/NotificationService';
 
 // 首屏视图同步导入
 import { Dashboard } from '@/ui/views/dashboard';
@@ -55,6 +58,37 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
             setIsInitialized(true);
         }, 1000); // 延迟 1 秒确保 ST 加载完成
 
+        return () => clearTimeout(timer);
+    }, []);
+
+    // V0.9.10: 监听通知系统的导航请求
+    useEffect(() => {
+        const subscription = EventBus.on<string>('UI_NAVIGATE_REQUEST', (path) => {
+            console.debug('[Engram] 收到导航请求:', path);
+            handleNavigate(path);
+        });
+        return () => subscription.unsubscribe();
+    }, []);
+
+    // V0.9.10: 启动时检测更新，弹 toastr 提示
+    useEffect(() => {
+        const checkUpdate = async () => {
+            try {
+                const hasUnread = await UpdateService.hasUnreadUpdate();
+                if (hasUnread) {
+                    const latestVersion = await UpdateService.getLatestVersion();
+                    notificationService.info(
+                        `发现新版本 v${latestVersion}，点击查看更新`,
+                        'Engram 更新',
+                        { action: { goto: 'settings' } }  // 跳转设置页，可以打开更新面板
+                    );
+                }
+            } catch (e) {
+                console.debug('[Engram] 更新检测失败', e);
+            }
+        };
+        // 延迟执行，避免影响首屏加载
+        const timer = setTimeout(checkUpdate, 3000);
         return () => clearTimeout(timer);
     }, []);
 

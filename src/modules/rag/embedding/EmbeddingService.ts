@@ -211,10 +211,18 @@ export class EmbeddingService {
     private async callOpenAICompatible(text: string, config: VectorConfig): Promise<number[]> {
         let endpoint = config.apiUrl || DEFAULT_ENDPOINTS[config.source] || '';
 
-        // V0.9.9: 移除自动填充 /v1/embeddings 逻辑，要求用户填写完整 URL
-        // 只做基本清理：移除末尾斜杠
+        // 清理末尾斜杠
         if (endpoint) {
             endpoint = endpoint.replace(/\/+$/, '');
+        }
+
+        // V0.9.9: 根据 autoSuffix 配置决定是否自动添加后缀
+        // 默认 autoSuffix = true，除非用户明确关闭
+        if (config.autoSuffix !== false && config.source !== 'ollama') {
+            // 仅当 URL 不包含 /embeddings 时才添加
+            if (!endpoint.includes('/embeddings')) {
+                endpoint = `${endpoint}/v1/embeddings`;
+            }
         }
 
         if (!endpoint) {

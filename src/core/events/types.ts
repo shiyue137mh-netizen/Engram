@@ -1,6 +1,6 @@
 /**
  * EventBus - 事件总线
- * 
+ *
  * 基于 RxJS Subject 实现的发布/订阅模式
  * 用于模块间的松耦合通信
  */
@@ -16,7 +16,8 @@ export type EngramEventType =
     | 'ENTITY_CREATED'
     | 'MEMORY_STORED'
     | 'RETRIEVAL_START'
-    | 'RETRIEVAL_COMPLETE';
+    | 'RETRIEVAL_COMPLETE'
+    | 'UI_NAVIGATE_REQUEST';  // V0.9.10: 通知系统触发 UI 跳转
 
 export interface EngramEvent<T = unknown> {
     type: EngramEventType;

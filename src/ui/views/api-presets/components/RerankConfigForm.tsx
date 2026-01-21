@@ -76,15 +76,47 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
             {config.enabled && (
                 <>
                     <FormSection title="API 配置">
-                        <TextField
-                            label="API URL"
-                            type="url"
-                            value={config.url}
-                            onChange={(value) => updateConfig({ url: value })}
-                            placeholder="http://localhost:8000/rerank"
-                            description="Rerank 服务的 API 端点"
-                            required
-                        />
+                        <div className="flex flex-col gap-1">
+                            {/* URL 标签行：包含标签和自动后缀复选框 */}
+                            <div className="flex items-center justify-between">
+                                <label className="text-xs text-muted-foreground">
+                                    API Base URL
+                                </label>
+                                <label className="flex items-center gap-1.5 text-[10px] text-muted-foreground cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={config.autoSuffix !== false}
+                                        onChange={(e) => updateConfig({ autoSuffix: e.target.checked })}
+                                        className="w-3 h-3 rounded border-border accent-primary cursor-pointer"
+                                    />
+                                    自动后缀
+                                </label>
+                            </div>
+                            <input
+                                type="url"
+                                value={config.url}
+                                onChange={(e) => updateConfig({ url: e.target.value })}
+                                placeholder="http://localhost:8000"
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    borderBottom: '1px solid var(--border)',
+                                    borderRadius: 0,
+                                    padding: '8px 0',
+                                    fontSize: '14px',
+                                    width: '100%',
+                                    color: 'var(--foreground)',
+                                    outline: 'none',
+                                }}
+                                className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
+                            />
+                            <p className="text-[10px] text-muted-foreground/70 break-all">
+                                {(config.autoSuffix !== false && config.url)
+                                    ? `完整 URL: ${config.url.replace(/\/+$/, '')}/rerank`
+                                    : '输入基础 URL，将自动添加 /rerank 后缀'
+                                }
+                            </p>
+                        </div>
 
                         <TextField
                             label="API Key"

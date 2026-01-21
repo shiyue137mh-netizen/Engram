@@ -85,9 +85,11 @@ export class RerankService {
 
         try {
             // 构建 API 端点
-            const endpoint = config.url.endsWith('/rerank')
-                ? config.url
-                : `${config.url.replace(/\/$/, '')}/rerank`;
+            // V0.9.9: 根据 autoSuffix 配置决定是否自动添加后缀
+            let endpoint = config.url.replace(/\/+$/, '');
+            if (config.autoSuffix !== false && !endpoint.endsWith('/rerank')) {
+                endpoint = `${endpoint}/rerank`;
+            }
 
             Logger.debug(LogModule.RAG_RERANK, '调用 Rerank API', {
                 endpoint,

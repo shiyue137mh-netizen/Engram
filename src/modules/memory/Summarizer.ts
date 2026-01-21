@@ -423,6 +423,10 @@ export class SummarizerService {
             triggerCancel(); // 触发 Promise.race 取消
         });
 
+        // 日志追踪变量 - 放在 try 外以便 catch 中也能访问
+        let logId: string | null = null;
+        let startTime: number = Date.now();
+
         try {
             // 1. 确保 WorldBook 槽位条目存在 (懒初始化)
             const { WorldBookSlotService } = await import('@/integrations/tavern/WorldBookSlot');
@@ -548,7 +552,7 @@ export class SummarizerService {
 
             // 调用 LLM 进行总结
 
-            const logId = ModelLogger.logSend({
+            logId = ModelLogger.logSend({
                 type: 'summarize',
                 systemPrompt,
                 userPrompt,
@@ -557,7 +561,7 @@ export class SummarizerService {
                 character: getCurrentCharacter()?.name,
             });
 
-            const startTime = Date.now();
+            startTime = Date.now();
             const response = await Promise.race([
                 this.llmAdapter.generate({
                     systemPrompt,
@@ -661,7 +665,9 @@ export class SummarizerService {
             await this.setLastSummarizedFloor(request.floorRange[1]);
             this.summaryHistory.push(result);
 
-            notificationService.success(`已总结 ${request.floorRange[0]}-${request.floorRange[1]} 楼`, 'Engram');
+            notificationService.success(`已总结 ${request.floorRange[0]}-${request.floorRange[1]} 楼`, 'Engram', {
+                action: { goto: 'memory' }  // V0.9.10: 点击跳转记忆流
+            });
 
             // 自动隐藏逻辑
             if (this.config.autoHide) {
@@ -681,6 +687,14 @@ export class SummarizerService {
 
             if (errorMsg === 'SummaryCancelled') {
                 this.log('info', '总结已被用户取消 (Promise Race)');
+                // 记录取消状态到 ModelLog
+                if (logId) {
+                    ModelLogger.logReceive(logId, {
+                        status: 'cancelled',
+                        error: '用户取消',
+                        duration: Date.now() - startTime,
+                    });
+                }
                 notificationService.info('总结已取消', 'Engram');
                 return null;
             }

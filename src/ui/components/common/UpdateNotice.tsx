@@ -8,6 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, RefreshCw, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { UpdateService } from '@/core/updater/Updater';
+import { notificationService } from '@/ui/services/NotificationService';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -142,6 +143,8 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
 
             if (result.success && !result.isUpToDate) {
                 setUpdateMessage('更新成功！页面将在 2 秒后刷新...');
+                // V0.9.10: 弹 toastr 通知
+                notificationService.success('更新成功！页面即将刷新', 'Engram 更新');
                 // 标记为已读
                 if (latestVersion) {
                     await UpdateService.markAsRead(latestVersion);
@@ -155,9 +158,12 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                 setHasUpdate(false);
             } else {
                 setUpdateMessage(`更新失败: ${result.message}`);
+                // V0.9.10: 弹 toastr 通知
+                notificationService.error(`更新失败: ${result.message}`, 'Engram 更新');
             }
         } catch (error) {
             setUpdateMessage(`更新出错: ${String(error)}`);
+            notificationService.error(`更新出错: ${String(error)}`, 'Engram 更新');
         } finally {
             setIsUpdating(false);
         }
@@ -307,8 +313,8 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                         onClick={handleUpdate}
                         disabled={isUpdating || isMarking}
                         className={`px-4 py-2 text-sm rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 ${hasUpdate
-                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                                : 'border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'
+                            ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                            : 'border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground'
                             }`}
                     >
                         {isUpdating ? (
