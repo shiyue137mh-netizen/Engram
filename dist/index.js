@@ -12047,9 +12047,30 @@ function rA(e) {
 `, h.jsxs(t.li, {
         children: [h.jsx(t.strong, {
           children: "微调"
-        }), ": 如果您觉得总结太啰嗦，可以修改 ", h.jsx(t.code, {
-          children: "Summarize"
+        }), ": 如果您觉得总结太啰嗦或者想要更加细节，可以修改 ", h.jsx(t.code, {
+          children: "剧情摘要"
         }), " 模板的 System Prompt。"]
+      }), `
+`, h.jsxs(t.li, {
+        children: [h.jsx(t.strong, {
+          children: "实体提取"
+        }), ":  ", h.jsx(t.code, {
+          children: "实体提取"
+        }), ' 模板的中支持自定义角色的字段在json模版中的"profile",你可以自由添加任何角色属性之类的扩展,但要符合json格式。']
+      }), `
+`, h.jsxs(t.li, {
+        children: [h.jsx(t.strong, {
+          children: "预处理"
+        }), ":   你可以在", h.jsx(t.code, {
+          children: "预处理"
+        }), '模版里创建多种自定义模版,通过快捷面板快速切换来为你的下次输入"添油加醋"。']
+      }), `
+`, h.jsxs(t.li, {
+        children: [h.jsx(t.strong, {
+          children: "engram宏和酒馆宏"
+        }), ": 我们支持大部分酒馆原生宏,如", {
+          user
+        }, "等,也有我们自己的宏(也被注册到酒馆宏系统中全局使用)。"]
       }), `
 `, h.jsxs(t.li, {
         children: [h.jsx(t.strong, {
@@ -12086,7 +12107,7 @@ function rA(e) {
 `, h.jsxs(t.li, {
         children: [h.jsx(t.strong, {
           children: "原生兼容"
-        }), ": 默认开启。这意味着您在酒馆左侧栏配置的正则脚本（如“心理描写转换”）也会作用于 Engram 生成的 Prompt。"]
+        }), ": 默认开启。这意味着您在酒馆扩展栏配置的正则脚本（如“心理描写转换”）也会作用于 Engram 生成的 Prompt(很遗憾这个功能没有实际生效)。"]
       }), `
 `]
     }), `
@@ -23195,7 +23216,7 @@ const WV = ({ onNavigate: e }) => {
       ]
     }
   );
-}, JV = "0.9.10", $D = {
+}, JV = "0.9.11", $D = {
   version: JV
 }, RA = ({
   activeTab: e,
