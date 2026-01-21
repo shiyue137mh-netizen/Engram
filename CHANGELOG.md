@@ -18,6 +18,7 @@
 - **Lint Fixes**: 修复 `Summarizer` 类型安全问题与 `EntityExtractor` 参数校验问题
 - **Type Definitions**: 重构 `assets.d.ts`，修复 `*?raw` 导入类型错误
 - **Visual Polish**: 修复移动端文档布局溢出问题
+- **Log Export**: 修复日志导出时的版本号硬编码问题 (现在与 manifest 同步)
 
 ---
 

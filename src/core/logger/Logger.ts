@@ -4,6 +4,7 @@
  * 提供统一的日志记录、持久化存储和 EventBus 集成
  */
 
+import manifest from '../../../manifest.json';
 import { v4 as uuidv4 } from 'uuid';
 import { Subject } from 'rxjs';
 import { EventBus, EngramEvent } from '../events';
@@ -188,11 +189,11 @@ export const Logger = {
 
         let md = `# Engram Debug Log\n\n`;
         md += `- **导出时间**: ${now.toLocaleString('zh-CN')}\n`;
-        md += `- **版本**: 0.1.0\n`;
+        md += `- **版本**: ${manifest.version}\n`;
         md += `- **日志条数**: ${logCache.length}\n\n`;
         md += `---\n\n`;
         md += `## 日志记录\n\n`;
-        md += '```\n';
+        md += '```m\n';
 
         for (const entry of logCache) {
             const time = formatTime(entry.timestamp);

@@ -60,7 +60,7 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
             },
             body: JSON.stringify({
                 extensionName: EXTENSION_NAME,
-                global: false, // Engram 是本地扩展
+                global: true,
             }),
         });
 
