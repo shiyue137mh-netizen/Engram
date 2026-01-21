@@ -2,7 +2,7 @@ import React from 'react';
 
 export interface SearchResult {
     id: string;
-    type: 'command' | 'setting' | 'log' | 'memory' | 'navigation';
+    type: 'command' | 'setting' | 'log' | 'memory' | 'navigation' | 'doc';
     title: string;
     description?: string;
     icon?: React.ElementType;
@@ -30,4 +30,12 @@ class SearchServiceImpl {
     }
 }
 
+// ... (在文件开头添加导入)
+import { DocAdapter } from './adapters/DocAdapter';
+
 export const searchService = new SearchServiceImpl();
+
+// 注册默认适配器
+import { CommandAdapter } from './adapters/CommandAdapter';
+searchService.registerAdapter(new CommandAdapter());
+searchService.registerAdapter(new DocAdapter());

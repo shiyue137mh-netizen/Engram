@@ -572,7 +572,7 @@ export class SummarizerService {
 
             // 记录响应
             ModelLogger.logReceive(logId, {
-                response: response.content,
+                response: 'content' in response ? response.content : undefined,
                 status: response.success ? 'success' : 'error',
                 error: response.error,
                 duration: Date.now() - startTime,

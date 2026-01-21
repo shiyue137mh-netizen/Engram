@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import mdx from '@mdx-js/rollup';
+import remarkGfm from 'remark-gfm';
 import path from 'path';
 
 export default defineConfig(({ mode }) => ({
-    plugins: [react()],
+    plugins: [
+        // MDX 支持 - 必须在 react() 之前
+        mdx({ remarkPlugins: [remarkGfm] }),
+        react(),
+    ],
 
     // 开发服务器配置
     server: {
@@ -37,6 +43,11 @@ export default defineConfig(({ mode }) => ({
         },
 
         rollupOptions: {
+            // 摇树优化
+            treeshake: {
+                moduleSideEffects: false,
+                propertyReadSideEffects: false,
+            },
             // 不外部化任何依赖，全部打包
             output: {
                 inlineDynamicImports: true,

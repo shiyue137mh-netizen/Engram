@@ -19,6 +19,8 @@
     "author": "",
     "license": "GPL-3.0-only",
     "devDependencies": {
+        "@mdx-js/react": "^3.1.1",
+        "@mdx-js/rollup": "^3.1.1",
         "@types/jquery": "^3.5.32",
         "@types/node": "^22.19.3",
         "@types/react": "^19.1.11",

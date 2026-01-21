@@ -40,7 +40,7 @@ const EntitySchema = z.object({
     name: z.string(),
     type: z.enum(['char', 'loc', 'item', 'concept', 'unknown']),
     aliases: z.array(z.string()).optional(),
-    profile: z.record(z.unknown()).optional(),
+    profile: z.record(z.string(), z.unknown()).optional(),
 });
 
 const ExtractionSchema = z.object({

@@ -1,0 +1,55 @@
+import { Database, Search, Layers, Command, Brain, FileText } from 'lucide-react';
+
+# 功能指南
+
+> Engram 不仅仅是记忆扩展，更是一个完整的知识管理系统。
+
+---
+
+## <Search className="inline-block w-4 h-4 align-text-bottom" /> 全局搜索 (Command Palette)
+
+点击顶部搜索栏（或按 `/` 键）可唤起全局命令面板。它支持搜索：
+*   **功能导航**: 快速跳转到任何页面（如 `Dashboard`, `Data Processing`）。
+*   **文档**: 直接查找并跳转到相关帮助文档。
+*   **设置**: 快速切换主题（如 `Theme: Twitter Dark`）、修改配置。
+*   **记忆与日志**: 检索具体的事件摘要或调试日志。
+
+---
+
+## <Brain className="inline-block w-4 h-4 align-text-bottom" /> 类脑召回系统 (Sticky Retrieval)
+
+为了模拟真实大脑的记忆机制，Engram 实现了 **Sticky Cache (黏性缓存)** 系统：
+
+### 1. 惯性保持
+如果一个话题在连续几轮对话中都被提及，系统会倾向于保持相关记忆的激活状态，避免上下文频繁跳变。
+
+### 2. 抗"刷屏"机制
+如果同一个记忆片段被连续召回超过一定次数（如 3 次），系统会逐渐增加其 **惩罚权重** (Penalty)。这迫使 AI 去探索新的记忆关联，防止对话陷入死循环。
+
+---
+
+## <Layers className="inline-block w-4 h-4 align-text-bottom" /> 预处理与导入 (Preprocessing)
+
+在 **批量处理 (Processing)** 页面，您可以对大规模文本进行操作。
+
+### 历史消息批处理
+如果您是中途安装的 Engram，可以使用此功能扫描之前的聊天记录，批量生成摘要和实体数据，填补记忆空白。
+
+### <FileText className="inline-block w-4 h-4 align-text-bottom" /> 导入小说 (Novel Import)
+支持将外部 `.txt` 或 `.md` 文件导入为长期记忆。
+
+*   **快速模式 (Fast Mode)**:
+    直接按字数切块并向量化。速度快，适合大段背景设定。
+*   **精细模式 (Detailed Mode)**:
+    切块后先通过 LLM 生成摘要，再对摘要进行向量化。适合剧情复杂的小说，检索精度更高，但消耗更多 Token。
+
+---
+
+## <Database className="inline-block w-4 h-4 align-text-bottom" /> 记忆管理
+
+通过 **记忆流 (Memory Stream)** 页面管理数据。
+
+*   **列表视图**: 按时间查看摘要。
+*   **图谱视图**: 可视化展示事件与实体之间的关联网络。
+*   **批量操作**: 支持多选删除或修改。
+*   **手动重嵌**: 修改摘要文本后，务必点击 **Re-embed** 按钮更新向量索引，否则搜不到新内容。

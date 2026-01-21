@@ -15,6 +15,7 @@ const APIPresets = lazy(() => import('@/ui/views/api-presets/APIPresetsView').th
 const Settings = lazy(() => import('@/ui/views/settings').then(m => ({ default: m.Settings })));
 const MemoryStream = lazy(() => import('@/ui/views/memory-stream').then(m => ({ default: m.MemoryStream })));
 const ProcessingView = lazy(() => import('@/ui/views/processing/ProcessingView').then(m => ({ default: m.ProcessingView })));
+const DocsView = lazy(() => import('@/ui/views/docs').then(m => ({ default: m.DocsView })));  // V0.9.11
 
 // 懒加载 Loading 占位符
 const LoadingFallback = () => (
@@ -121,6 +122,8 @@ export const App: React.FC<AppProps> = ({ onClose }) => {
                 return <MemoryStream />;
             case 'processing':
                 return <ProcessingView onNavigate={setActiveTab} />;
+            case 'docs':
+                return <DocsView initialTab={subtab} />;  // V0.9.11
             default:
                 return <Dashboard />;
         }

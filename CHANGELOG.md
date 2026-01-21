@@ -1,4 +1,27 @@
 # Changelog
+## [0.9.11] - 2026-01-21
+
+### 📚 Built-in Documentation System (内置文档系统)
+- **MDX 引擎集成**: 支持用 Markdown + React 组件编写交互式文档
+- **全局搜索集成**: Command Palette (`/`) 支持搜索文档内容，直接跳转
+- **深度链接**: 支持从外部直接导航到特定的文档 Tab
+- **视觉升级**: 文档标题 (H1/H2) 自动适配主题色，优化阅读体验
+
+### 📖 Documentation Refactoring (文档重构)
+- **去营销化**: 移除所有夸大描述，回归技术本质
+- **深度功能补全**:
+  - **Preprocess**: 详解小说导入 (Fast/Detailed 模式) 与历史批处理
+  - **Sticky Cache**: 解释类脑召回的惯性保持与防刷屏机制
+  - **Config**: 补全 Prompt Template, Worldbook, Regex 等高级配置
+- **事实修正**: 修正关于 Summarizer 触发逻辑的错误描述
+
+### 🛠️ Fixes & Polish
+- **Lint Fixes**: 修复 `Summarizer` 类型安全问题与 `EntityExtractor` 参数校验问题
+- **Type Definitions**: 重构 `assets.d.ts`，修复 `*?raw` 导入类型错误
+- **Visual Polish**: 修复移动端文档布局溢出问题
+
+---
+
 ## [0.9.10] - 2026-01-21
 
 ### 运行日志系统优化
