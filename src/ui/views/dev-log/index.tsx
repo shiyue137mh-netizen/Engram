@@ -7,7 +7,7 @@
  * - 极简主义布局
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
     Terminal,
     Trash2,
@@ -17,10 +17,12 @@ import {
     ArrowDownToLine,
     Zap,
     Target,
+    Maximize2,
+    Minimize2,
 } from 'lucide-react';
 import { PageTitle } from "@/ui/components/common/PageTitle";
 import { Logger, LogEntry, LogLevel, LogLevelConfig, ALL_MODULES } from "@/core/logger";
-import { LogEntryItem } from './LogEntryItem';
+import { LogEntryItem, LogGroup, groupLogsByModule } from './LogEntryItem';
 import { ModelLog } from './ModelLog';
 import { RecallLog } from './RecallLog';
 import { Tab } from "@/ui/components/ui/TabPills";
@@ -62,6 +64,9 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
     const [autoScroll, setAutoScroll] = useState(true);
     const [showLevelDropdown, setShowLevelDropdown] = useState(false);
     const [showModuleDropdown, setShowModuleDropdown] = useState(false);
+    // V0.9.12: 分组展开控制
+    const [defaultGroupExpanded, setDefaultGroupExpanded] = useState(true);
+    const [defaultDataExpanded, setDefaultDataExpanded] = useState(false);
 
     const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -93,6 +98,11 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
         }
         setFilteredLogs(result);
     }, [logs, levelFilter, moduleFilter, searchQuery]);
+
+    // V0.9.12: 将日志按模块分组
+    const logGroups = useMemo(() => {
+        return groupLogsByModule(filteredLogs);
+    }, [filteredLogs]);
 
     // 自动滚动
     useEffect(() => {
@@ -217,6 +227,14 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
 
                             {/* 右侧操作 */}
                             <div className="flex items-center gap-1 ml-auto">
+                                {/* V0.9.12: 分组展开控制 */}
+                                <button
+                                    className={`p-1.5 rounded transition-colors ${defaultGroupExpanded ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                                    onClick={() => setDefaultGroupExpanded(!defaultGroupExpanded)}
+                                    title={defaultGroupExpanded ? '折叠所有分组' : '展开所有分组'}
+                                >
+                                    {defaultGroupExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                                </button>
                                 <button
                                     className={`p-1.5 rounded transition-colors ${autoScroll ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                                     onClick={() => setAutoScroll(!autoScroll)}
@@ -251,8 +269,13 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
                             </div>
                         ) : (
                             <>
-                                {filteredLogs.map((entry) => (
-                                    <LogEntryItem key={entry.id} entry={entry} />
+                                {logGroups.map((group, idx) => (
+                                    <LogGroup
+                                        key={`${group[0].module}-${group[0].id}`}
+                                        entries={group}
+                                        defaultExpanded={defaultGroupExpanded}
+                                        defaultDataExpanded={defaultDataExpanded}
+                                    />
                                 ))}
                                 <div ref={bottomRef} />
                             </>

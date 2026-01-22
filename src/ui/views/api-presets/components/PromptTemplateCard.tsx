@@ -188,9 +188,9 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
 
             {/* Action Buttons - Visible on hover or selected */}
             <div className={`mt-2 flex justify-end gap-1 ${isSelected || 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleImportClick} title="Import"><Upload size={12} /></button>
-                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleExport} title="Export"><Download size={12} /></button>
-                <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => { e.stopPropagation(); onCopy?.(); }} title="Copy"><Copy size={12} /></button>
+                <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleImportClick} title="Import"><Upload size={12} /></button>
+                <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleExport} title="Export"><Download size={12} /></button>
+                <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => { e.stopPropagation(); onCopy?.(); }} title="Copy"><Copy size={12} /></button>
                 {template.isBuiltIn && (
                     <button
                         className="p-1.5 hover:bg-amber-500/10 rounded text-muted-foreground hover:text-amber-500 transition-colors"

@@ -297,7 +297,7 @@ export const MemoryStream: React.FC = () => {
                         <button
                             onClick={handleReembedAll}
                             disabled={isReembedding}
-                            className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded transition-colors disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors disabled:opacity-50"
                             title="重新嵌入所有事件"
                         >
                             <Sparkles size={12} className={isReembedding ? 'animate-pulse' : ''} />
@@ -307,7 +307,7 @@ export const MemoryStream: React.FC = () => {
                         {/* 刷新按钮 */}
                         <button
                             onClick={loadEvents}
-                            className="p-1.5 hover:bg-accent rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
                             title="刷新"
                         >
                             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />

@@ -419,7 +419,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-accent rounded"
+                        className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
                     >
                         <ArrowLeft size={20} />
                     </button>
@@ -441,7 +441,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                 <div className="p-4 border-t border-border shrink-0">
                     <button
                         onClick={onClose}
-                        className="w-full py-2 text-sm border border-border rounded-md hover:bg-accent"
+                        className="w-full py-2 text-sm border border-border rounded-md text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
                     >
                         返回列表
                     </button>

@@ -273,7 +273,7 @@ export const SummaryPanel: React.FC = () => {
                         </button>
                     ) : (
                         <button
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-colors hover:bg-accent"
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:border-foreground/30 transition-colors"
                             onClick={handleStart}
                         >
                             <Play size={14} />
@@ -538,7 +538,7 @@ export const SummaryPanel: React.FC = () => {
                     {/* 执行按钮 - 边框样式 */}
                     <button
                         type="button"
-                        className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:border-foreground/30 transition-colors disabled:opacity-50"
                         onClick={handleTriggerTrim}
                         disabled={trimLoading || (trimStatus?.pendingEntryCount ?? 0) < 2}
                     >

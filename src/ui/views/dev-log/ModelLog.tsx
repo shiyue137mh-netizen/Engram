@@ -187,7 +187,7 @@ export const ModelLog: React.FC = () => {
                     <span className="text-xs text-muted-foreground">({logs.length})</span>
                 </div>
                 <button
-                    className="p-1.5 rounded-md hover:bg-destructive hover:text-destructive-foreground transition-colors text-muted-foreground"
+                    className="p-1.5 rounded-md text-muted-foreground hover:text-destructive transition-colors"
                     onClick={() => ModelLogger.clear()}
                     title="清除日志"
                 >

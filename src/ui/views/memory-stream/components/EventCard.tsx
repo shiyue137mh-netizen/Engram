@@ -100,7 +100,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                     flex items-center gap-3 p-3 cursor-pointer
                     border-b border-border
                     transition-colors duration-150
-                    ${isSelected ? 'border-l-2 border-l-primary bg-transparent' : 'hover:bg-accent/30'}
+                    ${isSelected ? 'border-l-2 border-l-primary bg-transparent' : 'hover:border-border'}
                 `}
                 onClick={onSelect}
             >

@@ -183,7 +183,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                     <button
                                         key={id}
                                         onClick={() => handleNavigate(path.replace('/', ''))}
-                                        className="flex flex-col items-center gap-2 p-3 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-[var(--duration-fast)] group hover:translate-y-[-2px] active:scale-95"
+                                        className="flex flex-col items-center gap-2 p-3 rounded-lg text-muted-foreground hover:text-foreground transition-all duration-[var(--duration-fast)] group hover:translate-y-[-2px] active:scale-95"
                                     >
                                         <Icon size={20} className="text-primary transition-transform duration-[var(--duration-fast)] group-hover:scale-110" />
                                         <span className="text-xs">{label}</span>

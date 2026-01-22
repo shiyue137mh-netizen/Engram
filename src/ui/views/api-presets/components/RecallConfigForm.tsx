@@ -179,12 +179,9 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
             {/* 类脑召回系统 (V0.9.5 实验性) */}
             <div
                 className={`space-y-4 pt-4 border-t border-border/30 relative transition-all duration-300 ${config.brainRecall?.enabled
-                    ? 'p-4 rounded-lg border border-primary/30 bg-primary/5'
+                    ? 'pl-4 border-l-2 border-l-primary'
                     : ''
                     }`}
-                style={config.brainRecall?.enabled ? {
-                    boxShadow: '0 0 15px -3px color-mix(in srgb, var(--primary) 20%, transparent)'
-                } : undefined}
             >
 
                 <div className="relative">
@@ -195,9 +192,6 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     ? 'bg-primary/20 text-primary'
                                     : 'bg-muted text-muted-foreground'
                                     }`}
-                                style={config.brainRecall?.enabled ? {
-                                    boxShadow: '0 0 10px color-mix(in srgb, var(--primary) 40%, transparent)'
-                                } : undefined}
                             >
                                 <BrainCircuit size={16} />
                             </div>
@@ -206,9 +200,6 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     ? 'text-primary'
                                     : 'text-muted-foreground'
                                     }`}
-                                style={config.brainRecall?.enabled ? {
-                                    textShadow: '0 0 8px color-mix(in srgb, var(--primary) 60%, transparent)'
-                                } : undefined}
                             >
                                 类脑召回
                             </h3>
