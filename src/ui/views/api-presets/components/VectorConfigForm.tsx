@@ -178,8 +178,8 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                             {config.source === 'ollama'
                                 ? '需输入完整路径，如 /api/embeddings'
                                 : (config.autoSuffix !== false && config.apiUrl)
-                                    ? `完整 URL: ${config.apiUrl.replace(/\/+$/, '')}/v1/embeddings`
-                                    : '输入基础 URL，将自动添加 /v1/embeddings 后缀'
+                                    ? `完整 URL: ${config.apiUrl.replace(/\/+$/, '')}/embeddings`
+                                    : '输入 base URL (如 http://xxx/v1)，将自动添加 /embeddings 后缀'
                             }
                         </p>
                     </div>

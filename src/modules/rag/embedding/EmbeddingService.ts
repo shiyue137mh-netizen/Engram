@@ -218,10 +218,11 @@ export class EmbeddingService {
 
         // V0.9.9: 根据 autoSuffix 配置决定是否自动添加后缀
         // 默认 autoSuffix = true，除非用户明确关闭
+        // 只补 /embeddings，用户需填写带 /v1 的完整 base URL
         if (config.autoSuffix !== false && config.source !== 'ollama') {
             // 仅当 URL 不包含 /embeddings 时才添加
             if (!endpoint.includes('/embeddings')) {
-                endpoint = `${endpoint}/v1/embeddings`;
+                endpoint = `${endpoint}/embeddings`;
             }
         }
 
