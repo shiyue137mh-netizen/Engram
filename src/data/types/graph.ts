@@ -31,12 +31,12 @@ export interface EventNode {
      * 这些数据已烧录到 summary 中，此处保留用于结构化查询
      */
     structured_kv: {
-        /** 时间锚点 - 保留原文时间格式 */
+        /** 时间锚点 - 保留原文时间格式，trim 时使用范围格式如 "太阳历1023年-1027年" */
         time_anchor: string;
         /** 涉及人物 */
         role: string[];
-        /** 地点 */
-        location: string;
+        /** 地点列表 (V1.0.2: 改为数组以支持多地点场景) */
+        location: string[];
         /** 事件类型/标题 */
         event: string;
         /** 叙事逻辑标签 */

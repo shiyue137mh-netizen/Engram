@@ -179,7 +179,10 @@ export class EventTrimmer {
                 structured_kv: {
                     time_anchor: firstParsed.meta.time_anchor || '',
                     role: this.mergeArrays(eventsToMerge.map(e => e.structured_kv.role)),
-                    location: firstParsed.meta.location || '',
+                    // V1.0.2: location 现在是数组
+                    location: Array.isArray(firstParsed.meta.location)
+                        ? firstParsed.meta.location as string[]
+                        : [firstParsed.meta.location].filter((x): x is string => Boolean(x)),
                     event: '精简合并',
                     logic: this.mergeArrays(eventsToMerge.map(e => e.structured_kv.logic)),
                     causality: 'Chain'
@@ -253,9 +256,11 @@ export class EventTrimmer {
     private formatEventsForTrim(events: EventNode[]): string {
         return events.map(e => {
             const kv = e.structured_kv;
+            // V1.0.2: location 现在是数组
+            const locStr = Array.isArray(kv.location) ? kv.location.join(', ') : kv.location;
             return `${e.summary}
 Role: [${kv.role.join(', ')}]
-Loc: ${kv.location}
+Loc: [${locStr}]
 Event: ${kv.event}
 Logic: [${kv.logic.join(', ')}]
 Causality: ${kv.causality}

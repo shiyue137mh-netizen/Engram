@@ -169,37 +169,79 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
             if (events.length === 0) return '';
 
-            // V0.7.1: 可见性过滤 (类似世界书蓝灯/绿灯)
-            // - Level 1+ (大纲) → 总是显示
-            // - Level 0 未归档 (蓝灯) → 总是显示
-            // - Level 0 已归档 (绿灯) → 仅当被 RAG 召回时显示
+            // V1.0.2: 可见性过滤 + 树状缩进格式
+            // - Level 1+ (大纲) → 总是显示（作为父节点）
+            // - Level 0 未归档 (蓝灯) → 总是显示（无缩进）
+            // - Level 0 已归档 (绿灯) → 仅当被 RAG 召回时显示（作为子节点，带缩进）
             const recalledSet = recalledIds ? new Set(recalledIds) : null;
-            const visibleEvents = events.filter(e =>
-                e.level >= 1 ||                    // 大纲总是显示
-                !e.is_archived ||                  // 蓝灯：未归档
-                recalledSet?.has(e.id)             // 绿灯：被 RAG 召回
+
+            // 分离不同类型的事件
+            const level1Events = events.filter(e => e.level >= 1);
+            const level0Unarchived = events.filter(e => e.level === 0 && !e.is_archived);
+            const level0ArchivedRecalled = events.filter(e =>
+                e.level === 0 && e.is_archived && recalledSet?.has(e.id)
             );
 
-            if (visibleEvents.length === 0) return '';
-
-            // V0.7.1: 双层排序
-            // 1. 主键：source_range.start_index (消息时间线)
-            // 2. 次键：source_range.end_index (范围更大的排后，Level 1 大纲在细节之后)
-            // 3. 兜底：timestamp (创建时间)
-            visibleEvents.sort((a, b) => {
+            // 按 source_range.start_index 排序的辅助函数
+            const sortByRange = (a: EventNode, b: EventNode) => {
                 const startA = a.source_range?.start_index ?? 0;
                 const startB = b.source_range?.start_index ?? 0;
                 if (startA !== startB) return startA - startB;
-
                 const endA = a.source_range?.end_index ?? 0;
                 const endB = b.source_range?.end_index ?? 0;
                 if (endA !== endB) return endA - endB;
-
                 return a.timestamp - b.timestamp;
-            });
+            };
 
-            const summaries = visibleEvents.map(e => e.summary).join('\n\n');
-            return `<summary>\n${summaries}\n</summary>`;
+            level1Events.sort(sortByRange);
+            level0Unarchived.sort(sortByRange);
+            level0ArchivedRecalled.sort(sortByRange);
+
+            // 构建树状结构输出
+            const lines: string[] = [];
+
+            // 辅助函数：检查 level0 事件是否在 level1 的覆盖范围内
+            const isWithinRange = (child: EventNode, parent: EventNode): boolean => {
+                const childStart = child.source_range?.start_index ?? 0;
+                const childEnd = child.source_range?.end_index ?? 0;
+                const parentStart = parent.source_range?.start_index ?? 0;
+                const parentEnd = parent.source_range?.end_index ?? 0;
+                return childStart >= parentStart && childEnd <= parentEnd;
+            };
+
+            // 已处理的召回事件 ID（避免重复输出）
+            const processedRecalledIds = new Set<string>();
+
+            // 1. 输出 level1 节点及其子节点
+            for (const l1 of level1Events) {
+                // 输出 level1 大纲（无缩进）
+                lines.push(l1.summary);
+
+                // 查找属于此 level1 范围内的已召回 level0 事件（作为子节点）
+                for (const l0 of level0ArchivedRecalled) {
+                    if (isWithinRange(l0, l1) && !processedRecalledIds.has(l0.id)) {
+                        // 缩进 2 空格 + 召回标记
+                        lines.push(`  (当前剧情相关) ${l0.summary}`);
+                        processedRecalledIds.add(l0.id);
+                    }
+                }
+            }
+
+            // 2. 输出不属于任何 level1 范围的召回事件
+            for (const l0 of level0ArchivedRecalled) {
+                if (!processedRecalledIds.has(l0.id)) {
+                    lines.push(`(当前剧情相关) ${l0.summary}`);
+                    processedRecalledIds.add(l0.id);
+                }
+            }
+
+            // 3. 输出未归档的 level0 事件（最新事件，无缩进）
+            for (const l0 of level0Unarchived) {
+                lines.push(l0.summary);
+            }
+
+            if (lines.length === 0) return '';
+            return `<summary>\n${lines.join('\n\n')}\n</summary>`;
         } catch (e) {
             console.error('[MemoryStore] Failed to get event summaries:', e);
             return '';
@@ -286,9 +328,14 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
                 .orderBy('timestamp')
                 .toArray();
 
-            if (events.length <= keepRecentCount) return [];
+            // V1.0.2: 只选择 level 0 且未归档的事件进行合并
+            // Level 1+ 的大纲节点不应被再次 trim
+            const eligibleEvents = events.filter(e => e.level === 0 && !e.is_archived);
 
-            return events.slice(0, events.length - keepRecentCount);
+            if (eligibleEvents.length <= keepRecentCount) return [];
+
+            // 保留最近 N 条，返回其余的待合并事件
+            return eligibleEvents.slice(0, eligibleEvents.length - keepRecentCount);
         } catch (e) {
             console.error('[MemoryStore] Failed to get events to merge:', e);
             return [];

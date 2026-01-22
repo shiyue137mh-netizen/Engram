@@ -1,4 +1,24 @@
 # Changelog
+## [1.0.2] - 2026-01-22
+
+### 🎯 Summary 宏优化 (树状缩进格式)
+- **`{{engramSummaries}}` 输出重构**: 采用类文件树的层级缩进格式
+  - Level 1 大纲节点作为父节点（无缩进）
+  - 被 RAG 召回的 Level 0 归档事件作为子节点（缩进 2 空格 + "当前剧情相关" 标记）
+  - 未归档的 Level 0 事件直接输出（无缩进）
+- **BrainRecallCache 自动绑定**: `MacroService.refreshEngramCache()` 现在自动从类脑缓存获取召回 ID
+
+### 🔧 Trim 系统优化
+- **修复 Level 1 重复精简问题**: `getEventsToMerge()` 现在只选择 `level === 0 && !is_archived` 的事件
+- **Trim 提示词重写**: 简化为单事件输出，summary 字段 200-300 字，time_anchor 体现时间范围
+
+### 📊 数据结构变更 (Breaking Change)
+- **`location` 类型改为数组**: `structured_kv.location: string` → `string[]`
+  - 支持多地点场景，如 `["边境公会大厅", "小镇酒馆"]`
+  - UI 编辑器已适配，支持逗号分隔输入
+
+---
+
 ## [1.0.1 ] - 2026-01-22
 
 ### 多端同步数据库功能

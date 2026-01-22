@@ -188,13 +188,35 @@ export class MacroService {
     /**
      * 仅刷新 Engram 相关的 DB 缓存 (快速)
      * 用于 Pipeline 结束后的快速更新，避免触发全量世界书扫描
+     *
+     * V1.0.2: 当未显式传入 recalledIds 时，自动从 BrainRecallCache 获取当前短期记忆
+     * 这样所有使用 {{engramSummaries}} 的地方都能自动获得召回上下文
      */
     static async refreshEngramCache(recalledIds?: string[]): Promise<void> {
         try {
             const store = useMemoryStore.getState();
 
-            // 1. 刷新事件摘要
-            this.cachedSummaries = await store.getEventSummaries(recalledIds);
+            // V1.0.2: 自动绑定 BrainRecallCache
+            // 如果没有显式传入 recalledIds，则从 BrainRecallCache 获取当前短期记忆
+            let effectiveRecalledIds = recalledIds;
+            if (!effectiveRecalledIds) {
+                try {
+                    // 动态导入避免循环依赖
+                    const { brainRecallCache } = await import('@/modules/rag/retrieval/BrainRecallCache');
+                    const snapshot = brainRecallCache.getShortTermSnapshot();
+                    if (snapshot.length > 0) {
+                        effectiveRecalledIds = snapshot.map(slot => slot.id);
+                        Logger.debug('MacroService', '从 BrainRecallCache 获取召回 ID', {
+                            count: effectiveRecalledIds.length
+                        });
+                    }
+                } catch (e) {
+                    Logger.debug('MacroService', 'BrainRecallCache 获取失败，跳过', e);
+                }
+            }
+
+            // 1. 刷新事件摘要（带召回 ID）
+            this.cachedSummaries = await store.getEventSummaries(effectiveRecalledIds);
 
             // 2. 刷新归档摘要
             await this.refreshArchivedSummaries();
@@ -202,12 +224,12 @@ export class MacroService {
             // 3. V1.0.0: 刷新实体状态
             this.cachedEntityStates = await store.getEntityStates();
 
-            // 3. 刷新图谱数据 (可选，视性能而定)
+            // 4. 刷新图谱数据 (可选，视性能而定)
             // await this.refreshGraphCache();
 
             Logger.debug('MacroService', 'Engram DB 缓存已刷新', {
                 summariesLength: this.cachedSummaries.length,
-                recalledCount: recalledIds?.length ?? 0
+                recalledCount: effectiveRecalledIds?.length ?? 0
             });
         } catch (e) {
             Logger.warn('MacroService', '刷新 Engram DB 缓存失败', e);

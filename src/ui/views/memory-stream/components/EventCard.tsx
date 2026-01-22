@@ -62,7 +62,7 @@ function MetaLine({ event }: { event: EventNode }) {
     const parts: string[] = [];
 
     if (kv.time_anchor) parts.push(kv.time_anchor);
-    if (kv.location) parts.push(kv.location);
+    if (kv.location && kv.location.length > 0) parts.push(kv.location.join(', '));
     if (kv.role && kv.role.length > 0) parts.push(kv.role.join(', '));
 
     if (parts.length === 0) return null;

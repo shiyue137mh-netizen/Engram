@@ -68,12 +68,13 @@ function generateSummaryFromKV(kv: Partial<EventNode['structured_kv']>): string 
     const parts: string[] = [];
 
     // 时间和地点
-    if (kv.time_anchor && kv.location) {
-        parts.push(`【${kv.time_anchor}·${kv.location}】`);
+    const locationStr = Array.isArray(kv.location) ? kv.location.join(', ') : kv.location;
+    if (kv.time_anchor && locationStr) {
+        parts.push(`【${kv.time_anchor}·${locationStr}】`);
     } else if (kv.time_anchor) {
         parts.push(`【${kv.time_anchor}】`);
-    } else if (kv.location) {
-        parts.push(`【${kv.location}】`);
+    } else if (locationStr) {
+        parts.push(`【${locationStr}】`);
     }
 
     // 人物
@@ -131,7 +132,9 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             setSummary(event.summary);
             setEventType(event.structured_kv.event || '');
             setTimeAnchor(event.structured_kv.time_anchor || '');
-            setLocation(event.structured_kv.location || '');
+            // V1.0.2: location 现在是数组，显示为逗号分隔
+            const locArray = event.structured_kv.location || [];
+            setLocation(Array.isArray(locArray) ? locArray.join(', ') : String(locArray || ''));
             setRoleText(event.structured_kv.role?.join(', ') || '');
             setLogicText(event.structured_kv.logic?.join(', ') || '');
             setScore(event.significance_score);
@@ -163,7 +166,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
         const kv = {
             event: fields.eventType,
             time_anchor: fields.timeAnchor,
-            location: fields.location,
+            location: splitTrim(fields.location),  // V1.0.2: 改为数组
             role: splitTrim(fields.roleText),
             logic: splitTrim(fields.logicText),
             causality: event.structured_kv?.causality || '',
@@ -257,7 +260,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                             const autoSummary = generateSummaryFromKV({
                                 event: eventType,
                                 time_anchor: timeAnchor,
-                                location,
+                                location: location.split(',').map(s => s.trim()).filter(Boolean),  // V1.0.2
                                 role: roleText.split(',').map(s => s.trim()).filter(Boolean),
                                 logic: logicText.split(',').map(s => s.trim()).filter(Boolean),
                             });
@@ -284,7 +287,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                             structured_kv: {
                                 event: eventType,
                                 time_anchor: timeAnchor,
-                                location,
+                                location: location.split(',').map(s => s.trim()).filter(Boolean),  // V1.0.2
                                 role: roleText.split(',').map(s => s.trim()).filter(Boolean),
                                 logic: logicText.split(',').map(s => s.trim()).filter(Boolean),
                                 causality: event.structured_kv?.causality || '',
@@ -327,7 +330,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                     onBlur={handleBlur}
                     style={inputStyle}
                     className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
-                    placeholder="如：边境公会大厅"
+                    placeholder="地点（逗号分隔多个），如：边境公会大厅, 小镇酒馆"
                 />
             </div>
 
