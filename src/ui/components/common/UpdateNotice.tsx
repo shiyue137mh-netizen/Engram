@@ -3,6 +3,7 @@
  *
  * 显示最新版本信息和更新日志
  * V0.8.5: 添加一键更新功能
+ * V0.9.12: 修复更新API路径问题，参考 JS-Slash-Runner 实现
  */
 
 import React, { useState, useEffect } from 'react';
@@ -17,8 +18,42 @@ interface UpdateNoticeProps {
     onClose: () => void;
 }
 
-/** Engram 扩展名（用于更新 API） */
-const EXTENSION_NAME = 'Engram_project';
+/**
+ * Engram 扩展 ID（目录名）
+ * 注意：这是目录名，不是 manifest.json 中的 display_name
+ */
+const EXTENSION_ID = 'Engram_project';
+
+/**
+ * 获取扩展类型（global/local/system）
+ * 通过调用酒馆的 discover API 获取，这是最可靠的方式
+ */
+async function getExtensionType(extensionId: string): Promise<'global' | 'local' | 'system' | null> {
+    try {
+        const response = await fetch('/api/extensions/discover');
+        if (!response.ok) {
+            console.warn('[Engram] 获取扩展列表失败:', response.status);
+            return null;
+        }
+        const extensions: { name: string; type: string }[] = await response.json();
+
+        // 查找匹配的扩展（name 可能包含路径前缀，如 third-party/Engram_project）
+        const found = extensions.find(ext =>
+            ext.name === extensionId || ext.name.endsWith(extensionId)
+        );
+
+        if (found) {
+            console.debug('[Engram] 找到扩展:', found.name, '类型:', found.type);
+            return found.type as 'global' | 'local' | 'system';
+        }
+
+        console.warn('[Engram] 未找到扩展:', extensionId);
+        return null;
+    } catch (e) {
+        console.warn('[Engram] 获取扩展类型失败', e);
+        return null;
+    }
+}
 
 /**
  * 获取酒馆请求头（用于认证）
@@ -47,10 +82,16 @@ function getTavernRequestHeaders(): Record<string, string> {
 
 /**
  * 调用酒馆扩展更新 API
+ * V0.9.12: 动态判断扩展类型，正确设置 global 参数
  */
 async function updateEngramExtension(): Promise<{ success: boolean; message: string; isUpToDate?: boolean }> {
     try {
         const headers = getTavernRequestHeaders();
+
+        // 动态获取扩展类型（global 需要 global=true，其他都是 false）
+        const extensionType = await getExtensionType(EXTENSION_ID);
+        const isGlobal = extensionType === 'global';
+        console.debug('[Engram] 扩展类型:', extensionType, '| global:', isGlobal);
 
         const response = await fetch('/api/extensions/update', {
             method: 'POST',
@@ -59,13 +100,14 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                extensionName: EXTENSION_NAME,
-                global: true,
+                extensionName: EXTENSION_ID,
+                global: isGlobal,
             }),
         });
 
         if (!response.ok) {
             const text = await response.text();
+            console.error('[Engram] 更新失败:', response.status, text);
             return { success: false, message: text || response.statusText };
         }
 

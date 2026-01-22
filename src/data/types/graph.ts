@@ -179,21 +179,27 @@ export interface EntityNode {
  * 每个聊天的状态信息
  */
 export interface ScopeState {
+    /** 聊天 ID (用于同步校验) */
+    chatId: string;
     last_summarized_floor: number;
     token_usage_accumulated: number;
     last_compressed_at: number;
     active_summary_order: number;
     /** V0.9.1: 上次实体提取的楼层 */
     last_extracted_floor: number;
+    /** V0.9.10: 最后修改时间戳 (用于同步) */
+    lastModified: number;
 }
 
 /**
  * 默认 ScopeState
  */
 export const DEFAULT_SCOPE_STATE: ScopeState = {
+    chatId: '',
     last_summarized_floor: 0,
     token_usage_accumulated: 0,
     last_compressed_at: 0,
     active_summary_order: 9000,
     last_extracted_floor: 0,
+    lastModified: 0,
 };

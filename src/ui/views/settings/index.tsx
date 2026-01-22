@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PageTitle } from "@/ui/components/common/PageTitle";
-import { Settings as SettingsIcon, Eye, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Eye, Trash2, RefreshCw } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
 import { Switch } from "@/ui/components/ui/Switch";
 import { NumberField } from '../api-presets/components/FormField';
@@ -10,7 +10,7 @@ import { SettingsManager } from "@/config/settings";
 import { DEFAULT_PREPROCESSING_CONFIG } from "@/modules/preprocessing/types";
 import { useMemoryStore } from "@/state/memoryStore";
 import { getCurrentChatId } from "@/integrations/tavern/context";
-import { RefreshCw } from 'lucide-react';
+import { Logger, LogModule } from "@/core/logger";
 
 export const Settings: React.FC = () => {
     const [previewEnabled, setPreviewEnabled] = useState(SettingsManager.getSettings().summarizerConfig?.previewEnabled ?? true);
@@ -266,6 +266,7 @@ const SyncSection: React.FC = () => {
     const [syncStatus, setSyncStatus] = useState<'idle' | 'check' | 'syncing' | 'success' | 'error'>('idle');
     const [syncMessage, setSyncMessage] = useState<string>('');
     const [lastSyncTime, setLastSyncTime] = useState<number>(0);
+    const chatId = getCurrentChatId();
 
     const handleConfigChange = (key: keyof typeof syncConfig) => (checked: boolean) => {
         const newConfig = { ...syncConfig, [key]: checked };
@@ -279,14 +280,15 @@ const SyncSection: React.FC = () => {
             setSyncMessage('检查中...');
 
             const { getSTContext } = await import('@/integrations/tavern/context');
-            if (!getSTContext().chatId) {
+            const context = getSTContext();
+            if (!context?.chatId) {
                 alert('请先打开一个聊天以进行同步测试');
                 setSyncStatus('idle');
                 setSyncMessage('');
                 return;
             }
 
-            const chatId = getSTContext().chatId;
+            const chatId = context.chatId;
             setSyncStatus('syncing');
             setSyncMessage('同步中...');
 
@@ -358,7 +360,7 @@ const SyncSection: React.FC = () => {
                             )}
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">
-                            利用 WebLLM 向量接口存储与同步
+                            利用酒馆文件读写接口存储与同步
                         </p>
                     </div>
                 </div>
@@ -398,25 +400,85 @@ const SyncSection: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="mt-2 text-xs text-muted-foreground/60 p-2 bg-background/50 rounded">
-                        <p>⚠️ Beta 注意事项：</p>
-                        <ul className="list-disc pl-4 mt-1 space-y-1">
-                            <li>数据存储路径: `data/default-user/vectors/webllm`</li>
-                            <li>跨设备同步需手动点击"上传"或开启自动同步</li>
-                            <li>请定期备份重要数据</li>
-                        </ul>
-                    </div>
+                    <ul className="mt-2 text-xs text-muted-foreground/60 p-2 bg-background/50 rounded list-disc list-inside">
+                        <li>数据存储路径: `data/default-user/files/Engram_sync_{chatId ?? '未知'}.json`</li>
+                        <li>跨设备同步需手动点击"上传"或开启自动同步</li>
+                        <li>请定期备份重要数据</li>
+                    </ul>
                 </div>
-            )}
+            )
+            }
+            {/* 强制操作区 - 仅用于调试或手动恢复 */}
+            <div className="flex gap-2 justify-end pt-2 border-t border-border/50">
+                <button
+                    onClick={async () => {
+                        try {
+                            setSyncStatus('syncing');
+                            setSyncMessage('强制上传中...');
+                            const { getSTContext } = await import('@/integrations/tavern/context');
+                            const chatId = getSTContext()?.chatId;
+                            if (!chatId) throw new Error('未连接到聊天');
+
+                            const { syncService } = await import('@/data/sync/SyncService');
+                            const success = await syncService.upload(chatId);
+
+                            if (success) {
+                                setSyncStatus('success');
+                                setSyncMessage('上传成功');
+                                setLastSyncTime(Date.now());
+                            } else {
+                                throw new Error('上传失败');
+                            }
+                        } catch (e) {
+                            Logger.error(LogModule.DATA_SYNC, 'Manual upload failed', e);
+                            setSyncStatus('error');
+                            setSyncMessage('上传错误: ' + String(e));
+                        }
+                    }}
+                    className="px-2 py-1 text-[10px] font-medium rounded bg-background border border-border hover:bg-blue-500/10 text-muted-foreground hover:text-blue-500 transition-colors"
+                >
+                    强制上传 (覆盖服务端)
+                </button>
+                <button
+                    onClick={async () => {
+                        try {
+                            setSyncStatus('syncing');
+                            setSyncMessage('强制下载中...');
+                            const { getSTContext } = await import('@/integrations/tavern/context');
+                            const chatId = getSTContext()?.chatId;
+                            if (!chatId) throw new Error('未连接到聊天');
+
+                            const { syncService } = await import('@/data/sync/SyncService');
+                            const result = await syncService.download(chatId);
+
+                            if (result === 'success') {
+                                setSyncStatus('success');
+                                setSyncMessage('下载并导入成功');
+                                setLastSyncTime(Date.now());
+                            } else {
+                                throw new Error(result === 'no_data' ? '服务端无数据' : '下载失败');
+                            }
+                        } catch (e) {
+                            Logger.error(LogModule.DATA_SYNC, 'Manual download failed', e);
+                            setSyncStatus('error');
+                            setSyncMessage('下载错误: ' + String(e));
+                        }
+                    }}
+                    className="px-2 py-1 text-[10px] font-medium rounded bg-background border border-border hover:bg-orange-500/10 text-muted-foreground hover:text-orange-500 transition-colors"
+                >
+                    强制下载 (覆盖本地)
+                </button>
+            </div>
         </div>
-    );
-};
+    )
+}
+
 
 const DatabaseOperations: React.FC = () => {
     const memoryStore = useMemoryStore();
 
     // 强制刷新状态
-    const [_, forceUpdate] = useState({});
+    const [, forceUpdate] = useState({});
 
     const handleReset = async () => {
         const chatId = getCurrentChatId();
