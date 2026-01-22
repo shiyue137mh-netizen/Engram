@@ -16365,12 +16365,28 @@ function rb() {
       // 默认不启用，用户按需开启
       isBuiltIn: !0,
       systemPrompt: Nz,
-      userPromptTemplate: `请从以下事件数据中提取实体和关系：
+      userPromptTemplate: `
+**世界书激活内容**:
+{{worldbookContext}}
 
-{{engramGraph}}
+**已有剧情摘要**:
+{{engramSummaries}}
+
+以上是背景设定和剧情摘要
+
+**已经存在的待更新的实体**:
+{{engramEntityStates}}
+
+请从以下最新的事件数据中提取和更新实体和关系：
+
+**最近对话历史**:
+{{chatHistory}}
+
+**用户本轮输入**:
+{{userInput}}
 
 ---
-请按要求输出 JSON 格式的实体和关系数据。`
+请按JSON patch格式对实体和关系数据进行注册和更新。`
     })
   ];
 }
