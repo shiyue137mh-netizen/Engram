@@ -198,7 +198,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 **用户人设**:
 {{userPersona}}
 
-**世界书**:
+**设定或者知识库**:
 {{worldbookContext}}
 
 **已有剧情摘要**:
@@ -236,7 +236,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 **用户人设**:
 {{userPersona}}
 
-**世界书激活内容**:
+**设定或者知识库**:
 {{worldbookContext}}
 
 **已有剧情摘要**:
@@ -263,7 +263,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
 **用户人设**:
 {{userPersona}}
 
-**世界书激活内容**:
+**设定或者知识库**:
 {{worldbookContext}}
 
 **已有剧情摘要**:
@@ -310,7 +310,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
             isBuiltIn: true,
             systemPrompt: entityExtractionPrompt,
             userPromptTemplate: `
-**世界书激活内容**:
+**设定或者知识库**:
 {{worldbookContext}}
 
 **已有剧情摘要**:
