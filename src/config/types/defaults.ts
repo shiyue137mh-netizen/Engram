@@ -306,7 +306,7 @@ export function getBuiltInPromptTemplates(): PromptTemplate[] {
         // V0.9: 实体提取模板
         createPromptTemplate('实体提取', 'entity_extraction', {
             id: 'builtin_entity_extraction',
-            enabled: false,  // 默认不启用，用户按需开启
+            enabled: true,  // V1.0.2: 默认启用
             isBuiltIn: true,
             systemPrompt: entityExtractionPrompt,
             userPromptTemplate: `

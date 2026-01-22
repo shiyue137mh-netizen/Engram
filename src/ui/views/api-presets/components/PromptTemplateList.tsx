@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, RotateCcw } from 'lucide-react';
 import { PromptTemplateCard } from './PromptTemplateCard';
 import type { PromptTemplate } from '@/config/types/prompt';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';
@@ -12,6 +12,8 @@ interface PromptTemplateListProps {
     onAdd: (template: PromptTemplate) => void;
     onUpdate: (template: PromptTemplate) => void;
     onDelete: (template: PromptTemplate) => void;
+    /** V1.0.2: 重置所有模板为默认 */
+    onResetAll?: () => void;
 }
 
 export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
@@ -21,6 +23,7 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     onAdd,
     onUpdate,
     onDelete,
+    onResetAll,
 }) => {
     // 新建模板
     const handleAdd = () => {
@@ -74,12 +77,28 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
             {/* 头部操作栏 */}
             <div className="flex items-center justify-between gap-2">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">提示词模板</h3>
-                <button
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={handleAdd}
-                >
-                    <Plus size={16} />
-                </button>
+                <div className="flex items-center gap-1">
+                    {onResetAll && (
+                        <button
+                            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                            onClick={() => {
+                                if (confirm('确定要重置所有内置模板为默认值吗？\n\n这将恢复所有内置模板的原始内容，但不会删除你创建的自定义模板。')) {
+                                    onResetAll();
+                                }
+                            }}
+                            title="重置所有模板为默认"
+                        >
+                            <RotateCcw size={14} />
+                        </button>
+                    )}
+                    <button
+                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                        onClick={handleAdd}
+                        title="新建模板"
+                    >
+                        <Plus size={16} />
+                    </button>
+                </div>
             </div>
 
             {/* 模板列表 */}

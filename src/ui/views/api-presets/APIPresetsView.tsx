@@ -103,6 +103,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         addTemplate,
         updateTemplate,
         deleteTemplate,
+        resetAllTemplates, // V1.0.2
         saveLLMSettings,
     } = useLLMPresets();
 
@@ -407,6 +408,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                         onAdd={addTemplate}
                                         onUpdate={updateTemplate}
                                         onDelete={deleteTemplate}
+                                        onResetAll={resetAllTemplates}
                                     />
                                 ) : (
                                     <CustomMacroList

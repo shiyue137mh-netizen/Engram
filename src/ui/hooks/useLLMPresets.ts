@@ -4,7 +4,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import type { LLMPreset, PromptTemplate, EngramAPISettings } from '@/config/types/defaults';
-import { getDefaultAPISettings, createDefaultLLMPreset } from '@/config/types/defaults';
+import { getDefaultAPISettings, createDefaultLLMPreset, getBuiltInPromptTemplates } from '@/config/types/defaults';
 import { SettingsManager } from '@/config/settings';
 
 export interface UseLLMPresetsReturn {
@@ -27,6 +27,8 @@ export interface UseLLMPresetsReturn {
     addTemplate: (template: PromptTemplate) => void;
     updateTemplate: (template: PromptTemplate) => void;
     deleteTemplate: (template: PromptTemplate) => void;
+    /** V1.0.2: 重置所有内置模板为默认值 */
+    resetAllTemplates: () => void;
 
     // 保存
     saveLLMSettings: () => void;
@@ -164,6 +166,26 @@ export function useLLMPresets(): UseLLMPresetsReturn {
         setHasChanges(true);
     }, []);
 
+    /**
+     * V1.0.2: 重置所有内置模板为默认值
+     * - 将所有内置模板恢复为默认内容
+     * - 保留用户自定义的模板
+     */
+    const resetAllTemplates = useCallback(() => {
+        const builtInDefaults = getBuiltInPromptTemplates();
+        setSettings(prev => {
+            // 保留自定义模板
+            const customTemplates = prev.promptTemplates.filter(t => !t.isBuiltIn);
+            // 用默认的内置模板替换当前的内置模板
+            return {
+                ...prev,
+                promptTemplates: [...builtInDefaults, ...customTemplates],
+            };
+        });
+        setEditingTemplate(null);
+        setHasChanges(true);
+    }, []);
+
     const saveLLMSettings = useCallback(() => {
         // 仅保存 LLM 相关设置，保留其他设置
         const currentSettings = SettingsManager.get('apiSettings') || {};
@@ -192,6 +214,7 @@ export function useLLMPresets(): UseLLMPresetsReturn {
         addTemplate,
         updateTemplate,
         deleteTemplate,
+        resetAllTemplates,
         saveLLMSettings,
     };
 }
