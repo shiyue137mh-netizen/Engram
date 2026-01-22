@@ -124,7 +124,10 @@ export class Pipeline {
                     structured_kv: {
                         time_anchor: meta.time_anchor || '',
                         role: meta.role || [],
-                        location: meta.location || '',
+                        // V1.0.2: location 兼容 string 和 string[] 两种输入格式
+                        location: Array.isArray(meta.location)
+                            ? meta.location
+                            : meta.location ? [meta.location] : [],
                         event: meta.event || '',
                         logic: meta.logic || [],
                         causality: meta.causality || ''

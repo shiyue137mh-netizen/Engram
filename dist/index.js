@@ -35014,7 +35014,8 @@ ${b.join(" ")}` : "";
           structured_kv: {
             time_anchor: f.time_anchor || "",
             role: f.role || [],
-            location: f.location || "",
+            // V1.0.2: location 兼容 string 和 string[] 两种输入格式
+            location: Array.isArray(f.location) ? f.location : f.location ? [f.location] : [],
             event: f.event || "",
             logic: f.logic || [],
             causality: f.causality || ""
@@ -50456,7 +50457,11 @@ function Wle({ isEmbedded: e }) {
 }
 function Zle({ event: e }) {
   const t = e.structured_kv, n = [];
-  return t.time_anchor && n.push(t.time_anchor), t.location && t.location.length > 0 && n.push(t.location.join(", ")), t.role && t.role.length > 0 && n.push(t.role.join(", ")), n.length === 0 ? null : /* @__PURE__ */ d.jsxs("p", { className: "text-xs text-muted-foreground truncate", children: [
+  if (t.time_anchor && n.push(t.time_anchor), t.location) {
+    const r = Array.isArray(t.location) ? t.location.join(", ") : String(t.location);
+    r && n.push(r);
+  }
+  return t.role && t.role.length > 0 && n.push(t.role.join(", ")), n.length === 0 ? null : /* @__PURE__ */ d.jsxs("p", { className: "text-xs text-muted-foreground truncate", children: [
     "(",
     n.join(" | "),
     ")"
@@ -64269,7 +64274,8 @@ ${t}
           structured_kv: {
             time_anchor: "",
             role: [],
-            location: "",
+            location: [],
+            // V1.0.2: location 改为数组
             event: `外部导入 #${f + 1}`,
             logic: [],
             causality: ""

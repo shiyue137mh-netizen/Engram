@@ -482,7 +482,7 @@ ${chunk}
                     structured_kv: {
                         time_anchor: '',
                         role: [],
-                        location: '',
+                        location: [],  // V1.0.2: location 改为数组
                         event: `外部导入 #${i + 1}`,
                         logic: [],
                         causality: '',

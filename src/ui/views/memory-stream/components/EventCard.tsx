@@ -62,7 +62,11 @@ function MetaLine({ event }: { event: EventNode }) {
     const parts: string[] = [];
 
     if (kv.time_anchor) parts.push(kv.time_anchor);
-    if (kv.location && kv.location.length > 0) parts.push(kv.location.join(', '));
+    // V1.0.2: location 兼容 string 和 string[] 两种旧版本格式
+    if (kv.location) {
+        const locStr = Array.isArray(kv.location) ? kv.location.join(', ') : String(kv.location);
+        if (locStr) parts.push(locStr);
+    }
     if (kv.role && kv.role.length > 0) parts.push(kv.role.join(', '));
 
     if (parts.length === 0) return null;
