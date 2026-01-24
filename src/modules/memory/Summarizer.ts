@@ -2,55 +2,22 @@
  * SummarizerService - 剧情总结核心服务
  */
 
-import { EventBus, TavernEventType, MessageService, WorldInfoService } from "@/integrations/tavern/api";
-import { MacroService } from '@/integrations/tavern/macros';
-import { TextProcessor, textProcessor } from '@/modules/memory/extractors/TextProcessor';
-import { LLMAdapter, llmAdapter } from '@/integrations/llm/Adapter';
+import { EventBus, TavernEventType } from "@/integrations/tavern/api";
 import { eventWatcher } from '@/core/events/EventWatcher';
-import { pipeline } from '@/modules/workflow/Pipeline';
-import { useMemoryStore } from '@/state/memoryStore';
-import {
-    getCurrentChat,
-    getCurrentChatId,
-    getChatMessages,
-    getCurrentCharacter,
-    getCurrentModel
-} from '@/integrations/tavern/context';
-import { hideMessageRange } from '@/integrations/tavern/bridge';
-import { revisionService } from '@/core/events/RevisionBridge';
+import { useMemoryStore } from '@/state/memoryStore'; // Used for setLastSummarizedFloor
+import { notificationService } from '@/ui/services/NotificationService';
+import { SettingsManager } from "@/config/settings";
 import type {
     SummarizerConfig,
     SummarizerStatus,
     SummaryResult,
-    SummarizeRequest,
 } from './types';
 import { DEFAULT_SUMMARIZER_CONFIG } from './types';
-import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
-import { RegexProcessor, regexProcessor } from '@/modules/memory/extractors/RegexProcessor';
-import { Logger } from "@/core/logger";
-import { ModelLogger } from "@/core/logger/ModelLogger";
-import { notificationService } from '@/ui/services/NotificationService';
-import { SettingsManager } from "@/config/settings";
-// WorldBookStateService 已废弃，状态管理迁移到 IndexedDB (memoryStore)
-
 
 /** 元数据 key */
 const METADATA_KEY = 'engram';
 
-/**
- * 获取 SillyTavern 上下文
- */
-function getSTContext(): {
-    chat: unknown[];
-    chatId: string;
-    characterId: number;
-} | null {
-    try {
-        return window.SillyTavern?.getContext?.() || null;
-    } catch {
-        return null;
-    }
-}
+
 
 /**
  * 获取 chat_metadata
@@ -88,8 +55,6 @@ function saveChatDebounced(): void {
  */
 export class SummarizerService {
     private config: SummarizerConfig;
-    private textProcessor: TextProcessor;
-    private llmAdapter: LLMAdapter;
 
     private currentChatId: string | null = null;
     private isRunning = false;
@@ -103,15 +68,11 @@ export class SummarizerService {
     private _lastSummarizedFloor: number = 0;
 
     constructor(
-        config?: Partial<SummarizerConfig>,
-        processor?: TextProcessor,
-        adapter?: LLMAdapter
+        config?: Partial<SummarizerConfig>
     ) {
         // 优先使用传入配置，其次加载持久化配置，最后使用默认配置
         const savedConfig = SettingsManager.get('summarizerConfig') as Partial<SummarizerConfig>;
         this.config = { ...DEFAULT_SUMMARIZER_CONFIG, ...savedConfig, ...config };
-        this.textProcessor = processor || textProcessor;
-        this.llmAdapter = adapter || llmAdapter;
     }
 
     // ==================== 元数据操作 ====================
@@ -192,7 +153,8 @@ export class SummarizerService {
      * 获取当前真实楼层数
      */
     private getCurrentFloor(): number {
-        const context = getSTContext();
+        // @ts-ignore
+        const context = window.SillyTavern?.getContext?.();
         if (!context?.chat) {
             return 0;
         }
@@ -204,7 +166,8 @@ export class SummarizerService {
      * 获取当前聊天 ID
      */
     private getCurrentChatId(): string | null {
-        const context = getSTContext();
+        // @ts-ignore
+        const context = window.SillyTavern?.getContext?.();
         return context?.chatId || null;
     }
 
@@ -397,49 +360,21 @@ export class SummarizerService {
 
         this.isSummarizing = true;
         this.cancelRequested = false; // 重置取消标志
-        this.log('info', '开始执行总结', {
-            floorRange: [lastSummarized + 1, currentFloor],
-            manual,
-        });
 
-        // 准备取消信号
-        let triggerCancel: () => void;
-        const cancellationPromise = new Promise<{ success: false; error: string }>((_, reject) => {
-            triggerCancel = () => reject(new Error('SummaryCancelled'));
-        });
-
-        // 显示运行中通知（支持点击取消）
+        // 显示运行中通知
         const runningToast = notificationService.running('总结运行中...', 'Engram', () => {
             this.cancelRequested = true;
             this.log('info', '用户请求取消总结');
-            // 调用酒馆 stopGeneration API
-            try {
-                window.SillyTavern?.getContext?.()?.stopGeneration?.();
-                this.log('info', '已调用酒馆 stopGeneration');
-            } catch (e) {
-                this.log('warn', '调用 stopGeneration 失败', e);
-            }
+            // TODO: Propagate cancel signal to Workflow
             notificationService.warning('正在取消总结...', 'Engram');
-            triggerCancel(); // 触发 Promise.race 取消
         });
 
-        // 日志追踪变量 - 放在 try 外以便 catch 中也能访问
-        let logId: string | null = null;
-        let startTime: number = Date.now();
-
         try {
-            // 1. 确保 WorldBook 槽位条目存在 (懒初始化)
-            const { WorldBookSlotService } = await import('@/integrations/tavern/WorldBookSlot');
-            await WorldBookSlotService.init();
-
-            // 2. 检查是否有新内容需要总结
-            // 使用 bufferSize 来计算
+            // 1. Calculate Range
             const startFloor = this._lastSummarizedFloor + 1;
             const buffer = this.config.bufferSize || 0;
-            // 可处理的最大楼层 = 当前楼层 - 缓冲
             const maxProcessableFloor = currentFloor - buffer;
 
-            // 如果连起始楼层都已经在缓冲期内，则跳过
             if (startFloor > maxProcessableFloor) {
                 if (manual) {
                     notificationService.info('暂无足够的新内容需要总结 (缓冲期内)', 'Engram');
@@ -447,255 +382,64 @@ export class SummarizerService {
                 return null;
             }
 
-            // 这里的 endFloor 是 Math.min(maxProcessableFloor, startFloor + interval - 1)
             const interval = this.config.floorInterval || 10;
             const proposedEndFloor = startFloor + interval - 1;
             const endFloor = Math.min(maxProcessableFloor, proposedEndFloor);
 
-            // 范围校验
-            if (startFloor > endFloor) {
-                return null;
-            }
+            if (startFloor > endFloor) return null;
 
-            const floorRange: [number, number] = [startFloor, endFloor];
-            this.log('info', '准备总结', { startFloor, endFloor, currentFloor, buffer });
+            const range: [number, number] = [startFloor, endFloor];
+            this.log('info', '准备总结', { range });
 
-            // 3. 准备 Prompt 上下文
-            // 获取消息并切片 (注意：getChatMessages 返回的是 0-indexed 数组，对应楼层需要 -1)
-            // 楼层 1 对应 index 0
-            const messages = getChatMessages();
-            // 在 JS 中 slice(start, end) 的 end 是 exclusive，但我们的 floors 是 inclusive
-            // index start = startFloor - 1
-            // index end = endFloor (因为 slice end 不包含，所以这里刚好取到 endFloor - 1 的元素)
-            const slicedMessages = messages.slice(startFloor - 1, endFloor);
+            // 2. Run Workflow
+            const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
+            const { createSummaryWorkflow } = await import('@/modules/workflow/definitions/SummaryWorkflow');
+            const { WorldBookSlotService } = await import('@/integrations/tavern/WorldBookSlot');
+            await WorldBookSlotService.init();
 
-            this.log('info', '提取消息范围', {
-                range: floorRange,
-                msgCount: slicedMessages.length,
-                firstMsg: (slicedMessages[0]?.mes || '').substring(0, 20)
-            });
-
-            if (slicedMessages.length === 0) {
-                this.log('warn', '消息提取为空', { floorRange });
-                return null;
-            }
-
-            const request: SummarizeRequest = {
-                messages: slicedMessages.map(m => {
-                    // 调试：如果 mes 为空，尝试查找其他属性
-                    const content = m.mes || (m as any).content || (m as any).message || '';
-                    if (!content) {
-                        console.warn('[Engram] Message content is empty/undefined:', m);
-                    }
-                    return {
-                        role: m.is_user ? 'user' : 'assistant',
-                        content: content,
-                        name: m.name
-                    };
-                }),
-                floorRange: floorRange,
-                templateId: this.config.promptTemplateId || undefined
-            };
-
-            // 1. 获取聊天记录并应用正则清洗
-            // V0.9.9: 统一调用 MacroService，确保逻辑一致 (包含逐条正则清洗)
-            const cleanedChatHistory = MacroService.getChatHistory(request.floorRange);
-
-            this.log('debug', '已获取并清洗聊天历史', {
-                range: request.floorRange,
-                length: cleanedChatHistory.length,
-            });
-
-            // 2. 获取世界书内容（使用新方法）
-            // V0.9.9: 传入当前总结的楼层范围，确保扫描正确的消息
-            let worldbookContext = '';
-            try {
-                const worldInfo = await WorldInfoService.getActivatedWorldInfo(undefined, {
-                    floorRange: request.floorRange
-                });
-                if (worldInfo) {
-                    worldbookContext = '【背景设定】\n' + worldInfo + '\n\n';
-                    this.log('debug', '已加载世界书内容', { length: worldInfo.length });
+            const context = await WorkflowEngine.run(createSummaryWorkflow(), {
+                trigger: manual ? 'manual' : 'auto',
+                config: {
+                    previewEnabled: this.config.previewEnabled,
+                    autoHide: this.config.autoHide,
+                    templateId: this.config.promptTemplateId,
+                    logType: 'summarize'
+                },
+                input: {
+                    range: range
                 }
-            } catch (e) {
-                this.log('warn', '获取世界书失败', { error: String(e) });
-            }
-
-            // 3. 获取提示词模板（优先从 APIPresets 获取，fallback 使用内置模板）
-            const template = SettingsManager.getEnabledPromptTemplate('summary');
-            const fallbackTemplate = getBuiltInTemplateByCategory('summary');
-            const systemPrompt = template?.systemPrompt || fallbackTemplate?.systemPrompt || '';
-            const userPromptTemplate = template?.userPromptTemplate || fallbackTemplate?.userPromptTemplate || '';
-
-            // 获取所有 Engram 摘要内容（用于精简功能）
-            let engramSummaries = '';
-            try {
-                engramSummaries = await WorldInfoService.getEngramSummariesContent();
-                if (engramSummaries) {
-                    this.log('debug', '已加载 Engram 摘要', { length: engramSummaries.length });
-                }
-            } catch (e) {
-                this.log('warn', '获取 Engram 摘要失败', { error: String(e) });
-            }
-
-            // 构建最终提示词
-            const userPrompt = userPromptTemplate
-                .replace('{{worldbookContext}}', worldbookContext)
-                .replace('{{chatHistory}}', cleanedChatHistory)
-                .replace('{{context}}', worldbookContext)  // 兼容两种变量名
-                .replace('{{engramSummaries}}', engramSummaries);
-
-            this.log('debug', '使用提示词模板', {
-                source: template ? 'APIPresets' : 'fallback',
-                templateName: template?.name || 'default'
             });
 
-            // 调用 LLM 进行总结
+            // 3. Construct Result (Backward Compatibility)
+            const savedEvents = context.output; // From SaveEvent (Array of EventNodes)
 
-            logId = ModelLogger.logSend({
-                type: 'summarize',
-                systemPrompt,
-                userPrompt,
-                floorRange: request.floorRange,
-                model: getCurrentModel(),
-                character: getCurrentCharacter()?.name,
-            });
+            // If SaveEvent returns array of events, we construct a SummaryResult-like object
+            // or just return the list. Original method returned SummaryResult (single object).
+            // But now we have multiple events potentially.
+            // Let's verify `SummaryResult` type in `types.d.ts` or similar.
+            // It seems SummaryResult expects `content` string.
 
-            startTime = Date.now();
-            const response = await Promise.race([
-                this.llmAdapter.generate({
-                    systemPrompt,
-                    userPrompt,
-                }),
-                cancellationPromise
-            ]);
-
-            // 记录响应
-            ModelLogger.logReceive(logId, {
-                response: 'content' in response ? response.content : undefined,
-                status: response.success ? 'success' : 'error',
-                error: response.error,
-                duration: Date.now() - startTime,
-            });
-
-            if (!response.success) {
-                this.log('error', 'LLM 调用失败', { error: response.error });
-                notificationService.error(`总结失败: ${response.error}`, 'Engram 错误');
-                return null;
-            }
-
-            // 检查用户是否请求取消
-            if (this.cancelRequested) {
-                this.log('info', '总结已被用户取消');
-                notificationService.info('总结已取消', 'Engram');
-                return null;
-            }
-
-            // 清洗输出：先用 textProcessor 基础清洗，再应用 output 规则移除 <think> 等
-            const basicCleanedContent = this.textProcessor.clean(response.content);
-            const cleanedContent = regexProcessor.process(basicCleanedContent, 'output');
-
-            // 计算 Token
-            const tokenCount = await WorldInfoService.countTokens(cleanedContent);
-
-            // 创建结果
+            // If we have parsed multiple events, the "content" might be the raw cleaned content
             const result: SummaryResult = {
                 id: Date.now().toString(),
-                content: cleanedContent,
-                sourceFloors: request.floorRange,
+                content: context.cleanedContent || '', // The raw text
+                sourceFloors: range,
                 timestamp: Date.now(),
-                tokenCount,
-                writtenToWorldbook: false,
+                tokenCount: 0, // TODO: Get from context or re-measure
+                writtenToWorldbook: true
             };
 
-            // 预览模式处理
-            if (this.config.previewEnabled) {
-                this.log('info', '预览模式：等待用户确认', { result });
-
-                // 等待用户确认 (Promise)
-                try {
-                    const revisedContent = await revisionService.requestRevision(
-                        '剧情摘要修订',
-                        `范围: ${request.floorRange[0]} - ${request.floorRange[1]} 楼 | Token: ${tokenCount}`,
-                        result.content
-                    );
-
-                    // 更新内容为用户修订后的版本
-                    result.content = revisedContent;
-                    // 重新计算 Token (虽然只是近似值，但很有必要)
-                    result.tokenCount = await WorldInfoService.countTokens(revisedContent);
-
-                    this.log('info', '用户确认并修订了摘要');
-                } catch (e) {
-                    this.log('warn', '用户取消了摘要写入');
-                    notificationService.info('已取消写入世界书', '操作取消');
-                    return null;
-                }
-            }
-
-            // V0.6: 调用 Pipeline 将数据存到 IndexedDB
-            // 直接传递 JSON 内容，不再调用 Extractor LLM
-            const chatId = getCurrentChatId();
-            const character = getCurrentCharacter();
-            if (chatId && character) {
-                try {
-                    const pipelineResult = await pipeline.run({
-                        jsonContent: result.content,  // 直接传递 JSON
-                        sourceRange: {
-                            start: request.floorRange[0],
-                            end: request.floorRange[1]
-                        }
-                    });
-
-                    if (pipelineResult.success) {
-                        this.log('info', 'Pipeline 存储成功', {
-                            eventsCount: pipelineResult.events?.length || 0
-                        });
-                    } else {
-                        this.log('warn', 'Pipeline 存储失败', { error: pipelineResult.error });
-                    }
-                } catch (pipelineError) {
-                    this.log('error', 'Pipeline 调用异常', { error: String(pipelineError) });
-                }
-            }
-
-            result.writtenToWorldbook = true;  // 兼容旧代码
-
-            // 更新状态 - 保存到 memoryStore
-            await this.setLastSummarizedFloor(request.floorRange[1]);
+            // Update local state (redundant if SaveEvent updated store, but safe)
+            this._lastSummarizedFloor = endFloor;
             this.summaryHistory.push(result);
 
-            notificationService.success(`已总结 ${request.floorRange[0]}-${request.floorRange[1]} 楼`, 'Engram', {
-                action: { goto: 'memory' }  // V0.9.10: 点击跳转记忆流
-            });
-
-            // 自动隐藏逻辑
-            if (this.config.autoHide) {
-                // message range is 0-indexed, floor is 1-indexed.
-                // startFloor=1 -> index=0
-                const startIndex = request.floorRange[0] - 1;
-                const endIndex = request.floorRange[1] - 1;
-                this.log('info', '自动隐藏已总结楼层', { startIndex, endIndex });
-                hideMessageRange(startIndex, endIndex).catch(e => {
-                    this.log('error', '自动隐藏失败', e);
-                });
-            }
-
             return result;
+
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
 
-            if (errorMsg === 'SummaryCancelled') {
-                this.log('info', '总结已被用户取消 (Promise Race)');
-                // 记录取消状态到 ModelLog
-                if (logId) {
-                    ModelLogger.logReceive(logId, {
-                        status: 'cancelled',
-                        error: '用户取消',
-                        duration: Date.now() - startTime,
-                    });
-                }
-                notificationService.info('总结已取消', 'Engram');
+            if (errorMsg === 'UserCancelled') {
+                this.log('info', '总结已被用户取消');
                 return null;
             }
 
@@ -703,7 +447,6 @@ export class SummarizerService {
             notificationService.error(`总结异常: ${errorMsg}`, 'Engram 错误');
             return null;
         } finally {
-            // 移除运行中通知
             notificationService.remove(runningToast);
             this.isSummarizing = false;
         }

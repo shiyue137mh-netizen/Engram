@@ -8,7 +8,7 @@
  * 3. Repair & Parse
  */
 
-import { regexProcessor } from '@/modules/memory/extractors/RegexProcessor';
+import { regexProcessor } from "@/modules/workflow/steps";
 
 export class RobustJsonParser {
     /**

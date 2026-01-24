@@ -1,6 +1,6 @@
 import { useMemoryStore } from '@/state/memoryStore';
 import { Logger } from '@/core/logger';
-import { regexProcessor } from '@/modules/memory/extractors/RegexProcessor';
+import { regexProcessor } from "@/modules/workflow/steps";
 import { WorldInfoService } from '@/integrations/tavern/api';
 import { SettingsManager } from '@/config/settings';
 import type { SummarizerConfig } from '@/modules/memory/types';
@@ -133,11 +133,14 @@ export class MacroService {
             // 初始化缓存
             await this.refreshCache();
 
+
             // 监听聊天切换事件，刷新缓存
             // @ts-ignore
             const eventSource = context.eventSource;
             if (eventSource) {
                 eventSource.on('chat_id_changed', () => {
+                    Logger.info('MacroService', '聊天切换，清理旧缓存');
+                    this.clearCache();
                     this.refreshCache().catch(e => Logger.warn('MacroService', '刷新缓存失败', e));
                 });
             }
@@ -145,6 +148,21 @@ export class MacroService {
         } catch (e) {
             Logger.error('MacroService', '初始化失败', e);
         }
+    }
+
+    /**
+     * 清理所有缓存 (防止跨角色/对话泄露)
+     */
+    static clearCache(): void {
+        this.cachedSummaries = '';
+        this.cachedWorldbookContext = '';
+        this.cachedUserInput = '';
+        this.cachedCharDescription = '';
+        this.cachedGraphData = '';
+        this.cachedArchivedSummaries = '';
+        this.cachedUserPersona = '';
+        this.cachedCustomMacros.clear();
+        this.cachedEntityStates = '';
     }
 
     // --- 缓存 ---
@@ -161,6 +179,27 @@ export class MacroService {
     private static cachedCustomMacros: Map<string, string> = new Map();
     // V1.0.0: 实体状态缓存
     private static cachedEntityStates: string = '';
+
+    /**
+     * 获取缓存的事件摘要
+     */
+    static getSummaries(): string {
+        return this.cachedSummaries;
+    }
+
+    /**
+     * 获取缓存的实体状态
+     */
+    static getEntityStates(): string {
+        return this.cachedEntityStates;
+    }
+
+    /**
+     * 获取缓存的世界书上下文
+     */
+    static getWorldbookContext(): string {
+        return this.cachedWorldbookContext;
+    }
 
     /**
      * 设置用户输入（预处理时调用）
@@ -498,6 +537,22 @@ export class MacroService {
         } catch (e) {
             Logger.debug('MacroService', '获取对话历史失败', e);
             return '';
+        }
+    }
+
+    /**
+     * V0.9.9: 获取当前对话消息总数 (用于精确日志记录)
+     */
+    static getCurrentMessageCount(): number {
+        try {
+            // @ts-ignore
+            const context = window.SillyTavern?.getContext?.();
+            if (context?.chat && Array.isArray(context.chat)) {
+                return context.chat.length;
+            }
+            return 0;
+        } catch (e) {
+            return 0;
         }
     }
 

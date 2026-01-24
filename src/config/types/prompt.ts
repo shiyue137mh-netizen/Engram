@@ -37,6 +37,8 @@ export interface PromptTemplate {
     isBuiltIn: boolean;
     /** 绑定的 LLM 预设 ID，null 表示使用默认预设 */
     boundPresetId: string | null;
+    /** 绑定的世界书配置 ID，null 表示使用全局配置 */
+    boundWorldbookProfileId?: string | null;
     /** 系统提示词 */
     systemPrompt: string;
     /** 用户提示词模板，支持变量 {{chatHistory}}, {{context}} 等 */
@@ -70,4 +72,14 @@ export interface WorldbookConfig {
     disabledWorldbooks: string[];
     /** 是否启用 EJS 模板 (ST-Prompt-Template 兼容) */
     enableEJS?: boolean;
+}
+
+export interface WorldbookConfigProfile {
+    id: string;
+    name: string;
+    description?: string; // For future LLM routing
+    mode: 'inherit_global' | 'custom';
+    selectedWorldbooks: string[]; // Whitelist of worldbook names
+    createdAt: number;
+    updatedAt: number;
 }

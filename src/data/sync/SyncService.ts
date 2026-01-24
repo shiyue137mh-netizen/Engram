@@ -164,9 +164,9 @@ export class SyncService {
     }
 
     /**
-     * 删除远程同步文件
+     * 删除远程同步文件 (及本地 user/files/ 下的对应文件)
      */
-    private async purge(chatId: string): Promise<void> {
+    public async purge(chatId: string): Promise<void> {
         try {
             const fileName = this.getSyncFileName(chatId);
             await fetch('/api/files/delete', {

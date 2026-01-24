@@ -15,9 +15,9 @@ import { getCurrentChatId } from '@/integrations/tavern/context';
 import { SettingsManager } from '@/config/settings';
 import { embeddingService } from '../embedding/EmbeddingService';
 import { rerankService } from './Reranker';
-import { scoreAndSort, mergeResults, applySticky, type ScoredEvent, type RecallResult } from './HybridScorer';
+import { scoreAndSort, mergeResults, type ScoredEvent, type RecallResult } from './HybridScorer';
 import { RecallLogService } from '@/core/logger/RecallLogger';
-import { stickyCache, DEFAULT_STICKY_CONFIG, type StickyConfig } from './StickyCache';
+
 import { brainRecallCache, type RecallCandidate } from './BrainRecallCache';
 import { Logger, LogModule } from '@/core/logger';
 import type { EventNode } from '@/data/types/graph';
@@ -95,8 +95,7 @@ export class Retriever {
             embeddingService.setConfig(vectorConfig);
         }
 
-        // 新一轮召回，更新黏性缓存轮次
-        stickyCache.nextRound();
+
 
         // 未启用召回，使用滚动窗口策略
         if (!recallConfig.enabled) {
@@ -186,7 +185,6 @@ export class Retriever {
 
         // 3. 应用记忆缓存系统
         const brainConfig: BrainRecallConfig = config.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
-        const stickyConfig: StickyConfig = config.sticky || DEFAULT_STICKY_CONFIG;
 
         if (brainConfig.enabled) {
             // V0.9.5: 类脑召回系统
@@ -219,13 +217,6 @@ export class Retriever {
                 outputCount: finalCandidates.length,
                 round: brainRecallCache.getCurrentRound(),
             });
-        } else if (stickyConfig.enabled) {
-            // 旧版黏性惩罚 (向后兼容)
-            finalCandidates = applySticky(finalCandidates, stickyCache, stickyConfig);
-            Logger.debug(LogModule.RAG_RETRIEVE, '已应用黏性惩罚', {
-                candidatesWithPenalty: finalCandidates.filter(c => (c.stickyPenalty || 0) > 0).length,
-            });
-            stickyCache.nextRound();
         }
 
         // 4. 记录召回日志
@@ -253,14 +244,7 @@ export class Retriever {
             },
         });
 
-        // 5. 标记召回的事件（仅旧版黏性系统使用）
-        if (!brainConfig.enabled && stickyConfig.enabled) {
-            const recalledIds = finalCandidates.map(c => c.id);
-            stickyCache.markRecalledBatch(recalledIds);
-            stickyCache.cleanup(10);
-        }
-
-        // 6. 返回结果
+        // 5. 返回结果
         const nodes = finalCandidates
             .filter(c => c.node)
             .map(c => c.node!);
@@ -272,7 +256,6 @@ export class Retriever {
             useRerank: config.useRerank,
             totalTime,
             resultCount: nodes.length,
-            stickyRound: stickyCache.getCurrentRound(),
         });
 
         return { entries, nodes };

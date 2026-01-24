@@ -43,7 +43,19 @@ interface EmbeddingProgress {
 
 // ==================== 组件 ====================
 
-export const VectorizationPanel: React.FC = () => {
+// ==================== 组件 ====================
+
+interface VectorizationPanelProps {
+    config: EmbeddingConfig;
+    vectorConfig: VectorConfig;
+    onConfigChange: (updates: Partial<EmbeddingConfig>) => void;
+}
+
+export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
+    config,
+    vectorConfig,
+    onConfigChange
+}) => {
     // 状态
     const [stats, setStats] = useState<EmbeddingStats>({ total: 0, embedded: 0, pending: 0 });
     const [progress, setProgress] = useState<EmbeddingProgress | null>(null);
@@ -51,10 +63,6 @@ export const VectorizationPanel: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastResult, setLastResult] = useState<{ success: number; failed: number } | null>(null);
-
-    // 配置
-    const [config, setConfig] = useState<EmbeddingConfig>({ ...DEFAULT_EMBEDDING_CONFIG });
-    const [vectorConfig, setVectorConfig] = useState<VectorConfig | null>(null);
 
     // 加载初始数据
     useEffect(() => {
@@ -65,18 +73,6 @@ export const VectorizationPanel: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            // 加载向量配置
-            const settings = SettingsManager.get('apiSettings');
-            if (settings?.vectorConfig) {
-                setVectorConfig(settings.vectorConfig);
-                embeddingService.setConfig(settings.vectorConfig);
-            }
-
-            // 加载嵌入配置
-            if (settings?.embeddingConfig) {
-                setConfig({ ...DEFAULT_EMBEDDING_CONFIG, ...settings.embeddingConfig });
-            }
-
             // 获取统计
             const newStats = await embeddingService.getEmbeddingStats();
             setStats(newStats);
@@ -159,21 +155,6 @@ export const VectorizationPanel: React.FC = () => {
         } finally {
             setIsProcessing(false);
             setProgress(null);
-        }
-    };
-
-    // 更新配置
-    const updateConfig = (updates: Partial<EmbeddingConfig>) => {
-        const newConfig = { ...config, ...updates };
-        setConfig(newConfig);
-
-        // 保存到 settings
-        const settings = SettingsManager.get('apiSettings');
-        if (settings) {
-            SettingsManager.set('apiSettings', {
-                ...settings,
-                embeddingConfig: newConfig,
-            });
         }
     };
 
@@ -320,14 +301,14 @@ export const VectorizationPanel: React.FC = () => {
                 <SwitchField
                     label="启用自动嵌入"
                     checked={config.enabled}
-                    onChange={(checked) => updateConfig({ enabled: checked })}
+                    onChange={(checked) => onConfigChange({ enabled: checked })}
                     description="触发条件满足时自动嵌入"
                 />
 
                 <SelectField
                     label="触发模式"
                     value={config.trigger}
-                    onChange={(value) => updateConfig({ trigger: value as EmbeddingConfig['trigger'] })}
+                    onChange={(value) => onConfigChange({ trigger: value as EmbeddingConfig['trigger'] })}
                     options={[
                         { value: 'with_trim', label: '与 Trim 联动' },
                         { value: 'standalone', label: '独立触发' },
@@ -339,7 +320,7 @@ export const VectorizationPanel: React.FC = () => {
                 <NumberField
                     label="并发数"
                     value={config.concurrency}
-                    onChange={(value) => updateConfig({ concurrency: Math.max(1, Math.min(20, value)) })}
+                    onChange={(value) => onConfigChange({ concurrency: Math.max(1, Math.min(20, value)) })}
                     min={1}
                     max={20}
                     description="同时处理的嵌入请求数 (1-20)"

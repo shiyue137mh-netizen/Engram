@@ -42,6 +42,8 @@ export interface STContext {
 
     // 聊天元数据
     chat_metadata?: Record<string, any>;
+    // 扩展配置
+    extensionSettings?: Record<string, any>;
 }
 
 /** ST 消息类型 */

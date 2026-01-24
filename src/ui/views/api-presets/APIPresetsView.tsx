@@ -23,6 +23,8 @@ import { CustomMacroList } from './components/CustomMacroList';  // V0.9.2
 import { CustomMacroForm } from './components/CustomMacroForm';  // V0.9.2
 import { PageTitle } from "@/ui/components/common/PageTitle";
 import { TabPills } from "@/ui/components/ui/TabPills";
+import { WorldbookProfileList } from './components/WorldbookProfileList';
+import { WorldbookProfileForm } from './components/WorldbookProfileForm';
 
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { MasterDetailLayout } from "@/ui/components/layout/MasterDetailLayout";
@@ -34,6 +36,7 @@ import { useLLMPresets } from '../../hooks/useLLMPresets';
 import { useConfig } from '../../hooks/useConfig';
 import { useRegexRules } from '../../hooks/useRegexRules';
 import { useWorldInfo } from '../../hooks/useWorldInfo';
+import type { WorldbookConfigProfile } from '@/config/types/prompt';
 
 // 响应式断点
 const DESKTOP_BREAKPOINT = 768;
@@ -42,6 +45,7 @@ const DESKTOP_BREAKPOINT = 768;
 type MainTabType = 'model' | 'prompt' | 'regex' | 'worldbook';
 type ModelSubTabType = 'llm' | 'vector' | 'rerank';
 type PromptSubTabType = 'templates' | 'macros';  // V0.9.2: 提示词模板子 Tab
+type WorldbookSubTabType = 'global' | 'profiles';
 
 // 子 Tab 配置
 const MODEL_SUB_TABS: { id: ModelSubTabType; label: string; icon: React.ElementType }[] = [
@@ -69,6 +73,8 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
     const currentInfo = TAB_INFO[mainTab];
     const [modelSubTab, setModelSubTab] = useState<ModelSubTabType>('llm');
     const [promptSubTab, setPromptSubTab] = useState<PromptSubTabType>('templates');  // V0.9.2
+    const [worldbookSubTab, setWorldbookSubTab] = useState<WorldbookSubTabType>('global');
+    const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
 
     // V0.9.2: 编辑中的自定义宏
     const [editingMacroId, setEditingMacroId] = useState<string | null>(null);
@@ -141,13 +147,20 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
         worldbookConfig,
         worldbookStructure,
         disabledEntries,
+        worldbookProfiles,
+        addProfile,
+        updateProfile,
+        deleteProfile,
         hasChanges: worldbookHasChanges,
         updateWorldbookConfig,
         toggleWorldbook,
         toggleEntry,
         refreshWorldbooks,
         saveWorldInfo,
+        worldbookScopes, // Added
     } = useWorldInfo();
+
+    const availableWorldbooks = Object.keys(worldbookStructure || {});
 
     // 聚合保存
     const save = async () => {
@@ -228,6 +241,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                         <PromptTemplateForm
                             template={editingTemplate}
                             llmPresets={settings.llmPresets}
+                            worldbookProfiles={worldbookProfiles}
                             defaultPresetId={settings.selectedPresetId}
                             onChange={updateTemplate}
                         />
@@ -429,6 +443,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                         <PromptTemplateForm
                                             template={editingTemplate}
                                             llmPresets={settings.llmPresets}
+                                            worldbookProfiles={worldbookProfiles}
                                             defaultPresetId={settings.selectedPresetId}
                                             onChange={updateTemplate}
                                         />
@@ -504,16 +519,95 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
 
                 {/* 世界书配置 Tab */}
                 {mainTab === 'worldbook' && (
-                    <div className="max-w-2xl py-4">
-                        <WorldbookConfigForm
-                            config={settings.worldbookConfig || { enabled: false, includeGlobal: false, disabledWorldbooks: [] }}
-                            onChange={updateWorldbookConfig}
-                            worldbookStructure={worldbookStructure}
-                            disabledEntries={disabledEntries}
-                            onToggleWorldbook={toggleWorldbook}
-                            onToggleEntry={toggleEntry}
-                            onRefresh={refreshWorldbooks}
-                        />
+                    <div className="flex flex-col h-full gap-2">
+                        {/* Sub Tabs */}
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                            <button
+                                onClick={() => setWorldbookSubTab('global')}
+                                className={`text-xs font-bold uppercase tracking-wider transition-colors px-3 py-1.5 rounded-full ${worldbookSubTab === 'global'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                    }`}
+                            >
+                                全局设置
+                            </button>
+                            <button
+                                onClick={() => setWorldbookSubTab('profiles')}
+                                className={`text-xs font-bold uppercase tracking-wider transition-colors px-3 py-1.5 rounded-full ${worldbookSubTab === 'profiles'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                                    }`}
+                            >
+                                知识库方案
+                            </button>
+                        </div>
+
+                        {worldbookSubTab === 'global' && (
+                            <div className="max-w-2xl py-4 flex-1 overflow-y-auto custom-scrollbar">
+                                <WorldbookConfigForm
+                                    config={worldbookConfig || { enabled: false, includeGlobal: false, disabledWorldbooks: [] }}
+                                    onChange={updateWorldbookConfig}
+                                    worldbookStructure={Object.fromEntries(
+                                        Object.entries(worldbookStructure || {}).filter(([key]) => {
+                                            const scopes = worldbookScopes || { global: [], chat: [] };
+                                            return scopes.global.includes(key) || scopes.chat.includes(key);
+                                        })
+                                    )}
+                                    disabledEntries={disabledEntries}
+                                    onToggleWorldbook={toggleWorldbook}
+                                    onToggleEntry={toggleEntry}
+                                    onRefresh={refreshWorldbooks}
+                                />
+                            </div>
+                        )}
+
+                        {worldbookSubTab === 'profiles' && (
+                            <MasterDetailLayout
+                                listWidth="30%"
+                                list={
+                                    <WorldbookProfileList
+                                        profiles={worldbookProfiles}
+                                        selectedId={editingProfileId}
+                                        onSelect={(p) => handleMobileSelect(() => setEditingProfileId(p.id))}
+                                        onAdd={() => {
+                                            const newProfile: WorldbookConfigProfile = {
+                                                id: `wb_profile_${Date.now()}`,
+                                                name: '新知识库方案',
+                                                mode: 'custom',
+                                                selectedWorldbooks: [],
+                                                createdAt: Date.now(),
+                                                updatedAt: Date.now()
+                                            };
+                                            addProfile(newProfile);
+                                            handleMobileSelect(() => setEditingProfileId(newProfile.id));
+                                        }}
+                                        onDelete={deleteProfile}
+                                    />
+                                }
+                                detail={
+                                    (() => {
+                                        const profile = worldbookProfiles.find(p => p.id === editingProfileId);
+                                        return profile ? (
+                                            <div className="h-full animate-in fade-in slide-in-from-right-2 duration-300">
+                                                <WorldbookProfileForm
+                                                    profile={profile}
+                                                    onChange={updateProfile}
+                                                    availableWorldbooks={availableWorldbooks}
+                                                />
+                                            </div>
+                                        ) : (
+                                            <EmptyState
+                                                icon={Book}
+                                                title="未选择方案"
+                                                description="选择一个方案进行编辑或创建新方案"
+                                            />
+                                        );
+                                    })()
+                                }
+                                mobileDetailOpen={false}
+                                onMobileDetailClose={handleMobileClose}
+                            />
+                        )}
                     </div>
                 )}
             </div>

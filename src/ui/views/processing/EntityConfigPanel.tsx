@@ -7,11 +7,12 @@
  * - 去卡片化，使用细线分割
  */
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, Save } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { EntityBuilder, entityBuilder } from "@/modules/memory/EntityExtractor";
 import { SwitchField } from '../api-presets/components/FormField';
 import { Divider } from '@/ui/components/layout/Divider';
-import { useConfig } from '@/ui/hooks/useConfig';
+import { EntityReviewModal } from './components/EntityReviewModal';
+import type { EntityExtractConfig } from '@/config/types/memory';
 
 interface EntityStatus {
     enabled: boolean;
@@ -22,15 +23,12 @@ interface EntityStatus {
     isExtracting: boolean;
 }
 
-export const EntityConfigPanel: React.FC = () => {
-    // 使用 useConfig 管理配置
-    const {
-        entityExtractConfig: config,
-        updateEntityExtractConfig,
-        saveConfig,
-        hasChanges
-    } = useConfig();
+interface EntityConfigPanelProps {
+    config: EntityExtractConfig;
+    onChange: (config: EntityExtractConfig) => void;
+}
 
+export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, onChange }) => {
     const [status, setStatus] = useState<EntityStatus | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -39,7 +37,7 @@ export const EntityConfigPanel: React.FC = () => {
         try {
             const s = await entityBuilder.getStatus();
             setStatus(s);
-            // Config is managed by useConfig, no need to set here
+            // Config is managed by parent via props
         } catch (e) {
             console.error('[EntityConfigPanel] Failed to load status:', e);
         }
@@ -52,30 +50,54 @@ export const EntityConfigPanel: React.FC = () => {
     // 切换启用状态
     const handleToggleEnabled = () => {
         const newConfig = { ...config, enabled: !config.enabled };
-        updateEntityExtractConfig(newConfig);
-        // EntityBuilder needs to know about config changes?
-        // Ideally EntityBuilder reads from SettingsManager or we should push updates.
-        // For now, saveConfig (triggered by user later) persists it, but runtime might need update.
+        onChange(newConfig);
+        // Runtime update if needed, but optimally should react to config prop change or parent saves
         entityBuilder.updateConfig(newConfig);
     };
 
     // 更新楼层间隔
     const handleIntervalChange = (value: number) => {
-        const newConfig = { ...config, floorInterval: Math.max(10, value) };
-        updateEntityExtractConfig(newConfig);
+        const newConfig = { ...config, floorInterval: Math.max(2, value) };
+        onChange(newConfig);
         entityBuilder.updateConfig(newConfig);
     };
 
-    // 手动提取
+    // 预览弹窗状态
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [reviewData, setReviewData] = useState<{ newEntities: any[], updatedEntities: any[] }>({ newEntities: [], updatedEntities: [] });
+
+    // 手动提取 (带预览)
     const handleManualExtract = async () => {
         setIsLoading(true);
         try {
-            await entityBuilder.extractManual();
-            await loadStatus();
+            // 1. Dry Run
+            const result = await entityBuilder.extractManual(true);
+
+            if (result && result.success && (result.newEntities.length > 0 || result.updatedEntities.length > 0)) {
+                // 2. Show Preview
+                setReviewData({
+                    newEntities: result.newEntities,
+                    updatedEntities: result.updatedEntities
+                });
+                setShowReviewModal(true);
+            } else if (result && result.success) {
+                // No changes
+                await loadStatus();
+            }
         } catch (e) {
             console.error('[EntityConfigPanel] Manual extraction failed:', e);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    // 确认保存
+    const handleConfirmReview = async (data: { newEntities: any[], updatedEntities: any[] }) => {
+        try {
+            await entityBuilder.saveRawEntities(data.newEntities, data.updatedEntities);
+            await loadStatus();
+        } catch (e) {
+            console.error('[EntityConfigPanel] Failed to save reviewed entities:', e);
         }
     };
 
@@ -173,11 +195,11 @@ export const EntityConfigPanel: React.FC = () => {
                             {/* Thumb */}
                             <div
                                 className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
-                                style={{ left: `${((config.floorInterval - 10) / (100 - 10)) * 100}%`, transform: 'translate(-50%, -50%)' }}
+                                style={{ left: `${((config.floorInterval - 2) / (100 - 2)) * 100}%`, transform: 'translate(-50%, -50%)' }}
                             />
                             <input
                                 type="range"
-                                min={10}
+                                min={2}
                                 max={100}
                                 step={5}
                                 value={config.floorInterval}
@@ -192,21 +214,17 @@ export const EntityConfigPanel: React.FC = () => {
                     <p className="text-xs text-muted-foreground/70 leading-relaxed">
                         实体提取会从对话中识别并提取角色、地点、物品等关键信息，用于构建知识图谱。
                     </p>
-
-                    {/* 保存按钮 */}
-                    {hasChanges && (
-                        <div className="flex justify-end pt-4">
-                            <button
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary hover:text-primary-foreground hover:bg-primary border border-primary/50 rounded transition-colors"
-                                onClick={saveConfig}
-                            >
-                                <Save size={12} />
-                                保存配置
-                            </button>
-                        </div>
-                    )}
                 </div>
             </section>
+
+            {/* 预览弹窗 */}
+            <EntityReviewModal
+                isOpen={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                onConfirm={handleConfirmReview}
+                newEntities={reviewData.newEntities}
+                updatedEntities={reviewData.updatedEntities}
+            />
         </div>
     );
 };

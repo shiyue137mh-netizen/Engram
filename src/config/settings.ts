@@ -3,7 +3,7 @@ import type { PromptTemplate } from '@/config/types/prompt';
 import type { PromptCategory } from '@/config/types/prompt';
 import type { EngramAPISettings } from '@/config/types/defaults';
 import { getBuiltInTemplateById } from '@/config/types/defaults';
-import type { RegexRule } from '@/modules/memory/extractors/RegexProcessor';
+import type { RegexRule } from '@/modules/workflow/steps';
 import type { PreprocessingConfig } from '@/modules/preprocessing/types';
 
 export interface EngramSettings {

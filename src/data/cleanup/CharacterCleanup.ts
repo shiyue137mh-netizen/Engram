@@ -106,6 +106,16 @@ export class CharacterDeleteService {
             return;
         }
 
+        // 3. 删除 Sync 本地文件 (Engram_sync_*.json)
+        // 即使 sync 未启用，如果有残留文件也应清理
+        try {
+            const { syncService } = await import('@/data/sync/SyncService');
+            await syncService.purge(chatId);
+            Logger.debug(LogModule.DATA_CLEANUP, `已触发同步文件清理: ${chatId}`);
+        } catch (e) {
+            Logger.warn(LogModule.DATA_CLEANUP, `清理同步文件失败: ${chatId}`, e);
+        }
+
         await this.deleteEngramWorldbooks(characterName, '聊天', settings.showConfirmation);
     }
 

@@ -1,4 +1,15 @@
 # Changelog
+
+## [1.1.0] - 2026-01-24
+
+### 🏗️ 架构优化 (Architecture Optimization)
+- **UI 重构**: 统一了 Processing View 的保存逻辑与状态管理，消除了子面板的私有状态，提升了交互一致性。
+- **Workflow 模块化**: 将 `EventTrimmer` 重构为模块化的 `TrimmerWorkflow`，分离了数据获取、处理与保存逻辑，便于扩展。
+- **Prompt 约束增强**: 为所有内置 Prompt 增加了强制性的负面约束，防止模型在处理数据时意外续写剧情。
+
+### ✨ 新功能 (New Features)
+- **自定义知识书 (Worldbook Profiles)**: 支持为每个 Prompt 模板绑定特定的世界书/设定集，实现更精细的上下文控制。
+
 ## [1.0.2] - 2026-01-22
 
 ### 🎯 Summary 宏优化 (树状缩进格式)

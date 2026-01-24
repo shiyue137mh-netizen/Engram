@@ -1,4 +1,4 @@
-import { StickyConfig } from '@/modules/rag/retrieval/StickyCache';
+
 
 export interface VectorConfig {
     /** 向量源 */
@@ -87,8 +87,7 @@ export interface RecallConfig {
         minScoreThreshold: number;
     };
 
-    /** 黏性配置 (已废弃，使用 brainRecall) */
-    sticky?: StickyConfig;
+
 
     /** 类脑召回配置 (V0.9.5 实验性) */
     brainRecall?: BrainRecallConfig;

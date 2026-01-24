@@ -332,7 +332,7 @@ export class WorldInfoService {
                     uid: entry.uid as number || 0,
                     name: entry.name as string || '',
                     content: entry.content as string || '',
-                    enabled: entry.enabled as boolean ?? true,
+                    enabled: typeof entry.enabled === 'boolean' ? entry.enabled : (entry.disable !== true),
                     constant: strategy?.type === 'constant',
                     keys,
                     position: (position?.type as WorldInfoPosition) || 'before_character_definition',
@@ -802,6 +802,8 @@ export class WorldInfoService {
                 }
             }
 
+            // ... original implementation continues ...
+
             if (!messages || messages.length === 0) {
                 Logger.warn('WorldInfo', '无聊天消息，回退到常驻条目');
                 return this.getConstantWorldInfo();
@@ -938,6 +940,25 @@ export class WorldInfoService {
     }
 
     /**
+     * 获取世界书的作用域分类 (全局/角色/所有)
+     */
+    static getScopes(): { global: string[]; chat: string[]; installed: string[] } {
+        const helper = getTavernHelper();
+        const global = helper?.getGlobalWorldbookNames?.() || [];
+        const installed = helper?.getWorldbookNames?.() || [];
+
+        let chat: string[] = [];
+        if (helper?.getCharWorldbookNames) {
+            const charBooks = helper.getCharWorldbookNames('current');
+            if (charBooks) {
+                chat = [...(charBooks.additional || []), charBooks.primary].filter(Boolean) as string[];
+            }
+        }
+
+        return { global, chat, installed };
+    }
+
+    /**
      * 获取世界书结构（用于 UI 展示）
      * 返回所有世界书及其包含的条目摘要
      */
@@ -945,10 +966,10 @@ export class WorldInfoService {
         const helper = getTavernHelper();
         if (!helper) return {};
 
-        // 1. 获取全局世界书
-        const globalWorldbooks = helper.getGlobalWorldbookNames?.() || [];
+        // 1. 获取所有可用世界书
+        const allWorldbooks = helper.getWorldbookNames?.() || [];
 
-        // 2. 获取当前角色世界书
+        // 2. 确保包含当前角色绑定的世界书 (以防万一不在列表中)
         let charWorldbooks: string[] = [];
         if (helper.getCharWorldbookNames) {
             const charBooks = helper.getCharWorldbookNames('current');
@@ -957,8 +978,8 @@ export class WorldInfoService {
             }
         }
 
-        // 3. 合并并去重，只显示这部分相关的世界书
-        const targetBooks = Array.from(new Set([...globalWorldbooks, ...charWorldbooks])).sort();
+        // 3. 合并并去重
+        const targetBooks = Array.from(new Set([...allWorldbooks, ...charWorldbooks])).sort();
 
         const structure: Record<string, any[]> = {};
 
@@ -980,6 +1001,65 @@ export class WorldInfoService {
             }
         }
         return structure;
+    }
+
+
+    /**
+     * V1.1.0: 扫描指定世界书（白名单模式）
+     * 不同于 checkWorldInfo (仅扫描全局激活)，此方法允许扫描任意指定的世界书
+     *
+     * @param worldbookName 世界书名称
+     * @param contextText 扫描上下文
+     * @returns 匹配的条目内容
+     */
+    static async scanWorldbook(worldbookName: string, contextText: string): Promise<string> {
+        const { Logger } = await import('@/core/logger');
+        const entries = await this.getEntries(worldbookName);
+        if (entries.length === 0) return '';
+
+        const activeEntries: WorldInfoEntry[] = [];
+        const lowerContext = contextText.toLowerCase();
+
+        for (const entry of entries) {
+            // 1. 必须启用
+            if (!entry.enabled) continue;
+
+            // 2. 常驻条目直接激活
+            if (entry.constant) {
+                activeEntries.push(entry);
+                continue;
+            }
+
+            // 3. 关键词匹配
+            if (entry.keys && entry.keys.length > 0) {
+                // ST 逻辑: OR 关系 (只要命中一个 key)
+                // TODO: 支持正则 key
+                let matched = false;
+                for (const key of entry.keys) {
+                    if (!key) continue;
+                    // 简单包含检查 (忽略大小写)
+                    if (lowerContext.includes(key.toLowerCase())) {
+                        matched = true;
+                        break;
+                    }
+                }
+                if (matched) {
+                    activeEntries.push(entry);
+                }
+            }
+        }
+
+        if (activeEntries.length > 0) {
+            Logger.debug('WorldInfo', `扫描白名单世界书 [${worldbookName}]`, {
+                total: entries.length,
+                matched: activeEntries.length
+            });
+            // 按 order 排序
+            activeEntries.sort((a, b) => a.order - b.order);
+            return activeEntries.map(e => e.content).join('\n\n');
+        }
+
+        return '';
     }
 
     /**

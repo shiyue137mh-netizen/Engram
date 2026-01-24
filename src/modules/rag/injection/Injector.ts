@@ -15,7 +15,7 @@ import { getCurrentChatId, getSTContext } from '@/integrations/tavern/context';
 import { MacroService } from '@/integrations/tavern/macros';
 import { Logger, LogModule } from '@/core/logger';
 import { preprocessor } from '@/modules/preprocessing';
-import { regexProcessor } from '@/modules/memory/extractors/RegexProcessor';
+import { regexProcessor } from "@/modules/workflow/steps";
 import { retriever } from '@/modules/rag/retrieval/Retriever';
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
@@ -33,6 +33,7 @@ interface GenerationAfterCommandsParams {
     signal?: AbortSignal;
     quietImage?: string;
     _engram_processed?: boolean; // 我们添加的标记，防止重复处理
+    _engram_internal?: boolean; // 内部请求标记
 }
 
 export class Injector {
@@ -53,7 +54,7 @@ export class Injector {
         // 这个事件在命令处理后、生成开始前触发，酒馆会 await 处理器
         EventBus.on(
             TavernEventType.GENERATION_AFTER_COMMANDS,
-            async (type: any, params: any, dryRun: boolean) => {
+            async (type: any, params: any, dryRun: any) => {
                 console.log('[Injector] 🎯 GENERATION_AFTER_COMMANDS triggered', { type, dryRun });
                 Logger.debug(LogModule.RAG_INJECT, '捕获 GENERATION_AFTER_COMMANDS', { type });
 
@@ -130,6 +131,12 @@ export class Injector {
             // 防止重入（同一次生成可能触发多次）
             if (this.isProcessing) {
                 Logger.debug(LogModule.RAG_INJECT, '正在处理中，跳过重复调用');
+                return;
+            }
+
+            // V0.9.6: 检查内部请求标记
+            if (params._engram_internal) {
+                Logger.debug(LogModule.RAG_INJECT, '检测到内部请求，跳过预处理');
                 return;
             }
 

@@ -11,7 +11,7 @@ import { useRegexRules } from './useRegexRules';
 import { useConfig } from './useConfig';
 // import type { UseAPIPresetsReturn } from './useApiPresets'; // Removed self-reference
 import type { EngramAPISettings, LLMPreset, PromptTemplate, VectorConfig, RerankConfig, WorldbookConfig, GlobalRegexConfig, RecallConfig, CustomMacro } from '@/config/types/defaults';
-import { RegexRule } from '@/modules/memory/extractors/RegexProcessor';
+import type { RegexRule } from '@/modules/workflow/steps';
 
 // Re-export interface for backward compatibility
 export interface UseAPIPresetsReturn {

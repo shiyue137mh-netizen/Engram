@@ -110,7 +110,9 @@ function getModuleIcon(module: string): LucideIcon {
  * 单条日志项
  */
 export const LogEntryItem: React.FC<LogEntryItemProps> = ({ entry, defaultExpanded = false }) => {
-    const [expanded, setExpanded] = useState(defaultExpanded);
+    // 自动展开错误和警告
+    const autoExpand = entry.level === LogLevel.WARN || entry.level === LogLevel.ERROR;
+    const [expanded, setExpanded] = useState(defaultExpanded || autoExpand);
     const hasData = entry.data !== undefined;
     const levelConfig = LogLevelConfig[entry.level];
     const levelStyle = LEVEL_STYLES[entry.level];
@@ -118,9 +120,9 @@ export const LogEntryItem: React.FC<LogEntryItemProps> = ({ entry, defaultExpand
     // 响应外部默认展开状态变化
     useEffect(() => {
         if (hasData) {
-            setExpanded(defaultExpanded);
+            setExpanded(defaultExpanded || autoExpand);
         }
-    }, [defaultExpanded, hasData]);
+    }, [defaultExpanded, autoExpand, hasData]);
 
     return (
         <div className="group">

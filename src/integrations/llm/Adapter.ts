@@ -19,6 +19,8 @@ export interface LLMRequest {
     userPrompt: string;
     /** 预设 ID */
     presetId?: string;
+    /** 是否为内部请求 (不触发预处理/脚本) */
+    internal?: boolean;
 }
 
 /** LLM 生成响应 */
@@ -99,7 +101,7 @@ export class LLMAdapter {
 
             if (!preset && settings.apiSettings?.selectedPresetId) {
                 // 2. 尝试使用全局选中的预设
-                preset = settings.apiSettings.llmPresets?.find(p => p.id === settings.apiSettings.selectedPresetId);
+                preset = settings.apiSettings?.llmPresets?.find(p => p.id === settings.apiSettings?.selectedPresetId);
             }
 
             // 如果找到了预设，且预设不是默认的 'tavern' 源，我们需要准备 Custom API 配置
@@ -163,11 +165,13 @@ export class LLMAdapter {
                         // 尝试提取 Key
                         // 常见：key, request_apikey, openai_key, secret-id (如果是 secret-id 需要 ST 内部解析，这里尽量找直接的 key)
                         // 注意：如果 Key 存储在 Secret 中，Engram 可能无法直接获取明文。
-                        // 但传递 custom_api 时，若 key 为空，ST 可能会回退? 不，Custom API 通常需要显式 Key。
-                        // 如果 profile 中没有明文 Key，这可能是一个限制。
-                        if (profile.key) customApiConfig.key = profile.key;
-                        else if (profile.request_apikey) customApiConfig.key = profile.request_apikey;
-                        else if (profile.openai_key) customApiConfig.key = profile.openai_key;
+                        const potentialKeyFields = ['key', 'request_apikey', 'openai_key', 'api_key', 'auth_token', 'password'];
+                        for (const field of potentialKeyFields) {
+                            if (profile[field]) {
+                                customApiConfig.key = profile[field];
+                                break;
+                            }
+                        }
 
                     } else {
                         Logger.warn('LLMAdapter', `未找到 ID 为 ${preset.tavernProfileId} 的酒馆配置，将回退到默认设置`);
@@ -199,7 +203,7 @@ export class LLMAdapter {
                     ]
                 },
                 // 尽可能提供更多上下文信息以满足某些挑剔的扩展
-                is_engram: true, // 标记请求来源 (可选)
+                // is_engram: true, // 标记请求来源 (可选) - 暂时移除，避免污染
             };
 
             // [Step 2] 触发 Native Pipeline Hook (兼容 ST-Prompt-Template)
@@ -239,12 +243,18 @@ export class LLMAdapter {
             // [Step 4] 执行 Engram Pipeline (RegexProcessor)
             // 这是第二道清洗，用于移除 Engram 特定的标记（如 <think> 如果还没被处理）
             // 或者处理原生清洗后残留的问题
-            const { regexProcessor } = await import('@/modules/memory/extractors/RegexProcessor');
+            const { regexProcessor } = await import('@/modules/workflow/steps');
             finalUserPrompt = regexProcessor.process(finalUserPrompt, 'input');
 
             // =========================================================================
             // End of Gateway
             // =========================================================================
+
+            // [Fix] 显式禁用流式，否则可能继承全局设置
+            const generationOptions = {
+                should_stream: false, // 核心修正：后台任务不需要流式
+                _engram_internal: request.internal, // 内部请求标记
+            };
 
             if (helper.generateRaw) {
                 // 使用 generateRaw 进行完全自定义
@@ -257,15 +267,16 @@ export class LLMAdapter {
                 content = await helper.generateRaw({
                     ordered_prompts: prompts,
                     custom_api: customApiConfig, // V0.8.6 Fix
+                    ...generationOptions,         // [Fix] Apply should_stream: false
                 });
             } else if (helper.generate) {
                 // fallback: 使用 generate
                 content = await helper.generate({
                     user_input: finalUserPrompt,
                     system_prompt: finalSystemPrompt,
-                    should_stream: false,
                     max_chat_history: 0,
                     custom_api: customApiConfig, // V0.8.6 Fix
+                    ...generationOptions,         // [Fix] Apply should_stream: false
                 });
             } else {
                 throw new Error('无可用的生成 API');

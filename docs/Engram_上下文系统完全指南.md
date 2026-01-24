@@ -14,8 +14,8 @@ Engram 的上下文系统是一个分层的、高度自动化的信息管理架�
 
 Engram 所有的后台任务（如自动摘要、精简、剧情分析）都依赖于 Prompt Template。
 
-### 2.1 模板结构
-每个模板包含：
+### 2.1 模板结构 (YAML)
+所有模板均以 YAML 格式定义 (`src/integrations/llm/prompts/*.yaml`)：
 *   **System Prompt**: 设定 LLM 的角色和任务目标。
 *   **User Prompt**: 包含动态注入的变量（如聊天记录、世界书内容）。
 *   **Output Format**: 期望的输出格式（JSON 或 Plain Text）。
@@ -72,6 +72,22 @@ Engram 在角色世界书中维护以下几种特殊条目：
 *   **分隔符 (Separators)**:
     *   **内容**: `<summary>`, `</summary>`
     *   **用途**: 在发送给 LLM 的Prompt中标记摘要区域，方便 AI 识别。
+
+### 3.3 知识库方案 (Knowledge Profiles) - V1.1.0 新增
+
+Engram 允许创建**知识库方案**，通过白名单机制灵活管理不同场景下的世界书组合。
+
+*   **设计目的**:
+    *   配合提示词模板，实现"不同任务使用不同知识库"（例如：剧情分析时只用设定集，写肉文时只用 XP 书）。
+    *   突破酒馆原生的"全局/当前角色"限制，允许跨角色复用特定知识库组合。
+
+*   **生效模式**:
+    *   **自定义白名单 (Custom Whitelist)**: **[推荐]** 仅扫描选中的世界书。无论这些世界书在全局是否启用，甚至是否绑定到当前角色，只要在此处勾选，就会被扫描。
+    *   **全局继承 (Global Only)**: 仅扫描当前环境激活的世界书（全局开启 + 角色绑定），用于传统的增强场景。
+
+*   **配置方式**:
+    *   在 `API 配置` -> `世界书` -> `知识库方案` 面板中创建。
+    *   在 `提示词模板` 编辑器中，通过 "绑定知识库" 选项将方案关联到特定模板。
 
 ## 4. 激活与检索 (Activation & Retrieval)
 
@@ -160,7 +176,7 @@ Engram 摒弃了不稳定的事件模拟方式，转而采用了与 `数据库` 
         *   调用 `TavernHelper.formatAsTavernRegexedString(content, 'ai_output', { isPrompt: true })`。
         *   这会完整触发用户在酒馆扩展面板中配置的所有 Regex 规则，且应用顺序与原生酒馆完全一致。
     2.  **第二层: 内部处理 (Internal Layer)**
-        *   调用 Engram 内部的 `RegexProcessor`。
+        *   调用 Engram 内部的 `RegexProcessor` (`src/modules/workflow/processors/RegexProcessor`)。
         *   执行特定的格式标准化任务（如移除 `<think>`标签、统一换行符），确保发往 API 的数据格式整洁。
 
 **优势**:

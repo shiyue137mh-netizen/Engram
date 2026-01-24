@@ -12,10 +12,11 @@ import { Play, Pause, RefreshCw, CheckCircle2, AlertCircle, Scissors, Calculator
 import type { TrimTriggerType } from '@/config/types/memory';
 // import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService'; // V0.7 Deprecated
 import { DEFAULT_TRIM_CONFIG, type TrimConfig } from '@/modules/memory/EventTrimmer';
-import { SettingsManager } from "@/config/settings";
+
 import { NumberField, SwitchField } from '../api-presets/components/FormField';
 import { Divider } from "@/ui/components/layout/Divider";
 import type { TrimmerStatus } from "@/modules/memory";
+import type { UseSummarizerConfigReturn } from '@/ui/hooks/useSummarizerConfig';
 
 interface SummarizerStatus {
     running: boolean;
@@ -26,11 +27,14 @@ interface SummarizerStatus {
     isSummarizing: boolean;
 }
 
-interface SummarizerSettings {
-    autoEnabled: boolean;
-    floorInterval: number;
-    bufferSize: number;
-    autoHide: boolean;
+// Reuse the interface from the hook
+type SummarizerSettings = UseSummarizerConfigReturn['summarizerSettings'];
+
+interface SummaryPanelProps {
+    summarizerSettings: SummarizerSettings;
+    trimConfig: TrimConfig;
+    onSummarizerSettingsChange: (settings: SummarizerSettings) => void;
+    onTrimConfigChange: (config: TrimConfig) => void;
 }
 
 const TRIGGER_OPTIONS: { id: TrimTriggerType; label: string; icon: React.ElementType }[] = [
@@ -38,17 +42,16 @@ const TRIGGER_OPTIONS: { id: TrimTriggerType; label: string; icon: React.Element
     { id: 'count', label: '活跃事件数', icon: Hash },
 ];
 
-export const SummaryPanel: React.FC = () => {
+export const SummaryPanel: React.FC<SummaryPanelProps> = ({
+    summarizerSettings: settings,
+    trimConfig,
+    onSummarizerSettingsChange,
+    onTrimConfigChange
+}) => {
     const [status, setStatus] = useState<SummarizerStatus | null>(null);
     const [loading, setLoading] = useState(false);
     const [trimLoading, setTrimLoading] = useState(false);
-    const [settings, setSettings] = useState<SummarizerSettings>({
-        autoEnabled: true,
-        floorInterval: 10,
-        bufferSize: 3,
-        autoHide: false,
-    });
-    const [trimConfig, setTrimConfig] = useState<TrimConfig>({ ...DEFAULT_TRIM_CONFIG, keepRecentCount: 3 });
+    // Remove local state settings and trimConfig, use props instead
     const [trimStatus, setTrimStatus] = useState<TrimmerStatus | null>(null);
     const [worldbookTokens, setWorldbookTokens] = useState<number>(0);
     const [activeEventCount, setActiveEventCount] = useState<number>(0);  // V0.7.1: 蓝灯数
@@ -65,19 +68,7 @@ export const SummaryPanel: React.FC = () => {
             await summarizerService.initializeForCurrentChat();
             const currentStatus = summarizerService.getStatus();
             setStatus(currentStatus);
-            const config = summarizerService.getConfig();
-            setSettings({
-                autoEnabled: config.enabled,
-                floorInterval: config.floorInterval,
-                bufferSize: config.bufferSize || 3,
-                autoHide: config.autoHide || false
-            });
-
-            // 加载保存的 trimConfig
-            const savedTrimConfig = SettingsManager.getSummarizerSettings()?.trimConfig;
-            if (savedTrimConfig) {
-                setTrimConfig({ ...DEFAULT_TRIM_CONFIG, ...savedTrimConfig });
-            }
+            // Config loading removed as it comes from props
 
             // 加载精简服务状态 (使用 EventTrimmer V0.7)
             const { eventTrimmer } = await import('@/modules/memory/EventTrimmer');
@@ -148,27 +139,19 @@ export const SummaryPanel: React.FC = () => {
 
     const handleTriggerChange = (trigger: TrimTriggerType) => {
         const newConfig = { ...trimConfig, trigger };
-        setTrimConfig(newConfig);
-        saveTrimConfig(newConfig);
+        onTrimConfigChange(newConfig);
     };
 
     const handleLimitChange = (key: keyof TrimConfig, value: any) => {
         const newConfig = { ...trimConfig, [key]: value };
-        setTrimConfig(newConfig);
-        saveTrimConfig(newConfig);
-    };
-
-    // 保存 trimConfig 到 SettingsManager
-    const saveTrimConfig = (config: TrimConfig) => {
-        SettingsManager.setSummarizerSettings({ trimConfig: config });
+        onTrimConfigChange(newConfig);
     };
 
     // enabled 开关切换
     const handleTrimEnabledChange = async () => {
         const newConfig = { ...trimConfig, enabled: !trimConfig.enabled };
-        setTrimConfig(newConfig);
-        saveTrimConfig(newConfig);
-        // 同步更新 EventTrimmer 配置
+        onTrimConfigChange(newConfig);
+        // Runtime update if needed, typically handled by save action or service sync
         const { eventTrimmer } = await import('@/modules/memory/EventTrimmer');
         eventTrimmer.updateConfig({ enabled: newConfig.enabled });
     };
@@ -303,7 +286,7 @@ export const SummaryPanel: React.FC = () => {
                                 label=""
                                 checked={settings.autoEnabled}
                                 onChange={async (newVal) => {
-                                    setSettings(s => ({ ...s, autoEnabled: newVal }));
+                                    onSummarizerSettingsChange({ ...settings, autoEnabled: newVal });
                                     const { summarizerService } = await import('@/modules/memory');
                                     summarizerService.updateConfig({ enabled: newVal });
                                 }}
@@ -318,7 +301,7 @@ export const SummaryPanel: React.FC = () => {
                                 label=""
                                 checked={settings.autoHide}
                                 onChange={(newVal) => {
-                                    setSettings(s => ({ ...s, autoHide: newVal }));
+                                    onSummarizerSettingsChange({ ...settings, autoHide: newVal });
                                     import('@/modules/memory').then(({ summarizerService }) => {
                                         summarizerService.updateConfig({ autoHide: newVal });
                                     });
@@ -354,7 +337,7 @@ export const SummaryPanel: React.FC = () => {
                                             value={settings.floorInterval}
                                             onChange={async (e) => {
                                                 const val = Number(e.target.value);
-                                                setSettings(s => ({ ...s, floorInterval: val }));
+                                                onSummarizerSettingsChange({ ...settings, floorInterval: val });
                                                 const { summarizerService } = await import('@/modules/memory');
                                                 summarizerService.updateConfig({ floorInterval: val });
                                             }}
@@ -385,7 +368,7 @@ export const SummaryPanel: React.FC = () => {
                                             value={settings.bufferSize}
                                             onChange={(e) => {
                                                 const val = Number(e.target.value);
-                                                setSettings(s => ({ ...s, bufferSize: val }));
+                                                onSummarizerSettingsChange({ ...settings, bufferSize: val });
                                                 import('@/modules/memory').then(({ summarizerService }) => {
                                                     summarizerService.updateConfig({ bufferSize: val });
                                                 });

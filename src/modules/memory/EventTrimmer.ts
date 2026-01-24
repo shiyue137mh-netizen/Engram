@@ -5,18 +5,11 @@
  */
 
 import { useMemoryStore } from '@/state/memoryStore';
-import { MacroService } from '@/integrations/tavern/macros';
 import { Logger, LogModule } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
-import { revisionService } from '@/core/events/RevisionBridge';
-import { llmAdapter } from '@/integrations/llm';
-import { embeddingService } from '@/modules/rag';
 import { SettingsManager } from '@/config/settings';
-import { RobustJsonParser } from '@/core/utils/JsonParser';
 import type { EventNode } from '@/data/types/graph';
 
-// 精简 Prompt 模板
-import trimPromptRaw from '@/integrations/llm/prompts/trim.txt?raw';
 
 export interface TrimConfig {
     /** 保留最近 N 条不合并 */
@@ -118,132 +111,40 @@ export class EventTrimmer {
             return null;
         }
 
-        const store = useMemoryStore.getState();
-
-        // 1. 获取待合并的事件
-        const eventsToMerge = await store.getEventsToMerge(this.config.keepRecentCount);
-        if (eventsToMerge.length < 2) {
-            if (manual) {
-                notificationService.info('待合并的事件不足 (需要至少 2 条)', 'Engram');
-            }
-            return null;
-        }
-
         this.isTrimming = true;
-        Logger.info(LogModule.MEMORY_TRIM, '开始执行精简', { eventCount: eventsToMerge.length });
 
         try {
-            // 2. 组装待精简的文本 (烧录格式)
-            const inputText = this.formatEventsForTrim(eventsToMerge);
+            // Lazy import
+            const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
+            const { createTrimmerWorkflow } = await import('@/modules/workflow/definitions/TrimmerWorkflow');
 
-            // 3. 调用 LLM 压缩 (V0.6: 直接调用 llmAdapter)
-            const response = await llmAdapter.generate({
-                systemPrompt: trimPromptRaw,
-                userPrompt: `请将以下多条事件记录精简合并为更少的事件：\n\n${inputText}`
+            const context = await WorkflowEngine.run(createTrimmerWorkflow(), {
+                trigger: manual ? 'manual' : 'auto',
+                config: {
+                    keepRecentCount: this.config.keepRecentCount,
+                    previewEnabled: this.config.previewEnabled,
+                    templateId: 'builtin_trim', // Hardcoded for now, matches BuildPrompt category mapping potentially
+                    logType: 'trimming'
+                }
             });
 
-            if (!response.success || !response.content) {
-                Logger.error(LogModule.MEMORY_TRIM, 'LLM 调用失败', { error: response.error });
-                notificationService.error('精简失败：LLM 调用失败', 'Engram');
+            if (context.data?.skipTrimming) {
+                // Not strictly an error, just skipped
                 return null;
             }
 
-            // 4. 解析 JSON
-            const parsed = RobustJsonParser.parse<TrimResponse>(response.content);
-            if (!parsed || !parsed.events || parsed.events.length === 0) {
-                Logger.error(LogModule.MEMORY_TRIM, 'JSON 解析失败或无事件');
-                notificationService.error('精简失败：无法解析结果', 'Engram');
-                return null;
-            }
-
-            // 5. 预览确认 (如果启用)
-            let finalSummary = parsed.events.map(e => e.summary).join('\n\n');
-            if (this.config.previewEnabled) {
-                try {
-                    finalSummary = await revisionService.requestRevision(
-                        '精简摘要修订',
-                        `合并 ${eventsToMerge.length} 条事件`,
-                        finalSummary
-                    );
-                } catch {
-                    Logger.warn(LogModule.MEMORY_TRIM, '用户取消了精简');
-                    notificationService.info('已取消精简操作', '操作取消');
-                    return null;
-                }
-            }
-
-            // 6. 保存新的合并事件
-            const firstParsed = parsed.events[0];
-            const newEvent = await store.saveEvent({
-                summary: finalSummary,
-                structured_kv: {
-                    time_anchor: firstParsed.meta.time_anchor || '',
-                    role: this.mergeArrays(eventsToMerge.map(e => e.structured_kv.role)),
-                    // V1.0.2: location 现在是数组
-                    location: Array.isArray(firstParsed.meta.location)
-                        ? firstParsed.meta.location as string[]
-                        : [firstParsed.meta.location].filter((x): x is string => Boolean(x)),
-                    event: '精简合并',
-                    logic: this.mergeArrays(eventsToMerge.map(e => e.structured_kv.logic)),
-                    causality: 'Chain'
-                },
-                significance_score: Math.max(...eventsToMerge.map(e => e.significance_score)),
-                level: 1,  // 标记为二层精简
-                is_embedded: false, // 摘要默认不嵌入 (等待下一次 Trim 或手动触发)
-                is_archived: false, // 摘要始终显示
-                source_range: {
-                    start_index: Math.min(...eventsToMerge.map(e => e.source_range?.start_index ?? 0)),
-                    end_index: Math.max(...eventsToMerge.map(e => e.source_range?.end_index ?? 0))
-                }
-            });
-
-            // 7. Trim Linkage: 归档 & 嵌入联动
-            const sourceEventIds = eventsToMerge.map(e => e.id);
-
-            // 检查嵌入配置
-            const settings = SettingsManager.get('apiSettings');
-            const embeddingConfig = settings?.embeddingConfig;
-
-            if (embeddingConfig?.enabled && embeddingConfig.trigger === 'with_trim') {
-                Logger.info(LogModule.MEMORY_TRIM, '触发联动嵌入', { count: eventsToMerge.length });
-                try {
-                    // 1. 生成向量
-                    await embeddingService.embedEvents(eventsToMerge);
-                    // 2. 标记为已嵌入
-                    await store.markEventsAsEmbedded(sourceEventIds);
-                } catch (embedError) {
-                    Logger.error(LogModule.MEMORY_TRIM, '联动嵌入失败', { error: embedError });
-                    notificationService.warning('联动嵌入失败，但精简已完成', 'Engram');
-                }
-            }
-
-            // 8. 归档原始事件 (Hidden from Context)
-            // V0.7: 不再物理删除，而是标记为 is_archived
-            await store.archiveEvents(sourceEventIds);
-
-            // 9. 刷新宏缓存
-            await MacroService.refreshCache();
-
-            Logger.success(LogModule.MEMORY_TRIM, '精简完成', {
-                merged: eventsToMerge.length,
-                newEventId: newEvent.id
-            });
-
-            notificationService.success(
-                `已精简 ${eventsToMerge.length} 条事件为 1 条`,
-                'Engram'
-            );
-
-            return {
-                newEvent,
-                deletedCount: 0, // V0.7: 不再删除
-                sourceEventIds
-            };
+            return context.output as TrimResult;
 
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
-            Logger.error(LogModule.MEMORY_TRIM, '精简执行异常', { error: errorMsg });
-            notificationService.error(`精简异常: ${errorMsg}`, 'Engram 错误');
+            if (errorMsg === 'UserCancelled') {
+                Logger.info(LogModule.MEMORY_TRIM, '精简被用户取消');
+                return null;
+            }
+            Logger.error(LogModule.MEMORY_TRIM, '精简流程异常', { error: errorMsg });
+            if (manual) {
+                notificationService.error(`精简异常: ${errorMsg}`, 'Engram 错误');
+            }
             return null;
         } finally {
             this.isTrimming = false;

@@ -204,9 +204,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
 
         // 按视图模式过滤
         if (viewMode === 'topK') {
-            results = results.filter(r => r.isTopK);
+            // Show items that are marked as TopK (whether reranked or not)
+            results = results.filter(r => r.isTopK === true);
         } else if (viewMode === 'reranked') {
-            results = results.filter(r => r.isReranked);
+            // Show items that successfully passed reranking
+            results = results.filter(r => r.isReranked === true);
         }
 
         // 按分数排序

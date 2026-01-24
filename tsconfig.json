@@ -30,7 +30,7 @@
     },
     "include": [
         "src/**/*",
-        "src/types/**/*.d.ts",
+        "src/@types/**/*.d.ts",
         "manifest.json"
     ],
     "exclude": [

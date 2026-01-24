@@ -11,9 +11,10 @@ import type {
     RerankConfig,
     RecallConfig,
     CustomMacro,
-    GlobalRegexConfig
+    GlobalRegexConfig,
+    EmbeddingConfig, // New
 } from '@/config/types/defaults';
-import { getDefaultAPISettings } from '@/config/types/defaults';
+import { getDefaultAPISettings, DEFAULT_EMBEDDING_CONFIG } from '@/config/types/defaults';
 
 import { EntityExtractConfig } from '@/config/types/memory';
 
@@ -23,6 +24,7 @@ export interface UseConfigReturn {
     recallConfig: RecallConfig;
     regexConfig: GlobalRegexConfig;
     entityExtractConfig: EntityExtractConfig; // New
+    embeddingConfig: EmbeddingConfig; // New
     customMacros: CustomMacro[];
 
     updateVectorConfig: (config: VectorConfig) => void;
@@ -30,6 +32,7 @@ export interface UseConfigReturn {
     updateRecallConfig: (config: RecallConfig) => void;
     updateRegexConfig: (config: GlobalRegexConfig) => void;
     updateEntityExtractConfig: (config: EntityExtractConfig) => void; // New
+    updateEmbeddingConfig: (config: EmbeddingConfig) => void; // New
 
     // 自定义宏
     addCustomMacro: () => void;
@@ -50,6 +53,7 @@ export function useConfig(): UseConfigReturn {
     const [recallConfig, setRecallConfig] = useState<RecallConfig>(defaults.recallConfig!);
     const [regexConfig, setRegexConfig] = useState<GlobalRegexConfig>(defaults.regexConfig!);
     const [entityExtractConfig, setEntityExtractConfig] = useState<EntityExtractConfig>(defaults.entityExtractConfig || { enabled: false, trigger: 'floor', floorInterval: 10, keepRecentCount: 5 });
+    const [embeddingConfig, setEmbeddingConfig] = useState<EmbeddingConfig>(defaults.embeddingConfig || DEFAULT_EMBEDDING_CONFIG); // New
     const [customMacros, setCustomMacros] = useState<CustomMacro[]>(defaults.customMacros || []);
     const [hasChanges, setHasChanges] = useState(false);
 
@@ -61,6 +65,7 @@ export function useConfig(): UseConfigReturn {
             if (saved.recallConfig) setRecallConfig(saved.recallConfig);
             if (saved.regexConfig) setRegexConfig(saved.regexConfig);
             if (saved.entityExtractConfig) setEntityExtractConfig(saved.entityExtractConfig);
+            if (saved.embeddingConfig) setEmbeddingConfig(saved.embeddingConfig); // New
             if (saved.customMacros) setCustomMacros(saved.customMacros);
         }
     }, []);
@@ -87,6 +92,11 @@ export function useConfig(): UseConfigReturn {
 
     const updateEntityExtractConfig = useCallback((config: EntityExtractConfig) => {
         setEntityExtractConfig(config);
+        setHasChanges(true);
+    }, []);
+
+    const updateEmbeddingConfig = useCallback((config: EmbeddingConfig) => {
+        setEmbeddingConfig(config);
         setHasChanges(true);
     }, []);
 
@@ -127,10 +137,11 @@ export function useConfig(): UseConfigReturn {
             recallConfig,
             regexConfig,
             entityExtractConfig,
+            embeddingConfig, // New
             customMacros,
         } as any);
         setHasChanges(false);
-    }, [vectorConfig, rerankConfig, recallConfig, regexConfig, entityExtractConfig, customMacros]);
+    }, [vectorConfig, rerankConfig, recallConfig, regexConfig, entityExtractConfig, embeddingConfig, customMacros]);
 
     return {
         vectorConfig,
@@ -138,12 +149,14 @@ export function useConfig(): UseConfigReturn {
         recallConfig,
         regexConfig,
         entityExtractConfig,
+        embeddingConfig,
         customMacros,
         updateVectorConfig,
         updateRerankConfig,
         updateRecallConfig,
         updateRegexConfig,
         updateEntityExtractConfig,
+        updateEmbeddingConfig,
         addCustomMacro,
         updateCustomMacro,
         deleteCustomMacro,

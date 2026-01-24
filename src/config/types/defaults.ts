@@ -2,22 +2,17 @@
 export type { SamplingParameters, ContextSettings, LLMPreset } from './llm';
 export type { BrainRecallConfig, RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
 export type { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
-export type { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory } from './prompt';
+export type { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, WorldbookConfigProfile } from './prompt';
 export { PROMPT_CATEGORIES } from './prompt';
 
-import { DEFAULT_STICKY_CONFIG } from '@/modules/rag/retrieval/StickyCache';
+
 import { SamplingParameters, ContextSettings, LLMPreset } from './llm';
 import { BrainRecallConfig, RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
 import { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
-import { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, PROMPT_CATEGORIES } from './prompt';
+import { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, PROMPT_CATEGORIES, WorldbookConfigProfile } from './prompt';
 
 // Import prompts from original location (will be moved in Phase 7)
-import summaryPrompt from '@/integrations/llm/prompts/summary_prompt.txt?raw';
-import trimPrompt from '@/integrations/llm/prompts/trim.txt?raw';
-import queryEnhancePrompt from '@/integrations/llm/prompts/query_enhance.txt?raw';
-import plotDirectorPrompt from '@/integrations/llm/prompts/plot_director.txt?raw';
-import descriptionPrompt from '@/integrations/llm/prompts/description.txt?raw';
-import entityExtractionPrompt from '@/integrations/llm/prompts/entity_extraction.txt?raw';
+// Removed: raw text imports replaced by YAML loader
 
 export const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
     temperature: 0.7,
@@ -64,7 +59,7 @@ export const DEFAULT_RECALL_CONFIG: RecallConfig = {
         topK: 50,               // Embedding 初筛 50 条
         minScoreThreshold: 0.35, // 过滤阈值 (稍高，过滤不相关)
     },
-    sticky: { ...DEFAULT_STICKY_CONFIG, enabled: false }, // 默认关闭旧版
+
     brainRecall: DEFAULT_BRAIN_RECALL_CONFIG,
 };
 
@@ -139,6 +134,8 @@ export interface EngramAPISettings {
     entityExtractConfig?: EntityExtractConfig;
     /** V0.9.2: 自定义宏 */
     customMacros?: CustomMacro[];
+    /** V1.1.0: 世界书配置方案 */
+    worldbookProfiles?: WorldbookConfigProfile[];
 }
 
 
@@ -177,162 +174,21 @@ export function createPromptTemplate(
         boundPresetId: options.boundPresetId ?? null,
         systemPrompt: options.systemPrompt ?? '',
         userPromptTemplate: options.userPromptTemplate ?? '',
+        injectionMode: options.injectionMode, // Fix: Ensure injectionMode is preserved
         createdAt: now,
         updatedAt: now,
     };
 }
 
+import { PromptLoader } from '@/integrations/llm/PromptLoader';
+
 /**
  * 内置提示词模板
  */
 export function getBuiltInPromptTemplates(): PromptTemplate[] {
-    return [
-        createPromptTemplate('剧情摘要', 'summary', {
-            id: 'builtin_summary',
-            enabled: true,
-            isBuiltIn: true,
-            systemPrompt: summaryPrompt,
-            userPromptTemplate: `**角色设定**:
-{{context}}
-
-**用户人设**:
-{{userPersona}}
-
-**设定或者知识库**:
-{{worldbookContext}}
-
-**已有剧情摘要**:
-{{engramSummaries}}
-
----
-请将以下对话内容总结为结构化事件：
-
-{{chatHistory}}
-
-请按要求输出 JSON 格式的剧情总结：`,
-        }),
-        createPromptTemplate('记忆精简', 'trim', {
-            id: 'builtin_trim',
-            enabled: true,
-            isBuiltIn: true,
-            systemPrompt: trimPrompt,
-            userPromptTemplate: `{{worldbookContext}}
-以上是相关设定和剧情。
-
-请将以下多条剧情摘要合并精简：
-
-{{engramSummaries}}
-
-请输出一条精简后的综合摘要。`,
-        }),
-        createPromptTemplate('Query 增强', 'preprocessing', {
-            id: 'builtin_query_enhance',
-            enabled: true,
-            isBuiltIn: true,
-            systemPrompt: queryEnhancePrompt,
-            userPromptTemplate: `**角色设定**:
-{{context}}
-
-**用户人设**:
-{{userPersona}}
-
-**设定或者知识库**:
-{{worldbookContext}}
-
-**已有剧情摘要**:
-{{engramSummaries}}
-
-**最近对话历史**:
-{{chatHistory}}
-
-**用户本轮输入**:
-{{userInput}}
-
----
-请根据以上信息，输出扩展后的检索查询词。`,
-            injectionMode: 'append', // 默认追加到用户输入后
-        }),
-        createPromptTemplate('剧情编排', 'preprocessing', {
-            id: 'builtin_plot_director',
-            enabled: false,  // 默认不启用，用户按需开启
-            isBuiltIn: true,
-            systemPrompt: plotDirectorPrompt,
-            userPromptTemplate: `**角色设定**:
-{{context}}
-
-**用户人设**:
-{{userPersona}}
-
-**设定或者知识库**:
-{{worldbookContext}}
-
-**已有剧情摘要**:
-{{engramSummaries}}
-
-**最近对话历史**:
-{{chatHistory}}
-
-**用户本轮输入**:
-{{userInput}}
-
----
-请根据以上信息，进行剧情规划并输出导演指令框架。`,
-            injectionMode: 'append', // 剧情编排通常是给 AI 的指令，追加在用户输入后
-        }),
-        createPromptTemplate('描写增强', 'preprocessing', {
-            id: 'builtin_description_enhance',
-            enabled: false,  // 默认不启用，用户按需开启
-            isBuiltIn: true,
-            systemPrompt: descriptionPrompt,
-            userPromptTemplate: `**角色设定**:
-{{context}}
-
-**用户人设**:
-{{userPersona}}
-
-**已有剧情摘要**:
-{{engramSummaries}}
-
-**最近对话历史**:
-{{chatHistory}}
-
-**用户本轮输入**:
-{{userInput}}
-
----
-请根据以上信息，输出增强后的描写内容。`,
-            injectionMode: 'replace', // 描写增强通常是完全重写用户的输入
-        }),
-        // V0.9: 实体提取模板
-        createPromptTemplate('实体提取', 'entity_extraction', {
-            id: 'builtin_entity_extraction',
-            enabled: true,  // V1.0.2: 默认启用
-            isBuiltIn: true,
-            systemPrompt: entityExtractionPrompt,
-            userPromptTemplate: `
-**设定或者知识库**:
-{{worldbookContext}}
-
-**已有剧情摘要**:
-{{engramSummaries}}
-
-以上是背景设定和剧情摘要
-
-**已经存在的待更新的实体**:
-{{engramEntityStates}}
-
-请从以下最新的事件数据中提取和更新实体和关系：
-
-**最近对话历史**:
-{{chatHistory}}
-
-**用户本轮输入**:
-{{userInput}}
-
----
-请按JSON patch格式对实体和关系数据进行注册和更新。`,
-        }),
-    ];
+    // 确保已加载
+    PromptLoader.init();
+    return PromptLoader.getBuiltInTemplates();
 }
 
 /**
@@ -367,5 +223,6 @@ export function getDefaultAPISettings(): EngramAPISettings {
         regexConfig: { ...DEFAULT_REGEX_CONFIG }, // V0.8
         recallConfig: { ...DEFAULT_RECALL_CONFIG }, // V0.8.5
         customMacros: [...DEFAULT_CUSTOM_MACROS], // V0.9.2
+        worldbookProfiles: [], // V1.1.0
     };
 }

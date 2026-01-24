@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import { TextField, SelectField, FormSection } from './FormField';
-import type { PromptTemplate } from '@/config/types/prompt';
+import type { PromptTemplate, WorldbookConfigProfile, PromptCategory } from '@/config/types/prompt';
 import type { LLMPreset } from '@/config/types/llm';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';
 import { Plus, Copy, Check } from 'lucide-react';
@@ -12,6 +12,7 @@ import { useState } from 'react';
 interface PromptTemplateFormProps {
     template: PromptTemplate;
     llmPresets: LLMPreset[];
+    worldbookProfiles: WorldbookConfigProfile[];
     defaultPresetId: string | null;
     onChange: (template: PromptTemplate) => void;
 }
@@ -72,6 +73,7 @@ const MacroItem = ({ macro }: { macro: MacroDef }) => {
 export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
     template,
     llmPresets,
+    worldbookProfiles,
     defaultPresetId,
     onChange,
 }) => {
@@ -147,7 +149,23 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                     multiline
                     rows={4}
                 />
+            </FormSection>
 
+            {/* 知识库绑定 (V1.1.0) */}
+            <FormSection title="知识库绑定">
+                <SelectField
+                    label="绑定知识库方案"
+                    value={template.boundWorldbookProfileId || ''}
+                    onChange={(value) => updateTemplate({ boundWorldbookProfileId: value || null })}
+                    options={[
+                        { value: '', label: '继承全局设置 (Inherit Global)' },
+                        ...worldbookProfiles.map(p => ({ value: p.id, label: p.name })),
+                    ]}
+                    description="选择此模板专用的世界书加载方案。若选择“继承全局”，则使用全局世界书配置。"
+                />
+            </FormSection>
+
+            <FormSection title="用户输入">
                 <TextField
                     label="用户提示词模板"
                     value={template.userPromptTemplate}

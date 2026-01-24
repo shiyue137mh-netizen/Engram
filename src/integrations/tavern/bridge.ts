@@ -29,7 +29,7 @@ export async function initializeEngram(): Promise<void> {
     // 加载保存的正则规则到全局处理器
     const savedRegexRules = SettingsManager.getRegexRules();
     if (savedRegexRules && savedRegexRules.length > 0) {
-        const { regexProcessor } = await import('@/modules/memory/extractors/RegexProcessor');
+        const { regexProcessor } = await import('@/modules/workflow/steps');
         regexProcessor.setRules(savedRegexRules);
         Logger.info('STBridge', `Loaded ${savedRegexRules.length} regex rules`);
     }
