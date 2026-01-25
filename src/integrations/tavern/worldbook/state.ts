@@ -1,4 +1,6 @@
-import { WorldInfoService, CreateWorldInfoEntryParams } from '@/integrations/tavern/api/WorldInfo';
+import { getEntries, findEntryByKey, createEntry, updateEntry, deleteEntry } from './crud';
+import { CreateWorldInfoEntryParams } from './types';
+import { STATE_ENTRY_KEY } from './constants';
 import { Logger } from '@/core/logger';
 
 export interface EngramState {
@@ -14,7 +16,6 @@ export interface EngramState {
     disabledEntries?: Record<string, number[]>;
 }
 
-const STATE_ENTRY_KEY = '__ENGRAM_STATE__';
 const DEFAULT_STATE: EngramState = {
     lastSummarizedFloor: 0,
     totalSummaries: 0,
@@ -25,7 +26,7 @@ const DEFAULT_STATE: EngramState = {
 /**
  * @deprecated V0.5 已弃用
  * 状态现在存储在 IndexedDB (ScopeManager) 中，不再使用世界书
- * 保留此文件仅为兼容性，请勿在新代码中使用
+ * 保留此文件仅为兼容性
  *
  * WorldBookStateService
  * 负责在世界书中持久化 Engram 的状态
@@ -36,7 +37,7 @@ export class WorldBookStateService {
      */
     static async loadState(worldbookName: string): Promise<EngramState> {
         try {
-            const entry = await WorldInfoService.findEntryByKey(worldbookName, STATE_ENTRY_KEY);
+            const entry = await findEntryByKey(worldbookName, STATE_ENTRY_KEY);
             if (!entry) {
                 return { ...DEFAULT_STATE };
             }
@@ -71,7 +72,7 @@ export class WorldBookStateService {
             const content = JSON.stringify(newState, null, 2);
 
             // 2. 查找所有可能是状态条目的 entries (按 name 或 key)
-            const entries = await WorldInfoService.getEntries(worldbookName);
+            const entries = await getEntries(worldbookName);
             const stateEntries = entries.filter(e =>
                 e.name === 'Engram System State' || e.keys.includes(STATE_ENTRY_KEY)
             );
@@ -90,12 +91,11 @@ export class WorldBookStateService {
                 if (duplicates.length > 0) {
                     Logger.warn('WorldBookStateService', `发现 ${duplicates.length} 个重复的状态条目，正在清理...`);
                     for (const dup of duplicates) {
-                        await WorldInfoService.deleteEntry(worldbookName, dup.uid);
+                        await deleteEntry(worldbookName, dup.uid);
                     }
                 }
 
                 // 更新保留的条目
-                // 强制修正所有属性，确保不会出现"蓝灯"（constant）或被注入上下文
                 Logger.debug('WorldBookStateService', '更新并修复状态条目', { uid: primaryEntry.uid, state: newState });
                 const updates = {
                     content,
@@ -111,7 +111,7 @@ export class WorldBookStateService {
                     order: 0
                 };
 
-                return await WorldInfoService.updateEntry(worldbookName, primaryEntry.uid, updates);
+                return await updateEntry(worldbookName, primaryEntry.uid, updates);
             } else {
                 // 创建新条目
                 Logger.debug('WorldBookStateService', '创建状态条目', { state: newState });
@@ -129,7 +129,7 @@ export class WorldBookStateService {
                         prevent_outgoing: true
                     }
                 };
-                return await WorldInfoService.createEntry(worldbookName, params);
+                return await createEntry(worldbookName, params);
             }
         } catch (e) {
             Logger.error('WorldBookStateService', '保存状态失败', e);

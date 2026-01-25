@@ -394,7 +394,7 @@ export class SummarizerService {
             // 2. Run Workflow
             const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
             const { createSummaryWorkflow } = await import('@/modules/workflow/definitions/SummaryWorkflow');
-            const { WorldBookSlotService } = await import('@/integrations/tavern/WorldBookSlot');
+            const { WorldBookSlotService } = await import('@/integrations/tavern/worldbook');
             await WorldBookSlotService.init();
 
             const context = await WorkflowEngine.run(createSummaryWorkflow(), {

@@ -10,7 +10,7 @@ export type { TavernEventTypeValue, EventCallback, Unsubscribe } from '@/integra
 export { MessageService } from './Message';
 export type { TavernMessage, MessageRole, GetMessagesOptions } from './Message';
 
-export { WorldInfoService } from './WorldInfo';
+export { WorldInfoService } from '../worldbook';
 export type {
     WorldInfoEntry,
     WorldInfoPosition,
@@ -18,7 +18,7 @@ export type {
     WorldInfoRole,
     WorldInfoTokenStats,
     CreateWorldInfoEntryParams,
-} from './WorldInfo';
+} from '../worldbook';
 
 /**
  * 检查酒馆接口对接状态
@@ -34,7 +34,7 @@ export async function checkTavernIntegration(): Promise<{
 }> {
     const { EventBus } = await import('@/integrations/tavern/events');
     const { MessageService } = await import('./Message');
-    const { WorldInfoService } = await import('./WorldInfo');
+    const { WorldInfoService } = await import('../worldbook');
 
     const status = {
         eventBus: EventBus.isAvailable(),

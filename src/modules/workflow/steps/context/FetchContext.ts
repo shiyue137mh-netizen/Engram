@@ -1,7 +1,7 @@
 import { IStep } from '../../core/Step';
 import { JobContext } from '../../core/JobContext';
 import { MacroService } from '@/integrations/tavern/macros';
-import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
+import { WorldInfoService } from '@/integrations/tavern/worldbook';
 import { SettingsManager } from '@/config/settings';
 import { getCurrentChat, getCurrentCharacter } from '@/integrations/tavern/context';
 import { WorldbookConfigProfile } from '@/config/types/prompt';

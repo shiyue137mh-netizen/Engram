@@ -1,16 +1,14 @@
 /**
  * WorldBookSlotService - WorldBook 槽位初始化服务
  *
- * 负责创建和维护唯一的 {{engramSummaries}} 宏槽位条目
+ * 负责创建和维护唯一的 {{engramSummaries}} 和 {{engramEntityStates}} 宏槽位条目
  * 这是 WorldBook 在新架构中的唯一用途：作为宏注入的载体
  */
 
-import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
+import { WorldbookEngramService } from './engram';
+import { createEntry, findEntryByKey } from './crud';
+import { SLOT_ENTRY_KEY, SLOT_ENTRY_NAME } from './constants';
 import { Logger } from '@/core/logger';
-
-/** 槽位条目的唯一标识 */
-const SLOT_ENTRY_KEY = 'engram_macro_slot';
-const SLOT_ENTRY_NAME = 'Engram Memory Context';
 
 /**
  * WorldBookSlotService 类
@@ -26,14 +24,14 @@ export class WorldBookSlotService {
         if (this.isInitialized) return;
 
         try {
-            const worldbookName = await WorldInfoService.getOrCreateWorldbook();
+            const worldbookName = await WorldbookEngramService.getOrCreateWorldbook();
             if (!worldbookName) {
                 Logger.warn('WorldBookSlotService', '无法获取或创建世界书');
                 return;
             }
 
             // 检查槽位条目是否存在
-            const existingEntry = await WorldInfoService.findEntryByKey(worldbookName, SLOT_ENTRY_KEY);
+            const existingEntry = await findEntryByKey(worldbookName, SLOT_ENTRY_KEY);
 
             if (existingEntry) {
                 Logger.debug('WorldBookSlotService', '宏槽位条目已存在', {
@@ -52,7 +50,7 @@ export class WorldBookSlotService {
              * - constant: true → 始终激活
              * - content: 包含 {{engramSummaries}} 宏，运行时动态替换
              */
-            const success = await WorldInfoService.createEntry(worldbookName, {
+            const success = await createEntry(worldbookName, {
                 name: SLOT_ENTRY_NAME,
                 content: '{{engramSummaries}}\n{{engramEntityStates}}',
                 keys: [SLOT_ENTRY_KEY],

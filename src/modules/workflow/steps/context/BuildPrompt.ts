@@ -83,6 +83,20 @@ export class BuildPrompt implements IStep {
             userPrompt = userPrompt.split(key).join(value);
         }
 
+        // 保存结果之前，调用酒馆原生宏替换 (处理 {{time}}, {{date}}, {{user}} 等标准宏)
+        // 注意：我们必须先做上面的手动替换，因为 {{chatHistory}} 等变量在 Batch 模式下是特定的，不能用全局宏
+        try {
+            // @ts-ignore
+            const stContext = window.SillyTavern?.getContext?.() as any;
+            const substituteParams = stContext?.substituteParams;
+            if (typeof substituteParams === 'function') {
+                systemPrompt = substituteParams(systemPrompt);
+                userPrompt = substituteParams(userPrompt);
+            }
+        } catch (e) {
+            Logger.warn('BuildPrompt', '酒馆原生宏替换失败', e);
+        }
+
         // 保存结果到 Context
         context.prompt = {
             system: systemPrompt,

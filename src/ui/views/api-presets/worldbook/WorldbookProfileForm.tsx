@@ -3,18 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { Book, Check, Search, Info } from 'lucide-react';
 import { TextField, SelectField, FormSection } from '@/ui/components/form/FormComponents';
 import type { WorldbookConfigProfile } from '@/config/types/prompt';
-import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
 
 interface WorldbookProfileFormProps {
     profile: WorldbookConfigProfile;
     onChange: (id: string, updates: Partial<WorldbookConfigProfile>) => void;
     availableWorldbooks: string[]; // List of all WB names
+    charWorldbooks: string[]; // List of character-bound WB names
 }
 
 export const WorldbookProfileForm: React.FC<WorldbookProfileFormProps> = ({
     profile,
     onChange,
-    availableWorldbooks
+    availableWorldbooks,
+    charWorldbooks = []
 }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -84,6 +85,17 @@ export const WorldbookProfileForm: React.FC<WorldbookProfileFormProps> = ({
                             placeholder="搜索世界书..."
                             className="flex-1 bg-transparent border-none text-sm focus:outline-none placeholder:text-muted-foreground/50 h-8"
                         />
+                        <button
+                            onClick={() => {
+                                if (confirm('确定要重置为当前角色的默认世界书吗？')) {
+                                    onChange(profile.id, { selectedWorldbooks: charWorldbooks });
+                                }
+                            }}
+                            className="text-xs text-primary hover:text-primary/80 px-2 py-1 rounded hover:bg-primary/5 transition-colors"
+                            title="重置为当前角色绑定的世界书"
+                        >
+                            重置为默认
+                        </button>
                         <div className="text-xs text-muted-foreground mr-2">
                             已选: {profile.selectedWorldbooks.length} / {availableWorldbooks.length}
                         </div>
@@ -94,30 +106,38 @@ export const WorldbookProfileForm: React.FC<WorldbookProfileFormProps> = ({
                             {filteredWorldbooks.length > 0 ? (
                                 filteredWorldbooks.map(wbName => {
                                     const isSelected = profile.selectedWorldbooks?.includes(wbName);
+                                    const isCharBound = charWorldbooks.includes(wbName);
                                     return (
                                         <div
                                             key={wbName}
                                             onClick={() => toggleWorldbook(wbName)}
                                             className={`
-                                                flex items - center gap - 3 p - 2.5 rounded - md cursor - pointer transition - colors border
+                                                flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-colors border
                                                 ${isSelected
                                                     ? 'bg-primary/5 border-primary/30'
                                                     : 'bg-transparent border-transparent hover:bg-muted'
                                                 }
-`}
+                                            `}
                                         >
                                             <div className={`
-w - 4 h - 4 rounded border flex items - center justify - center transition - colors
+                                                w-4 h-4 rounded border flex items-center justify-center transition-colors
                                                 ${isSelected
                                                     ? 'bg-primary border-primary text-primary-foreground'
                                                     : 'border-muted-foreground/50'
                                                 }
-`}>
+                                            `}>
                                                 {isSelected && <Check size={10} strokeWidth={4} />}
                                             </div>
-                                            <span className={`text - sm truncate ${isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'} `}>
-                                                {wbName}
-                                            </span>
+                                            <div className="flex-1 min-w-0 flex items-center gap-2">
+                                                <span className={`text-sm truncate ${isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                                                    {wbName}
+                                                </span>
+                                                {isCharBound && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 whitespace-nowrap">
+                                                        角色绑定
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     );
                                 })

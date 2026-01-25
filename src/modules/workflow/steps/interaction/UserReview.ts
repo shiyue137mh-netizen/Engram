@@ -1,7 +1,7 @@
 import { IStep } from '../../core/Step';
 import { JobContext } from '../../core/JobContext';
 import { revisionService } from '@/core/events/RevisionBridge';
-import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
+import { WorldInfoService } from '@/integrations/tavern/worldbook';
 import { Logger } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 

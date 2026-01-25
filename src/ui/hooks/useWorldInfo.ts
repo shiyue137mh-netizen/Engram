@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
-import { WorldBookStateService } from "@/integrations/tavern/WorldBookState";
-import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
-import { getTavernHelper } from '@/integrations/tavern/api/WorldInfo';
+import { WorldBookStateService } from "@/integrations/tavern/worldbook";
+import { WorldInfoService } from '@/integrations/tavern/worldbook';
+import { getTavernHelper } from '@/integrations/tavern/worldbook';
 import { SettingsManager } from "@/config/settings";
 import type { WorldbookConfig, EngramAPISettings, WorldbookConfigProfile } from '@/config/types/defaults';
 import { getDefaultAPISettings } from '@/config/types/defaults';

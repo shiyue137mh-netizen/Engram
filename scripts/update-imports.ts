@@ -18,22 +18,14 @@ async function updateImports() {
         const imports = sourceFile.getImportDeclarations();
         for (const imp of imports) {
             const moduleSpecifier = imp.getModuleSpecifierValue();
-            if (moduleSpecifier.includes("workflow/processors/RegexProcessor") ||
-                moduleSpecifier.includes("workflow/processors/TextProcessor")) {
 
-                // Replace with unified steps import
-                // We assume usage allows named import from steps/index.ts
-                // If it was default import, we might need to change to named import?
-                // steps/index.ts exports * (named exports).
-                // regexProcessor is exported as named export.
+            // Refactoring WorldInfo: Map old paths to new module
+            if (moduleSpecifier.includes("integrations/tavern/api/WorldInfo") ||
+                moduleSpecifier.includes("integrations/tavern/WorldBookSlot") ||
+                moduleSpecifier.includes("integrations/tavern/WorldBookState")) {
 
-                // Determine new specifier
-                let newSpecifier = "@/modules/workflow/steps";
-
-                // If using relative paths, we might want to keep relative?
-                // Using alias is safer and cleaner.
-
-                imp.setModuleSpecifier(newSpecifier);
+                // Replace with unified new module import
+                imp.setModuleSpecifier("@/integrations/tavern/worldbook");
                 modified = true;
             }
         }
@@ -48,11 +40,12 @@ async function updateImports() {
                     const arg = args[0].asKindOrThrow(ts.SyntaxKind.StringLiteral);
                     const text = arg.getLiteralValue();
 
-                    if (text.includes("workflow/processors/RegexProcessor") ||
-                        text.includes("workflow/processors/TextProcessor")) {
+                    if (text.includes("integrations/tavern/api/WorldInfo") ||
+                        text.includes("integrations/tavern/WorldBookSlot") ||
+                        text.includes("integrations/tavern/WorldBookState")) {
 
                         // Replace path
-                        arg.setLiteralValue("@/modules/workflow/steps");
+                        arg.setLiteralValue("@/integrations/tavern/worldbook");
                         modified = true;
                     }
                 }

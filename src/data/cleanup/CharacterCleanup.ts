@@ -2,7 +2,7 @@ import { getSTContext } from '@/integrations/tavern/context';
 import { callPopup } from '@/integrations/tavern/bridge';
 import { Logger, LogModule } from "@/core/logger";
 import { SettingsManager } from "@/config/settings";
-import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
+import { WorldInfoService } from '@/integrations/tavern/worldbook';
 import { notificationService } from '@/ui/services/NotificationService';
 
 /**

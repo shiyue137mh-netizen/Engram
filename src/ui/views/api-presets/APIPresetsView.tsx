@@ -574,7 +574,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                                 id: `wb_profile_${Date.now()}`,
                                                 name: '新知识库方案',
                                                 mode: 'custom',
-                                                selectedWorldbooks: [],
+                                                selectedWorldbooks: worldbookScopes?.chat || [],
                                                 createdAt: Date.now(),
                                                 updatedAt: Date.now()
                                             };
@@ -593,6 +593,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                                                     profile={profile}
                                                     onChange={updateProfile}
                                                     availableWorldbooks={availableWorldbooks}
+                                                    charWorldbooks={worldbookScopes?.chat || []}
                                                 />
                                             </div>
                                         ) : (
