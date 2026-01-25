@@ -198,7 +198,7 @@ export const Modal: React.FC<ModalProps> = ({
 
     return ReactDOM.createPortal(
         <div
-            className="fixed inset-0 z-[11000] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100000] flex items-center justify-center p-4"
             style={{ height: '100dvh', width: '100vw' }}
         >
             {/* 背景遮罩 */}

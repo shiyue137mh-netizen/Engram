@@ -36,7 +36,9 @@ export class EntityBuilder {
     private isExtracting = false;
 
     constructor(config?: Partial<EntityExtractConfig>) {
-        this.config = { ...DEFAULT_ENTITY_CONFIG, ...config };
+        // V0.9.10: Fix - 优先从 SettingsManager 加载持久化配置
+        const savedConfig = SettingsManager.get('apiSettings')?.entityExtractConfig;
+        this.config = { ...DEFAULT_ENTITY_CONFIG, ...savedConfig, ...config };
     }
 
     /**
@@ -102,7 +104,8 @@ export class EntityBuilder {
                 trigger: manual ? 'manual' : 'auto',
                 config: {
                     dryRun,
-                    logType: 'entity_extraction' // For LlmRequest logging
+                    logType: 'entity_extraction', // For LlmRequest logging
+                    templateId: this.config.promptTemplateId // V0.9.10: Support custom prompt
                 },
                 input: {
                     // Pass range if possible, otherwise FetchChatHistory logic needs to handle single floor or raw string
@@ -195,37 +198,49 @@ export class EntityBuilder {
         const store = useMemoryStore.getState();
         const currentFloor = MacroService.getCurrentMessageCount();
 
-        // 批量保存新增实体
-        for (const entity of newEntities) {
-            // 确保没有 ID 冲突 (预览时生成的临时 ID 可能与现有冲突，最好重新生成或者 saveEntity 内部处理)
-            // store.saveEntity 会生成新 ID
-            await store.saveEntity({
-                name: entity.name,
-                type: entity.type,
-                description: entity.description,
-                aliases: entity.aliases || [],
-                profile: (entity.profile || {}) as Record<string, unknown>,
-            });
+        Logger.info(LogModule.MEMORY_ENTITY, '开始保存实体 (saveRawEntities)', {
+            newCount: newEntities.length,
+            updatedCount: updatedEntities.length
+        });
+
+        try {
+            // 批量保存新增实体
+            for (const entity of newEntities) {
+                // 确保没有 ID 冲突
+                Logger.debug(LogModule.MEMORY_ENTITY, 'Saving new entity', { name: entity.name });
+                await store.saveEntity({
+                    name: entity.name,
+                    type: entity.type,
+                    description: entity.description,
+                    aliases: entity.aliases || [],
+                    profile: (entity.profile || {}) as Record<string, unknown>,
+                });
+            }
+
+            // 批量保存更新实体
+            for (const entity of updatedEntities) {
+                Logger.debug(LogModule.MEMORY_ENTITY, 'Updating entity', { id: entity.id, name: entity.name });
+                await store.updateEntity(entity.id, {
+                    profile: entity.profile,
+                    aliases: entity.aliases,
+                    description: entity.description,
+                    name: entity.name,
+                    type: entity.type
+                });
+            }
+
+            // 更新状态
+            await chatManager.updateState({ last_extracted_floor: currentFloor });
+
+            notificationService.success(
+                `已保存 ${newEntities.length} 个新实体，更新 ${updatedEntities.length} 个实体`,
+                'Engram'
+            );
+            Logger.success(LogModule.MEMORY_ENTITY, '实体保存完成');
+        } catch (error) {
+            Logger.error(LogModule.MEMORY_ENTITY, '实体保存失败', { error });
+            throw error; // Re-throw for UI to catch
         }
-
-        // 批量保存更新实体
-        for (const entity of updatedEntities) {
-            await store.updateEntity(entity.id, {
-                profile: entity.profile,
-                aliases: entity.aliases,
-                description: entity.description,
-                name: entity.name,
-                type: entity.type
-            });
-        }
-
-        // 更新状态
-        await chatManager.updateState({ last_extracted_floor: currentFloor });
-
-        notificationService.success(
-            `已保存 ${newEntities.length} 个新实体，更新 ${updatedEntities.length} 个实体`,
-            'Engram'
-        );
     }
 
     /**

@@ -8,6 +8,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { Logger } from '@/core/logger';
 import { EntityBuilder, entityBuilder } from "@/modules/memory/EntityExtractor";
 import { TextField, NumberField, SwitchField, FormSection } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
@@ -71,18 +72,23 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
         setIsLoading(true);
         try {
             // 1. Dry Run
+            Logger.debug('EntityConfigPanel', 'Starting manual extract dry-run');
             const result = await entityBuilder.extractManual(true);
+            Logger.debug('EntityConfigPanel', 'Manual extract result:', result);
 
             if (result && result.success && (result.newEntities.length > 0 || result.updatedEntities.length > 0)) {
                 // 2. Show Preview
+                Logger.info('EntityConfigPanel', 'Opening Review Modal', { new: result.newEntities.length });
                 setReviewData({
                     newEntities: result.newEntities,
                     updatedEntities: result.updatedEntities
                 });
                 setShowReviewModal(true);
-            } else if (result && result.success) {
-                // No changes
-                await loadStatus();
+            } else {
+                Logger.info('EntityConfigPanel', 'No changes detected or extraction failed');
+                if (result && result.success) {
+                    await loadStatus();
+                }
             }
         } catch (e) {
             console.error('[EntityConfigPanel] Manual extraction failed:', e);
@@ -100,6 +106,8 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
             console.error('[EntityConfigPanel] Failed to save reviewed entities:', e);
         }
     };
+
+
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">

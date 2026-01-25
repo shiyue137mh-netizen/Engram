@@ -1,6 +1,6 @@
 // Re-export types for convenience
-export type {   LLMPreset } from './llm';
-export type {  RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
+export type { LLMPreset } from './llm';
+export type { RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
 export type { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
 export type { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, WorldbookConfigProfile } from './prompt';
 ;

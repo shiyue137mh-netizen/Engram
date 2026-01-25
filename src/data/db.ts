@@ -95,8 +95,13 @@ export class ChatDatabase extends Dexie {
             return;
         }
 
-        this.meta.put({ key: 'lastModified', value: Date.now() }).catch(err => {
-            Logger.error(MODULE, 'Failed to update lastModified', err);
+        // V0.9.11: Fix NotFoundError by ignoring current transaction (if any)
+        // updateLastModified is often triggered by hooks inside a restricted transaction (e.g. only 'entities')
+        // but needs access to 'meta'.
+        Dexie.ignoreTransaction(() => {
+            this.meta.put({ key: 'lastModified', value: Date.now() }).catch(err => {
+                Logger.error(MODULE, 'Failed to update lastModified', err);
+            });
         });
         syncService.scheduleUpload(this.chatId);
     }

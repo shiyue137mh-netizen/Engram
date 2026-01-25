@@ -27,7 +27,10 @@ export interface EntityExtractConfig {
     /** 楼层间隔 (每 N 楼触发一次，默认 50) */
     floorInterval: number;
     /** 保留最近 N 条对话不处理 */
+    /** 保留最近 N 条对话不处理 */
     keepRecentCount: number;
+    /** 使用的提示词模板 ID */
+    promptTemplateId?: string;
 }
 
 export interface GlobalRegexConfig {

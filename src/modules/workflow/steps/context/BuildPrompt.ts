@@ -22,17 +22,40 @@ export class BuildPrompt implements IStep {
         const templateId = context.config.templateId || this.config.templateId;
         const category = context.config.category || this.config.category;
 
-        PromptLoader.init();
+        // V0.9.11: Use SettingsManager as Source of Truth to include User Custom Templates
+        // PromptLoader only has built-ins.
+        const { SettingsManager } = await import('@/config/settings');
+        const allTemplates = SettingsManager.get('apiSettings')?.promptTemplates || [];
+
+        // Ensure built-ins are loaded if settings are empty (rare fallback)
+        if (allTemplates.length === 0) {
+            PromptLoader.init();
+            allTemplates.push(...PromptLoader.getAllTemplates());
+        }
 
         let template;
         if (templateId) {
-            // TODO: PromptLoader 需要增加 getById 方法，暂时用 getAll 查找
-            template = PromptLoader.getAllTemplates().find(t => t.id === templateId);
+            // Priority 1: Use explicit templateId
+            template = allTemplates.find(t => t.id === templateId);
+        } else if (category) {
+            // Priority 2: Use Enabled template in category
+            const templates = allTemplates.filter(t => t.category === category && t.enabled);
+            const customEnabled = templates.find(t => !t.isBuiltIn);
+            if (customEnabled) {
+                template = customEnabled;
+            } else {
+                template = templates[0];
+            }
+
+            if (template) {
+                Logger.debug('BuildPrompt', `Using auto-detected enabled template: ${template.name}`);
+            }
         }
 
         if (!template && category) {
-            // 使用分类的内置模板作为 fallback
+            // Priority 3: Fallback to builtin default
             template = getBuiltInTemplateByCategory(category as any);
+            Logger.debug('BuildPrompt', `Fallback to builtin template: ${template?.name}`);
         }
 
         if (!template) {

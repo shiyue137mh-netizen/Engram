@@ -79,7 +79,7 @@ export const EntityReviewModal: React.FC<EntityReviewModalProps> = ({
                                     <div key={idx} className="relative group p-3 rounded-lg border border-green-500/20 bg-green-500/5 hover:bg-green-500/10 transition-colors">
                                         <button
                                             onClick={() => handleRemoveNew(idx)}
-                                            className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-2 right-2 p-1 bg-transparent text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                                             title="移除"
                                         >
                                             <X size={14} />
@@ -119,7 +119,7 @@ export const EntityReviewModal: React.FC<EntityReviewModalProps> = ({
                                     <div key={idx} className="relative group p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
                                         <button
                                             onClick={() => handleRemoveUpdated(idx)}
-                                            className="absolute top-2 right-2 p-1 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-2 right-2 p-1 bg-transparent text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
                                             title="移除"
                                         >
                                             <X size={14} />
