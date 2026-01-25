@@ -49,7 +49,7 @@ export interface RecallCandidate {
     embeddingVector?: number[];
 }
 
-class BrainRecallCache {
+export class BrainRecallCache {
     private shortTermMemory: Map<string, MemorySlot> = new Map();
     private currentRound: number = 0;
     private config: BrainRecallConfig = DEFAULT_BRAIN_RECALL_CONFIG;

@@ -7,7 +7,7 @@
  */
 
 /** 正则替换规则 */
-interface TrimRule {
+export interface TrimRule {
     pattern: RegExp;
     replacement: string;
     description: string;
@@ -30,7 +30,7 @@ const DEFAULT_TRIM_RULES: TrimRule[] = [
  * TextProcessor 类
  * 文本处理工具集
  */
-class TextProcessor {
+export class TextProcessor {
     private rules: TrimRule[];
 
     constructor(customRules?: TrimRule[]) {
@@ -117,4 +117,4 @@ class TextProcessor {
 
 /** 默认实例 */
 const textProcessor = new TextProcessor();
-
+export default textProcessor;

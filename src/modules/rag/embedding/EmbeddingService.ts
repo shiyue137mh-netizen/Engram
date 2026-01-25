@@ -80,7 +80,7 @@ const DEFAULT_CONCURRENCY = 5;
 
 // ==================== EmbeddingService ====================
 
-class EmbeddingService {
+export class EmbeddingService {
     private config: VectorConfig | null = null;
     private concurrency: number = DEFAULT_CONCURRENCY;
     private stopSignal: boolean = false;

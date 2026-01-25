@@ -63,7 +63,7 @@ function getTavernRequestHeaders(): Record<string, string> {
     try {
         // @ts-ignore - 酒馆全局函数
         if (typeof window.getRequestHeaders === 'function') {
-            return window.getRequestHeaders();
+            return (window as any).getRequestHeaders();
         }
         // 备用方案：从 SillyTavern context 获取
         // @ts-ignore

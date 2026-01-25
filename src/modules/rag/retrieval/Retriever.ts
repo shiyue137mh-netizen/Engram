@@ -26,7 +26,7 @@ import { DEFAULT_RECALL_CONFIG, DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/typ
 
 // ==================== 类型定义 ====================
 
-interface RetrievalResult {
+export interface RetrievalResult {
     entries: string[]; // Formatted entries ready for injection
     nodes: EventNode[]; // Raw nodes
 }

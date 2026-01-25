@@ -35,7 +35,7 @@ class SyncService {
             // 监听聊天切换事件
             EventBus.on(TavernEventType.CHAT_CHANGED, async () => {
                 const { getSTContext } = await import('@/integrations/tavern/context');
-                const chatId = getSTContext().chatId;
+                const chatId = getSTContext()?.chatId;
                 if (chatId) {
                     Logger.info(MODULE, `Chat changed to ${chatId}, checking sync...`);
                     // 延迟一点等待 DB 准备好
@@ -45,8 +45,8 @@ class SyncService {
 
             // 首次加载也检查一次
             const { getSTContext } = await import('@/integrations/tavern/context');
-            if (getSTContext().chatId) {
-                this.autoSyncDownload(getSTContext().chatId!);
+            if (getSTContext()?.chatId) {
+                this.autoSyncDownload(getSTContext()?.chatId!);
             }
         }, 2000);
     }

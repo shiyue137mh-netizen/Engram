@@ -1,5 +1,5 @@
 import { WorldInfoTokenStats, WorldInfoEntry } from './types';
-import { getEntries } from './crud';
+import { getEntries } from '@/integrations/tavern/worldbook/crud';
 import { SUMMARY_ENTRY_KEY } from './constants';
 
 /**
