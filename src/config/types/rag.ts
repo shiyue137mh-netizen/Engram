@@ -63,6 +63,23 @@ export interface BrainRecallConfig {
     // 上下文感知
     /** 上下文切换阈值 (当前分/首次分 < 此值触发 softReset) */
     contextSwitchThreshold: number;
+
+    // V1.2 新算法参数
+    /** Rerank 强化门控阈值 (Rerank分数 < 此值不强化) */
+    gateThreshold: number;
+    /** 强化阻尼 (单次强化最大增量) */
+    maxDamping: number;
+    /** Sigmoid 温度系数 (越小S曲线越陡) */
+    sigmoidTemperature: number;
+
+    // V1.3 进阶参数
+    /** 厌倦惩罚与动态衰减 (V1.3) */
+    boredomThreshold: number; // 连续进入工作记忆 N 次触发厌倦
+    boredomPenalty: number;   // 厌倦时的额外衰减
+
+    /** 多样性与冷启动 (V1.3) */
+    mmrThreshold: number;     // MMR 相似度阈值 (>此值为了多样性会降权)
+    newcomerBoost: number;    // 新人红利 (给新条目的其始 boost)
 }
 
 export interface RecallConfig {

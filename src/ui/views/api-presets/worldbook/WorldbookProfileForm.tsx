@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { Book, Check, Search, Info } from 'lucide-react';
-import { TextField, SelectField } from './FormField';
+import { TextField, SelectField, FormSection } from '@/ui/components/form/FormComponents';
 import type { WorldbookConfigProfile } from '@/config/types/prompt';
 import { WorldInfoService } from '@/integrations/tavern/api/WorldInfo';
 
@@ -98,23 +99,23 @@ export const WorldbookProfileForm: React.FC<WorldbookProfileFormProps> = ({
                                             key={wbName}
                                             onClick={() => toggleWorldbook(wbName)}
                                             className={`
-                                                flex items-center gap-3 p-2.5 rounded-md cursor-pointer transition-colors border
+                                                flex items - center gap - 3 p - 2.5 rounded - md cursor - pointer transition - colors border
                                                 ${isSelected
                                                     ? 'bg-primary/5 border-primary/30'
                                                     : 'bg-transparent border-transparent hover:bg-muted'
                                                 }
-                                            `}
+`}
                                         >
                                             <div className={`
-                                                w-4 h-4 rounded border flex items-center justify-center transition-colors
+w - 4 h - 4 rounded border flex items - center justify - center transition - colors
                                                 ${isSelected
                                                     ? 'bg-primary border-primary text-primary-foreground'
                                                     : 'border-muted-foreground/50'
                                                 }
-                                            `}>
+`}>
                                                 {isSelected && <Check size={10} strokeWidth={4} />}
                                             </div>
-                                            <span className={`text-sm truncate ${isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                                            <span className={`text - sm truncate ${isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'} `}>
                                                 {wbName}
                                             </span>
                                         </div>

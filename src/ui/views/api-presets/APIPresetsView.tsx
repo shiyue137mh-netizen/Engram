@@ -9,27 +9,27 @@
 import React, { useState, useEffect } from 'react';
 import { Key, Cpu, Layers, Plus, Save, FileText, Regex, Book, Braces } from 'lucide-react';
 // Components
-import { PresetCard } from './components/PresetCard';
-import { LLMPresetForm } from './components/LLMPresetForm';
-import { VectorConfigForm } from './components/VectorConfigForm';
+import { PresetCard } from './shared/PresetCard';
+import { LLMPresetForm } from './models/LLMPresetForm';
+import { VectorConfigForm } from './models/VectorConfigForm';
 import { Divider } from "@/ui/components/layout/Divider";
-import { RerankConfigForm } from './components/RerankConfigForm';
-import { PromptTemplateList } from './components/PromptTemplateList';
-import { PromptTemplateForm } from './components/PromptTemplateForm';
-import { RegexRuleList } from './components/RegexRuleList';
-import { RegexRuleForm } from './components/RegexRuleForm';
-import { WorldbookConfigForm } from './components/WorldbookConfigForm';
-import { CustomMacroList } from './components/CustomMacroList';  // V0.9.2
-import { CustomMacroForm } from './components/CustomMacroForm';  // V0.9.2
-import { PageTitle } from "@/ui/components/common/PageTitle";
-import { TabPills } from "@/ui/components/ui/TabPills";
-import { WorldbookProfileList } from './components/WorldbookProfileList';
-import { WorldbookProfileForm } from './components/WorldbookProfileForm';
+import { RerankConfigForm } from './models/RerankConfigForm';
+import { PromptTemplateList } from './prompts/PromptTemplateList';
+import { PromptTemplateForm } from './prompts/PromptTemplateForm';
+import { RegexRuleList } from './regex/RegexRuleList';
+import { RegexRuleForm } from './regex/RegexRuleForm';
+import { WorldbookConfigForm } from './worldbook/WorldbookConfigForm';
+import { CustomMacroList } from './prompts/CustomMacroList';  // V0.9.2
+import { CustomMacroForm } from './prompts/CustomMacroForm';  // V0.9.2
+import { PageTitle } from "@/ui/components/display/PageTitle";
+import { TabPills } from "@/ui/components/layout/TabPills";
+import { WorldbookProfileList } from './worldbook/WorldbookProfileList';
+import { WorldbookProfileForm } from './worldbook/WorldbookProfileForm';
 
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { MasterDetailLayout } from "@/ui/components/layout/MasterDetailLayout";
 import { MobileFullscreenForm } from "@/ui/components/layout/MobileFullscreenForm"; // Added import
-import { EmptyState } from "@/ui/components/common/EmptyState";
+import { EmptyState } from "@/ui/components/feedback/EmptyState";
 import { useResponsive } from "@/ui/hooks/useResponsive";
 // Hooks
 import { useLLMPresets } from '../../hooks/useLLMPresets';
@@ -308,7 +308,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                     { id: 'worldbook', label: '世界书' },
                 ]}
                 activeTab={mainTab}
-                onChange={(id) => setMainTab(id as MainTabType)}
+                onChange={(id: string) => setMainTab(id as MainTabType)}
                 actions={hasChanges && (
                     <button
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary hover:text-primary-foreground hover:bg-primary border border-primary/50 rounded transition-colors"
@@ -328,7 +328,7 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
                         <TabPills
                             tabs={MODEL_SUB_TABS.map(t => ({ ...t, icon: <t.icon size={14} /> }))}
                             activeTab={modelSubTab}
-                            onChange={(id) => setModelSubTab(id as ModelSubTabType)}
+                            onChange={(id: string) => setModelSubTab(id as ModelSubTabType)}
                             sticky={false}
                             top={0}
                             className="!mb-4"

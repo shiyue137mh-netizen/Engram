@@ -47,6 +47,17 @@ export const DEFAULT_BRAIN_RECALL_CONFIG: BrainRecallConfig = {
     decayRate: 0.08,         // 衰减速率 (稍慢，保留更多)
     evictionThreshold: 0.25, // 淘汰阈值 (降低，保留更多)
     contextSwitchThreshold: 0.4,
+
+    // V1.2 Defaults
+    gateThreshold: 0.6,      // 只有 Rerank > 0.6 才强化
+    maxDamping: 0.1,         // 单次最多 +0.1
+    sigmoidTemperature: 0.15,// 这里 0.15 比较适中
+
+    // V1.3 Defaults
+    boredomThreshold: 5,     // 连续 5 次进 Working Memory 就开始嫌烦
+    boredomPenalty: 0.1,     // 每次额外扣 0.1 (累积)
+    mmrThreshold: 0.85,      // 相似度 > 0.85 视为冗余
+    newcomerBoost: 0.2,      // 给新人 0.2 的红利 (临时排序加成)
 };
 
 export const DEFAULT_RECALL_CONFIG: RecallConfig = {

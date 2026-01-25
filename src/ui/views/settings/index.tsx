@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { PageTitle } from "@/ui/components/common/PageTitle";
+import { PageTitle } from "@/ui/components/display/PageTitle";
 import { Settings as SettingsIcon, Eye, Trash2, RefreshCw } from 'lucide-react';
 import { ThemeSelector } from './components/ThemeSelector';
-import { Switch } from "@/ui/components/ui/Switch";
-import { NumberField } from '../api-presets/components/FormField';
+import { Switch } from "@/ui/components/core/Switch";
+import { SwitchField, SelectField, NumberField, FormSection } from '@/ui/components/form/FormComponents';
 import { summarizerService } from "@/modules/memory";
 import { preprocessor } from "@/modules/preprocessing";
 import { SettingsManager } from "@/config/settings";

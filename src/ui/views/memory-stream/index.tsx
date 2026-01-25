@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { PageTitle } from "@/ui/components/common/PageTitle";
+import { PageTitle } from "@/ui/components/display/PageTitle";
 import { Divider } from "@/ui/components/layout/Divider";
-import { Tab } from "@/ui/components/ui/TabPills";
+import { Tab } from "@/ui/components/layout/TabPills";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { useMemoryStore } from '@/state/memoryStore';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
@@ -13,7 +13,7 @@ import { EventEditor, type EventEditorHandle } from './components/EventEditor';
 import { GraphView } from './GraphView';
 import { Search, Trash2, RefreshCw, Brain, List, GitBranch, Save, Sparkles, Users } from 'lucide-react';
 import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
-import { EmptyState } from '@/ui/components/common/EmptyState';
+import { EmptyState } from '@/ui/components/feedback/EmptyState';
 
 // 响应式断点
 const DESKTOP_BREAKPOINT = 768;
@@ -304,7 +304,7 @@ export const MemoryStream: React.FC = () => {
             <LayoutTabs
                 tabs={VIEW_TABS}
                 activeTab={viewTab}
-                onChange={(id) => {
+                onChange={(id: string) => {
                     setViewTab(id as ViewTab);
                     setSelectedId(null);
                     setCheckedIds(new Set());

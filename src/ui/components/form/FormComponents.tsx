@@ -1,25 +1,51 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, X } from 'lucide-react';
-import { Switch } from '@/ui/components/ui/Switch';
+import { Switch } from '@/ui/components/core/Switch';
 
 interface FormSectionProps {
     title: string;
     description?: string;
     children: React.ReactNode;
     className?: string;
+    collapsible?: boolean;
+    defaultCollapsed?: boolean;
 }
 
-export const FormSection: React.FC<FormSectionProps> = ({ title, description, children, className = '' }) => (
-    <div className={`mb-8 ${className}`}>
-        <div className="mb-4">
-            <h3 className="text-sm font-medium text-primary">{title}</h3>
-            {description && <p className="text-xs text-muted-foreground mt-1 break-words">{description}</p>}
+export const FormSection: React.FC<FormSectionProps> = ({
+    title,
+    description,
+    children,
+    className = '',
+    collapsible = false,
+    defaultCollapsed = false
+}) => {
+    const [isCollapsed, setIsCollapsed] = useState(collapsible ? defaultCollapsed : false);
+
+    return (
+        <div className={`mb-8 ${className}`}>
+            <div
+                className={`mb-4 ${collapsible ? 'cursor-pointer select-none flex items-center justify-between group' : ''}`}
+                onClick={() => collapsible && setIsCollapsed(!isCollapsed)}
+            >
+                <div>
+                    <h3 className="text-sm font-medium text-primary flex items-center gap-2">
+                        {title}
+                    </h3>
+                    {description && <p className="text-xs text-muted-foreground mt-1 break-words">{description}</p>}
+                </div>
+                {collapsible && (
+                    <ChevronDown
+                        size={16}
+                        className={`text-muted-foreground transition-transform duration-200 ${isCollapsed ? '-rotate-90' : 'rotate-0'}`}
+                    />
+                )}
+            </div>
+            <div className={`space-y-4 transition-all duration-300 ${isCollapsed ? 'hidden' : 'block'}`}>
+                {children}
+            </div>
         </div>
-        <div className="space-y-4">
-            {children}
-        </div>
-    </div>
-);
+    );
+};
 
 interface BaseFieldProps {
     label: string;

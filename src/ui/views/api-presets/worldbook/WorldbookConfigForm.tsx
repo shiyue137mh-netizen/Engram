@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SwitchField, FormSection } from './FormField';
+import { SwitchField, FormSection } from '@/ui/components/form/FormComponents';
 import type { WorldbookConfig } from '@/config/types/prompt';
 import { ChevronRight, ChevronDown, Book, FileText, Ban, RefreshCw, AlertCircle, Search } from 'lucide-react';
 

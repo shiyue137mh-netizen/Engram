@@ -2,7 +2,7 @@
  * 向量化配置表单
  */
 import React, { useState } from 'react';
-import { TextField, SelectField, FormSection, SearchableSelectField } from './FormField';
+import { TextField, SelectField, FormSection, SearchableSelectField } from '@/ui/components/form/FormComponents';
 import type { VectorConfig, VectorSource } from '@/config/types/rag';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { ModelService, ModelInfo, ModelAPIType } from '@/integrations/llm/ModelDiscovery';

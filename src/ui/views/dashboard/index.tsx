@@ -11,8 +11,8 @@ import {
     Loader2, CheckCircle2, AlertCircle,
     Brain, Sparkles, Search, Wand2, ChevronRight
 } from 'lucide-react';
-import { PageTitle } from "@/ui/components/common/PageTitle";
-import { Switch } from '@/ui/components/ui/Switch';
+import { PageTitle } from "@/ui/components/display/PageTitle";
+import { Switch } from '@/ui/components/core/Switch';
 import { Divider } from '@/ui/components/layout/Divider';
 import { Logger } from "@/core/logger";
 import type { LogEntry } from "@/core/logger/types";

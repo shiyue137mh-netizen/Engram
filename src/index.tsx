@@ -8,7 +8,7 @@ import ReactDOM from 'react-dom/client';
 import './ui/styles/main.css';
 import App from './App';
 import { initializeEngram, setReactRenderer, setGlobalRenderer } from '@/integrations/tavern/bridge';
-import { RevisionModal } from '@/ui/components/ui/Modal';
+import { RevisionModal } from '@/ui/components/feedback/Modal';
 import { QuickPanel } from '@/ui/views/quick-panel';
 import { setQuickPanelCallback } from '@/integrations/tavern/ui';
 

@@ -20,12 +20,12 @@ import {
     Maximize2,
     Minimize2,
 } from 'lucide-react';
-import { PageTitle } from "@/ui/components/common/PageTitle";
+import { PageTitle } from "@/ui/components/display/PageTitle";
 import { Logger, LogEntry, LogLevel, LogLevelConfig, ALL_MODULES } from "@/core/logger";
 import { LogEntryItem, LogGroup, groupLogsByModule } from './LogEntryItem';
 import { ModelLog } from './ModelLog';
 import { RecallLog } from './RecallLog';
-import { Tab } from "@/ui/components/ui/TabPills";
+import { Tab } from "@/ui/components/layout/TabPills";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { Divider } from "@/ui/components/layout/Divider";
 
@@ -144,7 +144,7 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
             <LayoutTabs
                 tabs={TABS}
                 activeTab={activeTab}
-                onChange={(id) => setActiveTab(id as TabType)}
+                onChange={(id: string) => setActiveTab(id as TabType)}
             />
 
             {/* ========== 运行日志 Tab ========== */}

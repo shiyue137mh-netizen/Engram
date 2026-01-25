@@ -9,7 +9,7 @@ import React, { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { LayoutTabs } from '@/ui/components/layout/LayoutTabs';
 import { DOCS } from '@/docs';
-import type { Tab } from '@/ui/components/ui/TabPills';
+import type { Tab } from '@/ui/components/layout/TabPills';
 
 interface DocsViewProps {
     initialTab?: string;

@@ -9,7 +9,7 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { EntityBuilder, entityBuilder } from "@/modules/memory/EntityExtractor";
-import { SwitchField } from '../api-presets/components/FormField';
+import { TextField, NumberField, SwitchField, FormSection } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
 import { EntityReviewModal } from './components/EntityReviewModal';
 import type { EntityExtractConfig } from '@/config/types/memory';

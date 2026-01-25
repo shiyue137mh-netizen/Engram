@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Modal } from '@/ui/components/ui/Modal';
-import { ModernButton as Button } from '@/ui/components/ui/Button';
+import { Modal } from '@/ui/components/feedback/Modal';
+import { ModernButton as Button } from '@/ui/components/core/Button';
 import { EntityNode } from '@/data/types/graph';
 import { Check, X } from 'lucide-react';
 

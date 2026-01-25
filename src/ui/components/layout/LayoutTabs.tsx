@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { TabPills, TabPillsProps } from '../ui/TabPills';
+import { TabPills, TabPillsProps } from './TabPills';
 
 /**
  * LayoutTabs - 布局级标签导航组件

@@ -13,7 +13,7 @@ import type { TrimTriggerType } from '@/config/types/memory';
 // import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService'; // V0.7 Deprecated
 import { DEFAULT_TRIM_CONFIG, type TrimConfig } from '@/modules/memory/EventTrimmer';
 
-import { NumberField, SwitchField } from '../api-presets/components/FormField';
+import { NumberField, SwitchField, FormSection, SelectField } from '@/ui/components/form/FormComponents';
 import { Divider } from "@/ui/components/layout/Divider";
 import type { TrimmerStatus } from "@/modules/memory";
 import type { UseSummarizerConfigReturn } from '@/ui/hooks/useSummarizerConfig';

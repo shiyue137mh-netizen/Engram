@@ -8,7 +8,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { Play, Pause, RotateCcw, Upload, FileText, RefreshCw, CheckCircle2, XCircle, Clock, Square } from 'lucide-react';
 import { Divider } from '@/ui/components/layout/Divider';
-import { NumberField } from '../api-presets/components/FormField';
+import { FormSection, NumberField } from '@/ui/components/form/FormComponents';
 import { batchProcessor, type HistoryAnalysis, type ImportMode } from '@/modules/batch';
 import { summarizerService } from '@/modules/memory';
 import { useWorkflow } from '@/ui/hooks/useWorkflow';

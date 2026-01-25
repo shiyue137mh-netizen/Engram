@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TextField, NumberField, SwitchField, FormSection, SelectField, SearchableSelectField } from './FormField';
+import { TextField, NumberField, SwitchField, FormSection, SelectField, SearchableSelectField } from '@/ui/components/form/FormComponents';
 import type { RerankConfig } from '@/config/types/rag';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { ModelService, ModelInfo } from '@/integrations/llm/ModelDiscovery';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Reorder } from 'framer-motion';
 import { Regex, Trash2, Power, GripVertical } from 'lucide-react';
-import { Switch } from '@/ui/components/ui/Switch';
+import { Switch } from '@/ui/components/core/Switch';
 import { RegexRule, REGEX_SCOPE_OPTIONS } from "@/modules/workflow/steps";
 
 interface RegexRuleListProps {

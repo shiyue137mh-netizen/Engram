@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu, X } from 'lucide-react';
-import { CommandPalette } from '@/ui/components/ui/CommandPalette';
+import { CommandPalette } from '@/ui/components/overlay/CommandPalette';
 import { EngramIcon } from '@/ui/assets/icons/EngramIcon';
 import { EngramTextLogo } from '@/ui/assets/icons/EngramTextLogo';
 

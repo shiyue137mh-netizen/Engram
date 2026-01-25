@@ -3,7 +3,7 @@
  * V0.9.2: 右侧详情页编辑（类似提示词模板）
  */
 import React from 'react';
-import { TextField, FormSection } from './FormField';
+import { TextField, FormSection } from '@/ui/components/form/FormComponents';
 import type { CustomMacro } from '@/config/types/prompt';
 
 interface CustomMacroFormProps {

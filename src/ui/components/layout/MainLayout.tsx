@@ -3,7 +3,7 @@ import { GlobalStyles } from '@/ui/styles/GlobalStyles';
 import Header from '@/ui/components/layout/Header';
 import { Sidebar } from '@/ui/components/layout/Sidebar';
 import { UpdateService } from '@/core/updater/Updater';
-import { UpdateNotice } from "@/ui/components/common/UpdateNotice";
+import { UpdateNotice } from "@/ui/components/feedback/UpdateNotice";
 
 interface MainLayoutProps {
     children: React.ReactNode;

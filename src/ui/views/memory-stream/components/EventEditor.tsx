@@ -9,7 +9,7 @@ import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRe
 import type { EventNode } from '@/data/types/graph';
 import { Trash2, ArrowLeft, Save } from 'lucide-react';
 import { Divider } from '@/ui/components/layout/Divider';
-import { TextField } from '@/ui/views/api-presets/components/FormField';
+import { TextField, SwitchField } from '@/ui/components/form/FormComponents';
 
 // ==================== 类型定义 ====================
 

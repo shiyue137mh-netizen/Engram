@@ -2,7 +2,7 @@
  * 提示词模板编辑表单
  */
 import React from 'react';
-import { TextField, SelectField, FormSection } from './FormField';
+import { TextField, SelectField, FormSection } from '@/ui/components/form/FormComponents';
 import type { PromptTemplate, WorldbookConfigProfile, PromptCategory } from '@/config/types/prompt';
 import type { LLMPreset } from '@/config/types/llm';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';

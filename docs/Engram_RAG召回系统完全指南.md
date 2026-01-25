@@ -94,58 +94,63 @@ HybridScore = (1 - α) * EmbeddingScore + α * RerankScore
 
 ### 4.3 类脑召回系统 (BrainRecallCache) 🧠
 
-> **V0.9.5 实验性特性**
+> **V1.2 算法更新** (2026-01-25)
 
-这是 Engram 最核心的记忆管理机制，模拟人脑的记忆模型：
+这是 Engram V1.2 的核心记忆进化，模拟人脑的「潜意识」与「显意识」双轨机制：
 
-#### 4.3.1 双层记忆结构
-
-| 层级 | 容量 | 说明 |
-|------|------|------|
-| **短期记忆 (Short-Term Memory)** | `shortTermLimit` (默认 50) | 存储近几轮被召回过的记忆槽位 |
-| **工作记忆 (Working Memory)** | `workingLimit` (默认 10) | 从短期记忆中选取强度最高的 Top-K，注入到 Prompt |
-
-#### 4.3.2 核心机制
+#### 4.3.1 核心流程 (Mermaid)
 
 ```mermaid
-graph LR
-    subgraph 本轮召回
-        Candidates[候选集]
+graph TD
+    classDef input fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef process fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef decision fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,rhombus;
+    classDef memory fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+
+    Input[输入: Embedding分 & Rerank分]:::input --> DualTrack
+
+    subgraph DualTrack [双轨处理机制]
+        direction TB
+        Embedding[Embedding分] -->|潜意识通道| Base[Embedding Strength<br/>衰减慢·保底]
+        Rerank[Rerank分] -->|显意识通道| Gate{Rerank > Gate?}:::decision
+        
+        Gate -->|Yes| Boost[Rerank Strength += 强化增量<br/>(受 Damping 限制)]:::process
+        Gate -->|No| Decay[Rerank Strength 衰减]:::process
+        
+        Base --> Mix
+        Boost --> Mix
+        Decay --> Mix
     end
     
-    subgraph 短期记忆
-        Reinforce{再次召回?}
-        Candidates --> Reinforce
-        Reinforce -->|是| Strengthen[强化 strength]
-        Reinforce -->|否| Decay[衰减 strength]
-        Strengthen --> STM[短期记忆池]
-        Decay --> STM
-        NewItem[新增项] --> STM
-        STM --> Evict{strength < 阈值?}
-        Evict -->|是| Remove[淘汰]
-        Evict -->|否| Keep[保留]
-    end
+    Mix[混合计算]:::process -->|Sigmoid(非线性映射)| FinalScore[最终得分]:::process
+    FinalScore --> STM[短期记忆池]:::memory
     
-    subgraph 工作记忆
-        Keep --> TopK[选取 Top-K]
-        TopK --> WM[工作记忆]
+    subgraph Output
+        STM -->|Top-K| WorkingMemory[工作记忆]:::memory
     end
-    
-    WM --> Inject[注入 Prompt]
 ```
 
-| 机制 | 公式/逻辑 | 配置项 |
-|------|-----------|--------|
-| **强化 (Reinforce)** | `strength = strength + factor * (1 - strength)` (饱和增长) | `reinforceFactor` |
-| **衰减 (Decay)** | `strength = strength - decayRate` (线性衰减) | `decayRate` |
-| **淘汰 (Eviction)** | 当 `strength < evictionThreshold` 时移出短期记忆 | `evictionThreshold` |
-| **上下文切换检测** | 当召回结果与短期记忆几乎无重叠时，执行 `softReset` 清空短期记忆 | `contextSwitchThreshold` |
+#### 4.3.2 关键算法解释
 
-#### 4.3.3 设计理念
+**1. 双轨存储 (Dual Track Storage)**
+我们将记忆强度拆分为两个独立的维度：
+- **`embeddingStrength` (潜意识)**: 代表"氛围感"和"字面相关性"。它的特点是**只能被动刷新，衰减极慢**。即使逻辑暂时跟不上，它也能作为保底，防止话题彻底断片。
+- **`rerankStrength` (显意识)**: 代表"逻辑焦点"。它的特点是**爆发力强，衰减快**。只有它能显著提升记忆的最终得分。
 
-- **记忆惯性**: 连续被召回的记忆会越来越"顽固"，难以被替换，模拟真实对话中的话题延续性
-- **自然遗忘**: 不再相关的记忆会逐渐衰减直至淘汰，避免陈旧信息"刷屏"
-- **话题敏感**: 当检测到话题切换时，主动清空短期记忆，避免旧话题干扰新话题
+**2. 门控强化 (Gated Reinforcement)**
+为了防止"一本正经的胡说八道"被强化，我们引入了门控机制：
+- **规则**: 只有当 `RerankScore > gateThreshold` (默认 0.6) 时，才允许强化 `rerankStrength`。
+- **目的**: 确保只有逻辑上真正相关的内容才能占据你的注意力焦点。
+
+**3. 柔性阻尼 (Soft Damping)**
+为了避免"强者恒强"的马太效应：
+- **规则**: `rerankStrength` 单次增强幅度被 `maxDamping` (默认 0.1) 钳制。
+- **效果**: 记忆的建立需要经过 2-3 轮的持续确认，而不是跳变。
+
+**4. Sigmoid 激活**
+最终分数不再是简单的加权平均，而是通过 S 曲线映射：
+$$ Final = Sigmoid\left( \frac{0.7 \cdot R_{str} + 0.3 \cdot E_{str} - 0.5}{Temperature} \right) $$
+- **效果**: 也就是把分数"拉开"。高分更高，低分更低，让 AI 的注意力更加爱憎分明。
 
 ### 4.4 可观测性 (Recall Logs)
 
@@ -186,17 +191,20 @@ graph LR
 | **Top-N** | Rerank 后保留的精选条目数（建议 5-10） |
 | **hybridAlpha** | 混合权重 (0-1) |
 
-### 5.4 类脑召回配置 (V0.9.5)
+### 5.4 类脑召回配置 (V1.2)
 
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
 | `enabled` | `true` | 是否启用类脑召回 |
 | `workingLimit` | `10` | 工作记忆容量 |
 | `shortTermLimit` | `50` | 短期记忆容量 |
-| `reinforceFactor` | `0.3` | 再次召回的强化系数 |
-| `decayRate` | `0.05` | 每轮衰减速率 |
-| `evictionThreshold` | `0.1` | 淘汰阈值 |
-| `contextSwitchThreshold` | `0.3` | 上下文切换检测阈值 |
+| `reinforceFactor` | `0.2` | 强化系数 base |
+| `decayRate` | `0.08` | 衰减速率 |
+| `evictionThreshold` | `0.25` | 淘汰阈值 (低于此分直接移除) |
+| `contextSwitchThreshold` | `0.4` | 上下文切换阈值 (Embedding 相似比) |
+| `gateThreshold` | `0.6` | **(V1.2)** 门控阈值，Rerank > 此值才强化 |
+| `maxDamping` | `0.1` | **(V1.2)** 单次强化最大增量 |
+| `sigmoidTemperature` | `0.15` | **(V1.2)** Sigmoid 温度系数 |
 
 ## 6. 开发接口 (Developer API)
 

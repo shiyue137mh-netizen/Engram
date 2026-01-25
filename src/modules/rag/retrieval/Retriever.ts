@@ -191,11 +191,22 @@ export class Retriever {
             brainRecallCache.setConfig(brainConfig);
             brainRecallCache.nextRound();
 
-            // 转换为 RecallCandidate 格式
-            const candidates: RecallCandidate[] = finalCandidates.map(c => ({
-                id: c.id,
-                score: c.hybridScore || c.embeddingScore || 0,
-            }));
+            // 转换为 RecallCandidate 格式 (V1.2)
+            const candidates: RecallCandidate[] = finalCandidates.map(c => {
+                // V1.3 Safety Fallback: 如果 Rerank score 缺失，使用 Embedding 但封顶 0.8
+                let rerankScore = c.rerankScore;
+                if (rerankScore === undefined && config.useRerank) {
+                    rerankScore = Math.min(0.8, c.embeddingScore || 0);
+                }
+
+                return {
+                    id: c.id,
+                    embeddingScore: c.embeddingScore || 0,
+                    rerankScore: rerankScore,
+                    // V1.3: 传递向量用于 MMR
+                    embeddingVector: c.node?.embedding,
+                };
+            });
 
             // 类脑召回处理
             const brainResults = brainRecallCache.process(candidates);
@@ -208,7 +219,7 @@ export class Retriever {
                     const original = candidateMap.get(slot.id)!;
                     return {
                         ...original,
-                        hybridScore: slot.strength, // 用 strength 替代原有分数
+                        hybridScore: slot.finalScore, // V1.2: 用 finalScore 替代原有分数
                     };
                 });
 

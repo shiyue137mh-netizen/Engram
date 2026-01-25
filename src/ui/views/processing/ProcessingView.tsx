@@ -6,11 +6,11 @@
  */
 import React, { useState } from 'react';
 import { FileText, Database, Layers, Network, ScrollText, BookOpen, Search, Save } from 'lucide-react';
-import { Tab } from "@/ui/components/ui/TabPills";
+import { Tab } from "@/ui/components/layout/TabPills";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { Divider } from "@/ui/components/layout/Divider";
-import { QuickLinks, QuickLink } from '@/ui/components/common/QuickLinks';
-import { PageTitle } from "@/ui/components/common/PageTitle";
+import { QuickLinks, QuickLink } from '@/ui/components/layout/QuickLinks';
+import { PageTitle } from "@/ui/components/display/PageTitle";
 import { useConfig } from '@/ui/hooks/useConfig';
 import { useSummarizerConfig } from '@/ui/hooks/useSummarizerConfig';
 
@@ -107,7 +107,7 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
             <LayoutTabs
                 tabs={MAIN_TABS}
                 activeTab={activeTab}
-                onChange={(id) => setActiveTab(id as ProcessingTab)}
+                onChange={(id: string) => setActiveTab(id as ProcessingTab)}
                 actions={
                     <div className="flex items-center gap-2">
                         {hasChanges && (

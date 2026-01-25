@@ -1,8 +1,8 @@
 
 import React from 'react';
 import type { RecallConfig, RerankConfig } from '@/config/types/rag';
-import { NumberField, SwitchField } from './FormField';
-import { Switch } from '@/ui/components/ui/Switch';
+import { NumberField, SwitchField } from '@/ui/components/form/FormComponents';
+import { Switch } from '@/ui/components/core/Switch';
 import { Network, Database, BrainCircuit, Zap, AlertTriangle, Layers } from 'lucide-react';
 
 interface RecallConfigFormProps {
@@ -221,9 +221,14 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     decayRate: config.brainRecall?.decayRate ?? 0.08,
                                     evictionThreshold: config.brainRecall?.evictionThreshold ?? 0.25,
                                     contextSwitchThreshold: config.brainRecall?.contextSwitchThreshold ?? 0.4,
+                                    gateThreshold: config.brainRecall?.gateThreshold ?? 0.6,
+                                    maxDamping: config.brainRecall?.maxDamping ?? 3.0,
+                                    sigmoidTemperature: config.brainRecall?.sigmoidTemperature ?? 5.0,
+                                    boredomThreshold: config.brainRecall?.boredomThreshold ?? 3,
+                                    boredomPenalty: config.brainRecall?.boredomPenalty ?? 0.2,
+                                    mmrThreshold: config.brainRecall?.mmrThreshold ?? 0.6,
+                                    newcomerBoost: config.brainRecall?.newcomerBoost ?? 0.3,
                                 },
-                                // 开启类脑时确保 sticky 关闭
-                                sticky: val ? { ...config.sticky!, enabled: false } : config.sticky
                             })}
                         />
                     </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RecallConfigForm } from '@/ui/views/api-presets/components/RecallConfigForm';
+import { RecallConfigForm } from './components/RecallConfigForm';
 import type { RecallConfig, RerankConfig } from '@/config/types/defaults';
 
 interface RecallPanelProps {

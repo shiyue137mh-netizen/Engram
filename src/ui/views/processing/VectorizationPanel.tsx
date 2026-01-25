@@ -24,7 +24,7 @@ import { embeddingService } from '@/modules/rag';
 import type { VectorConfig, EmbeddingConfig } from '@/config/types/rag';
 import { DEFAULT_EMBEDDING_CONFIG } from '@/config/types/defaults';
 import { SettingsManager } from '@/config/settings';
-import { NumberField, SwitchField, SelectField } from '../api-presets/components/FormField';
+import { FormSection, SelectField, NumberField, SwitchField, SearchableSelectField, TextField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
 
 // ==================== 类型 ====================

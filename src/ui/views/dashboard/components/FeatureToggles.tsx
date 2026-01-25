@@ -6,7 +6,7 @@
  */
 import React from 'react';
 import { Power, Brain, Sparkles, Search, Wand2 } from 'lucide-react';
-import { Switch } from '@/ui/components/ui/Switch';
+import { Switch } from '@/ui/components/core/Switch';
 import type { FeatureStatus } from '@/ui/hooks/useDashboardData';
 
 interface FeatureTogglesProps {

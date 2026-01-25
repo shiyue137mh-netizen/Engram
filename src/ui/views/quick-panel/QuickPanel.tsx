@@ -16,8 +16,8 @@
  */
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { FloatingPanel } from '@/ui/components/ui/FloatingPanel';
-import { Switch } from '@/ui/components/ui/Switch';
+import { FloatingPanel } from '@/ui/components/overlay/FloatingPanel';
+import { Switch } from '@/ui/components/core/Switch';
 import { preprocessor } from '@/modules/preprocessing';
 import type { PreprocessingConfig } from '@/modules/preprocessing/types';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';

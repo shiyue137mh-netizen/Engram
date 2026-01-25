@@ -2,7 +2,7 @@
  * LLM 预设编辑表单
  */
 import React, { useState, useEffect } from 'react';
-import { TextField, NumberField, SelectField, SwitchField, FormSection } from './FormField';
+import { TextField, NumberField, SelectField, SwitchField, FormSection } from '@/ui/components/form/FormComponents';
 import type { LLMPreset, APISource } from '@/config/types/llm';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import { ModelService, ModelInfo, ModelAPIType } from '@/integrations/llm/ModelDiscovery';
