@@ -7,7 +7,6 @@
  */
 
 import { SettingsManager } from "@/config/settings";
-import type { PromptCategory } from '@/config/types/prompt';
 import type { LLMPreset } from "@/config/types/llm";
 import { Logger } from "@/core/logger";
 

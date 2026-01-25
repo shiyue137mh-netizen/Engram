@@ -201,6 +201,8 @@ class Retriever {
 
                 return {
                     id: c.id,
+                    // V1.3.4: 注入可读名称 (用于 Brain Recall UI)
+                    label: c.node?.structured_kv?.event || c.summary.slice(0, 10),
                     embeddingScore: c.embeddingScore || 0,
                     rerankScore: rerankScore,
                     // V1.3: 传递向量用于 MMR
@@ -232,6 +234,13 @@ class Retriever {
 
         // 4. 记录召回日志
         const totalTime = Date.now() - startTime;
+
+        // V1.3.1: 捕获类脑召回的上下文快照
+        const brainStats = brainConfig.enabled ? {
+            round: brainRecallCache.getCurrentRound(),
+            snapshot: brainRecallCache.getShortTermSnapshot()
+        } : undefined;
+
         RecallLogService.log({
             query: userInput,
             preprocessedQuery: unifiedQueries?.[0],
@@ -253,6 +262,7 @@ class Retriever {
                 rerankCount: finalCandidates.length,
                 latencyMs: totalTime,
             },
+            brainStats, // V1.3.1: 记录类脑状态
         });
 
         // 5. 返回结果

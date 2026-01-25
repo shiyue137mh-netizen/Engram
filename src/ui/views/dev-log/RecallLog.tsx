@@ -283,6 +283,52 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                         {formatDuration(entry.stats.latencyMs)}
                     </span>
                 </div>
+
+                {/* V1.3.1: 类脑召回详情 */}
+                {entry.brainStats && (
+                    <div className="mt-4 pt-3 border-t border-border/30">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-medium text-foreground">类脑状态</span>
+                            <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                                第 {entry.brainStats.round} 轮
+                            </span>
+                        </div>
+
+                        <div className="bg-muted/20 rounded border border-border/30 overflow-hidden">
+                            <table className="w-full text-[10px] text-left">
+                                <thead className="bg-muted/30 text-muted-foreground">
+                                    <tr>
+                                        <th className="p-1.5 font-medium">Event</th>
+                                        <th className="p-1.5 font-medium">Tier</th>
+                                        <th className="p-1.5 font-medium text-right">Score</th>
+                                        <th className="p-1.5 font-medium text-right">Count</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {entry.brainStats.snapshot.map(slot => (
+                                        <tr key={slot.id} className="border-t border-border/10 hover:bg-muted/20 transition-colors">
+                                            <td className="p-1.5 truncate max-w-[80px]" title={slot.id}>
+                                                {slot.label || slot.id.slice(0, 8)}
+                                            </td>
+                                            <td className="p-1.5">
+                                                <span className={`px-1 rounded ${slot.tier === 'working' ? 'bg-green-500/10 text-green-500' : 'text-muted-foreground'}`}>
+                                                    {slot.tier === 'working' ? 'WM' : 'STM'}
+                                                </span>
+                                            </td>
+                                            <td className="p-1.5 text-right font-mono">{slot.finalScore.toFixed(3)}</td>
+                                            <td className="p-1.5 text-right font-mono">{slot.recallCount}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            {entry.brainStats.snapshot.length === 0 && (
+                                <div className="p-2 text-center text-[10px] text-muted-foreground italic">
+                                    短期记忆为空
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* 过滤和排序工具栏 */}

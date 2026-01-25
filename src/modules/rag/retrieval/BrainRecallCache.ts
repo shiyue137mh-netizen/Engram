@@ -17,8 +17,9 @@ const MODULE = 'BrainRecallCache';
 /**
  * 记忆槽位
  */
-interface MemorySlot {
+export interface MemorySlot {
     id: string;
+    label: string; // V1.3.4: 可读名称 (Event Type)
 
     // 双轨强度
     embeddingStrength: number;
@@ -44,6 +45,7 @@ interface MemorySlot {
 
 export interface RecallCandidate {
     id: string;
+    label?: string; // V1.3.4: 可读名称
     embeddingScore: number;
     rerankScore?: number;
     embeddingVector?: number[];
@@ -102,6 +104,7 @@ export class BrainRecallCache {
         if (!this.config.enabled) {
             return candidates.slice(0, this.config.workingLimit).map(c => ({
                 id: c.id,
+                label: c.label || c.id,
                 embeddingStrength: c.embeddingScore,
                 rerankStrength: c.rerankScore || 0,
                 finalScore: c.embeddingScore * 0.4 + (c.rerankScore || 0) * 0.6,
@@ -130,6 +133,9 @@ export class BrainRecallCache {
                 const candidate = candidateMap.get(id)!;
                 if (candidate.embeddingVector) slot.embeddingVector = candidate.embeddingVector;
 
+                // V1.3.4: 更新 Label (防止名字变了)
+                if (candidate.label) slot.label = candidate.label;
+
                 this.reinforceSlot(slot, candidate);
 
                 slot.lastRound = this.currentRound;
@@ -141,10 +147,12 @@ export class BrainRecallCache {
         }
 
         // 3. 添加新项
+        let addedCount = 0;
         for (const candidate of candidates) {
             if (!this.shortTermMemory.has(candidate.id)) {
                 const slot: MemorySlot = {
                     id: candidate.id,
+                    label: candidate.label || candidate.id, // V1.3.4: 使用 label
                     embeddingStrength: candidate.embeddingScore,
                     rerankStrength: candidate.rerankScore || 0,
                     finalScore: 0,
@@ -161,11 +169,15 @@ export class BrainRecallCache {
                 this.calculateFinalScore(slot);
 
                 this.shortTermMemory.set(candidate.id, slot);
+                addedCount++;
             }
         }
+        Logger.debug(LogModule.RAG_CACHE, `Added ${addedCount} new items. Current Size: ${this.shortTermMemory.size}`);
 
         // 4. 淘汰 (Eviction)
+        const sizeBeforeEvict = this.shortTermMemory.size;
         this.evict();
+        Logger.debug(LogModule.RAG_CACHE, `Evicted ${sizeBeforeEvict - this.shortTermMemory.size} items. Current Size: ${this.shortTermMemory.size}`);
 
         // 5. 容量限制
         this.enforceShortTermLimit();
@@ -193,28 +205,30 @@ export class BrainRecallCache {
     }
 
     /**
-     * 强化 (V1.3.1: 移除 Boredom 对 Strength 的永久影响)
+     * 强化 (V1.3.3: 移除 Gate 门控，采用无条件强化策略)
+     * 用户反馈：类脑应管理优胜劣汰，而不是拒之门外。只要被召回，就应该获得强化。
      */
     private reinforceSlot(slot: MemorySlot, candidate: RecallCandidate): void {
         const factor = this.config.reinforceFactor || 0.2;
         const maxDamping = this.config.maxDamping || 0.1;
-        const gateThreshold = this.config.gateThreshold || 0.6;
 
         // Embroidery 保底
         slot.embeddingStrength = Math.max(slot.embeddingStrength, candidate.embeddingScore);
 
-        // Rerank 门控
-        const currentRerank = candidate.rerankScore || 0;
+        // Rerank 强化逻辑：不再设置门槛
+        // 只要这个记忆被本次 RAG 流程召回了（出现在 candidates 里），它就应该获得加强。
+        // 即使 Rerank 分数不高，也说明它比库存里那些没被召回的要强。
+        // 加强幅度可以是固定的，也可以跟本次分数挂钩。
+        // 这里沿用原来的 "向目标值逼近" 的逻辑，但目标值设为 "更强"。
 
-        if (currentRerank > gateThreshold) {
-            // 纯净的强化逻辑
-            const potentialGain = factor * (1 - slot.rerankStrength);
-            const actualGain = Math.min(potentialGain, maxDamping);
+        // 逻辑A：直接 += factor * (1 - current)  (简单累加)
+        // 逻辑B：current += factor * (newScore - current) (移动平均，可能会下降)
+        // 既然是 "Reinforce"，我们采用逻辑A，确保是正向增益。
 
-            slot.rerankStrength += actualGain;
-        } else {
-            slot.rerankStrength = Math.max(0, slot.rerankStrength - (this.config.decayRate / 2));
-        }
+        const potentialGain = factor * (1 - slot.rerankStrength);
+        const actualGain = Math.min(potentialGain, maxDamping);
+
+        slot.rerankStrength += actualGain;
 
         this.calculateFinalScore(slot);
     }
@@ -234,16 +248,29 @@ export class BrainRecallCache {
         // 归一化防饱和
         const clampedRerank = Math.min(0.95, slot.rerankStrength);
 
-        const rawInput = (clampedRerank * 0.7) + (slot.embeddingStrength * 0.3);
-        const bias = 0.5;
+        // V1.3.5: Max Strategy (取长板策略)
+        // 问题：如果 Rerank 模型给分很低 (0.01)，即使 Embedding 很高 (0.45)，加权平均也会导致最终分过低被淘汰。
+        // 修正：只要 Embedding 或 Rerank 其中一项强，就认为该记忆有价值。
+        // Embedding 系数设为 0.8，因为向量相似度通常比 Rerank 概率值要“虚”一些。
+        const effectiveStrength = Math.max(clampedRerank, slot.embeddingStrength * 0.8);
 
-        const z = (rawInput - bias) / temp;
+        // 降低 Bias (0.5 -> 0.35)
+        // 只要有效强度超过 0.35，Sigmoid 结果就会超过 0.5，从而安全存活 (阈值 0.25)。
+        const bias = 0.35;
+
+        const z = (effectiveStrength - bias) / temp;
         slot.finalScore = this.sigmoid(z, temp);
     }
 
     private evict(): void {
         const threshold = this.config.evictionThreshold;
         for (const [id, slot] of this.shortTermMemory) {
+            // V1.3.2 Fix: Newcomer Protection
+            // 刚加入的新记忆即使分数低也不淘汰，给它一次参与 MMR 排序（享受 Newcomer Boost）的机会
+            if (slot.firstRound === this.currentRound) {
+                continue;
+            }
+
             if (slot.finalScore < threshold) {
                 this.shortTermMemory.delete(id);
             }

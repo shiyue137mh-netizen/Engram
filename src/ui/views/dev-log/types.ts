@@ -30,6 +30,19 @@ export interface RecallStats {
 /**
  * 召回日志条目
  */
+import type { MemorySlot } from '@/modules/rag/retrieval/BrainRecallCache';
+
+/**
+ * 类脑召回统计
+ */
+export interface BrainRecallStats {
+    round: number;
+    snapshot: MemorySlot[];
+}
+
+/**
+ * 召回日志条目
+ */
 export interface RecallLogEntry {
     id: string;
     timestamp: number;
@@ -38,6 +51,7 @@ export interface RecallLogEntry {
     mode: 'embedding' | 'hybrid';         // (Disabled in V0.8.5)
     results: RecallResultItem[];          // 召回结果
     stats: RecallStats;                   // 统计信息
+    brainStats?: BrainRecallStats;        // 类脑召回详情
 }
 
 /**

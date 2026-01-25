@@ -225,6 +225,8 @@ class BatchProcessor {
                 Logger.error(LogModule.BATCH, `任务 ${task.type} 失败`, { error: String(error) });
                 // V0.9.10: 弹错误通知
                 notificationService.error(`批处理任务失败: ${task.type}`, 'Engram 批处理');
+                // Critical Fix: 遇到错误立即中断批处理，防止中间楼层被架空
+                break;
             }
 
             this.queue.currentTaskIndex++;
@@ -242,7 +244,7 @@ class BatchProcessor {
                 action: { goto: 'processing' }
             });
         } else {
-            notificationService.warning(`批处理完成: ${completedCount} 成功, ${errorCount} 失败`, 'Engram', {
+            notificationService.warning(`批处理中断: ${completedCount} 成功, ${errorCount} 失败`, 'Engram', {
                 action: { goto: 'devlog' }
             });
         }
@@ -271,7 +273,10 @@ class BatchProcessor {
         if (!task.floorRange) return;
         await summarizerService.setLastSummarizedFloor(task.floorRange.start);
         const result = await summarizerService.triggerSummary(true);
-        if (!result) task.status = 'skipped';
+        if (!result) {
+            // Strict Mode: summary 失败不能简单跳过，必须报错中断，否则会导致该段历史在数据库中缺失
+            throw new Error(`Summary task failed for range ${task.floorRange.start}-${task.floorRange.end}`);
+        }
     }
 
     private async executeEntityTask(task: BatchTask): Promise<void> {
