@@ -382,5 +382,4 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
     );
 };
 
-export default UpdateNotice;
 

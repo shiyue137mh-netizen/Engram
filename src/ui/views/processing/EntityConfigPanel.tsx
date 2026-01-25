@@ -229,4 +229,3 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
     );
 };
 
-export default EntityConfigPanel;

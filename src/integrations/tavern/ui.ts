@@ -23,7 +23,7 @@ export function setQuickPanelCallback(callback: () => void) {
  * 注入快捷面板按钮
  * 直接 append 到 #leftSendForm（会出现在 extensionsMenuButton 之后）
  */
-export function injectQuickPanelButton(): boolean {
+function injectQuickPanelButton(): boolean {
     if (isInjected) {
         Logger.debug('QuickPanelButton', '按钮已存在，跳过注入');
         return true;
@@ -80,7 +80,7 @@ export function injectQuickPanelButton(): boolean {
 /**
  * 移除按钮
  */
-export function removeQuickPanelButton(): void {
+function removeQuickPanelButton(): void {
     const button = document.querySelector('#engram-quick-panel-trigger');
     if (button) {
         button.remove();

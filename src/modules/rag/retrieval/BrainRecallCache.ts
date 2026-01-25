@@ -17,7 +17,7 @@ const MODULE = 'BrainRecallCache';
 /**
  * 记忆槽位
  */
-export interface MemorySlot {
+interface MemorySlot {
     id: string;
 
     // 双轨强度
@@ -49,7 +49,7 @@ export interface RecallCandidate {
     embeddingVector?: number[];
 }
 
-export class BrainRecallCache {
+class BrainRecallCache {
     private shortTermMemory: Map<string, MemorySlot> = new Map();
     private currentRound: number = 0;
     private config: BrainRecallConfig = DEFAULT_BRAIN_RECALL_CONFIG;

@@ -10,7 +10,7 @@ const DEBOUNCE_DELAY = 3000;
 const SYNC_FILE_PREFIX = 'Engram_sync_';
 const SYNC_FILE_EXT = '.json';
 
-export class SyncService {
+class SyncService {
     private static instance: SyncService;
     private debouncedUploads: Map<string, () => void> = new Map();
     private isImporting: boolean = false; // 导入锁，防止导入时触发上传

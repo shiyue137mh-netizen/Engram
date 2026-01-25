@@ -8,7 +8,7 @@ import { getSTContext, isSTAvailable } from '@/integrations/tavern/context';
 import type { STMessage } from '@/integrations/tavern/context';
 
 /** 消息角色类型 */
-export type MessageRole = 'user' | 'assistant' | 'system';
+type MessageRole = 'user' | 'assistant' | 'system';
 
 /** 酒馆消息结构 */
 export interface TavernMessage {
@@ -163,4 +163,3 @@ export class MessageService {
     }
 }
 
-export default MessageService;

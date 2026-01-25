@@ -47,4 +47,3 @@ export const DOCS: DocCategory[] = [
     },
 ];
 
-export default DOCS;

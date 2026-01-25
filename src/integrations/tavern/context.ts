@@ -58,7 +58,7 @@ export interface STMessage {
 }
 
 /** ST 角色类型 */
-export interface STCharacter {
+interface STCharacter {
     name: string;
     avatar: string;
     description: string;
@@ -89,7 +89,7 @@ export function getCurrentChat(): STMessage[] {
 /**
  * 获取当前聊天记录 (别名)
  */
-export function getChatMessages(): STMessage[] {
+function getChatMessages(): STMessage[] {
     return getCurrentChat();
 }
 

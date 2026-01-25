@@ -86,7 +86,7 @@ export interface SummarizerStatus {
 }
 
 /** 总结请求参数 */
-export interface SummarizeRequest {
+interface SummarizeRequest {
     /** 消息内容数组 */
     messages: Array<{
         role: 'user' | 'assistant' | 'system';
@@ -100,7 +100,7 @@ export interface SummarizeRequest {
 }
 
 /** LLM 生成请求 */
-export interface LLMRequest {
+interface LLMRequest {
     /** 系统提示词 */
     systemPrompt: string;
     /** 用户提示词 */
@@ -110,7 +110,7 @@ export interface LLMRequest {
 }
 
 /** LLM 生成响应 */
-export interface LLMResponse {
+interface LLMResponse {
     /** 生成内容 */
     content: string;
     /** 是否成功 */

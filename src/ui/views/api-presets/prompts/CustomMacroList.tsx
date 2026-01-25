@@ -118,4 +118,3 @@ export const CustomMacroList: React.FC<CustomMacroListProps> = ({
     );
 };
 
-export default CustomMacroList;

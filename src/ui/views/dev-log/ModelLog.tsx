@@ -215,4 +215,3 @@ export const ModelLog: React.FC = () => {
     );
 };
 
-export default ModelLog;

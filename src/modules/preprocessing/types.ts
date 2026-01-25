@@ -4,7 +4,7 @@
  */
 
 /** 预处理模式 */
-export type PreprocessingMode =
+type PreprocessingMode =
     | 'query_enhance'    // RAG Query 增强
     | 'plot_director'    // 剧情构思
     | 'description'      // 描写增强

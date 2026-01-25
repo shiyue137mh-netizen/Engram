@@ -57,7 +57,7 @@ export interface RecallResult {
  * @param alpha 混合权重 (0=纯Embedding, 1=纯Rerank)
  * @returns 混合分数
  */
-export function calculateHybridScore(
+function calculateHybridScore(
     embeddingScore: number | null | undefined,
     rerankScore: number | null | undefined,
     alpha: number
@@ -77,7 +77,7 @@ export function calculateHybridScore(
  * @param scores 分数数组
  * @returns 归一化后的分数数组
  */
-export function normalizeScores(scores: number[]): number[] {
+function normalizeScores(scores: number[]): number[] {
     if (scores.length === 0) return [];
 
     const min = Math.min(...scores);

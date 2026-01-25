@@ -196,4 +196,3 @@ export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) 
     );
 };
 
-export default RegexRuleForm;

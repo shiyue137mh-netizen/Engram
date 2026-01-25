@@ -32,6 +32,6 @@ export function getTavernHelper(): {
 /**
  * 检查 WorldInfo 功能是否可用
  */
-export function isWorldInfoAvailable(): boolean {
+function isWorldInfoAvailable(): boolean {
     return getTavernHelper() !== null;
 }

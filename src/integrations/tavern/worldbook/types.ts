@@ -11,7 +11,7 @@ export type WorldInfoPosition =
 /**
  * WorldInfoStrategy - 世界书条目策略类型
  */
-export type WorldInfoStrategy = 'constant' | 'selective' | 'vectorized';
+type WorldInfoStrategy = 'constant' | 'selective' | 'vectorized';
 
 /**
  * WorldInfoRole - 世界书条目角色

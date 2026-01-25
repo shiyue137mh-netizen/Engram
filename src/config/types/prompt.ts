@@ -57,7 +57,7 @@ export interface PromptTemplateSingleExport {
     template: Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt'>;
 }
 
-export interface PromptTemplateExport {
+interface PromptTemplateExport {
     version: string;
     exportedAt: number;
     templates: Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt'>[];

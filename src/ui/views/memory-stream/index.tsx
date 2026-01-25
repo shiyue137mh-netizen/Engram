@@ -573,4 +573,3 @@ export const MemoryStream: React.FC = () => {
     );
 };
 
-export default MemoryStream;

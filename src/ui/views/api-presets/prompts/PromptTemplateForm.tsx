@@ -202,4 +202,3 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
     );
 };
 
-export default PromptTemplateForm;

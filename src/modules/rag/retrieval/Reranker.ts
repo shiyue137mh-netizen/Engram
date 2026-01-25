@@ -14,7 +14,7 @@ import type { RerankConfig } from '@/config/types/rag';
 /**
  * Rerank 结果项
  */
-export interface RerankResultItem {
+interface RerankResultItem {
     /** 文档在原始列表中的索引 */
     index: number;
     /** 相关性分数 (通常 0-1) */
@@ -31,7 +31,7 @@ interface RerankAPIResponse {
 
 // ==================== RerankService ====================
 
-export class RerankService {
+class RerankService {
     private static instance: RerankService;
 
     private constructor() { }

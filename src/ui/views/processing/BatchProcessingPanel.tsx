@@ -412,4 +412,3 @@ export const BatchProcessingPanel: React.FC = () => {
     );
 };
 
-export default BatchProcessingPanel;

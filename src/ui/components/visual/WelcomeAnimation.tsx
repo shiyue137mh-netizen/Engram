@@ -181,4 +181,3 @@ export const WelcomeAnimation: React.FC<WelcomeAnimationProps> = ({ onComplete }
     );
 };
 
-export default WelcomeAnimation;

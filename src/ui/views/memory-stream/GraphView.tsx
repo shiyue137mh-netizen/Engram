@@ -322,4 +322,3 @@ export const GraphView: React.FC<GraphViewProps> = ({ events, entities }) => {
     );
 };
 
-export default GraphView;

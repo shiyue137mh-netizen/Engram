@@ -539,4 +539,3 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
     );
 };
 
-export default SummaryPanel;

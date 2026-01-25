@@ -163,7 +163,7 @@ export function getDbForChat(chatId: string): ChatDatabase {
 /**
  * 关闭并移除缓存的数据库
  */
-export function closeDb(chatId: string): void {
+function closeDb(chatId: string): void {
     const db = dbCache.get(chatId);
     if (db) {
         db.close();
@@ -198,7 +198,7 @@ export async function deleteDatabase(chatId: string): Promise<void> {
 /**
  * 列出所有 Engram 数据库名称
  */
-export async function listAllDatabases(): Promise<string[]> {
+async function listAllDatabases(): Promise<string[]> {
     const allDbs = await Dexie.getDatabaseNames();
     return allDbs.filter(name => name.startsWith('Engram_'));
 }
@@ -206,7 +206,7 @@ export async function listAllDatabases(): Promise<string[]> {
 /**
  * 获取所有 Engram 数据库的 chatId 列表
  */
-export async function listAllChatIds(): Promise<string[]> {
+async function listAllChatIds(): Promise<string[]> {
     const dbNames = await listAllDatabases();
     return dbNames.map(name => name.replace('Engram_', ''));
 }
@@ -214,7 +214,7 @@ export async function listAllChatIds(): Promise<string[]> {
 /**
  * 删除所有 Engram 数据库 (危险操作！)
  */
-export async function deleteAllDatabases(): Promise<number> {
+async function deleteAllDatabases(): Promise<number> {
     const dbNames = await listAllDatabases();
     for (const name of dbNames) {
         await Dexie.delete(name);

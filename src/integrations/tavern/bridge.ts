@@ -8,8 +8,8 @@
 import { EventBus, EngramEvent } from '@/core/events/types';
 // 使用统一的 STContext 模块
 import { getSTContext, getCurrentChat, getCurrentCharacter } from "@/integrations/tavern/context";
-export { getSTContext, getCurrentChat, getCurrentCharacter } from "@/integrations/tavern/context";
-export type { STContext, STMessage, STCharacter } from "@/integrations/tavern/context";
+export { getSTContext,   } from "@/integrations/tavern/context";
+;
 
 /**
  * 初始化 Engram 插件

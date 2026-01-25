@@ -12,7 +12,7 @@
 import { EventBus, TavernEventType, type Unsubscribe } from '@/integrations/tavern/events';
 
 /** 监听回调类型 */
-export interface WatcherCallbacks {
+interface WatcherCallbacks {
     /** 收到消息时触发 (用户或 AI) */
     onMessageReceived?: () => void | Promise<void>;
     /** 聊天切换时触发 */
@@ -27,7 +27,7 @@ export interface WatcherCallbacks {
  * EventWatcher 类
  * 统一管理事件订阅，避免重复监听
  */
-export class EventWatcher {
+class EventWatcher {
     private static instance: EventWatcher | null = null;
     private unsubscribers: Unsubscribe[] = [];
     private callbacks: Map<string, Set<() => void | Promise<void>>> = new Map();

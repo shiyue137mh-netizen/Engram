@@ -46,4 +46,3 @@ export const PresetCard: React.FC<PresetCardProps> = ({
     );
 };
 
-export default PresetCard;

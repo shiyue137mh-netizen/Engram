@@ -13,7 +13,7 @@ import { DEFAULT_SCOPE_STATE, type ScopeState } from './types/graph';
 const STATE_KEY = 'scope_state';
 const CHARACTER_KEY = 'character_name';
 
-export class ChatManager {
+class ChatManager {
     private currentChatId: string | null = null;
     private currentDb: ChatDatabase | null = null;
 
@@ -126,4 +126,4 @@ export const chatManager = new ChatManager();
  * @deprecated V0.6: 使用 chatManager 替代
  * 保留以便定位迁移点
  */
-export const scopeManager = chatManager;
+const scopeManager = chatManager;

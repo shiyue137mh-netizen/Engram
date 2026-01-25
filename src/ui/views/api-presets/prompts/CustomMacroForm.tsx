@@ -53,4 +53,3 @@ export const CustomMacroForm: React.FC<CustomMacroFormProps> = ({
     );
 };
 
-export default CustomMacroForm;

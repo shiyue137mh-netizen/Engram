@@ -302,4 +302,3 @@ export function groupLogsByModule(logs: LogEntry[]): LogEntry[][] {
     return groups;
 }
 
-export default LogEntryItem;

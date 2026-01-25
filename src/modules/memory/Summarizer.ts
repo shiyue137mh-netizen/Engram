@@ -53,7 +53,7 @@ function saveChatDebounced(): void {
  * SummarizerService 类
  * 核心总结服务
  */
-export class SummarizerService {
+class SummarizerService {
     private config: SummarizerConfig;
 
     private currentChatId: string | null = null;
@@ -536,4 +536,3 @@ export class SummarizerService {
 /** 默认实例 */
 export const summarizerService = new SummarizerService();
 
-export default SummarizerService;

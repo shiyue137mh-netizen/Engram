@@ -20,7 +20,7 @@ export interface IStep {
  * StepResult - 步骤执行结果 (可选，目前 execute 返回 void，通过修改 context 传递结果)
  * 保留用于未来扩展 (如控制流跳转)
  */
-export enum StepResult {
+enum StepResult {
     CONTINUE = 'continue',
     STOP = 'stop',
     RETRY = 'retry'

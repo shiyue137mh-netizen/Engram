@@ -200,4 +200,3 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     );
 };
 
-export default ItemCard;

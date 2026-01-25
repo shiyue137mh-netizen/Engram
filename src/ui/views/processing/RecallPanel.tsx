@@ -27,5 +27,4 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
     );
 };
 
-export default RecallPanel;
 

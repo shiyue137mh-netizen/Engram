@@ -243,4 +243,3 @@ class ModelLoggerClass {
 /** 单例实例 */
 export const ModelLogger = new ModelLoggerClass();
 
-export default ModelLogger;

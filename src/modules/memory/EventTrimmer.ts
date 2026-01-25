@@ -31,7 +31,7 @@ export const DEFAULT_TRIM_CONFIG: TrimConfig = {
     previewEnabled: true,
 };
 
-export interface TrimResult {
+interface TrimResult {
     /** 精简后的事件 */
     newEvent: EventNode;
     /** 被删除的事件数量 */
@@ -71,7 +71,7 @@ export interface TrimmerStatus {
 /**
  * EventTrimmer 类
  */
-export class EventTrimmer {
+class EventTrimmer {
     private config: TrimConfig;
     private isTrimming = false;
 

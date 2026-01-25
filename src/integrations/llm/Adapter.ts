@@ -12,7 +12,7 @@ import type { LLMPreset } from "@/config/types/llm";
 import { Logger } from "@/core/logger";
 
 /** LLM 生成请求 */
-export interface LLMRequest {
+interface LLMRequest {
     /** 系统提示词 */
     systemPrompt: string;
     /** 用户提示词 */
@@ -24,7 +24,7 @@ export interface LLMRequest {
 }
 
 /** LLM 生成响应 */
-export interface LLMResponse {
+interface LLMResponse {
     /** 生成内容 */
     content: string;
     /** 是否成功 */
@@ -71,7 +71,7 @@ function getTavernProfiles(): any[] {
  * LLMAdapter 类
  * 封装 LLM 调用
  */
-export class LLMAdapter {
+class LLMAdapter {
     /**
      * 调用 LLM 生成
      * @param request 请求参数
@@ -320,4 +320,3 @@ export class LLMAdapter {
 /** 默认实例 */
 export const llmAdapter = new LLMAdapter();
 
-export default LLMAdapter;

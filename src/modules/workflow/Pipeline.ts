@@ -9,7 +9,7 @@ import { useMemoryStore } from '@/state/memoryStore';
 import { RobustJsonParser } from '@/core/utils/JsonParser';
 import type { EventNode } from '@/data/types/graph';
 
-export interface PipelineInput {
+interface PipelineInput {
     /** JSON 格式的事件数据 (来自 SummarizerService 的 LLM 输出) */
     jsonContent: string;
     /** 消息范围 */
@@ -19,7 +19,7 @@ export interface PipelineInput {
     };
 }
 
-export interface PipelineOutput {
+interface PipelineOutput {
     success: boolean;
     events?: EventNode[];
     error?: string;
@@ -46,7 +46,7 @@ interface ParsedEventsResponse {
 /**
  * Pipeline 类
  */
-export class Pipeline {
+class Pipeline {
     /**
      * 执行 Pipeline
      * V0.6: 直接解析 JSON，不再调用 Extractor LLM

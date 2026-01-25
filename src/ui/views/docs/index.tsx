@@ -135,4 +135,3 @@ export const DocsView: React.FC<DocsViewProps> = ({ initialTab }) => {
     );
 };
 
-export default DocsView;

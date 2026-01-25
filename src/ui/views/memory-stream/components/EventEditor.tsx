@@ -478,4 +478,3 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
 
 EventEditor.displayName = 'EventEditor';
 
-export default EventEditor;

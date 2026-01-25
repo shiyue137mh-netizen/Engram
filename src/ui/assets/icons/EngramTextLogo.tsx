@@ -32,4 +32,3 @@ export const EngramTextLogo: React.FC<EngramTextLogoProps> = ({ className = '', 
     );
 };
 
-export default EngramTextLogo;

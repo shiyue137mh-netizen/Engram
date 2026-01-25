@@ -201,5 +201,4 @@ export const EventCard: React.FC<EventCardProps> = ({
     );
 };
 
-export default EventCard;
 

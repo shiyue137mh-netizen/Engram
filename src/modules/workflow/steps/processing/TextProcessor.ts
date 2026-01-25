@@ -30,7 +30,7 @@ const DEFAULT_TRIM_RULES: TrimRule[] = [
  * TextProcessor 类
  * 文本处理工具集
  */
-export class TextProcessor {
+class TextProcessor {
     private rules: TrimRule[];
 
     constructor(customRules?: TrimRule[]) {
@@ -116,6 +116,5 @@ export class TextProcessor {
 }
 
 /** 默认实例 */
-export const textProcessor = new TextProcessor();
+const textProcessor = new TextProcessor();
 
-export default TextProcessor;

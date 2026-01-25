@@ -21,7 +21,7 @@ import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
 // ==================== 类型定义 ====================
 
 /** 任务类型 */
-export type BatchTaskType = 'summary' | 'entity' | 'trim' | 'embed';
+type BatchTaskType = 'summary' | 'entity' | 'trim' | 'embed';
 
 /** 任务状态 */
 export type BatchTaskStatus = 'pending' | 'running' | 'done' | 'error' | 'skipped';
@@ -61,14 +61,14 @@ export interface HistoryAnalysis {
 export type ImportMode = 'fast' | 'detailed';
 
 /** 外部导入配置 */
-export interface ImportConfig {
+interface ImportConfig {
     mode: ImportMode;
     chunkSize: number;
     overlapSize: number;
 }
 
 /** 进度回调 */
-export type BatchProgressCallback = (queue: BatchQueue) => void;
+type BatchProgressCallback = (queue: BatchQueue) => void;
 
 // ==================== 默认配置 ====================
 
@@ -80,7 +80,7 @@ const DEFAULT_IMPORT_CONFIG: ImportConfig = {
 
 // ==================== BatchProcessor ====================
 
-export class BatchProcessor {
+class BatchProcessor {
     private queue: BatchQueue = {
         tasks: [],
         isRunning: false,

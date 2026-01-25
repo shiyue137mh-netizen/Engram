@@ -616,4 +616,3 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab }) => {
     );
 };
 
-export default APIPresets;

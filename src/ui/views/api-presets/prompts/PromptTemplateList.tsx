@@ -138,4 +138,3 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
     );
 };
 
-export default PromptTemplateList;

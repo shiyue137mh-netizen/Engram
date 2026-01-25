@@ -46,7 +46,7 @@ export const ALL_MODULES = Object.values(LogModule);
 /**
  * 按域分组（供 UI 分组下拉菜单使用）
  */
-export const MODULE_GROUPS: Record<string, LogModule[]> = {
+const MODULE_GROUPS: Record<string, LogModule[]> = {
     'System': [LogModule.SYSTEM, LogModule.EVENTS],
     'Memory': [LogModule.MEMORY_SUMMARY, LogModule.MEMORY_ENTITY, LogModule.MEMORY_TRIM],
     'RAG': [LogModule.RAG_EMBED, LogModule.RAG_RETRIEVE, LogModule.RAG_RERANK, LogModule.RAG_INJECT, LogModule.RAG_CACHE],
@@ -59,7 +59,7 @@ export const MODULE_GROUPS: Record<string, LogModule[]> = {
 /**
  * 获取模块所属的域
  */
-export function getModuleDomain(module: LogModule): string {
+function getModuleDomain(module: LogModule): string {
     const value = module as string;
     return value.includes('/') ? value.split('/')[0] : value;
 }

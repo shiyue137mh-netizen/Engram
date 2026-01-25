@@ -261,4 +261,3 @@ export class RegexProcessor {
 /** 默认实例 */
 export const regexProcessor = new RegexProcessor();
 
-export default RegexProcessor;

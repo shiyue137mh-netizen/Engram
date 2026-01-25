@@ -5,20 +5,13 @@
  */
 
 export { EventBus, TavernEventType } from '@/integrations/tavern/events';
-export type { TavernEventTypeValue, EventCallback, Unsubscribe } from '@/integrations/tavern/events';
+;
 
-export { MessageService } from './Message';
-export type { TavernMessage, MessageRole, GetMessagesOptions } from './Message';
+;
+;
 
 export { WorldInfoService } from '../worldbook';
-export type {
-    WorldInfoEntry,
-    WorldInfoPosition,
-    WorldInfoStrategy,
-    WorldInfoRole,
-    WorldInfoTokenStats,
-    CreateWorldInfoEntryParams,
-} from '../worldbook';
+;
 
 /**
  * 检查酒馆接口对接状态

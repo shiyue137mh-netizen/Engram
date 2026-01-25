@@ -30,7 +30,7 @@ interface AppProps {
     onClose: () => void;
 }
 
-export const App: React.FC<AppProps> = ({ onClose }) => {
+const App: React.FC<AppProps> = ({ onClose }) => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [showWelcome, setShowWelcome] = useState(false);
     const [isInitialized, setIsInitialized] = useState(false);

@@ -4,7 +4,7 @@
 import { List, Network, Brain, Key, Terminal, Settings, LogOut, Home } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
-export interface CommandItem {
+interface CommandItem {
     id: string;
     icon: LucideIcon;
     label: string;
@@ -49,7 +49,7 @@ export const COMMANDS: CommandItem[] = [
 /**
  * 搜索命令
  */
-export function searchCommands(query: string): CommandItem[] {
+function searchCommands(query: string): CommandItem[] {
     const lowerQuery = query.toLowerCase().trim();
     if (!lowerQuery) return COMMANDS;
 

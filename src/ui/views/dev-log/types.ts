@@ -43,7 +43,7 @@ export interface RecallLogEntry {
 /**
  * 召回日志存储
  */
-export interface RecallLogStore {
+interface RecallLogStore {
     logs: RecallLogEntry[];
     maxLogs: number;
 }
@@ -51,7 +51,7 @@ export interface RecallLogStore {
 /**
  * 默认配置
  */
-export const DEFAULT_RECALL_LOG_STORE: RecallLogStore = {
+const DEFAULT_RECALL_LOG_STORE: RecallLogStore = {
     logs: [],
     maxLogs: 50,
 };

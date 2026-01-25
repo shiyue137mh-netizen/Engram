@@ -36,7 +36,7 @@ interface GenerationAfterCommandsParams {
     _engram_internal?: boolean; // 内部请求标记
 }
 
-export class Injector {
+class Injector {
     private isInitialized = false;
     private isProcessing = false; // 防止重入
     private cacheInvalid = false; // V0.9.5: 缓存失效标记（用户编辑消息后设为 true）

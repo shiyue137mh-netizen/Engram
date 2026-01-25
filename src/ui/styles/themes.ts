@@ -2,7 +2,7 @@
  * Theme 类型定义和主题配置
  */
 
-export interface Theme {
+interface Theme {
     name: string;
     colors: {
         background: string;
@@ -46,7 +46,7 @@ export interface Theme {
 // ----------------------------------------------------------------------
 // 1. Paper Light (Twitter) - Based on User Provided CSS Variables
 // ----------------------------------------------------------------------
-export const paperLightTheme: Theme = {
+const paperLightTheme: Theme = {
     name: 'Paper (Light)',
     colors: {
         background: 'oklch(1.0000 0 0)',
@@ -91,7 +91,7 @@ export const paperLightTheme: Theme = {
 // ----------------------------------------------------------------------
 // 2. Claude Dark (formerly Paper Dark)
 // ----------------------------------------------------------------------
-export const claudeDarkTheme: Theme = {
+const claudeDarkTheme: Theme = {
     name: 'Claude (Dark)',
     colors: {
         background: 'oklch(0.2679 0.0036 106.6427)',
@@ -135,7 +135,7 @@ export const claudeDarkTheme: Theme = {
 // ----------------------------------------------------------------------
 // 3. Twitter Dark (Black/Blue) - New
 // ----------------------------------------------------------------------
-export const twitterDarkTheme: Theme = {
+const twitterDarkTheme: Theme = {
     name: 'Twitter (Dark)',
     colors: {
         background: 'oklch(0 0 0)',
@@ -180,7 +180,7 @@ export const twitterDarkTheme: Theme = {
 // ----------------------------------------------------------------------
 // 4. Discord Dark
 // ----------------------------------------------------------------------
-export const discordTheme: Theme = {
+const discordTheme: Theme = {
     name: 'Discord (Dark)',
     colors: {
         background: '#313338',
@@ -224,7 +224,7 @@ export const discordTheme: Theme = {
 // ----------------------------------------------------------------------
 // 5. Catppuccin Mocha - Modified (Mauve Text)
 // ----------------------------------------------------------------------
-export const catppuccinTheme: Theme = {
+const catppuccinTheme: Theme = {
     name: 'Catppuccin Mocha',
     colors: {
         background: '#1e1e2e',
@@ -279,7 +279,7 @@ export const catppuccinTheme: Theme = {
 // ----------------------------------------------------------------------
 // 6. SillyTavern Inherited Theme - 继承酒馆主题
 // ----------------------------------------------------------------------
-export const sillyTavernTheme: Theme = {
+const sillyTavernTheme: Theme = {
     name: 'SillyTavern (继承)',
     colors: {
         background: 'var(--SmartThemeBlurTintColor)',
@@ -323,7 +323,7 @@ export const sillyTavernTheme: Theme = {
 // ----------------------------------------------------------------------
 // 7. Glass (Frosted) - 毛玻璃主题
 // ----------------------------------------------------------------------
-export const glassTheme: Theme = {
+const glassTheme: Theme = {
     name: 'Glass (Frosted)',
     colors: {
         // 背景完全透明，但跟随透明度变化

@@ -18,7 +18,7 @@ import { Logger, LogModule } from '@/core/logger';
 /**
  * 嵌入请求
  */
-export interface EmbedRequest {
+interface EmbedRequest {
     id: string;
     text: string;
 }
@@ -26,7 +26,7 @@ export interface EmbedRequest {
 /**
  * 嵌入结果
  */
-export interface EmbedResult {
+interface EmbedResult {
     id: string;
     embedding: number[];
     error?: string;
@@ -57,7 +57,7 @@ interface OllamaEmbeddingResponse {
 /**
  * 嵌入进度回调
  */
-export type EmbedProgressCallback = (current: number, total: number, errors: number) => void;
+type EmbedProgressCallback = (current: number, total: number, errors: number) => void;
 
 // ==================== 常量 ====================
 
@@ -80,7 +80,7 @@ const DEFAULT_CONCURRENCY = 5;
 
 // ==================== EmbeddingService ====================
 
-export class EmbeddingService {
+class EmbeddingService {
     private config: VectorConfig | null = null;
     private concurrency: number = DEFAULT_CONCURRENCY;
     private stopSignal: boolean = false;

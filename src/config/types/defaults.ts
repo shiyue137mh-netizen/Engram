@@ -1,9 +1,9 @@
 // Re-export types for convenience
-export type { SamplingParameters, ContextSettings, LLMPreset } from './llm';
-export type { BrainRecallConfig, RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
+export type {   LLMPreset } from './llm';
+export type {  RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
 export type { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
 export type { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, WorldbookConfigProfile } from './prompt';
-export { PROMPT_CATEGORIES } from './prompt';
+;
 
 
 import { SamplingParameters, ContextSettings, LLMPreset } from './llm';
@@ -14,7 +14,7 @@ import { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, PROMPT_CA
 // Import prompts from original location (will be moved in Phase 7)
 // Removed: raw text imports replaced by YAML loader
 
-export const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
+const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
     temperature: 0.7,
     topP: 0.95,
     maxTokens: 2048,
@@ -22,15 +22,15 @@ export const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
     presencePenalty: 0,
 };
 
-export const DEFAULT_CONTEXT_SETTINGS: ContextSettings = {
+const DEFAULT_CONTEXT_SETTINGS: ContextSettings = {
     maxChatHistory: 10,
 };
 
-export const DEFAULT_VECTOR_CONFIG: VectorConfig = {
+const DEFAULT_VECTOR_CONFIG: VectorConfig = {
     source: 'transformers',
 };
 
-export const DEFAULT_RERANK_CONFIG: RerankConfig = {
+const DEFAULT_RERANK_CONFIG: RerankConfig = {
     enabled: false,
     url: '',
     apiKey: '',
@@ -88,12 +88,12 @@ export const DEFAULT_ENTITY_CONFIG: EntityExtractConfig = {
     keepRecentCount: 5,
 };
 
-export const DEFAULT_REGEX_CONFIG: GlobalRegexConfig = {
+const DEFAULT_REGEX_CONFIG: GlobalRegexConfig = {
     enableNativeRegex: true,
     enableEngramRegex: true,
 };
 
-export const DEFAULT_CUSTOM_MACROS: CustomMacro[] = [
+const DEFAULT_CUSTOM_MACROS: CustomMacro[] = [
     {
         id: 'custom_user_profile',
         name: '用户画像',
@@ -103,14 +103,14 @@ export const DEFAULT_CUSTOM_MACROS: CustomMacro[] = [
     },
 ];
 
-export const DEFAULT_WORLDBOOK_CONFIG: WorldbookConfig = {
+const DEFAULT_WORLDBOOK_CONFIG: WorldbookConfig = {
     enabled: true,
     includeGlobal: true,
     disabledWorldbooks: [],
     enableEJS: true, // V0.8 默认启用 EJS
 };
 
-export const DEFAULT_TRIM_CONFIG: TrimConfig = {
+const DEFAULT_TRIM_CONFIG: TrimConfig = {
     enabled: false,
     trigger: 'token',
     tokenLimit: 4096,

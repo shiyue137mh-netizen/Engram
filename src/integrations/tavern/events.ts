@@ -54,7 +54,7 @@ export const TavernEventType = {
     ENGRAM_REQUEST_REVISION: 'engram:request_revision',
 } as const;
 
-export type TavernEventTypeKey = keyof typeof TavernEventType;
+type TavernEventTypeKey = keyof typeof TavernEventType;
 export type TavernEventTypeValue = typeof TavernEventType[TavernEventTypeKey];
 
 /** 事件回调函数类型 */
@@ -194,4 +194,3 @@ export class EventBus {
     }
 }
 
-export default EventBus;

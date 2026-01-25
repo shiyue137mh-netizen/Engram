@@ -71,7 +71,7 @@ export function getLayoutedElements(
 /**
  * 获取事件节点的默认样式配置
  */
-export function getEventNodeDimensions(zoom: number): { width: number; height: number } {
+function getEventNodeDimensions(zoom: number): { width: number; height: number } {
     if (zoom < 0.4) {
         // LOD 0: 极简模式
         return { width: 40, height: 40 };
@@ -86,7 +86,7 @@ export function getEventNodeDimensions(zoom: number): { width: number; height: n
 /**
  * 获取实体节点的默认样式配置
  */
-export function getEntityNodeDimensions(zoom: number): { width: number; height: number } {
+function getEntityNodeDimensions(zoom: number): { width: number; height: number } {
     if (zoom < 0.4) {
         // LOD 0: 隐藏或微缩
         return { width: 30, height: 30 };

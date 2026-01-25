@@ -44,4 +44,3 @@ export const MobileFullscreenForm: React.FC<MobileFullscreenFormProps> = ({
     );
 };
 
-export default MobileFullscreenForm;

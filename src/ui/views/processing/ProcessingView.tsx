@@ -173,4 +173,3 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
     );
 };
 
-export default ProcessingView;

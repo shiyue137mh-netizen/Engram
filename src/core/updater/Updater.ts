@@ -165,4 +165,3 @@ export class UpdateService {
     }
 }
 
-export default UpdateService;

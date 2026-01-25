@@ -254,4 +254,3 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
     };
 }
 
-export default useDashboardData;

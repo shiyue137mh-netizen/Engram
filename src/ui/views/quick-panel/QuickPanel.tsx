@@ -267,4 +267,3 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
     );
 }
 
-export default QuickPanel;

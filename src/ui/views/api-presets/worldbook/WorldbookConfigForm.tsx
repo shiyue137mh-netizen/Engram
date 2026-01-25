@@ -226,4 +226,3 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
     );
 };
 
-export default WorldbookConfigForm;

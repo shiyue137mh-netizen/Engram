@@ -17,7 +17,7 @@ interface Toastr {
 /**
  * 通用通知选项
  */
-export interface NotificationOptions {
+interface NotificationOptions {
     timeOut?: number;
     extendedTimeOut?: number;
     closeButton?: boolean;
@@ -49,7 +49,7 @@ const DEFAULT_OPTIONS: NotificationOptions = {
  * 封装 SillyTavern 原生 toastr 通知系统
  * 提供统一的通知接口，便于未来替换或扩展
  */
-export class NotificationService {
+class NotificationService {
     private static instance: NotificationService;
 
     private constructor() { }
@@ -239,4 +239,3 @@ export class NotificationService {
 
 /** 默认导出单例 */
 export const notificationService = NotificationService.getInstance();
-export default NotificationService;

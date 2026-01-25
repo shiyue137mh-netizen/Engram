@@ -94,4 +94,3 @@ class RecallLogServiceClass {
 }
 
 export const RecallLogService = new RecallLogServiceClass();
-export default RecallLogService;

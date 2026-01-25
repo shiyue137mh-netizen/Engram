@@ -48,6 +48,6 @@ export function useResponsive(): ResponsiveState {
 }
 
 // 导出常量供 CSS-in-JS 或其他地方使用
-export const BREAKPOINTS = {
+const BREAKPOINTS = {
     DESKTOP: DESKTOP_BREAKPOINT,
 };

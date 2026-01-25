@@ -1,6 +1,6 @@
 import { EventBus, TavernEventType } from "@/integrations/tavern/api";
 
-export interface RevisionRequest {
+interface RevisionRequest {
     title: string;
     description: string;
     content: string;
@@ -13,7 +13,7 @@ export interface RevisionRequest {
  * 
  * 解耦 UI (Modal) 和 业务逻辑 (Summarizer)
  */
-export class RevisionService {
+class RevisionService {
     /**
      * 请求用户修订内容
      * @returns Promise<string> 用户确认后的新内容

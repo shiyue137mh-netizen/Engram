@@ -470,4 +470,3 @@ export const RecallLog: React.FC = () => {
     );
 };
 
-export default RecallLog;

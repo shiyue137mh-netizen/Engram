@@ -6,7 +6,7 @@
 
 import { Logger } from '@/core/logger';
 
-export interface ShortcutConfig {
+interface ShortcutConfig {
     key: string;
     ctrl?: boolean;
     shift?: boolean;
@@ -221,7 +221,7 @@ class KeyboardManager {
 }
 
 // 单例实例
-export const keyboardManager = new KeyboardManager();
+const keyboardManager = new KeyboardManager();
 
 // 便捷的初始化函数
 export interface KeyboardShortcutCallbacks {

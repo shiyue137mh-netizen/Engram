@@ -19,4 +19,4 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 // 默认路由
-export const DEFAULT_ROUTE = '/dashboard';
+const DEFAULT_ROUTE = '/dashboard';

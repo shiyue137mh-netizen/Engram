@@ -26,14 +26,14 @@ import { DEFAULT_RECALL_CONFIG, DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/typ
 
 // ==================== 类型定义 ====================
 
-export interface RetrievalResult {
+interface RetrievalResult {
     entries: string[]; // Formatted entries ready for injection
     nodes: EventNode[]; // Raw nodes
 }
 
 // ==================== Retriever ====================
 
-export class Retriever {
+class Retriever {
     /**
      * 获取召回配置
      */

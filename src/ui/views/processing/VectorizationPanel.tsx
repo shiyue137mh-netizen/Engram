@@ -342,4 +342,3 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
     );
 };
 
-export default VectorizationPanel;

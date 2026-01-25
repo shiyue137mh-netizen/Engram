@@ -43,4 +43,3 @@ export const QuickLinks: React.FC<QuickLinksProps> = ({ links, onNavigate, class
     );
 };
 
-export default QuickLinks;

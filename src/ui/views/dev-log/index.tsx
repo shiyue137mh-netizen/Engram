@@ -307,4 +307,3 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
     );
 };
 
-export default DevLog;
