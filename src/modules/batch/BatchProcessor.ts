@@ -167,7 +167,7 @@ class BatchProcessor {
         }
 
         tasks.push({
-            id: uuidv4(),
+            id: generateUUID(),
             type: 'embed',
             status: 'pending',
             progress: { current: 0, total: embedTasks },

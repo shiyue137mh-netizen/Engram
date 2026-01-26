@@ -12,12 +12,16 @@
 
 /* Minimal Reset */
 @layer base {
-    * {
-        @apply border-border;
+
+    /* Scope base styles to Engram root prevents polluting global ST UI */
+    #engram-panel-root {
+        @apply border-border bg-background text-foreground;
+        box-sizing: border-box;
     }
 
-    body {
-        @apply bg-background text-foreground;
+    #engram-panel-root * {
+        @apply border-border;
+        box-sizing: border-box;
     }
 }
 

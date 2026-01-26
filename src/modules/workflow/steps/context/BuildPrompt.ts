@@ -27,19 +27,29 @@ export class BuildPrompt implements IStep {
         const { SettingsManager } = await import('@/config/settings');
         const allTemplates = SettingsManager.get('apiSettings')?.promptTemplates || [];
 
-        // Ensure built-ins are loaded if settings are empty (rare fallback)
-        if (allTemplates.length === 0) {
-            PromptLoader.init();
-            allTemplates.push(...PromptLoader.getAllTemplates());
-        }
+        // Ensure built-ins are loaded and merged with user settings
+        PromptLoader.init();
+        const builtInTemplates = PromptLoader.getAllTemplates();
+
+        // Create a map to merge templates by ID (User overrides Built-in)
+        const templateMap = new Map<string, any>();
+
+        // 1. Add built-ins first
+        builtInTemplates.forEach(t => templateMap.set(t.id, t));
+
+        // 2. Override with user templates
+        allTemplates.forEach(t => templateMap.set(t.id, t));
+
+        // 3. Convert back to array
+        const mergedTemplates = Array.from(templateMap.values());
 
         let template;
         if (templateId) {
             // Priority 1: Use explicit templateId
-            template = allTemplates.find(t => t.id === templateId);
+            template = mergedTemplates.find(t => t.id === templateId);
         } else if (category) {
             // Priority 2: Use Enabled template in category
-            const templates = allTemplates.filter(t => t.category === category && t.enabled);
+            const templates = mergedTemplates.filter(t => t.category === category && t.enabled);
             const customEnabled = templates.find(t => !t.isBuiltIn);
             if (customEnabled) {
                 template = customEnabled;
