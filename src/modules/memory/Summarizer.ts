@@ -190,13 +190,12 @@ class SummarizerService {
         eventWatcher.start();
 
         // 注册回调
-        if (this.config.triggerMode === 'auto') {
-            this.unsubscribeMessage = eventWatcher.on(
-                'onMessageReceived',
-                this.handleMessageReceived.bind(this)
-            );
-            this.log('debug', '已通过 EventWatcher 订阅消息事件');
-        }
+        // V0.9.11: Always subscribe to messages to support Entity Extraction even if Summary is Manual
+        this.unsubscribeMessage = eventWatcher.on(
+            'onMessageReceived',
+            this.handleMessageReceived.bind(this)
+        );
+        this.log('debug', '已通过 EventWatcher 订阅消息事件');
 
         this.unsubscribeChat = eventWatcher.on(
             'onChatChanged',

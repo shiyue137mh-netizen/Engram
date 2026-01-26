@@ -51,7 +51,7 @@ export class ChatDatabase extends Dexie {
         const handleChange = () => this.updateLastModified();
 
         this.events.hook('creating', handleChange);
-        this.events.hook('updating', handleChange);
+        this.entities.hook('updating', handleChange);
         this.events.hook('deleting', handleChange);
 
         this.entities.hook('creating', handleChange);
@@ -63,47 +63,24 @@ export class ChatDatabase extends Dexie {
      * 更新最后修改时间并调度上传
      */
     private updateLastModified() {
-        // 使用事务或直接更新 meta
-        // 注意: 这里的 put 是异步的，但在 hook 中通常不等待副作用
-        // 我们只记录时间，让 SyncService 在上传时读取这个时间（或者这里写入）
+        try {
+            if (syncService.isImportingState) {
+                return;
+            }
 
-        // 只有当不是在 SyncService 导入过程中才更新时间戳
-        // 但我们无法直接访问 SyncService.isImporting (它是私有的)
-        // 不过 scheduleUpload 内部有检查 isImporting。
-        // 问题: 如果是导入过程，我们需要 updateLastModified 吗？
-        // 答: 导入过程会覆盖 meta 表，其中包含了远程的 lastModified。
-        // 所以这里我们只需要确保普通操作会更新它。
-
-        // 我们需要一种方式知道是否正在导入。
-        // 简单起见，我们总是更新，但在导入时，SyncService 会覆盖回来？
-        // 不，importChatData 是清空后写入，所以导入的数据包含了它的时间戳。
-        // 这里的 hooks 会在 importChatData 的 bulkAdd 中被触发吗？
-        // 是的，bulkAdd 也会触发 hooks。
-        // 这是一个潜在问题：导入导致 hooks 触发 -> 更新 lastModified 为当前时间 -> 导致本地时间 > 远程时间。
-
-        // 解决办法：SyncService.isImporting 必须被通过某种方式告知 DB，或者 importChatData 时临时禁用 hooks。
-        // 但 Dexie hooks 很难临时禁用。
-
-        // 另一种方法：syncService.scheduleUpload 已经有 isImporting 检查。
-        // 我们可以在 scheduleUpload 里顺便做“如果是正常上传请求，则更新时间戳”？
-        // 不行，scheduleUpload 是防抖的，时间戳应该精确。
-
-        // 让我们看看 syncService 是否暴露了 isImporting。目前是私有的。
-        // 我们可以给 SyncService 加一个 getter，或者在 db.ts 里引入并检查。
-
-        if (syncService.isImportingState) {
-            return;
-        }
-
-        // V0.9.11: Fix NotFoundError by ignoring current transaction (if any)
-        // updateLastModified is often triggered by hooks inside a restricted transaction (e.g. only 'entities')
-        // but needs access to 'meta'.
-        Dexie.ignoreTransaction(() => {
-            this.meta.put({ key: 'lastModified', value: Date.now() }).catch(err => {
-                Logger.error(MODULE, 'Failed to update lastModified', err);
+            // V0.9.11: Fix NotFoundError by ignoring current transaction (if any)
+            Dexie.ignoreTransaction(() => {
+                this.meta.put({ key: 'lastModified', value: Date.now() }).catch(err => {
+                    Logger.error(MODULE, 'Failed to update lastModified (async)', err);
+                });
             });
-        });
-        syncService.scheduleUpload(this.chatId);
+
+            // Sync Schedule is safe (debounced)
+            syncService.scheduleUpload(this.chatId);
+        } catch (e) {
+            // CRITICAL: Hooks must NEVER throw, or they cancel the DB operation
+            Logger.error(MODULE, 'Hook failed silently to prevent transaction abort', e);
+        }
     }
 }
 

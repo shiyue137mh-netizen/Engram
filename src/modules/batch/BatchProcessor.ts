@@ -6,7 +6,7 @@
  * - 有序 Pipeline 队列编排
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '@/core/utils';
 import { useMemoryStore } from '@/state/memoryStore';
 import { summarizerService } from '@/modules/memory';
 import { entityBuilder } from '@/modules/memory/EntityExtractor';
@@ -137,7 +137,7 @@ class BatchProcessor {
             const taskStart = startFloor + i * summaryInterval;
             const taskEnd = Math.min(taskStart + summaryInterval, endFloor);
             tasks.push({
-                id: uuidv4(),
+                id: generateUUID(),
                 type: 'summary',
                 status: 'pending',
                 progress: { current: 0, total: 1 },
@@ -149,7 +149,7 @@ class BatchProcessor {
             const taskStart = startFloor + i * entityInterval;
             const taskEnd = Math.min(taskStart + entityInterval, endFloor);
             tasks.push({
-                id: uuidv4(),
+                id: generateUUID(),
                 type: 'entity',
                 status: 'pending',
                 progress: { current: 0, total: 1 },
@@ -159,7 +159,7 @@ class BatchProcessor {
 
         for (let i = 0; i < trimTasks; i++) {
             tasks.push({
-                id: uuidv4(),
+                id: generateUUID(),
                 type: 'trim',
                 status: 'pending',
                 progress: { current: 0, total: 1 },
@@ -433,7 +433,7 @@ ${chunk}
 
         this.queue = {
             tasks: [{
-                id: uuidv4(),
+                id: generateUUID(),
                 type: 'embed',
                 status: 'running',
                 progress: { current: 0, total: chunks.length },

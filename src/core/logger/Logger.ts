@@ -5,7 +5,7 @@
  */
 
 import manifest from '../../../manifest.json';
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '@/core/utils';
 import { Subject } from 'rxjs';
 import { EventBus, EngramEvent } from '../events';
 import { LogLevel, LogEntry, LoggerConfig, DEFAULT_LOGGER_CONFIG } from './types';
@@ -39,7 +39,7 @@ function writeLog(level: LogLevel, module: string, message: string, data?: unkno
     if (level < config.minLevel) return;
 
     const entry: LogEntry = {
-        id: uuidv4(),
+        id: generateUUID(),
         timestamp: Date.now(),
         level,
         module,

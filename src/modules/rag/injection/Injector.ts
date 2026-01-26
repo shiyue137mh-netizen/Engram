@@ -166,6 +166,14 @@ class Injector {
             let targetSource: 'chat' | 'textarea' = 'chat';
 
             if (lastMessage && lastMessage.is_user) {
+                // V0.9.12 Fix: Check duplication on retry
+                // @ts-ignore
+                if (lastMessage._engram_processed) {
+                    Logger.debug(LogModule.RAG_INJECT, '消息已标记为已处理 (Prevent Re-entry)', {
+                        index: lastMessageIndex
+                    });
+                    return;
+                }
                 userInput = lastMessage.mes;
             } else {
                 // [Strategy 2] Fallback: 尝试读取输入框

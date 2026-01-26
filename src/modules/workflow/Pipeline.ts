@@ -4,7 +4,7 @@
  * V0.6: 优化性能 - 直接接收已解析的 JSON，不再调用 Extractor LLM
  */
 
-import { v4 as uuidv4 } from 'uuid';
+import { generateUUID } from '@/core/utils';
 import { useMemoryStore } from '@/state/memoryStore';
 import { RobustJsonParser } from '@/core/utils/JsonParser';
 import type { EventNode } from '@/data/types/graph';

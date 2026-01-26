@@ -190,6 +190,8 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
     if (!isOpen) return null;
 
+    console.log('[Engram Modal] Rendering Modal with Open=true', { title, zIndex: 2147483647 });
+
     const sizeClasses = {
         sm: 'max-w-sm',
         md: 'max-w-md',
@@ -198,7 +200,7 @@ export const Modal: React.FC<ModalProps> = ({
 
     return ReactDOM.createPortal(
         <div
-            className="fixed inset-0 z-[100000] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4 pointer-events-auto"
             style={{ height: '100dvh', width: '100vw' }}
         >
             {/* 背景遮罩 */}

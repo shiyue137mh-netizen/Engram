@@ -13,7 +13,6 @@ import { Logger, LogModule } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 import { SettingsManager } from '@/config/settings';
 import type { EntityNode } from '@/data/types/graph';
-import { EntityType } from '@/data/types/graph';
 import type { EntityExtractConfig } from '@/config/types/memory';
 import { DEFAULT_ENTITY_CONFIG } from '@/config/types/defaults';
 
@@ -34,11 +33,18 @@ export interface EntityBuildResult {
 export class EntityBuilder {
     private config: EntityExtractConfig;
     private isExtracting = false;
+    // V0.9.11: UI State Persistence (fix for component unmount issues)
+    public pendingReviewResult: EntityBuildResult | null = null;
 
     constructor(config?: Partial<EntityExtractConfig>) {
         // V0.9.10: Fix - 优先从 SettingsManager 加载持久化配置
         const savedConfig = SettingsManager.get('apiSettings')?.entityExtractConfig;
         this.config = { ...DEFAULT_ENTITY_CONFIG, ...savedConfig, ...config };
+    }
+
+    /** Clear pending review state */
+    clearPendingReview() {
+        this.pendingReviewResult = null;
     }
 
     /**
@@ -140,6 +146,12 @@ export class EntityBuilder {
                     newCount: result?.newEntities?.length || 0,
                     updatedCount: result?.updatedEntities?.length || 0
                 });
+                // V0.9.11: Persist for UI
+                this.pendingReviewResult = {
+                    success: true,
+                    newEntities: result?.newEntities || [],
+                    updatedEntities: result?.updatedEntities || []
+                };
             }
 
             return {

@@ -242,10 +242,7 @@ export const MemoryStream: React.FC = () => {
 
         if (viewTab === 'entities') {
             const ids = Array.from(checkedIds);
-            // Assuming store has batch delete for entities, or loop
-            // store.deleteEntity only takes string, need loop or update store
-            // For now, loop
-            await Promise.all(ids.map(id => store.deleteEntity(id)));
+            await store.deleteEntities(ids);
             setEntities(prev => prev.filter(e => !checkedIds.has(e.id)));
         } else {
             await store.deleteEvents(Array.from(checkedIds));

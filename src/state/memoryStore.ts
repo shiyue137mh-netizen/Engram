@@ -63,6 +63,8 @@ interface MemoryState {
     updateEntity: (entityId: string, updates: Partial<EntityNode>) => Promise<void>;
     /** 删除实体 */
     deleteEntity: (entityId: string) => Promise<void>;
+    /** 批量删除实体 */
+    deleteEntities: (entityIds: string[]) => Promise<void>;
     /** 根据名称查找实体 (包含别名匹配) */
     findEntityByName: (name: string) => Promise<EntityNode | null>;
     /** V0.9.2: 获取归档事件摘要 (绿灯事件) */
@@ -448,10 +450,28 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         if (!db) return;
 
         try {
-            await db.entities.delete(entityId);
+            // Force use of bulkDelete (consistent with deleteEvents/deleteEntities)
+            await db.entities.bulkDelete([entityId]);
             console.log(`[MemoryStore] Deleted entity: ${entityId}`);
         } catch (e) {
             console.error('[MemoryStore] Failed to delete entity:', e);
+            throw e;
+        }
+    },
+
+    /**
+     * 批量删除实体
+     */
+    deleteEntities: async (entityIds: string[]) => {
+        if (entityIds.length === 0) return;
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            await db.entities.bulkDelete(entityIds);
+            console.log(`[MemoryStore] Deleted ${entityIds.length} entities`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to delete entities:', e);
             throw e;
         }
     },

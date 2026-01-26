@@ -46,6 +46,17 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
 
     useEffect(() => {
         loadStatus();
+
+        // V0.9.11: Persistence Check
+        // If component unmounted during extraction, restore the pending review
+        if (entityBuilder.pendingReviewResult) {
+            const result = entityBuilder.pendingReviewResult;
+            setReviewData({
+                newEntities: result.newEntities,
+                updatedEntities: result.updatedEntities
+            });
+            setShowReviewModal(true);
+        }
     }, []);
 
     // 切换启用状态
@@ -228,8 +239,14 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
             {/* 预览弹窗 */}
             <EntityReviewModal
                 isOpen={showReviewModal}
-                onClose={() => setShowReviewModal(false)}
-                onConfirm={handleConfirmReview}
+                onClose={() => {
+                    setShowReviewModal(false);
+                    entityBuilder.clearPendingReview();
+                }}
+                onConfirm={async (data) => {
+                    await handleConfirmReview(data);
+                    entityBuilder.clearPendingReview();
+                }}
                 newEntities={reviewData.newEntities}
                 updatedEntities={reviewData.updatedEntities}
             />
