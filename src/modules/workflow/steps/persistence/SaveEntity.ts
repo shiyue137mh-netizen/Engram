@@ -26,15 +26,32 @@ export class SaveEntity implements IStep {
     name = 'SaveEntity';
 
     async execute(context: JobContext): Promise<void> {
-        if (!context.parsedData) return;
-
-        const store = useMemoryStore.getState();
         // Retrieve raw entities saved by FetchExistingEntities
+        const store = useMemoryStore.getState();
         const existingEntities = (context.input._rawExistingEntities as EntityNode[]) || await store.getAllEntities();
 
         let data;
+        let sourceContent = context.parsedData;
+
+        // Check if output was modified by UserReview (it would be a string)
+        if (typeof context.output === 'string') {
+            try {
+                // Try parsing JSON first
+                sourceContent = JSON.parse(context.output);
+            } catch (e) {
+                // Use parse-json step logic or simple fallback?
+                // For now assuming it's JSON as we asked for JSON
+                throw new Error(`SaveEntity: Failed to re-parse user modified content - ${e}`);
+            }
+        } else if (context.output && typeof context.output === 'object') {
+            // UserReview confirmed without changes, or wasn't run
+            sourceContent = context.output;
+        }
+
+        if (!sourceContent) return;
+
         try {
-            data = ExtractionSchema.parse(context.parsedData);
+            data = ExtractionSchema.parse(sourceContent);
         } catch (e) {
             throw new Error(`SaveEntity: Zod Validation Failed - ${e}`);
         }

@@ -3,21 +3,25 @@ import ReactDOM from 'react-dom';
 import { EventBus, TavernEventType } from "@/integrations/tavern/api";
 import { X, Check, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 
+import { RevisionAction } from '@/core/events/RevisionBridge';
+
 interface RevisionRequest {
     title: string;
     content: string;
     description?: string;
-    onConfirm: (newContent: string) => void;
-    onCancel: () => void;
-    /** V0.9.2: 重 Roll 回调，触发重新处理 pipeline */
-    onReroll?: () => Promise<string>;
+    actions: RevisionAction[];
+    onResult: (result: { action: RevisionAction; content: string; feedback?: string }) => void;
+    // Legacy support if needed, but we are moving to onResult
+    onCancel?: () => void;
 }
 
 export const RevisionModal: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [request, setRequest] = useState<RevisionRequest | null>(null);
     const [content, setContent] = useState('');
-    const [isRerolling, setIsRerolling] = useState(false);
+    const [feedback, setFeedback] = useState('');
+    const [showFeedbackInput, setShowFeedbackInput] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         // 订阅修订请求事件
@@ -27,6 +31,8 @@ export const RevisionModal: React.FC = () => {
                 const req = data as RevisionRequest;
                 setRequest(req);
                 setContent(req.content);
+                setFeedback('');
+                setShowFeedbackInput(false);
                 setIsOpen(true);
             }
         );
@@ -36,36 +42,44 @@ export const RevisionModal: React.FC = () => {
         };
     }, []);
 
-    const handleConfirm = () => {
+    const handleAction = (action: RevisionAction) => {
         if (!request) return;
-        request.onConfirm(content);
+
+        // Special handling for reject: show feedback input first
+        if (action === 'reject' && !showFeedbackInput) {
+            setShowFeedbackInput(true);
+            return;
+        }
+
+        request.onResult({
+            action,
+            content,
+            feedback: action === 'reject' ? feedback : undefined
+        });
         setIsOpen(false);
         setRequest(null);
     };
 
     const handleCancel = () => {
-        if (request) {
+        if (request && request.onCancel) {
             request.onCancel();
         }
+        // 对于仅有关闭操作的情况，视为取消
         setIsOpen(false);
         setRequest(null);
     };
 
-    /** V0.9.2: 重 Roll 处理 */
-    const handleReroll = async () => {
-        if (!request?.onReroll) return;
-        setIsRerolling(true);
-        try {
-            const newContent = await request.onReroll();
-            setContent(newContent);
-        } catch (e) {
-            console.error('[RevisionModal] Reroll failed:', e);
-        } finally {
-            setIsRerolling(false);
+    if (!isOpen) return null;
+
+    // Helper to get button label/icon
+    const getActionConfig = (action: RevisionAction) => {
+        switch (action) {
+            case 'confirm': return { label: '确认', icon: Check, variant: 'primary' };
+            case 'skip': return { label: '跳过(作为ai消息注入))', icon: RefreshCw, variant: 'secondary' }; // Icon?
+            case 'reject': return { label: '打回重写(附意见)', icon: AlertTriangle, variant: 'destructive' };
+            default: return { label: action, icon: Check, variant: 'secondary' };
         }
     };
-
-    if (!isOpen) return null;
 
     return ReactDOM.createPortal(
         <div
@@ -107,63 +121,84 @@ export const RevisionModal: React.FC = () => {
                     <div className="flex items-start gap-3 p-3 bg-primary/10 border border-primary/20 rounded-md">
                         <AlertTriangle size={16} className="text-primary shrink-0 mt-0.5" />
                         <p className="text-sm text-foreground/80 leading-relaxed">
-                            请仔细检查内容的格式、关键信息和一致性。这是写入长期记忆前的最后确认。
+                            请仔细检查内容的格式、关键信息和一致性。
                         </p>
                     </div>
 
                     {/* 文本编辑区 */}
-                    <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        className="flex-1 w-full min-h-[200px] p-4 bg-muted border border-border rounded-md font-mono text-sm text-foreground leading-relaxed placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-                        spellCheck={false}
-                        placeholder="在此编辑内容..."
-                    />
+                    {(!showFeedbackInput) ? (
+                        <textarea
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            className="flex-1 w-full min-h-[200px] p-4 bg-muted border border-border rounded-md font-mono text-sm text-foreground leading-relaxed placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                            spellCheck={false}
+                            placeholder="在此编辑内容..."
+                        />
+                    ) : (
+                        <div className="flex flex-col flex-1 gap-2 animate-in fade-in slide-in-from-bottom-2">
+                            <label className="text-sm font-medium text-destructive">
+                                请输入打回修改意见：
+                            </label>
+                            <textarea
+                                value={feedback}
+                                onChange={(e) => setFeedback(e.target.value)}
+                                className="flex-1 w-full min-h-[100px] p-4 bg-muted border border-border rounded-md font-sans text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-destructive resize-none"
+                                placeholder="例如：请不要引入新人物，专注于描写环境..."
+                                autoFocus
+                            />
+                        </div>
+                    )}
 
                     {/* 字符计数 */}
-                    <div className="text-xs text-muted-foreground text-right font-mono">
-                        {content.length} 字符
-                    </div>
+                    {!showFeedbackInput && (
+                        <div className="text-xs text-muted-foreground text-right font-mono">
+                            {content.length} 字符
+                        </div>
+                    )}
                 </div>
 
                 {/* 底部操作栏 */}
-                <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-muted/30">
-                    {/* 左侧：重 Roll 按钮 */}
-                    <div>
-                        {request?.onReroll && (
+                <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-border bg-muted/30">
+                    {showFeedbackInput ? (
+                        <>
                             <button
-                                onClick={handleReroll}
-                                disabled={isRerolling}
-                                className="group inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-all duration-[var(--duration-fast)] hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                                onClick={() => setShowFeedbackInput(false)}
+                                className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground"
                             >
-                                {isRerolling ? (
-                                    <Loader2 size={16} className="animate-spin" />
-                                ) : (
-                                    <RefreshCw size={16} className="transition-transform duration-[var(--duration-slow)] group-hover:rotate-180" />
-                                )}
-                                重新生成
+                                返回
                             </button>
-                        )}
-                    </div>
+                            <button
+                                onClick={() => handleAction('reject')}
+                                disabled={!feedback.trim()}
+                                className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-destructive text-destructive-foreground rounded-lg hover:bg-destructive/90 transition-all shadow-sm"
+                            >
+                                <RefreshCw size={16} />
+                                确认重写
+                            </button>
+                        </>
+                    ) : (
+                        request?.actions?.map(action => {
+                            const config = getActionConfig(action);
+                            const Icon = config.icon;
+                            let btnClass = "inline-flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-all shadow-sm ";
 
-                    {/* 右侧：取消/确认 */}
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleCancel}
-                            disabled={isRerolling}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg transition-all duration-[var(--duration-fast)] hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-                        >
-                            取消
-                        </button>
-                        <button
-                            onClick={handleConfirm}
-                            disabled={isRerolling}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all duration-[var(--duration-fast)] hover:scale-[1.02] hover:shadow-[0_0_15px_var(--primary)] active:scale-95 disabled:opacity-50 shadow-sm"
-                        >
-                            <Check size={16} />
-                            确认写入
-                        </button>
-                    </div>
+                            if (config.variant === 'primary') btnClass += "bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-[0_0_15px_var(--primary)]";
+                            else if (config.variant === 'destructive') btnClass += "bg-destructive text-destructive-foreground hover:bg-destructive/90";
+                            else btnClass += "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border";
+
+                            return (
+                                <button
+                                    key={action}
+                                    onClick={() => handleAction(action)} // Note: 'reject' triggers input view first inside handleAction
+                                    disabled={isProcessing}
+                                    className={`${btnClass} hover:scale-[1.02] active:scale-95`}
+                                >
+                                    <Icon size={16} />
+                                    {config.label}
+                                </button>
+                            )
+                        })
+                    )}
                 </div>
             </div>
         </div>,

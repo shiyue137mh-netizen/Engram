@@ -23,6 +23,8 @@ userPromptTemplate: |
 
   请按要求输出 JSON 格式的剧情总结：
 
+
+
   【重要】：这是一项信息摘要任务。请总结给定文本，**不要**进行创意写作或续写后续剧情。仅输出 JSON 格式。
 systemPrompt: |
   <system_configuration>

@@ -45,17 +45,40 @@ export class WorkflowEngine {
 
         try {
             // 2. 顺序执行 Steps
-            for (const step of workflow.steps) {
+            // 2. 顺序执行 Steps (支持跳转)
+            for (let i = 0; i < workflow.steps.length; i++) {
+                const step = workflow.steps[i];
                 Logger.debug('Workflow', `执行步骤: ${step.name}`, { jobId: context.id });
 
                 const stepStart = Date.now();
-                await step.execute(context);
+                const result = await step.execute(context);
+                const duration = Date.now() - stepStart;
 
                 context.metadata.stepsExecuted.push(step.name);
 
-                Logger.debug('Workflow', `步骤完成: ${step.name}`, {
-                    duration: Date.now() - stepStart
-                });
+                Logger.debug('Workflow', `步骤完成: ${step.name}`, { duration });
+
+                // 处理控制流
+                if (result) {
+                    if (result.action === 'finish') {
+                        Logger.info('Workflow', `工作流提前结束: ${step.name}`, { reason: 'Step requested finish' });
+                        break;
+                    }
+
+                    if (result.action === 'abort') {
+                        throw new Error(result.reason || 'Step requested abort');
+                    }
+
+                    if (result.action === 'jump') {
+                        const targetIndex = workflow.steps.findIndex(s => s.name === result.targetStep);
+                        if (targetIndex === -1) {
+                            throw new Error(`Jump target not found: ${result.targetStep}`);
+                        }
+                        Logger.info('Workflow', `跳转步骤: ${step.name} -> ${result.targetStep}`, { reason: result.reason });
+                        i = targetIndex - 1; // 循环会自动 +1，所以这里 -1
+                        continue;
+                    }
+                }
             }
 
             Logger.success('Workflow', `工作流执行成功: ${workflow.name}`, {

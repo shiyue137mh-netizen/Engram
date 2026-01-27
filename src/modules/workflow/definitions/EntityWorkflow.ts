@@ -5,7 +5,8 @@ import {
     BuildPrompt,
     LlmRequest,
     ParseJson,
-    SaveEntity
+    SaveEntity,
+    UserReview
 } from '../steps';
 
 export const createEntityWorkflow = (): WorkflowDefinition => ({
@@ -16,6 +17,11 @@ export const createEntityWorkflow = (): WorkflowDefinition => ({
         new BuildPrompt({ category: 'entity_extraction' }),
         new LlmRequest(),
         new ParseJson(),
+        // Add Review Step
+        new UserReview({
+            title: '实体提取确认',
+            description: '请确认提取的实体列表 (JSON/YAML)。您可以直接编辑以修正错误。'
+        }),
         new SaveEntity()
     ]
 });

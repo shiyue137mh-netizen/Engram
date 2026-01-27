@@ -66,11 +66,28 @@ export const BatchProcessingPanel: React.FC = () => {
     const [importText, setImportText] = useState('');
     const [importProgress, setImportProgress] = useState<{ current: number; total: number } | null>(null);
 
+    // 任务类型选择
+    const [selectedTypes, setSelectedTypes] = useState<Record<string, boolean>>({
+        summary: true,
+        entity: true,
+        trim: true,
+        embed: true
+    });
+
+    const handleTypeToggle = (type: string) => {
+        setSelectedTypes(prev => ({ ...prev, [type]: !prev[type] }));
+    };
+
     // 分析历史
     const handleAnalyze = useCallback(async () => {
         setIsAnalyzing(true);
         try {
-            const result = await batchProcessor.analyzeHistory(startFloor, endFloor);
+            // Convert selection map to array
+            const types = Object.entries(selectedTypes)
+                .filter(([_, enabled]) => enabled)
+                .map(([type]) => type) as any[];
+
+            const result = await batchProcessor.analyzeHistory(startFloor, endFloor, types);
             setAnalysis(result);
             setEndFloor(result.endFloor);
         } catch (error) {
@@ -78,14 +95,18 @@ export const BatchProcessingPanel: React.FC = () => {
         } finally {
             setIsAnalyzing(false);
         }
-    }, [startFloor, endFloor]);
+    }, [startFloor, endFloor, selectedTypes]);
 
     // 开始批处理
     const handleStart = useCallback(async () => {
         if (!analysis) return;
-        await batchProcessor.start(analysis.startFloor, analysis.endFloor);
+        const types = Object.entries(selectedTypes)
+            .filter(([_, enabled]) => enabled)
+            .map(([type]) => type) as any[];
+
+        await batchProcessor.start(analysis.startFloor, analysis.endFloor, undefined, types);
         // useWorkflow 会自动更新状态
-    }, [analysis]);
+    }, [analysis, selectedTypes]);
 
     // 暂停/恢复
     const handlePauseResume = useCallback(() => {
@@ -173,6 +194,23 @@ export const BatchProcessingPanel: React.FC = () => {
                         step={1}
                         showSlider={false}
                     />
+                </div>
+
+                {/* 任务类型选择 (Checkbox Grid) */}
+                <div className="grid grid-cols-2 gap-3 p-3 bg-muted/10 rounded-lg border border-border/50">
+                    <span className="col-span-2 text-xs text-muted-foreground font-medium mb-1">选择任务类型</span>
+                    {Object.entries(TASK_TYPE_LABELS).map(([type, label]) => (
+                        <label key={type} className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                className="rounded border-gray-300 text-primary focus:ring-primary h-3.5 w-3.5"
+                                checked={selectedTypes[type]}
+                                onChange={() => handleTypeToggle(type)}
+                                disabled={queue.isRunning}
+                            />
+                            <span className="text-sm text-foreground">{label}</span>
+                        </label>
+                    ))}
                 </div>
 
                 {/* 分析按钮 */}

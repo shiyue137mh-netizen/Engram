@@ -79,12 +79,29 @@ export class BuildPrompt implements IStep {
             // 常见的映射
             '{{userInput}}': context.input.text || '',
             '{{chatHistory}}': context.input.chatHistory || '',
+            '{{previousOutput}}': context.input.previousOutput || '',
+            '{{feedback}}': context.input.feedback || '',
             // ... 其他变量交由 MacroService 全局处理 (如 {{worldbookContext}})
         };
 
         // 3. 初始替换 (处理 input 相关的本地变量)
         let systemPrompt = template.systemPrompt;
         let userPrompt = template.userPromptTemplate;
+
+        // V0.9.x: 动态附加反馈模板 (硬编码)
+        if (context.input.feedback) {
+            const feedbackTemplate = `
+---
+【用户反馈 - 请依据此修正上一次的生成】
+上一次的生成内容:
+{{previousOutput}}
+
+用户的修改意见:
+{{feedback}}
+`;
+            userPrompt += feedbackTemplate;
+            Logger.debug('BuildPrompt', '检测到反馈，已自动附加反馈模板');
+        }
 
         for (const [key, value] of Object.entries(variables)) {
             // 简单字符串替换 (全局)

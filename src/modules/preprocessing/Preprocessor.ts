@@ -96,7 +96,40 @@ class Preprocessor {
                 }
             });
 
-            // Construct Result
+            // Handle Skip to Injection
+            if (context.metadata.skipToInjection) {
+                Logger.info(LogModule.PREPROCESS, '检测到跳过标记，执行 AI 消息注入');
+                const contentToInject = context.output;
+                if (typeof contentToInject === 'string') {
+                    const { injectMessage } = await import('@/integrations/tavern/bridge');
+                    await injectMessage('char', contentToInject);
+                    notificationService.success('已作为 AI 消息注入', 'Engram');
+                } else {
+                    Logger.warn(LogModule.PREPROCESS, '跳过注入失败：内容不是字符串');
+                }
+
+                // Return failed to prevent original flow from using this as user input replacement
+                // Or clearer: Success=false but w/o error?
+                // Depending on how hook handles it:
+                // If we return success: true, ST might replace input box with empty string or something
+                // We typically want ST to clear input box?
+                // If we injected message, we probably want to consume the user input event completely.
+                // Assuming Preprocessor.process is called by an event handler that looks at result.output.
+
+                // For "Skip", we want ST to do NOTHING with the original user input (or clear it).
+                // Returning success=true with empty output usually replaces user input with empty?
+                // Let's assume we want to clear input.
+
+                return {
+                    success: true,
+                    output: '', // Clear user input
+                    query: null,
+                    rawOutput: context.llmResponse?.content || '',
+                    processingTime: Date.now() - startTime,
+                };
+            }
+
+            // Construct Result (Normal Flow)
             const output = context.output; // From UserReview -> ExtractTags -> output tag
             const query = context.extractedTags?.query || null;
             const rawOutput = context.llmResponse?.content || '';
@@ -107,7 +140,7 @@ class Preprocessor {
                 processingTime,
             });
 
-            notificationService.success('预处理完成', 'Engram');
+            // notificationService.success('预处理完成', 'Engram'); // Reduced noise
 
             return {
                 success: true,

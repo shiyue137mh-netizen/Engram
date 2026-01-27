@@ -93,10 +93,11 @@ class BatchProcessor {
     private stopSignal = false;
 
     /** 分析历史消息，计算所需任务 */
-    async analyzeHistory(startFloor = 0, endFloor?: number): Promise<HistoryAnalysis> {
+    async analyzeHistory(startFloor = 0, endFloor?: number, types?: BatchTaskType[]): Promise<HistoryAnalysis> {
         const status = summarizerService.getStatus();
         const currentFloor = status.currentFloor;
         const targetEnd = endFloor ?? currentFloor;
+        const targetTypes = new Set(types || ['summary', 'entity', 'trim', 'embed']);
 
         const summarizerConfig = summarizerService.getConfig();
         const entityConfig = entityBuilder.getConfig();
@@ -106,11 +107,20 @@ class BatchProcessor {
         const summaryInterval = summarizerConfig.floorInterval || 10;
         const entityInterval = entityConfig.floorInterval || 50;
 
-        const summaryTasks = Math.ceil(floorRange / summaryInterval);
-        const entityTasks = entityConfig.enabled ? Math.ceil(floorRange / entityInterval) : 0;
+        const summaryTasks = targetTypes.has('summary') ? Math.ceil(floorRange / summaryInterval) : 0;
+        const entityTasks = (targetTypes.has('entity') && entityConfig.enabled) ? Math.ceil(floorRange / entityInterval) : 0;
         const trimThreshold = trimConfig.countLimit || 5;
-        const trimTasks = trimConfig.enabled ? Math.floor(summaryTasks / trimThreshold) : 0;
-        const embedTasks = summaryTasks * 2;
+        const trimTasks = (targetTypes.has('trim') && trimConfig.enabled) ? Math.floor(summaryTasks / trimThreshold) : 0;
+
+        // Embed tasks usually depend on summary tasks, but if we only run embed, we might want to scan all events?
+        // For simplicity, let's keep embed dependent on summary count if summary is running,
+        // OR if only embed is running, we might need a different logic.
+        // But the original logic was: embedTasks = summaryTasks * 2.
+        // Let's keep it simple: if embed is enabled, we assume it runs alongside others or standalone?
+        // Actually, the original logic assumes embed tasks are generated *per summary batch* or checks global?
+        // Looking at buildQueue: it pushes ONE embed task at the end with total progress.
+        // So embedTasks count is just for estimation.
+        const embedTasks = targetTypes.has('embed') ? (summaryTasks || 1) * 2 : 0;
 
         const estimatedTokens = summaryTasks * 2000 + entityTasks * 2000 + trimTasks * 2000 + embedTasks * 200;
 
@@ -166,18 +176,20 @@ class BatchProcessor {
             });
         }
 
-        tasks.push({
-            id: generateUUID(),
-            type: 'embed',
-            status: 'pending',
-            progress: { current: 0, total: embedTasks },
-        });
+        if (embedTasks > 0) {
+            tasks.push({
+                id: generateUUID(),
+                type: 'embed',
+                status: 'pending',
+                progress: { current: 0, total: embedTasks },
+            });
+        }
 
         return tasks;
     }
 
     /** 开始批处理 */
-    async start(startFloor = 0, endFloor?: number, onProgress?: BatchProgressCallback): Promise<void> {
+    async start(startFloor = 0, endFloor?: number, onProgress?: BatchProgressCallback, types?: BatchTaskType[]): Promise<void> {
         if (this.queue.isRunning) {
             Logger.warn(LogModule.BATCH, '已在运行中');
             return;
@@ -186,8 +198,14 @@ class BatchProcessor {
         this.onProgress = onProgress;
         this.stopSignal = false;
 
-        const analysis = await this.analyzeHistory(startFloor, endFloor);
+        const analysis = await this.analyzeHistory(startFloor, endFloor, types);
         this.queue.tasks = this.buildQueue(analysis);
+
+        if (this.queue.tasks.length === 0) {
+            Logger.warn(LogModule.BATCH, '没有生成任何任务');
+            return;
+        }
+
         this.queue.isRunning = true;
         this.queue.isPaused = false;
         this.queue.currentTaskIndex = 0;

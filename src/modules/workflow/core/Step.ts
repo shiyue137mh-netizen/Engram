@@ -5,6 +5,18 @@ import { JobContext } from './JobContext';
  *
  * Workflow 中的最小执行单元。
  */
+export type StepAction =
+    | { action: 'next' }
+    | { action: 'finish' }
+    | { action: 'jump'; targetStep: string; reason?: string }
+    | { action: 'abort'; reason?: string };
+
+/**
+ * StepResult - 步骤执行结果
+ * 用于控制工作流的走向 (Next, Jump, Finish, Abort)
+ */
+export type StepResult = void | StepAction;
+
 export interface IStep {
     /** 步骤名称 (用于日志和调试) */
     name: string;
@@ -12,16 +24,7 @@ export interface IStep {
     /**
      * 执行步骤
      * @param context 任务上下文 (可读写)
+     * @returns 控制流指令 (可选)
      */
-    execute(context: JobContext): Promise<void>;
-}
-
-/**
- * StepResult - 步骤执行结果 (可选，目前 execute 返回 void，通过修改 context 传递结果)
- * 保留用于未来扩展 (如控制流跳转)
- */
-enum StepResult {
-    CONTINUE = 'continue',
-    STOP = 'stop',
-    RETRY = 'retry'
+    execute(context: JobContext): Promise<StepResult>;
 }

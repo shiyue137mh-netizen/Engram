@@ -7,8 +7,8 @@
 
 import { EventBus, EngramEvent } from '@/core/events/types';
 // 使用统一的 STContext 模块
-import { getSTContext, getCurrentChat, getCurrentCharacter } from "@/integrations/tavern/context";
-export { getSTContext,   } from "@/integrations/tavern/context";
+import { getSTContext, getCurrentChat, getCurrentCharacter, STMessage } from "@/integrations/tavern/context";
+export { getSTContext, type STMessage } from "@/integrations/tavern/context";
 ;
 
 /**
@@ -311,6 +311,65 @@ export async function hideMessageRange(start: number, end: number): Promise<void
         }
     } catch (e) {
         console.error('[Engram] Failed to hide messages:', e);
+    }
+}
+
+/**
+ * 注入一条消息到聊天记录
+ * @param role 角色 ('user' | 'char')
+ * @param content 消息内容
+ * @param name 发送者名称 (可选，默认使用当前角色或用户名)
+ */
+export async function injectMessage(role: 'user' | 'char', content: string, name?: string): Promise<void> {
+    try {
+        const ctx = getSTContext();
+        if (!ctx) throw new Error('ST Context unavailable');
+
+        const senderName = name || (role === 'user' ? ctx.name1 : ctx.name2);
+
+        // 动态导入 chats.js 中的核心函数
+        const chatsPath = '/scripts/chats.js';
+        const scriptPath = '/script.js';
+
+        // 1. 获取必要的模块
+        const chatsModule = await (new Function('path', 'return import(path)'))(chatsPath);
+        const scriptModule = await (new Function('path', 'return import(path)'))(scriptPath);
+
+        // 2. 构造消息对象 (模仿 ST 内部结构)
+        // 注意：我们直接操作 chat 数组和 saveChat，而不是调用 addOneMessage，因为 addOneMessage 可能会触发生成或其他副作用
+        // 或者我们可以尝试调用 scriptModule.processInput? 不，那太复杂了。
+        // 最安全的方式是：推入数组 -> 保存 -> 刷新
+
+        if (!ctx.chat) throw new Error('Chat array unavailable');
+
+        const newMessage: STMessage = {
+            name: senderName,
+            is_user: role === 'user',
+            is_system: false,
+            send_date: Date.now(),
+            mes: content,
+            // @ts-ignore
+            force_avatar: role === 'char' ? scriptModule.characters[ctx.characterId]?.avatar : undefined
+        };
+
+        // 3. 推入聊天记录
+        ctx.chat.push(newMessage);
+
+        // 4. 保存并刷新
+        // 使用 chatsModule.saveChatConditional 或者 scriptModule.saveChat
+        if (scriptModule.saveChat) {
+            await scriptModule.saveChat();
+        }
+
+        // 5. 刷新界面
+        if (scriptModule.reloadCurrentChat) {
+            await scriptModule.reloadCurrentChat();
+        }
+
+        console.log('[Engram] Injected message:', newMessage);
+    } catch (e) {
+        console.error('[Engram] Failed to inject message:', e);
+        throw e;
     }
 }
 
