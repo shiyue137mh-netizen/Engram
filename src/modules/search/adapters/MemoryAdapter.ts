@@ -19,9 +19,11 @@ export class MemoryAdapter implements SearchAdapter {
             // For a real app, we might use a proper full-text index if Dexie supports it,
             // but for < 10k items, simple filtering might be acceptable for a prototype.
             // Limit to top 5 for speed in the palette.
+            // Optimize: Scan from newest to oldest (timestamp) and stop after 5 matches
             const events = await db.events
-                .filter(e => e.summary.toLowerCase().includes(lowerQuery))
+                .orderBy('timestamp')
                 .reverse()
+                .filter(e => e.summary.toLowerCase().includes(lowerQuery))
                 .limit(5)
                 .toArray();
 

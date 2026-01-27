@@ -6,88 +6,51 @@
  * 通用管道组件：可被多个模块复用
  */
 
-/** 正则规则作用域 */
-export type RegexScope = 'input' | 'output' | 'both';
+import { Logger } from '@/core/logger';
+import {
+    RegexRule,
+    RegexScope,
+    DEFAULT_REGEX_RULES,
+    REGEX_SCOPE_OPTIONS
+} from '@/config/types/data_processing';
 
-/** 正则规则定义 */
-export interface RegexRule {
-    /** 唯一 ID */
-    id: string;
-    /** 规则名称 */
-    name: string;
-    /** 正则表达式 */
-    pattern: string;
-    /** 替换文本 */
-    replacement: string;
-    /** 是否启用 */
-    enabled: boolean;
-    /** 正则标志 (g, i, m, s) */
-    flags: string;
-    /** 作用域：input=清洗发给LLM的内容，output=清洗LLM返回的内容，both=两者都应用 */
-    scope: RegexScope;
-    /** 描述 */
-    description?: string;
-}
+const MODULE = 'RegexProcessor';
 
-/** 作用域选项 */
-export const REGEX_SCOPE_OPTIONS: { value: RegexScope; label: string; description: string }[] = [
-    { value: 'input', label: '输入', description: '清洗发给 LLM 的聊天内容' },
-    { value: 'output', label: '输出', description: '清洗 LLM 返回的内容（预览/写入前）' },
-    { value: 'both', label: '两者', description: '输入和输出都应用' },
-];
-
-/** 默认正则规则 */
-export const DEFAULT_REGEX_RULES: RegexRule[] = [
-    {
-        id: 'remove-think',
-        name: '移除思维链',
-        pattern: '<think(?:\\s+[^>]*)?>[\\s\\S]*?<\\/think\\s*>',
-        replacement: '',
-        enabled: true,
-        flags: 'gi',
-        scope: 'both',
-        description: '移除 LLM 输出中的 <think>...</think> 思考过程',
-    },
-    {
-        id: 'remove-headless-think',
-        name: '移除无头思维链',
-        pattern: '[\\s\\S]*?<\\/think\\s*>',
-        replacement: '',
-        enabled: true,
-        flags: 'gi',
-        scope: 'both',
-        description: '移除无开头标签的思维链，如直接以 </think> 结尾的内容',
-    },
-    {
-        id: 'remove-update-variable',
-        name: '移除 UpdateVariable',
-        pattern: '<UpdateVariable(?:\\s+[^>]*)?>[\\s\\S]*?<\\/UpdateVariable\\s*>',
-        replacement: '',
-        enabled: true,
-        flags: 'gi',
-        scope: 'both',
-        description: '移除 MVU 更新变量标签，避免污染提示词',
-    },
-    {
-        id: 'remove-status-placeholder',
-        name: '移除 StatusPlaceHolder',
-        pattern: '<StatusPlaceHolderImpl(?:\\s+[^>]*)?\\s*\\/>',
-        replacement: '',
-        enabled: true,
-        flags: 'gi',
-        scope: 'both',
-        description: '移除变量脚本在消息末尾添加的占位符标签',
-    },
-];
+// 重新导出以便其他模块使用
+export type { RegexRule, RegexScope };
+export { REGEX_SCOPE_OPTIONS, DEFAULT_REGEX_RULES };
 
 /**
  * 正则处理器类
  */
 export class RegexProcessor {
     private rules: RegexRule[] = [];
+    private ruleRegexCache: Map<string, RegExp> = new Map();
+    private tagRegexCache: Map<string, RegExp> = new Map();
 
     constructor(rules?: RegexRule[]) {
-        this.rules = rules || [...DEFAULT_REGEX_RULES];
+        this.setRules(rules || [...DEFAULT_REGEX_RULES]);
+    }
+
+    /**
+     * 获取缓存的正则对象 (或重新编译)
+     */
+    private getCachedRuleRegex(rule: RegexRule): RegExp | null {
+        // 使用 id + pattern + flags 作为 key 避免更新覆盖问题
+        const cacheKey = `${rule.id}|${rule.pattern}|${rule.flags}`;
+
+        if (this.ruleRegexCache.has(cacheKey)) {
+            return this.ruleRegexCache.get(cacheKey)!;
+        }
+
+        try {
+            const regex = new RegExp(rule.pattern, rule.flags);
+            this.ruleRegexCache.set(cacheKey, regex);
+            return regex;
+        } catch (e) {
+            Logger.warn(MODULE, `Invalid regex pattern for rule "${rule.name}":`, e);
+            return null;
+        }
     }
 
     /**
@@ -106,11 +69,13 @@ export class RegexProcessor {
                 continue;
             }
 
-            try {
-                const regex = new RegExp(rule.pattern, rule.flags);
-                result = result.replace(regex, rule.replacement);
-            } catch (e) {
-                console.warn(`[RegexProcessor] 规则 "${rule.name}" 执行失败:`, e);
+            const regex = this.getCachedRuleRegex(rule);
+            if (regex) {
+                try {
+                    result = result.replace(regex, rule.replacement);
+                } catch (e) {
+                    Logger.warn(MODULE, `Rule "${rule.name}" execution failed:`, e);
+                }
             }
         }
 
@@ -121,13 +86,15 @@ export class RegexProcessor {
      * 使用指定规则处理文本（用于预览）
      */
     processWithRule(text: string, rule: RegexRule): string {
-        try {
-            const regex = new RegExp(rule.pattern, rule.flags);
-            return text.replace(regex, rule.replacement);
-        } catch (e) {
-            console.warn(`[RegexProcessor] 规则执行失败:`, e);
-            return text;
+        const regex = this.getCachedRuleRegex(rule);
+        if (regex) {
+            try {
+                return text.replace(regex, rule.replacement);
+            } catch (e) {
+                Logger.warn(MODULE, `Rule execution failed:`, e);
+            }
         }
+        return text;
     }
 
     /**
@@ -153,10 +120,11 @@ export class RegexProcessor {
     }
 
     /**
-     * 设置规则
+     * 设置规则 (清空缓存)
      */
     setRules(rules: RegexRule[]): void {
         this.rules = [...rules];
+        this.ruleRegexCache.clear();
     }
 
     /**
@@ -164,6 +132,7 @@ export class RegexProcessor {
      */
     addRule(rule: RegexRule): void {
         this.rules.push(rule);
+        // 无需清空整个缓存，只需新增即可 (懒加载)
     }
 
     /**
@@ -173,6 +142,11 @@ export class RegexProcessor {
         const index = this.rules.findIndex(r => r.id === id);
         if (index >= 0) {
             this.rules[index] = { ...this.rules[index], ...updates };
+            // 简单策略：清除整个缓存，或者保留 key。
+            // 由于 key 包含 content，旧 key 会自动失效残留，不影响正确性但占内存。
+            // 考虑到更新频率低，清除整个缓存也无妨，或者不管它（内存泄漏风险极低）。
+            // 最佳实践：清除所有缓存以防万一
+            this.ruleRegexCache.clear();
         }
     }
 
@@ -181,6 +155,7 @@ export class RegexProcessor {
      */
     deleteRule(id: string): void {
         this.rules = this.rules.filter(r => r.id !== id);
+        this.ruleRegexCache.clear();
     }
 
     /**
@@ -197,7 +172,7 @@ export class RegexProcessor {
      * 重置为默认规则
      */
     resetToDefaults(): void {
-        this.rules = [...DEFAULT_REGEX_RULES];
+        this.setRules([...DEFAULT_REGEX_RULES]);
     }
 
     /**
@@ -209,6 +184,24 @@ export class RegexProcessor {
 
     // ========== V0.8: 标签捕获方法 ==========
 
+    private getCachedTagRegex(tagName: string, type: 'capture' | 'remove'): RegExp {
+        const key = `${type}:${tagName}`;
+        if (this.tagRegexCache.has(key)) {
+            return this.tagRegexCache.get(key)!;
+        }
+
+        let regex: RegExp;
+        if (type === 'capture') {
+            // 支持属性和空格: <tag attr="..."> content </tag>
+            regex = new RegExp(`<${tagName}(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/${tagName}\\s*>`, 'i');
+        } else {
+            regex = new RegExp(`<${tagName}(?:\\s+[^>]*)?>[\\s\\S]*?<\\/${tagName}\\s*>`, 'gi');
+        }
+
+        this.tagRegexCache.set(key, regex);
+        return regex;
+    }
+
     /**
      * 捕获标签内容
      * @param text 源文本
@@ -217,12 +210,11 @@ export class RegexProcessor {
      */
     captureTag(text: string, tagName: string): string | null {
         try {
-            // 支持属性和空格: <tag attr="..."> content </tag>
-            const regex = new RegExp(`<${tagName}(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/${tagName}\\s*>`, 'i');
+            const regex = this.getCachedTagRegex(tagName, 'capture');
             const match = text.match(regex);
             return match?.[1]?.trim() || null;
         } catch (e) {
-            console.warn(`[RegexProcessor] 标签捕获失败: ${tagName}`, e);
+            Logger.warn(MODULE, `Failed to capture tag: ${tagName}`, e);
             return null;
         }
     }
@@ -234,11 +226,10 @@ export class RegexProcessor {
      */
     removeTag(text: string, tagName: string): string {
         try {
-            // 支持属性和空格
-            const regex = new RegExp(`<${tagName}(?:\\s+[^>]*)?>[\\s\\S]*?<\\/${tagName}\\s*>`, 'gi');
+            const regex = this.getCachedTagRegex(tagName, 'remove');
             return text.replace(regex, '').trim();
         } catch (e) {
-            console.warn(`[RegexProcessor] 标签移除失败: ${tagName}`, e);
+            Logger.warn(MODULE, `Failed to remove tag: ${tagName}`, e);
             return text;
         }
     }

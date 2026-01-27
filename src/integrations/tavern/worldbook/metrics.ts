@@ -1,6 +1,9 @@
 import { WorldInfoTokenStats, WorldInfoEntry } from './types';
 import { getEntries } from '@/integrations/tavern/worldbook/crud';
 import { SUMMARY_ENTRY_KEY } from './constants';
+import { Logger } from '@/core/logger';
+
+const MODULE = 'Worldbook';
 
 /**
  * 获取 SillyTavern 的 tokenizers 模块
@@ -19,7 +22,7 @@ async function getTokenCountAsync(text: string): Promise<number> {
         // fallback: 字符估算 (约 4 字符 = 1 token)
         return Math.ceil(text.length / 4);
     } catch {
-        console.warn('[Engram] MetricsService: 无法使用酒馆 Token 计数，使用估算');
+        Logger.warn(MODULE, '无法使用酒馆 Token 计数，使用估算');
         return Math.ceil(text.length / 4);
     }
 }

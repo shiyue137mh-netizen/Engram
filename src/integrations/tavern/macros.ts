@@ -437,14 +437,14 @@ export class MacroService {
                 if (floorRange) {
                     // 指定范围模式 (Summarizer 用)
                     const [start, end] = floorRange;
-                    // slice(start, end) end is exclusive, but we want inclusive end floor.
-                    // floor 1 is index 0.
-                    // startFloor 21 -> index 20. endFloor 40 -> index 39.
-                    // slice(20, 40) -> returns indices 20..39 (length 20). Correct.
+                    // slice(start, end) end 是不包含的 (exclusive)，但我们需要包含 end 楼层。
+                    // floor 1 对应 index 0。
+                    // 例子: startFloor 21 -> index 20. endFloor 40 -> index 39.
+                    // slice(20, 40) -> 返回 indices 20..39 (长度 20). 正确。
                     const sliceStart = start - 1;
                     const sliceEnd = end;
                     messages = context.chat.slice(sliceStart, sliceEnd);
-                    Logger.info('MacroService', 'getChatHistory Debug', {
+                    Logger.info('MacroService', 'getChatHistory 调试信息', {
                         inputRange: floorRange,
                         calcSlice: [sliceStart, sliceEnd],
                         chatLen: context.chat.length,
@@ -515,12 +515,12 @@ export class MacroService {
                     content = regexProcessor.process(content, 'both');
 
                     if (!content && preRegex) {
-                        Logger.warn('MacroService', 'RegexProcessor stripped content empty!', { preRegex, content });
+                        Logger.warn('MacroService', 'RegexProcessor 清洗后内容为空!', { preRegex, content });
                     }
 
-                    // Log first and last message processing for debugging
+                    // 仅记录第一条和最后一条消息的处理情况以供调试
                     if (index === 0 || index === messages.length - 1) {
-                        Logger.debug('MacroService', 'Message processed', {
+                        Logger.debug('MacroService', '消息处理详情', {
                             index,
                             original: originalContent.substring(0, 50),
                             step1_tavern: preRegex.substring(0, 50),

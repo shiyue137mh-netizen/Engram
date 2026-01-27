@@ -6,6 +6,8 @@
 
 import { Logger } from '@/core/logger';
 
+const MODULE = 'QuickPanelButton';
+
 /** 按钮注入状态 */
 let isInjected = false;
 
@@ -25,14 +27,14 @@ export function setQuickPanelCallback(callback: () => void) {
  */
 function injectQuickPanelButton(): boolean {
     if (isInjected) {
-        Logger.debug('QuickPanelButton', '按钮已存在，跳过注入');
+        Logger.debug(MODULE, '按钮已存在，跳过注入');
         return true;
     }
 
     // 找到 leftSendForm 容器
     const leftSendForm = document.querySelector('#leftSendForm') as HTMLElement;
     if (!leftSendForm) {
-        Logger.debug('QuickPanelButton', '#leftSendForm 未找到，延迟重试');
+        Logger.debug(MODULE, '#leftSendForm 未找到，延迟重试');
         return false;
     }
 
@@ -48,11 +50,11 @@ function injectQuickPanelButton(): boolean {
     button.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        Logger.debug('QuickPanelButton', '点击打开快捷面板');
+        Logger.debug(MODULE, '点击打开快捷面板');
         if (onOpenQuickPanel) {
             onOpenQuickPanel();
         } else {
-            Logger.warn('QuickPanelButton', '未设置面板回调');
+            Logger.warn(MODULE, '未设置面板回调');
         }
     });
 
@@ -73,7 +75,7 @@ function injectQuickPanelButton(): boolean {
 
     isInjected = true;
 
-    Logger.info('QuickPanelButton', '按钮注入成功 (#leftSendForm)');
+    Logger.info(MODULE, '按钮注入成功 (#leftSendForm)');
     return true;
 }
 
@@ -85,7 +87,7 @@ function removeQuickPanelButton(): void {
     if (button) {
         button.remove();
         isInjected = false;
-        Logger.debug('QuickPanelButton', '按钮已移除');
+        Logger.debug(MODULE, '按钮已移除');
     }
 }
 
@@ -111,7 +113,7 @@ export function initQuickPanelButton(): void {
         if (retryCount < maxRetries) {
             setTimeout(retryInjection, retryInterval);
         } else {
-            Logger.warn('QuickPanelButton', '注入超时，已达到最大重试次数');
+            Logger.warn(MODULE, '注入超时，已达到最大重试次数');
         }
     };
 

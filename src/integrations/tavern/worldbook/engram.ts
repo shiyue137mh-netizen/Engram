@@ -2,6 +2,9 @@ import { WorldInfoEntry } from './types';
 import { getEntries, createEntry, findEntryByKey, getWorldbookNames } from './crud';
 import { getTavernHelper } from './adapter';
 import { SUMMARY_ENTRY_KEY } from './constants';
+import { Logger } from '@/core/logger';
+
+const MODULE = 'Worldbook';
 
 /**
  * WorldbookEngramService - Engram 特定的业务逻辑
@@ -43,21 +46,21 @@ export class WorldbookEngramService {
 
             const helper = getTavernHelper();
             if (!helper) {
-                console.warn('[Engram] WorldbookEngram: TavernHelper 不可用');
+                Logger.warn(MODULE, 'TavernHelper 不可用');
                 return null;
             }
 
             // @ts-ignore
             const context = window.SillyTavern?.getContext?.();
             if (!context?.name2 || context.name2 === 'SillyTavern System') {
-                console.warn('[Engram] WorldbookEngram: 无效的角色上下文');
+                Logger.warn(MODULE, '无效的角色上下文');
                 return null;
             }
 
             const charName = context.name2;
             const worldbookName = `[Engram] ${charName}`;
 
-            console.debug('[Engram] WorldbookEngram: 创建新世界书', worldbookName);
+            Logger.debug(MODULE, '创建新世界书', worldbookName);
 
             if (helper.createWorldbook) {
                 await helper.createWorldbook(worldbookName);
@@ -70,7 +73,7 @@ export class WorldbookEngramService {
                 if (currentBooks) {
                     currentBooks.additional.push(worldbookName);
                     await helper.rebindCharWorldbooks('current', currentBooks);
-                    console.info('[Engram] WorldbookEngram: 世界书已绑定到角色', {
+                    Logger.info(MODULE, '世界书已绑定到角色', {
                         character: charName,
                         worldbook: worldbookName
                     });
@@ -79,7 +82,7 @@ export class WorldbookEngramService {
 
             return worldbookName;
         } catch (e) {
-            console.error('[Engram] WorldbookEngram: 获取/创建世界书失败', e);
+            Logger.error(MODULE, '获取/创建世界书失败', e);
             return null;
         }
     }

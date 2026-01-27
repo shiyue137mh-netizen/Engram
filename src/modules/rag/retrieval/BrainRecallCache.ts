@@ -82,24 +82,8 @@ export class BrainRecallCache {
     }
 
     /**
-     * 计算余弦相似度
+     * 处理召回候选
      */
-    private cosineSimilarity(vecA: number[] | undefined, vecB: number[] | undefined): number {
-        if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
-
-        let dot = 0;
-        let normA = 0;
-        let normB = 0;
-        for (let i = 0; i < vecA.length; i++) {
-            dot += vecA[i] * vecB[i];
-            normA += vecA[i] * vecA[i];
-            normB += vecB[i] * vecB[i];
-        }
-
-        if (normA === 0 || normB === 0) return 0;
-        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-    }
-
     process(candidates: RecallCandidate[]): MemorySlot[] {
         if (!this.config.enabled) {
             return candidates.slice(0, this.config.workingLimit).map(c => ({
@@ -334,7 +318,7 @@ export class BrainRecallCache {
                 for (const picked of selected) {
                     if (!picked.embeddingVector) continue;
 
-                    const sim = this.cosineSimilarity(currentSlot.embeddingVector, picked.embeddingVector);
+                    const sim = embeddingService.cosineSimilarity(currentSlot.embeddingVector, picked.embeddingVector);
                     if (sim > mmrThreshold) {
                         isRedundant = true;
                         // Logger.debug(LogModule.RAG_CACHE, `MMR Redundant: ${currentSlot.id} vs ${picked.id} (${sim.toFixed(2)})`);

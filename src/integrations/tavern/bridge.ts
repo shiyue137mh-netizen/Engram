@@ -1,15 +1,12 @@
 /**
  * STBridge - SillyTavern API 桥接层
  *
- * 这是唯一与 SillyTavern 直接交互的模块
- * 所有 window.SillyTavern、jQuery、eventSource 的调用都在这里
+ * 这是唯一与 SillyTavern 直接交互的模块。
+ * 所有 window.SillyTavern、jQuery、eventSource 的调用都在这里统一管理。
  */
-
-import { EventBus, EngramEvent } from '@/core/events/types';
 // 使用统一的 STContext 模块
 import { getSTContext, getCurrentChat, getCurrentCharacter, STMessage } from "@/integrations/tavern/context";
 export { getSTContext, type STMessage } from "@/integrations/tavern/context";
-;
 
 /**
  * 初始化 Engram 插件
@@ -24,14 +21,14 @@ export async function initializeEngram(): Promise<void> {
     // 初始化设置管理器
     const { SettingsManager } = await import('@/config/settings');
     SettingsManager.initSettings();
-    Logger.info('STBridge', 'SettingsManager initialized');
+    Logger.info('STBridge', 'SettingsManager 初始化完成');
 
     // 加载保存的正则规则到全局处理器
     const savedRegexRules = SettingsManager.getRegexRules();
     if (savedRegexRules && savedRegexRules.length > 0) {
         const { regexProcessor } = await import('@/modules/workflow/steps');
         regexProcessor.setRules(savedRegexRules);
-        Logger.info('STBridge', `Loaded ${savedRegexRules.length} regex rules`);
+        Logger.info('STBridge', `已加载 ${savedRegexRules.length} 条正则规则`);
     }
 
     // 检查酒馆接口对接状态
@@ -63,16 +60,13 @@ export async function initializeEngram(): Promise<void> {
     const { ThemeManager } = await import('@/ui/services/ThemeManager');
     ThemeManager.init();
 
-    // 运行诊断
-    // import('../diagnose').then(({ runDiagnostics }) => runDiagnostics());
-
     // Initialize Injector Service (V0.4 - Dynamic Context)
     try {
         const { injector } = await import('@/modules/rag/injection/Injector');
         injector.init();
-        Logger.info('Injector', 'Service initialized');
+        Logger.info('Injector', '注入服务初始化完成');
     } catch (e) {
-        Logger.warn('Injector', 'Failed to initialize Injector', { error: String(e) });
+        Logger.warn('Injector', '注入服务初始化失败', { error: String(e) });
     }
 
     // Initialize MacroService (Global ST Macros)
@@ -80,7 +74,7 @@ export async function initializeEngram(): Promise<void> {
         const { MacroService } = await import('@/integrations/tavern/macros');
         await MacroService.init();
     } catch (e) {
-        Logger.warn('MacroService', 'Failed to initialize MacroService', { error: String(e) });
+        Logger.warn('MacroService', '宏服务初始化失败', { error: String(e) });
     }
 
     // V0.8: Initialize QR 栏快捷按钮
@@ -89,7 +83,7 @@ export async function initializeEngram(): Promise<void> {
         initQuickPanelButton();
         Logger.info('QuickPanelButton', 'QR 栏按钮初始化完成');
     } catch (e) {
-        Logger.warn('QuickPanelButton', 'Failed to initialize QuickPanelButton', { error: String(e) });
+        Logger.warn('QuickPanelButton', 'QR 栏按钮初始化失败', { error: String(e) });
     }
 
     // 挂载全局悬浮层 (用于修订弹窗等)
@@ -99,9 +93,9 @@ export async function initializeEngram(): Promise<void> {
     try {
         const { CharacterDeleteService } = await import('@/data/cleanup/CharacterCleanup');
         CharacterDeleteService.init();
-        Logger.info('STBridge', 'CharacterDeleteService initialized');
+        Logger.info('STBridge', '角色联动清理服务初始化完成');
     } catch (e) {
-        Logger.warn('STBridge', 'Failed to initialize CharacterDeleteService', { error: String(e) });
+        Logger.warn('STBridge', '角色联动清理服务初始化失败', { error: String(e) });
     }
 
     // V0.9.5: 初始化键盘快捷键
@@ -113,9 +107,9 @@ export async function initializeEngram(): Promise<void> {
             toggleQuickPanel: toggleQuickPanel,
             openCommandPalette: openCommandPalette,
         });
-        Logger.info('STBridge', 'Keyboard shortcuts initialized');
+        Logger.info('STBridge', '键盘快捷键初始化完成');
     } catch (e) {
-        Logger.warn('STBridge', 'Failed to initialize keyboard shortcuts', { error: String(e) });
+        Logger.warn('STBridge', '键盘快捷键初始化失败', { error: String(e) });
     }
 
     Logger.success('STBridge', 'Engram 初始化完成 - Where memories leave their trace.');
@@ -129,7 +123,7 @@ function createTopBarButton(): void {
     const wiButton = document.querySelector('#WI-SP-button');
 
     if (!holder) {
-        console.warn('[Engram] #top-settings-holder not found');
+        // 非法操作，可能 DOM 尚未加载
         return;
     }
 
@@ -157,10 +151,8 @@ function createTopBarButton(): void {
     // 插入到 WI-SP-button 之前，如果找不到则添加到末尾
     if (wiButton) {
         holder.insertBefore(drawer, wiButton);
-        console.log('[Engram] Top bar button injected before WI-SP-button');
     } else {
         holder.appendChild(drawer);
-        console.log('[Engram] Top bar button injected at end (WI-SP-button not found)');
     }
 }
 
@@ -192,7 +184,6 @@ export function setGlobalRenderer(renderer: ReactRenderer): void {
  */
 function mountGlobalOverlay(): void {
     if (!globalRenderer) {
-        console.warn('[Engram] Global renderer not ready');
         return;
     }
 
@@ -210,7 +201,6 @@ function mountGlobalOverlay(): void {
     // 挂载
     if (!globalRoot) {
         globalRoot = globalRenderer(overlay, () => { }); // global overlay usually doesn't need onClose
-        console.log('[Engram] Global overlay mounted');
     }
 }
 
@@ -305,6 +295,7 @@ export async function hideMessageRange(start: number, end: number): Promise<void
             // 假设 Engram 这里的 floor 是 0-indexed 的 message index (matches context.chat length)
             // 根据之前的 SummarizerService, sourceFloors 似乎就是 message index。
             await chatsModule.hideChatMessageRange(start, end, false); // unhide=false -> hide
+            // Console is okay here for debugging interactions with ST internals
             console.log(`[Engram] Hidden messages range: ${start}-${end}`);
         } else {
             console.warn('[Engram] hideChatMessageRange not found in chats.js');
@@ -366,7 +357,8 @@ export async function injectMessage(role: 'user' | 'char', content: string, name
             await scriptModule.reloadCurrentChat();
         }
 
-        console.log('[Engram] Injected message:', newMessage);
+        const { Logger } = await import('@/core/logger');
+        Logger.info('STBridge', '已注入消息', { role, length: content.length });
     } catch (e) {
         console.error('[Engram] Failed to inject message:', e);
         throw e;

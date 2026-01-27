@@ -101,6 +101,10 @@ export class EntityBuilder {
         const startTime = Date.now();
         Logger.info(LogModule.MEMORY_ENTITY, `开始实体提取 (Workflow) (楼层 ${floor}, DryRun: ${dryRun})`);
 
+        if (manual) {
+            notificationService.info('正在进行实体提取...', 'Engram');
+        }
+
         try {
             // Lazy import to avoid circular dep
             const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
@@ -137,7 +141,7 @@ export class EntityBuilder {
 
                 if (manual) {
                     notificationService.success(
-                        `提取了 ${result?.newEntities?.length || 0} 个新实体`,
+                        `实体提取完成: 新增 ${result?.newEntities?.length || 0}, 更新 ${result?.updatedEntities?.length || 0}`,
                         'Engram'
                     );
                 }
@@ -152,6 +156,12 @@ export class EntityBuilder {
                     newEntities: result?.newEntities || [],
                     updatedEntities: result?.updatedEntities || []
                 };
+
+                // Add notification for Preview
+                notificationService.success(
+                    `实体预览就绪: 发现 ${result?.newEntities?.length || 0} 个新实体`,
+                    'Engram'
+                );
             }
 
             return {
@@ -217,28 +227,29 @@ export class EntityBuilder {
 
         try {
             // 批量保存新增实体
-            for (const entity of newEntities) {
-                // 确保没有 ID 冲突
-                Logger.debug(LogModule.MEMORY_ENTITY, 'Saving new entity', { name: entity.name });
-                await store.saveEntity({
+            if (newEntities.length > 0) {
+                const entitiesToSave = newEntities.map(entity => ({
                     name: entity.name,
                     type: entity.type,
                     description: entity.description,
                     aliases: entity.aliases || [],
                     profile: (entity.profile || {}) as Record<string, unknown>,
-                });
+                }));
+                await store.saveEntities(entitiesToSave);
             }
 
-            // 批量保存更新实体
-            for (const entity of updatedEntities) {
-                Logger.debug(LogModule.MEMORY_ENTITY, 'Updating entity', { id: entity.id, name: entity.name });
-                await store.updateEntity(entity.id, {
-                    profile: entity.profile,
-                    aliases: entity.aliases,
-                    description: entity.description,
-                    name: entity.name,
-                    type: entity.type
-                });
+            // 批量保存更新实体 (并行)
+            if (updatedEntities.length > 0) {
+                await Promise.all(updatedEntities.map(entity => {
+                    Logger.debug(LogModule.MEMORY_ENTITY, 'Updating entity', { id: entity.id, name: entity.name });
+                    return store.updateEntity(entity.id, {
+                        profile: entity.profile,
+                        aliases: entity.aliases,
+                        description: entity.description,
+                        name: entity.name,
+                        type: entity.type
+                    });
+                }));
             }
 
             // 更新状态

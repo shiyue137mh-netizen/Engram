@@ -1,39 +1,165 @@
 /* Engram 主样式入口 */
 
-/* Design Token 系统 - 暂时保留，以防万一，但主要依赖 ThemeContext */
+/* Design Token 系统 */
 @import './variables.css';
 
 /* Animation System V1.0 */
 @import './animations.css';
 
-@tailwind base;
+/* @tailwind base; */
 @tailwind components;
 @tailwind utilities;
 
-/* Minimal Reset */
-@layer base {
+/* ==========================================================================
+   Scoped Preflight / Reset
+   Strictly scoped to #engram-panel-root to prevent cleaning global ST styles
+   ========================================================================== */
 
-    /* Scope base styles to Engram root prevents polluting global ST UI */
-    #engram-panel-root {
-        @apply border-border bg-background text-foreground;
-        box-sizing: border-box;
-    }
+/* Root Isolation */
+#engram-panel-root {
+    @apply border-border bg-background text-foreground;
+    box-sizing: border-box;
+    /* Ensure we don't inherit weird line-heights or fonts globally unless we want to */
+    line-height: normal;
 
-    #engram-panel-root * {
-        @apply border-border;
-        box-sizing: border-box;
-    }
+    /*
+     * Structural Styles (moved from utility classes because Tailwind 'important' scope
+     * prevents utilities from applying to the root element itself)
+     */
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    /* Manual Injection of Tailwind Base Vars scoped to Root */
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / 0.5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+    --tw-contain-style: ;
 }
 
-/* Scoped Preflight / Reset for Engram container to isolate from ST global styles */
-/* 使用 :where() 将优先级降到 0，让 Tailwind 工具类能正常覆盖 */
+#engram-panel-root *,
+#engram-panel-root ::before,
+#engram-panel-root ::after {
+    @apply border-border;
+    box-sizing: border-box;
+
+    /* Inject these here too just in case */
+    --tw-border-spacing-x: 0;
+    --tw-border-spacing-y: 0;
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+    --tw-pan-x: ;
+    --tw-pan-y: ;
+    --tw-pinch-zoom: ;
+    --tw-scroll-snap-strictness: proximity;
+    --tw-gradient-from-position: ;
+    --tw-gradient-via-position: ;
+    --tw-gradient-to-position: ;
+    --tw-ordinal: ;
+    --tw-slashed-zero: ;
+    --tw-numeric-figure: ;
+    --tw-numeric-spacing: ;
+    --tw-numeric-fraction: ;
+    --tw-ring-inset: ;
+    --tw-ring-offset-width: 0px;
+    --tw-ring-offset-color: #fff;
+    --tw-ring-color: rgb(59 130 246 / 0.5);
+    --tw-ring-offset-shadow: 0 0 #0000;
+    --tw-ring-shadow: 0 0 #0000;
+    --tw-shadow: 0 0 #0000;
+    --tw-shadow-colored: 0 0 #0000;
+    --tw-blur: ;
+    --tw-brightness: ;
+    --tw-contrast: ;
+    --tw-grayscale: ;
+    --tw-hue-rotate: ;
+    --tw-invert: ;
+    --tw-saturate: ;
+    --tw-sepia: ;
+    --tw-drop-shadow: ;
+    --tw-backdrop-blur: ;
+    --tw-backdrop-brightness: ;
+    --tw-backdrop-contrast: ;
+    --tw-backdrop-grayscale: ;
+    --tw-backdrop-hue-rotate: ;
+    --tw-backdrop-invert: ;
+    --tw-backdrop-opacity: ;
+    --tw-backdrop-saturate: ;
+    --tw-backdrop-sepia: ;
+    --tw-contain-size: ;
+    --tw-contain-layout: ;
+    --tw-contain-paint: ;
+    --tw-contain-style: ;
+}
+
+/*
+ * Manual Reset for Engram Components
+ * Only targets elements INSIDE #engram-panel-root
+ */
 :where(#engram-panel-root) button {
-    /* Reset ST global button styles */
     background-color: transparent;
     background-image: none;
-    border-width: 0;
-    border-style: solid;
-    border-color: transparent;
+    border: none;
     box-shadow: none;
     color: inherit;
     font-family: inherit;
@@ -45,103 +171,52 @@
     line-height: inherit;
     text-transform: none;
     transform: none;
+    outline: none;
 }
 
-
-/* Reset specific ST inputs if they leak */
 :where(#engram-panel-root) input[type="text"],
-:where(#engram-panel-root) textarea {
+:where(#engram-panel-root) input[type="number"],
+:where(#engram-panel-root) input[type="password"],
+:where(#engram-panel-root) input[type="search"],
+:where(#engram-panel-root) textarea,
+:where(#engram-panel-root) select {
     background-color: transparent;
     color: inherit;
     border: none;
     box-shadow: none;
+    outline: none;
+    appearance: none;
 }
 
-/* Strict Isolation for Engram Inputs */
+/* ==========================================================================
+   Component Inputs
+   ========================================================================== */
+
 @layer components {
 
     .engram-input,
     .engram-select {
         all: unset;
-        /* Remove all inherited/browser styles */
+        /* Powerful reset, use with care */
         display: block;
         box-sizing: border-box;
         font-family: var(--font-mono) !important;
+        width: 100%;
     }
 
-    /* Re-apply necessary base styles after unset */
     .engram-input::placeholder {
         opacity: 0.5;
         color: currentColor;
     }
 }
 
-/* Animations for Dashboard - Keeping these as they are used by utility classes or inline styles */
-@keyframes orb-breathe {
+/* ==========================================================================
+   Utility Overrides
+   ========================================================================== */
 
-    0%,
-    100% {
-        transform: scale(0.95);
-        opacity: 0.8;
-    }
-
-    50% {
-        transform: scale(1.05);
-        opacity: 1;
-    }
-}
-
-@keyframes ring-spin {
-    from {
-        transform: translate(-50%, -50%) rotate(0deg);
-    }
-
-    to {
-        transform: translate(-50%, -50%) rotate(360deg);
-    }
-}
-
-@keyframes blink {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.3;
-    }
-}
-
-/* Advanced Focus Blur Animation */
-@keyframes blur-in {
-    0% {
-        opacity: 0;
-        filter: blur(8px);
-        transform: translateY(10px);
-    }
-
-    100% {
-        opacity: 1;
-        filter: blur(0);
-        transform: translateY(0);
-    }
-}
-
-.animate-blur-in {
-    animation: blur-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Engram 顶栏 SVG 图标样式（继承 ST drawer-icon 样式） */
-#engram-drawer .drawer-icon svg {
-    width: 1.2em;
-    height: 1.2em;
-    position: relative;
-    top: 1px;
-    display: inline-block;
-}
-
-/* Scrollbar styling for Webkit */
+/* Scrollbar styling for Webkit (Scoped if possible, but scrollbars are often global) */
+/* We cannot scope ::-webkit-scrollbar easily to just one div in standard CSS without overflow properties on that div */
+/* Assuming these are fine as they match ST mostly */
 ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -159,76 +234,18 @@
     @apply bg-muted-foreground opacity-50;
 }
 
-/* Explicit Utility Classes for Sidebar (Scoped to Engram to prevent leakage) */
-#engram-panel-root .bg-sidebar {
-    background-color: var(--sidebar) !important;
-}
+/* ==========================================================================
+   Glass Effects
+   ========================================================================== */
 
-#engram-panel-root .text-sidebar-foreground {
-    color: var(--sidebar-foreground) !important;
-}
-
-#engram-panel-root .bg-sidebar-accent {
-    background-color: var(--sidebar-accent) !important;
-}
-
-#engram-panel-root .text-sidebar-accent-foreground {
-    color: var(--sidebar-accent-foreground) !important;
-}
-
-#engram-panel-root .border-sidebar-border {
-    border-color: var(--sidebar-border) !important;
-}
-
-/* Glass Effect Global Apply */
-/* Glass Effect Global Apply */
-/* 使用伪元素方案以增强兼容性并解决堆叠上下文问题 */
-/* Glass Effect Global Apply */
-/* 1. Global Blur Base */
 #engram-layout-root {
     backdrop-filter: var(--glass-backdrop-filter, none);
     -webkit-backdrop-filter: var(--glass-backdrop-filter, none);
-    /* Ensure it doesn't block interactions or cause z-index issues */
-    /* background is handled by ThemeManager (transparent for glass) */
 }
 
-/* 2. Element Specific Blurs (optional, for deeper layering) */
-#engram-panel-root .bg-sidebar {
-    background-color: var(--sidebar) !important;
-    backdrop-filter: var(--glass-backdrop-filter, none);
-    -webkit-backdrop-filter: var(--glass-backdrop-filter, none);
-}
-
-#engram-panel-root .bg-card {
-    background-color: var(--card) !important;
-    backdrop-filter: var(--glass-backdrop-filter, none);
-    -webkit-backdrop-filter: var(--glass-backdrop-filter, none);
-}
-
-#engram-panel-root .bg-popover {
-    background-color: var(--popover) !important;
-    backdrop-filter: var(--glass-backdrop-filter, none);
-    -webkit-backdrop-filter: var(--glass-backdrop-filter, none);
-}
-
-/* Utility class to force glass effect */
-.glass-effect {
-    backdrop-filter: var(--glass-backdrop-filter, none) !important;
-    -webkit-backdrop-filter: var(--glass-backdrop-filter, none) !important;
-}
-
-/**
- * Glass Panel - 使用伪元素实现可靠的模糊背景
- *
- * 解决问题：直接使用 backdrop-filter 时，无法模糊同一堆叠上下文中的文字
- * 解决方案：使用 ::before 伪元素作为模糊层，将模糊与内容分离
- *
- * 用法：<div class="glass-panel">内容</div>
- */
 .glass-panel {
     position: relative;
     isolation: isolate;
-    /* 创建新的堆叠上下文 */
 }
 
 .glass-panel::before {
@@ -243,8 +260,6 @@
     -webkit-backdrop-filter: var(--glass-backdrop-filter, blur(12px));
 }
 
-/* Sticky 元素专用玻璃效果 (如 TabPills) */
-/* 注意：不设置 position，让组件自己控制 sticky */
 .glass-sticky {
     isolation: isolate;
 }
@@ -260,7 +275,10 @@
     -webkit-backdrop-filter: var(--glass-backdrop-filter, blur(16px));
 }
 
-/* Isolation and Styling for Changelog Markdown content */
+/* ==========================================================================
+   Markdown Content
+   ========================================================================== */
+
 :where(#engram-panel-root) .engram-changelog-content {
     font-size: 0.85rem;
     line-height: 1.6;
@@ -283,14 +301,6 @@
     padding-bottom: 0.3em;
 }
 
-:where(#engram-panel-root) .engram-changelog-content h2 {
-    font-size: 1.1em;
-}
-
-:where(#engram-panel-root) .engram-changelog-content h3 {
-    font-size: 1em;
-}
-
 :where(#engram-panel-root) .engram-changelog-content ul,
 :where(#engram-panel-root) .engram-changelog-content ol {
     margin-top: 0.5em;
@@ -299,26 +309,11 @@
     list-style: disc;
 }
 
-:where(#engram-panel-root) .engram-changelog-content li {
-    margin-bottom: 0.25em;
-}
-
-:where(#engram-panel-root) .engram-changelog-content p {
-    margin-bottom: 1em;
-}
-
-:where(#engram-panel-root) .engram-changelog-content a {
-    color: var(--primary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
 :where(#engram-panel-root) .engram-changelog-content code {
     background-color: var(--muted);
     padding: 0.2em 0.4em;
     border-radius: 4px;
     font-family: var(--font-mono);
-    font-size: 0.9em;
 }
 
 :where(#engram-panel-root) .engram-changelog-content pre {
@@ -328,11 +323,4 @@
     overflow-x: auto;
     margin-bottom: 1em !important;
     border: 1px solid var(--border) !important;
-}
-
-:where(#engram-panel-root) .engram-changelog-content pre code {
-    background: transparent;
-    padding: 0;
-    color: inherit;
-    font-size: 0.85em;
 }

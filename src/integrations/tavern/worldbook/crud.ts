@@ -1,5 +1,8 @@
 import { WorldInfoEntry, CreateWorldInfoEntryParams, WorldInfoPosition } from './types';
 import { getTavernHelper } from './adapter';
+import { Logger } from '@/core/logger';
+
+const MODULE = 'Worldbook';
 
 /**
  * 获取世界书的所有条目
@@ -8,7 +11,7 @@ import { getTavernHelper } from './adapter';
 export async function getEntries(worldbookName: string): Promise<WorldInfoEntry[]> {
     const helper = getTavernHelper();
     if (!helper?.getWorldbook) {
-        console.warn('[Engram] WorldbookCRUD: TavernHelper 不可用');
+        Logger.warn(MODULE, 'TavernHelper 不可用');
         return [];
     }
 
@@ -53,7 +56,7 @@ export async function getEntries(worldbookName: string): Promise<WorldInfoEntry[
             };
         });
     } catch (e) {
-        console.error('[Engram] WorldbookCRUD: 获取世界书条目失败', e);
+        Logger.error(MODULE, '获取世界书条目失败', e);
         return [];
     }
 }
@@ -69,7 +72,7 @@ export async function getWorldbookNames(): Promise<string[]> {
         }
         return [];
     } catch (e) {
-        console.error('[Engram] WorldbookCRUD: 获取世界书列表失败', e);
+        Logger.error(MODULE, '获取世界书列表失败', e);
         return [];
     }
 }
@@ -81,18 +84,18 @@ export async function getWorldbookNames(): Promise<string[]> {
 export async function deleteWorldbook(worldbookName: string): Promise<boolean> {
     const helper = getTavernHelper();
     if (!helper?.deleteWorldbook) {
-        console.warn('[Engram] WorldbookCRUD: TavernHelper.deleteWorldbook 不可用');
+        Logger.warn(MODULE, 'TavernHelper.deleteWorldbook 不可用');
         return false;
     }
 
     try {
         const success = await helper.deleteWorldbook(worldbookName);
         if (success) {
-            console.info('[Engram] WorldbookCRUD: 已删除世界书', worldbookName);
+            Logger.info(MODULE, '已删除世界书', worldbookName);
         }
         return success;
     } catch (e) {
-        console.error('[Engram] WorldbookCRUD: 删除世界书失败', e);
+        Logger.error(MODULE, '删除世界书失败', e);
         return false;
     }
 }
@@ -106,7 +109,7 @@ export async function createEntry(worldbookName: string, params: CreateWorldInfo
     try {
         const helper = getTavernHelper();
         if (!helper?.createWorldbookEntries) {
-            console.error('[Engram] WorldbookCRUD: TavernHelper.createWorldbookEntries 不可用');
+            Logger.error(MODULE, 'TavernHelper.createWorldbookEntries 不可用');
             return false;
         }
 
@@ -132,7 +135,7 @@ export async function createEntry(worldbookName: string, params: CreateWorldInfo
             }
         };
 
-        console.debug('[Engram] WorldbookCRUD: 创建条目', {
+        Logger.debug(MODULE, '创建条目', {
             worldbook: worldbookName,
             name: params.name,
             contentLength: params.content.length
@@ -140,10 +143,10 @@ export async function createEntry(worldbookName: string, params: CreateWorldInfo
 
         await helper.createWorldbookEntries(worldbookName, [entryData]);
 
-        console.info('[Engram] WorldbookCRUD: 条目已保存到世界书', worldbookName);
+        Logger.info(MODULE, '条目已保存到世界书', worldbookName);
         return true;
     } catch (e) {
-        console.error('[Engram] WorldbookCRUD: 创建世界书条目失败', e);
+        Logger.error(MODULE, '创建世界书条目失败', e);
         return false;
     }
 }
@@ -157,7 +160,7 @@ export async function createEntry(worldbookName: string, params: CreateWorldInfo
 export async function updateEntry(worldbookName: string, uid: number, updates: Partial<WorldInfoEntry>): Promise<boolean> {
     const helper = getTavernHelper();
     if (!helper?.updateWorldbookWith) {
-        console.warn('[Engram] WorldbookCRUD: TavernHelper.updateWorldbookWith 不可用');
+        Logger.warn(MODULE, 'TavernHelper.updateWorldbookWith 不可用');
         return false;
     }
 
@@ -216,15 +219,15 @@ export async function updateEntry(worldbookName: string, uid: number, updates: P
                     recursion
                 };
 
-                console.debug('[Engram] WorldbookCRUD: 条目已更新 (In-Place)', { uid, name: entries[index].name });
+                Logger.debug(MODULE, '条目已更新 (In-Place)', { uid, name: entries[index].name });
             } else {
-                console.warn('[Engram] WorldbookCRUD: updateEntry 未找到条目', uid);
+                Logger.warn(MODULE, 'updateEntry 未找到条目', uid);
             }
             return entries;
         });
         return true;
     } catch (e) {
-        console.error('[Engram] WorldbookCRUD: 更新世界书条目失败', e);
+        Logger.error(MODULE, '更新世界书条目失败', e);
         return false;
     }
 }
@@ -237,16 +240,16 @@ export async function updateEntry(worldbookName: string, uid: number, updates: P
 export async function deleteEntry(worldbookName: string, uid: number): Promise<boolean> {
     const helper = getTavernHelper();
     if (!helper?.deleteWorldbookEntries) {
-        console.warn('[Engram] WorldbookCRUD: TavernHelper.deleteWorldbookEntries 不可用');
+        Logger.warn(MODULE, 'TavernHelper.deleteWorldbookEntries 不可用');
         return false;
     }
 
     try {
         await helper.deleteWorldbookEntries(worldbookName, (entry: any) => entry.uid === uid);
-        console.debug('[Engram] WorldbookCRUD: 已删除条目', { worldbook: worldbookName, uid });
+        Logger.debug(MODULE, '已删除条目', { worldbook: worldbookName, uid });
         return true;
     } catch (e) {
-        console.error('[Engram] WorldbookCRUD: 删除世界书条目失败', e);
+        Logger.error(MODULE, '删除世界书条目失败', e);
         return false;
     }
 }
@@ -259,17 +262,17 @@ export async function deleteEntry(worldbookName: string, uid: number): Promise<b
 export async function deleteEntries(worldbookName: string, uids: number[]): Promise<boolean> {
     const helper = getTavernHelper();
     if (!helper?.deleteWorldbookEntries) {
-        console.warn('[Engram] WorldbookCRUD: TavernHelper.deleteWorldbookEntries 不可用');
+        Logger.warn(MODULE, 'TavernHelper.deleteWorldbookEntries 不可用');
         return false;
     }
 
     try {
         const uidSet = new Set(uids);
         await helper.deleteWorldbookEntries(worldbookName, (entry: any) => uidSet.has(entry.uid));
-        console.debug('[Engram] WorldbookCRUD: 已批量删除条目', { worldbook: worldbookName, count: uids.length });
+        Logger.debug(MODULE, '已批量删除条目', { worldbook: worldbookName, count: uids.length });
         return true;
     } catch (e) {
-        console.error('[Engram] WorldbookCRUD: 批量删除世界书条目失败', e);
+        Logger.error(MODULE, '批量删除世界书条目失败', e);
         return false;
     }
 }

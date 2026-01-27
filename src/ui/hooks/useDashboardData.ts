@@ -11,10 +11,6 @@ import { useMemoryStore } from '@/state/memoryStore';
 import { summarizerService } from '@/modules/memory';
 import { SettingsManager } from '@/config/settings';
 import { getSTContext } from '@/integrations/tavern/bridge';
-import { EntityType } from '@/data/types/graph';
-import type { RecallConfig, EmbeddingConfig } from '@/config/types/rag';
-import type { EntityExtractConfig } from '@/config/types/memory';
-import type { PreprocessingConfig } from '@/modules/preprocessing/types';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
 
 // ==================== 类型定义 ====================
@@ -46,10 +42,25 @@ export interface SystemHealth {
     isSummarizing: boolean;
 }
 
+export interface BrainStats {
+    shortTermCount: number;
+    shortTermLimit: number;
+    workingCount: number;
+    workingLimit: number;
+    topItems: { id: string; label: string; score: number }[];
+}
+
+export interface ContextStats {
+    injectedLength: number;
+    estimatedTokens: number;
+}
+
 export interface DashboardData {
     system: SystemHealth;
     memory: MemoryStats;
     features: FeatureStatus;
+    brainStats: BrainStats;
+    contextStats: ContextStats;
     isLoading: boolean;
 }
 
@@ -83,6 +94,17 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         embedding: false,
         recall: true,
         preprocessing: false,
+    });
+    const [brainStats, setBrainStats] = useState<BrainStats>({
+        shortTermCount: 0,
+        shortTermLimit: 0,
+        workingCount: 0,
+        workingLimit: 0,
+        topItems: []
+    });
+    const [contextStats, setContextStats] = useState<ContextStats>({
+        injectedLength: 0,
+        estimatedTokens: 0
     });
 
     // 获取 memoryStore 方法
@@ -136,7 +158,6 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             const entityConfig = apiSettings?.entityExtractConfig;
             const embeddingConfig = apiSettings?.embeddingConfig;
             const recallConfig = apiSettings?.recallConfig;
-            // preprocessingConfig 存储在 SettingsManager 顶层
             const preprocessingConfig = SettingsManager.get('preprocessingConfig') as { enabled?: boolean } | undefined;
 
             setFeatures({
@@ -146,6 +167,41 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 recall: recallConfig?.enabled !== false,
                 preprocessing: preprocessingConfig?.enabled || false,
             });
+
+            // 4. Brain & Context Stats (Dynamic Import)
+            try {
+                const { brainRecallCache } = await import('@/modules/rag/retrieval/BrainRecallCache');
+                const { MacroService } = await import('@/integrations/tavern/macros');
+
+                const snapshot = brainRecallCache.getShortTermSnapshot();
+                const config = brainRecallCache.getConfig();
+
+                // Get working memory items (Tier = 'working')
+                const workingItems = snapshot.filter(s => s.tier === 'working');
+                const topActiveItems = snapshot.slice(0, 3).map(s => ({
+                    id: s.id,
+                    label: s.label,
+                    score: s.finalScore
+                }));
+
+                const contextText = MacroService.getSummaries();
+
+                setBrainStats({
+                    shortTermCount: snapshot.length,
+                    shortTermLimit: config.shortTermLimit,
+                    workingCount: workingItems.length,
+                    workingLimit: config.workingLimit,
+                    topItems: topActiveItems
+                });
+
+                setContextStats({
+                    injectedLength: contextText.length,
+                    estimatedTokens: Math.ceil(contextText.length / 4)
+                });
+
+            } catch (e) {
+                console.warn('[useDashboardData] Failed to load brain stats', e);
+            }
 
             setIsLoading(false);
         } catch (error) {
@@ -213,11 +269,9 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                     enabled: newPreprocessingEnabled,
                 } as any);
 
-                // 2. 同时更新 Recall Config 以保持同步 (QuickPanel 依赖此逻辑)
-                // [FIX]: 确保 apiSettings 完整，防止覆盖丢失其他配置
+                // 2. 同时更新 Recall Config 以保持同步
                 import('@/config/types/defaults').then(({ getDefaultAPISettings }) => {
                     const currentApiSettings = SettingsManager.get('apiSettings');
-                    // 如果不存在，使用默认值
                     const safeApiSettings = currentApiSettings || getDefaultAPISettings();
                     const currentRecallConfig = safeApiSettings.recallConfig || {};
 
@@ -248,6 +302,8 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         system,
         memory,
         features,
+        brainStats,
+        contextStats,
         isLoading,
         toggleFeature,
         refresh,

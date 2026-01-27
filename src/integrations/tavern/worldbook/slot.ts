@@ -10,6 +10,8 @@ import { createEntry, findEntryByKey } from './crud';
 import { SLOT_ENTRY_KEY, SLOT_ENTRY_NAME } from './constants';
 import { Logger } from '@/core/logger';
 
+const MODULE = 'Worldbook';
+
 /**
  * WorldBookSlotService 类
  */
@@ -26,7 +28,7 @@ export class WorldBookSlotService {
         try {
             const worldbookName = await WorldbookEngramService.getOrCreateWorldbook();
             if (!worldbookName) {
-                Logger.warn('WorldBookSlotService', '无法获取或创建世界书');
+                Logger.warn(MODULE, '无法获取或创建世界书');
                 return;
             }
 
@@ -34,7 +36,7 @@ export class WorldBookSlotService {
             const existingEntry = await findEntryByKey(worldbookName, SLOT_ENTRY_KEY);
 
             if (existingEntry) {
-                Logger.debug('WorldBookSlotService', '宏槽位条目已存在', {
+                Logger.debug(MODULE, '宏槽位条目已存在', {
                     uid: existingEntry.uid,
                     name: existingEntry.name
                 });
@@ -63,17 +65,17 @@ export class WorldBookSlotService {
             });
 
             if (success) {
-                Logger.success('WorldBookSlotService', '宏槽位条目已创建', {
+                Logger.success(MODULE, '宏槽位条目已创建', {
                     worldbook: worldbookName,
                     name: SLOT_ENTRY_NAME
                 });
                 this.isInitialized = true;
             } else {
-                Logger.error('WorldBookSlotService', '创建宏槽位条目失败');
+                Logger.error(MODULE, '创建宏槽位条目失败');
             }
 
         } catch (e) {
-            Logger.error('WorldBookSlotService', '初始化失败', e);
+            Logger.error(MODULE, '初始化失败', e);
         }
     }
 

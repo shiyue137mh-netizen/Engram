@@ -339,42 +339,57 @@ class Retriever {
             eventCount: events.length,
         });
 
-        // 多 Query 检索：对每个 Query 计算相似度，取最高分
+        // 多 Query 检索 (并发执行向量化)
         const candidateMap = new Map<string, ScoredEvent>();
 
-        for (const query of queries) {
-            try {
-                // 生成查询向量
-                const queryVector = await embeddingService.embed(query);
-
-                // 计算与每个事件的相似度
-                for (const event of events) {
-                    if (!event.embedding) continue;
-
-                    const score = embeddingService.cosineSimilarity(
-                        queryVector,
-                        event.embedding
-                    );
-
-                    // 过滤低于阈值的结果
-                    const threshold = config.embedding?.minScoreThreshold ?? 0.3;
-                    if (score < threshold) continue;
-
-                    const existing = candidateMap.get(event.id);
-                    if (!existing || score > (existing.embeddingScore || 0)) {
-                        candidateMap.set(event.id, {
-                            id: event.id,
-                            summary: event.summary,
-                            embeddingScore: score,
-                            node: event,
-                        });
-                    }
+        // 1. 并发获取所有 Query 的向量
+        const queryEmbeddings = await Promise.all(
+            queries.map(async (query) => {
+                try {
+                    const vector = await embeddingService.embed(query);
+                    // 预计算 Norm Sq 以优化内循环
+                    const normSq = embeddingService.computeNorm(vector);
+                    return { query, vector, normSq };
+                } catch (error: any) {
+                    Logger.error(LogModule.RAG_RETRIEVE, `Query 向量化失败: ${query}`, {
+                        message: error?.message || error,
+                    });
+                    return null;
                 }
-            } catch (error: any) {
-                Logger.error(LogModule.RAG_RETRIEVE, `Query 向量化失败: ${query}`, {
-                    message: error?.message || error,
-                    stack: error?.stack
-                });
+            })
+        );
+
+        // 2. 执行检索循环
+        for (const q of queryEmbeddings) {
+            if (!q) continue;
+
+            const { vector: queryVector, normSq: queryNormSq } = q;
+
+            // 计算与每个事件的相似度
+            for (const event of events) {
+                if (!event.embedding) continue;
+
+                // 使用预计算的 Query Norm 优化性能
+                const score = embeddingService.cosineSimilarity(
+                    queryVector,
+                    event.embedding,
+                    queryNormSq,
+                    undefined // Event Norm 暂未缓存，仍需实时计算
+                );
+
+                // 过滤低于阈值的结果
+                const threshold = config.embedding?.minScoreThreshold ?? 0.3;
+                if (score < threshold) continue;
+
+                const existing = candidateMap.get(event.id);
+                if (!existing || score > (existing.embeddingScore || 0)) {
+                    candidateMap.set(event.id, {
+                        id: event.id,
+                        summary: event.summary,
+                        embeddingScore: score,
+                        node: event,
+                    });
+                }
             }
         }
 

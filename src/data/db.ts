@@ -68,18 +68,18 @@ export class ChatDatabase extends Dexie {
                 return;
             }
 
-            // V0.9.11: Fix NotFoundError by ignoring current transaction (if any)
+            // V0.9.11: 忽略当前事务 (Fix NotFoundError)
             Dexie.ignoreTransaction(() => {
                 this.meta.put({ key: 'lastModified', value: Date.now() }).catch(err => {
-                    Logger.error(MODULE, 'Failed to update lastModified (async)', err);
+                    Logger.error(MODULE, '异步更新 lastModified 失败', err);
                 });
             });
 
-            // Sync Schedule is safe (debounced)
+            // 调度同步 (已做防抖处理)
             syncService.scheduleUpload(this.chatId);
         } catch (e) {
-            // CRITICAL: Hooks must NEVER throw, or they cancel the DB operation
-            Logger.error(MODULE, 'Hook failed silently to prevent transaction abort', e);
+            // CRITICAL: Hooks 绝对不能抛出异常，否则会打断数据库事务
+            Logger.error(MODULE, 'Hook 执行失败 (已捕获以保护事务)', e);
         }
     }
 }

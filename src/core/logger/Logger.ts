@@ -1,7 +1,8 @@
 /**
  * Logger - 日志核心服务
  *
- * 提供统一的日志记录、持久化存储和 EventBus 集成
+ * 提供统一的日志记录、持久化存储和 EventBus 集成。
+ * 替代 console.log，确保调试信息可追踪、可导出。
  */
 
 import manifest from '../../../manifest.json';
@@ -11,21 +12,21 @@ import { EventBus, EngramEvent } from '../events';
 import { LogLevel, LogEntry, LoggerConfig, DEFAULT_LOGGER_CONFIG } from './types';
 import type { LogModule } from './LogModule';
 
-// 日志流 Subject
+// 日志流 Subject (RxJS)
 const logSubject = new Subject<LogEntry>();
 
-// 内存中的日志缓存（用于快速访问）
+// 内存中的日志缓存（用于快速访问和 UI 展示）
 // 注意：模块级变量在 HMR 时可能被保留，但完整页面刷新会重置
 let logCache: LogEntry[] = [];
 
-// 配置
+// 全局配置实例
 let config: LoggerConfig = { ...DEFAULT_LOGGER_CONFIG };
 
-// 标记是否已初始化（防止重复订阅 EventBus）
+// 初始化标记（防止重复订阅 EventBus）
 let isInitialized = false;
 
 /**
- * 格式化时间为 HH:MM:SS
+ * 格式化时间戳为 HH:MM:SS
  */
 function formatTime(timestamp: number): string {
     const date = new Date(timestamp);
@@ -33,7 +34,8 @@ function formatTime(timestamp: number): string {
 }
 
 /**
- * 写入日志条目（仅内存，不持久化）
+ * 写入日志条目（内部方法）
+ * 执行过滤、缓存和广播
  */
 function writeLog(level: LogLevel, module: string, message: string, data?: unknown): void {
     if (level < config.minLevel) return;
@@ -47,24 +49,24 @@ function writeLog(level: LogLevel, module: string, message: string, data?: unkno
         data,
     };
 
-    // 添加到缓存
+    // 添加到内存缓存
     logCache.push(entry);
 
-    // 限制最大条数
+    // 限制最大缓存条数 (FIFO)
     if (logCache.length > config.maxEntries) {
         logCache = logCache.slice(-config.maxEntries);
     }
 
-    // 发送到订阅者
+    // 广播给订阅者 (如: DevTools UI)
     logSubject.next(entry);
 }
 
 /**
  * 设置 EventBus 监听
+ * 将系统核心事件自动转换为日志
  */
 function setupEventBusListener(): void {
     EventBus.subscribe((event: EngramEvent) => {
-        // 将 EventBus 事件转换为日志
         const levelMap: Record<string, LogLevel> = {
             INGESTION_START: LogLevel.INFO,
             INGESTION_COMPLETE: LogLevel.SUCCESS,
@@ -84,22 +86,20 @@ function setupEventBusListener(): void {
 /**
  * Logger 公共 API
  *
- * V0.9.10: 支持 LogModule 枚举和 string 两种模块类型（向后兼容）
+ * V0.9.10: 支持 LogModule 枚举和普通字符串作为模块名
  */
 export const Logger = {
     /**
-     * 初始化 Logger（纯内存模式）
-     * 注意：每次调用都会清空日志缓存
+     * 初始化 Logger
+     * 重置缓存并建立 EventBus 连接
      */
     init(userConfig?: Partial<LoggerConfig>): void {
-        // 始终清空缓存（支持硬刷新时重置）
-        logCache = [];
+        logCache = []; // 清空之前的日志
 
         if (userConfig) {
             config = { ...config, ...userConfig };
         }
 
-        // 防止重复订阅 EventBus
         if (!isInitialized) {
             setupEventBusListener();
             isInitialized = true;
@@ -109,40 +109,35 @@ export const Logger = {
     },
 
     /**
-     * DEBUG 级别日志
-     * @param module 模块名（推荐使用 LogModule 枚举）
+     * DEBUG 级别日志 (调试信息)
      */
     debug(module: LogModule | string, message: string, data?: unknown): void {
         writeLog(LogLevel.DEBUG, module as string, message, data);
     },
 
     /**
-     * INFO 级别日志
-     * @param module 模块名（推荐使用 LogModule 枚举）
+     * INFO 级别日志 (常规信息)
      */
     info(module: LogModule | string, message: string, data?: unknown): void {
         writeLog(LogLevel.INFO, module as string, message, data);
     },
 
     /**
-     * SUCCESS 级别日志
-     * @param module 模块名（推荐使用 LogModule 枚举）
+     * SUCCESS 级别日志 (操作成功)
      */
     success(module: LogModule | string, message: string, data?: unknown): void {
         writeLog(LogLevel.SUCCESS, module as string, message, data);
     },
 
     /**
-     * WARN 级别日志
-     * @param module 模块名（推荐使用 LogModule 枚举）
+     * WARN 级别日志 (警告信息)
      */
     warn(module: LogModule | string, message: string, data?: unknown): void {
         writeLog(LogLevel.WARN, module as string, message, data);
     },
 
     /**
-     * ERROR 级别日志
-     * @param module 模块名（推荐使用 LogModule 枚举）
+     * ERROR 级别日志 (错误信息)
      */
     error(module: LogModule | string, message: string, data?: unknown): void {
         writeLog(LogLevel.ERROR, module as string, message, data);
@@ -156,7 +151,8 @@ export const Logger = {
     },
 
     /**
-     * 订阅新日志
+     * 订阅新日志流
+     * @returns 取消订阅函数
      */
     subscribe(callback: (entry: LogEntry) => void): () => void {
         const subscription = logSubject.subscribe(callback);
@@ -164,7 +160,7 @@ export const Logger = {
     },
 
     /**
-     * 清空所有日志（仅内存）
+     * 清空所有日志
      */
     clear(): void {
         logCache = [];
@@ -173,11 +169,10 @@ export const Logger = {
 
     /**
      * 导出日志为 Markdown 格式
+     * 用于错误报告
      */
     exportToMarkdown(): string {
         const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10);
-        const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
 
         const levelLabels: Record<LogLevel, string> = {
             [LogLevel.DEBUG]: 'DEBUG',
@@ -202,21 +197,25 @@ export const Logger = {
             md += `[${time}] [${module}] ${level} ${entry.message}\n`;
 
             if (entry.data !== undefined) {
-                const dataStr = JSON.stringify(entry.data, null, 2)
-                    .split('\n')
-                    .map((line) => `    ${line}`)
-                    .join('\n');
-                md += `${dataStr}\n`;
+                try {
+                    const dataStr = JSON.stringify(entry.data, null, 2)
+                        .split('\n')
+                        .map((line) => `    ${line}`)
+                        .join('\n');
+                    md += `${dataStr}\n`;
+                } catch (e) {
+                    md += `    [Data serialization failed]\n`;
+                }
             }
         }
 
         md += '```\n';
-
         return md;
     },
 
     /**
-     * 获取导出文件名
+     * 生成导出文件名
+     * 格式: engram_log_YYYY-MM-DD_HHMMSS.md
      */
     getExportFilename(): string {
         const now = new Date();

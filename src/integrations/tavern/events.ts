@@ -63,6 +63,10 @@ export type EventCallback = (...args: unknown[]) => void | Promise<void>;
 /** 取消订阅函数类型 */
 export type Unsubscribe = () => void;
 
+import { Logger } from '@/core/logger';
+
+const MODULE = 'TavernEventBus';
+
 /**
  * 获取 SillyTavern 的 eventSource
  * 注意：这个函数需要在运行时调用，因为 SillyTavern 的模块是动态加载的
@@ -82,7 +86,7 @@ function getEventSource(): {
         }
         return null;
     } catch {
-        console.warn('[Engram] EventBus: 无法获取 SillyTavern eventSource');
+        Logger.warn(MODULE, '无法获取 SillyTavern eventSource');
         return null;
     }
 }

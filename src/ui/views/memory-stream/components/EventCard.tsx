@@ -17,6 +17,9 @@ interface EventCardProps {
     checked?: boolean;
     /** 是否有未保存的修改 */
     hasChanges?: boolean;
+    /** 是否处于召回激活状态 */
+    isActive?: boolean;
+    className?: string; // Add className prop
 }
 
 /**
@@ -81,11 +84,13 @@ function MetaLine({ event }: { event: EventNode }) {
 export const EventCard: React.FC<EventCardProps> = ({
     event,
     isSelected = false,
+    isActive = false, // Default false
     isCompact = false,
     onSelect,
     onCheck,
     checked = false,
     hasChanges = false,
+    className = '',
 }) => {
     const kv = event.structured_kv;
 
@@ -104,7 +109,10 @@ export const EventCard: React.FC<EventCardProps> = ({
                     flex items-center gap-3 p-3 cursor-pointer
                     border-b border-border
                     transition-colors duration-150
-                    ${isSelected ? 'border-l-2 border-l-primary bg-transparent' : 'hover:border-border'}
+                    ${isSelected ? 'border-l-4 border-l-primary bg-transparent' : ''}
+                    ${isActive ? 'border-l-4 border-l-green-500 bg-green-500/5' : ''}
+                    ${!isSelected && !isActive ? 'hover:border-border' : ''}
+                    ${className}
                 `}
                 onClick={onSelect}
             >
@@ -148,14 +156,24 @@ export const EventCard: React.FC<EventCardProps> = ({
         <div
             className={`
                 p-4 cursor-pointer rounded-lg
-                transition-all duration-150
+                transition-all duration-150 relative
                 ${isSelected
                     ? 'border border-primary bg-transparent'
-                    : 'border border-transparent hover:border-border/50'
+                    : isActive
+                        ? 'border border-green-500/50 bg-green-500/5 hover:border-green-500' // Active Style
+                        : 'border border-transparent hover:border-border/50'
                 }
+                ${className}
             `}
             onClick={onSelect}
         >
+            {/* Active Label */}
+            {isActive && (
+                <div className="absolute top-2 right-2 text-[10px] text-green-500 font-medium px-1.5 py-0.5 bg-green-500/10 rounded">
+                    Active
+                </div>
+            )}
+
             {/* 头部：复选框 + 标签 + 嵌入状态 + 分数 */}
             <div className="flex items-center gap-3 mb-2">
                 <input
@@ -182,7 +200,6 @@ export const EventCard: React.FC<EventCardProps> = ({
             <MetaLine event={event} />
 
             {/* 摘要文本 */}
-            {/* 摘要文本 */}
             <p className="text-sm text-foreground mt-1 line-clamp-2">
                 {summaryText}
             </p>
@@ -200,5 +217,3 @@ export const EventCard: React.FC<EventCardProps> = ({
         </div>
     );
 };
-
-

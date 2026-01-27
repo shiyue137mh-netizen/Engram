@@ -10,9 +10,12 @@ import type { EventNode, EntityNode } from '@/data/types/graph';
 import { EventCard } from './components/EventCard';
 import { EntityCard } from './components/EntityCard'; // Import EntityCard
 import { EventEditor, type EventEditorHandle } from './components/EventEditor';
+import { EntityEditor } from './components/EntityEditor';
 import { GraphView } from './GraphView';
-import { Search, Trash2, RefreshCw, Brain, List, GitBranch, Save, Sparkles, Users } from 'lucide-react';
+import { Search, Trash2, RefreshCw, Brain, List, GitBranch, Save, Sparkles, Users, Eye, EyeOff, Filter, ArrowDownUp, FileText } from 'lucide-react';
 import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
+import { MacroService } from '@/integrations/tavern/macros';
+import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
 import { EmptyState } from '@/ui/components/feedback/EmptyState';
 
 // 响应式断点
@@ -33,6 +36,14 @@ export const MemoryStream: React.FC = () => {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
     const [searchQuery, setSearchQuery] = useState('');
+
+    // Feature Restoration States
+    const [showActiveOnly, setShowActiveOnly] = useState(false);
+    const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc'); // Default: Old -> New
+    const [showPreview, setShowPreview] = useState(false);
+    const [previewContent, setPreviewContent] = useState('');
+
     const [isLoading, setIsLoading] = useState(true);
     const [isMobile, setIsMobile] = useState(window.innerWidth < DESKTOP_BREAKPOINT);
     const [showEditor, setShowEditor] = useState(false);
@@ -67,7 +78,12 @@ export const MemoryStream: React.FC = () => {
         setIsLoading(true);
         try {
             const allEvents = await store.getAllEvents();
-            setEvents(allEvents.sort((a, b) => b.timestamp - a.timestamp));
+            // Default Sort: Timeline Order (Old -> New)
+            setEvents(allEvents.sort((a, b) => a.timestamp - b.timestamp));
+
+            // Restoration: Load Active IDs
+            const snapshot = brainRecallCache.getShortTermSnapshot();
+            setActiveIds(new Set(snapshot.map(s => s.id)));
         } catch (e) {
             console.error('[MemoryStream] Failed to load events:', e);
         } finally {
@@ -92,14 +108,30 @@ export const MemoryStream: React.FC = () => {
 
     // 过滤事件
     const filteredEvents = useMemo(() => {
-        if (!searchQuery.trim()) return events;
-        const q = searchQuery.toLowerCase();
-        return events.filter(e =>
-            e.summary.toLowerCase().includes(q) ||
-            e.structured_kv.event?.toLowerCase().includes(q) ||
-            e.structured_kv.role?.some(r => r.toLowerCase().includes(q))
-        );
-    }, [events, searchQuery]);
+        let result = events;
+
+        // 1. Search Filter
+        if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(e =>
+                e.summary.toLowerCase().includes(q) ||
+                e.structured_kv.event?.toLowerCase().includes(q) ||
+                e.structured_kv.role?.some(r => r.toLowerCase().includes(q))
+            );
+        }
+
+        // 2. Active Filter
+        if (showActiveOnly) {
+            result = result.filter(e => activeIds.has(e.id));
+        }
+
+        // 3. Sorting
+        return [...result].sort((a, b) => {
+            return sortOrder === 'asc'
+                ? a.timestamp - b.timestamp
+                : b.timestamp - a.timestamp;
+        });
+    }, [events, searchQuery, showActiveOnly, activeIds, sortOrder]);
 
     // 过滤实体
     const filteredEntities = useMemo(() => {
@@ -160,6 +192,22 @@ export const MemoryStream: React.FC = () => {
         setEvents(prev => prev.map(e =>
             e.id === id ? { ...e, ...updates } as EventNode : e
         ));
+    }, []);
+
+
+
+    // 实体修改回调
+    const handleEntityChange = useCallback(async (id: string, updates: Partial<EntityNode>) => {
+        try {
+            await store.updateEntity(id, updates);
+            setEntities(prev => prev.map(e =>
+                e.id === id ? { ...e, ...updates } as EntityNode : e
+            ));
+            console.log('[MemoryStream] Entity updated:', id);
+        } catch (e) {
+            console.error('[MemoryStream] Failed to update entity:', e);
+            alert('实体更新失败');
+        }
     }, []);
 
     // 批量保存所有修改
@@ -354,6 +402,43 @@ export const MemoryStream: React.FC = () => {
                                 删除 ({checkedIds.size})
                             </button>
                         )}
+
+                        {/* Divider */}
+                        <div className="w-[1px] h-4 bg-border mx-1" />
+
+                        {/* 排序切换 */}
+                        {viewTab === 'list' && (
+                            <button
+                                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                                title={sortOrder === 'asc' ? '当前: 旧 -> 新' : '当前: 新 -> 旧'}
+                            >
+                                <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+                            </button>
+                        )}
+
+                        {/* 激活筛选 */}
+                        {viewTab === 'list' && (
+                            <button
+                                onClick={() => setShowActiveOnly(prev => !prev)}
+                                className={`p-1.5 rounded-md transition-colors ${showActiveOnly ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                                title={showActiveOnly ? '显示全部' : '只看激活 (Recall)'}
+                            >
+                                <Filter size={14} />
+                            </button>
+                        )}
+
+                        {/* 宏预览 */}
+                        <button
+                            onClick={() => {
+                                setPreviewContent(MacroService.getSummaries() || '(空 - 暂无注入内容)');
+                                setShowPreview(true);
+                            }}
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                            title="查看当前注入内容"
+                        >
+                            <FileText size={14} />
+                        </button>
                     </div>
                 }
             />
@@ -412,6 +497,7 @@ export const MemoryStream: React.FC = () => {
                                         event={event}
                                         isSelected={event.id === selectedId}
                                         isCompact={isMobile}
+                                        isActive={activeIds.has(event.id)} // Pass Active State
                                         checked={checkedIds.has(event.id)}
                                         hasChanges={pendingChanges.has(event.id)}
                                         onSelect={() => handleSelect(event.id)}
@@ -445,7 +531,7 @@ export const MemoryStream: React.FC = () => {
                 >
                     <MasterDetailLayout
                         mobileDetailOpen={false}
-                        mobileDetailTitle="查看实体"
+                        mobileDetailTitle="编辑实体"
                         header={
                             <div className="relative mb-4 shrink-0">
                                 <Search size={14} className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -496,74 +582,55 @@ export const MemoryStream: React.FC = () => {
                             </div>
                         )}
                         detail={
-                            selectedEntity ? (
-                                <div className="p-6 space-y-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-xl font-medium text-foreground">{selectedEntity.name}</h3>
-                                            <span className="inline-block mt-1 px-2 py-0.5 text-xs font-medium text-primary bg-primary/10 rounded-full border border-primary/20 uppercase">
-                                                {selectedEntity.type}
-                                            </span>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDelete(selectedEntity.id)}
-                                            className="p-2 text-destructive hover:bg-destructive/10 rounded transition-colors"
-                                            title="删除实体"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">描述</h4>
-                                        <div className="p-4 bg-muted/50 rounded-lg border border-border text-sm leading-relaxed whitespace-pre-wrap">
-                                            {selectedEntity.description}
-                                        </div>
-                                    </div>
-
-                                    {selectedEntity.aliases && selectedEntity.aliases.length > 0 && (
-                                        <div className="space-y-2">
-                                            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">别名</h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {selectedEntity.aliases.map((alias, i) => (
-                                                    <span key={i} className="px-2 py-1 bg-muted rounded text-xs text-muted-foreground">
-                                                        {alias}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {selectedEntity.profile && Object.keys(selectedEntity.profile).length > 0 && (
-                                        <div className="space-y-2">
-                                            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">元数据 (Profile)</h4>
-                                            <pre className="p-4 bg-muted rounded-lg border border-border text-xs font-mono overflow-auto">
-                                                {JSON.stringify(selectedEntity.profile, null, 2)}
-                                            </pre>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center h-full text-muted-foreground">
-                                    <p className="text-sm">选择一个实体查看详情</p>
-                                </div>
-                            )
+                            <EntityEditor
+                                entity={selectedEntity}
+                                isFullScreen={false}
+                                onSave={handleEntityChange}
+                                onDelete={handleDelete}
+                                onClose={() => setSelectedId(null)}
+                            />
                         }
                     />
                 </div>
             )}
 
-            {/* 图谱视图 - V0.9.2: 修复高度问题，React Flow 需要明确高度 */}
+            {/* 图谱视图 */}
             {viewTab === 'graph' && (
                 <div
                     className="flex-1 min-h-0"
                     style={{
-                        // 与列表视图相同的计算高度
                         height: 'calc(100vh - 100px)',
                         minHeight: '400px',
                     }}
                 >
                     <GraphView events={events} entities={entities} />
+                </div>
+            )}
+            {/* Preview Modal */}
+            {showPreview && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-2xl bg-background border border-border rounded-lg shadow-xl flex flex-col max-h-[80vh]">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                            <h3 className="text-sm font-medium flex items-center gap-2">
+                                <FileText size={16} className="text-primary" />
+                                宏注入预览 (Active Injection)
+                            </h3>
+                            <button
+                                onClick={() => setShowPreview(false)}
+                                className="text-muted-foreground hover:text-foreground"
+                            >
+                                关闭
+                            </button>
+                        </div>
+                        <div className="flex-1 overflow-auto p-4">
+                            <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-muted-foreground bg-muted/30 p-4 rounded border border-border/50">
+                                {previewContent}
+                            </pre>
+                        </div>
+                        <div className="px-4 py-2 border-t border-border bg-muted/20 text-[10px] text-muted-foreground">
+                            *此内容为 {'{{engramSummaries}}'} 宏在当前上下文中的实际输出值
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

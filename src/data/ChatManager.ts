@@ -5,6 +5,7 @@
  * Each chat_id has its own database, so we just need to track the current chatId.
  */
 
+import { Logger } from '@/core/logger';
 import { getDbForChat, type ChatDatabase, type ChatMeta } from './db';
 import { getCurrentChatId, getCurrentCharacter } from '@/integrations/tavern/context';
 import { DEFAULT_SCOPE_STATE, type ScopeState } from './types/graph';
@@ -12,27 +13,28 @@ import { DEFAULT_SCOPE_STATE, type ScopeState } from './types/graph';
 /** Meta 表中的状态 key */
 const STATE_KEY = 'scope_state';
 const CHARACTER_KEY = 'character_name';
+const MODULE = 'ChatManager';
 
 class ChatManager {
     private currentChatId: string | null = null;
     private currentDb: ChatDatabase | null = null;
 
     /**
-     * 获取当前聊天的数据库
-     * 会自动从 ST 上下文获取 chatId
+     * 获取当前聊天的数据库实例
+     * 自动从酒馆上下文获取 chat_id 并连接数据库
      */
     getCurrentDb(): ChatDatabase | null {
         const chatId = getCurrentChatId();
         if (!chatId) {
-            console.warn('[ChatManager] No chat_id available');
+            Logger.warn(MODULE, '无法获取 chat_id，上下文可能未就绪');
             return null;
         }
 
-        // 如果 chatId 变化，切换数据库
+        // 如果 chatId 变化，切换数据库连接
         if (chatId !== this.currentChatId) {
             this.currentChatId = chatId;
             this.currentDb = getDbForChat(chatId);
-            console.debug(`[ChatManager] Switched to database: Engram_${chatId}`);
+            Logger.debug(MODULE, `切换数据库: Engram_${chatId}`);
         }
 
         return this.currentDb;
@@ -66,7 +68,7 @@ class ChatManager {
             }
             return DEFAULT_SCOPE_STATE;
         } catch (e) {
-            console.error('[ChatManager] Failed to get state:', e);
+            Logger.error(MODULE, '获取状态失败:', e);
             return DEFAULT_SCOPE_STATE;
         }
     }
@@ -83,7 +85,7 @@ class ChatManager {
             const newState = { ...currentState, ...partialState };
             await db.meta.put({ key: STATE_KEY, value: newState });
         } catch (e) {
-            console.error('[ChatManager] Failed to update state:', e);
+            Logger.error(MODULE, '更新状态失败:', e);
         }
     }
 
@@ -110,7 +112,7 @@ class ChatManager {
     }
 
     /**
-     * 重置状态（Debug/Dev only）
+     * 重置状态（调试用）
      */
     async resetState(): Promise<void> {
         const db = this.getCurrentDb();

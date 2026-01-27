@@ -48,8 +48,7 @@ const QUICK_ACTIONS = NAV_ITEMS.filter(item => item.id !== 'dashboard');
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     const [logs, setLogs] = useState<LogEntry[]>([]);
-    const [uptime, setUptime] = useState(0);
-    const { system, memory, features, toggleFeature } = useDashboardData(2000);
+    const { system, memory, features, brainStats, contextStats, toggleFeature } = useDashboardData(2000);
 
     useEffect(() => {
         setLogs(Logger.getLogs().slice(0, 4));
@@ -58,18 +57,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         });
         return unsubscribe;
     }, []);
-
-    useEffect(() => {
-        const timer = setInterval(() => setUptime(prev => prev + 1), 1000);
-        return () => clearInterval(timer);
-    }, []);
-
-    const formatUptime = (seconds: number) => {
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    };
 
     const handleNavigate = (path: string) => onNavigate?.(path);
 
@@ -167,10 +154,49 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
                         <Divider length={30} spacing="md" />
 
-                        {/* 运行时间 - 第三层级 */}
+                        {/* 召回池状态 - 第三层级 (New) */}
                         <div>
-                            <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider block mb-1">会话时长</span>
-                            <div className="text-sm font-mono text-primary/80">{formatUptime(uptime)}</div>
+                            <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">类脑召回池</h2>
+                            <div className="grid grid-cols-2 gap-6 bg-muted/30 p-4 rounded-lg border border-border/50">
+                                <div>
+                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">短期记忆</span>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-xl font-mono text-foreground/80">{brainStats.shortTermCount}</span>
+                                        <span className="text-xs text-muted-foreground">/ {brainStats.shortTermLimit}</span>
+                                    </div>
+                                    {/* 活跃项预览 */}
+                                    <div className="mt-3 space-y-1">
+                                        {brainStats.topItems.map((item, i) => (
+                                            <div key={item.id} className="flex items-center justify-between text-[10px] text-muted-foreground">
+                                                <span className="truncate max-w-[80px]" title={item.label}>{item.label}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <div className="w-12 h-1 bg-border rounded-full overflow-hidden">
+                                                        <div className="h-full bg-primary/70" style={{ width: `${Math.min(100, item.score * 100)}%` }} />
+                                                    </div>
+                                                    <span className="font-mono">{item.score.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">工作记忆</span>
+                                    <div className="flex items-baseline gap-2">
+                                        <span className={`text-xl font-mono ${brainStats.workingCount >= brainStats.workingLimit ? 'text-amber-500' : 'text-foreground/80'}`}>
+                                            {brainStats.workingCount}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">/ {brainStats.workingLimit}</span>
+                                    </div>
+
+                                    <Divider length={80} className="my-3 opacity-50" />
+
+                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">上下文注入</span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-mono text-foreground/80">{contextStats.estimatedTokens.toLocaleString()} Tok</span>
+                                        <span className="text-[10px] text-muted-foreground">{contextStats.injectedLength.toLocaleString()} chars</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <Divider length={100} />

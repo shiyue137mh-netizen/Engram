@@ -22,6 +22,8 @@ interface MemoryState {
     initChat: () => Promise<ChatDatabase | null>;
     /** 写入事件到当前聊天的 DB */
     saveEvent: (event: Omit<EventNode, 'id' | 'timestamp'>) => Promise<EventNode>;
+    /** 批量写入事件 */
+    saveEvents: (events: Omit<EventNode, 'id' | 'timestamp'>[]) => Promise<EventNode[]>;
     /** 获取当前聊天的所有事件摘要 (用于宏组装)
      * @param recalledIds 可选，RAG 召回的事件 ID 列表（绿灯事件临时显示）
      */
@@ -59,6 +61,8 @@ interface MemoryState {
     getAllEntities: () => Promise<EntityNode[]>;
     /** 保存实体 */
     saveEntity: (entity: Omit<EntityNode, 'id' | 'last_updated_at'>) => Promise<EntityNode>;
+    /** 批量保存实体 (用于提取) */
+    saveEntities: (entities: Omit<EntityNode, 'id' | 'last_updated_at'>[]) => Promise<EntityNode[]>;
     /** 更新实体 */
     updateEntity: (entityId: string, updates: Partial<EntityNode>) => Promise<void>;
     /** 删除实体 */
@@ -159,6 +163,30 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         }));
 
         return event;
+    },
+
+    saveEvents: async (eventsData) => {
+        const db = getCurrentDb();
+        if (!db) {
+            throw new Error('[MemoryStore] No current chat');
+        }
+        if (eventsData.length === 0) return [];
+
+        const events: EventNode[] = eventsData.map(data => ({
+            ...data,
+            id: generateUUID(),
+            timestamp: Date.now(),
+            is_embedded: data.is_embedded ?? false,
+            is_archived: data.is_archived ?? false,
+        }));
+
+        await db.events.bulkAdd(events);
+
+        set(state => ({
+            recentEvents: [...state.recentEvents, ...events].slice(-10)
+        }));
+
+        return events;
     },
 
     getEventSummaries: async (recalledIds?: string[]) => {
@@ -424,6 +452,26 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         await db.entities.add(entity);
         console.log(`[MemoryStore] Saved entity: ${entity.name}`);
         return entity;
+    },
+
+    saveEntities: async (entitiesData) => {
+        const db = getCurrentDb();
+        if (!db) {
+            throw new Error('[MemoryStore] No current chat');
+        }
+        if (entitiesData.length === 0) return [];
+
+        const entities: EntityNode[] = entitiesData.map(data => ({
+            ...data,
+            id: generateUUID(),
+            last_updated_at: Date.now(),
+            aliases: data.aliases || [],
+            profile: data.profile || {},
+        }));
+
+        await db.entities.bulkAdd(entities);
+        console.log(`[MemoryStore] Bulk saved ${entities.length} entities`);
+        return entities;
     },
 
     updateEntity: async (entityId, updates) => {

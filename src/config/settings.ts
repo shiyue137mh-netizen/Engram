@@ -3,26 +3,25 @@ import type { PromptTemplate } from '@/config/types/prompt';
 import type { PromptCategory } from '@/config/types/prompt';
 import type { EngramAPISettings } from '@/config/types/defaults';
 import { getBuiltInTemplateById } from '@/config/types/defaults';
-import type { RegexRule } from '@/modules/workflow/steps';
-import type { PreprocessingConfig } from '@/modules/preprocessing/types';
+import type { RegexRule, PreprocessingConfig } from '@/config/types/data_processing';
 
 export interface EngramSettings {
     theme: string;
-    presets: any; // Define properly later
-    templates: any; // Define properly later
+    presets: any; // 暂未定义的预设类型
+    templates: any; // 暂未定义的模板类型
     promptTemplates: PromptTemplate[]; // 提示词模板列表
-    hasSeenWelcome: boolean; // 是否已看过欢迎动画
+    hasSeenWelcome: boolean; // 是否已观看欢迎动画
     lastReadVersion: string; // 最后已读的版本号
-    summarizerConfig: Partial<any>; // 总结器配置
+    summarizerConfig: Partial<any>; // 总结器配置 (Legacy)
     trimmerConfig: Partial<any>; // 精简器配置
-    regexRules: RegexRule[]; // 正则规则列表
-    apiSettings: EngramAPISettings | null; // API 配置（LLM 预设、向量化、Rerank 等）
-    preprocessingConfig: PreprocessingConfig | null; // V0.8: 预处理配置
+    regexRules: RegexRule[]; // 正则清洗规则列表
+    apiSettings: EngramAPISettings | null; // API 配置（LLM 预设、向量化、重排序等）
+    preprocessingConfig: PreprocessingConfig | null; // 输入预处理配置
     linkedDeletion: {
         enabled: boolean;          // 是否启用联动删除
-        deleteWorldbook: boolean;  // 删除角色时删除 Engram 世界书
-        deleteChatWorldbook: boolean; // 删除聊天时删除 Engram 世界书
-        deleteIndexedDB: boolean;  // 删除角色时删除 IndexedDB 数据
+        deleteWorldbook: boolean;  // 删除角色时同步删除 Engram 世界书
+        deleteChatWorldbook: boolean; // 删除聊天时同步删除 Engram 世界书
+        deleteIndexedDB: boolean;  // 删除角色时同步删除本地 IndexedDB 数据
         showConfirmation: boolean; // 删除前显示确认对话框
     };
     glassSettings: {

@@ -1,8 +1,13 @@
 /**
  * STContext - SillyTavern 上下文获取模块
  *
- * 统一的上下文获取入口，消除各模块重复定义
+ * 统一的上下文获取入口，消除各模块重复定义。
+ * 负责从 window.SillyTavern 对象中安全地提取状态。
  */
+
+import { Logger } from '@/core/logger';
+
+const MODULE = 'STContext';
 
 // SillyTavern 全局类型声明
 declare global {
@@ -10,6 +15,8 @@ declare global {
         SillyTavern?: {
             getContext?: () => STContext;
         };
+        // 兼容一些直接挂载在 window 上的变量
+        selected_model?: string;
     }
 }
 
@@ -55,6 +62,7 @@ export interface STMessage {
     name: string;
     send_date?: number;
     extra?: Record<string, unknown>;
+    force_avatar?: string; // 有时用于强制显示特定头像
 }
 
 /** ST 角色类型 */
@@ -73,7 +81,7 @@ export function getSTContext(): STContext | null {
         const ctx = window.SillyTavern?.getContext?.();
         return ctx || null;
     } catch (e) {
-        console.warn('[Engram] Failed to get ST context:', e);
+        Logger.warn(MODULE, '无法获取 ST 上下文', e);
         return null;
     }
 }
@@ -84,13 +92,6 @@ export function getSTContext(): STContext | null {
 export function getCurrentChat(): STMessage[] {
     const ctx = getSTContext();
     return ctx?.chat || [];
-}
-
-/**
- * 获取当前聊天记录 (别名)
- */
-function getChatMessages(): STMessage[] {
-    return getCurrentChat();
 }
 
 /**
@@ -118,14 +119,11 @@ export function getCurrentCharacter(): { name: string; id: number } | null {
  */
 export function getCurrentModel(): string | undefined {
     try {
-        // @ts-expect-error - SillyTavern 全局变量
         return window.selected_model || undefined;
     } catch {
         return undefined;
     }
 }
-
-
 
 /**
  * 检查 ST 上下文是否可用

@@ -1,13 +1,18 @@
 /**
- * Pipeline - 数据处理编排器
+ * Pipeline - 数据处理编排器 (Legacy)
  *
- * V0.6: 优化性能 - 直接接收已解析的 JSON，不再调用 Extractor LLM
+ * 负责接收 Summarizer 生成的 JSON 文本，进行解析、清洗并存储为 EventNode。
+ * V0.6: 移除了 Extractor LLM 调用，直接解析 JSON 以提升性能。
  */
 
 import { generateUUID } from '@/core/utils';
 import { useMemoryStore } from '@/state/memoryStore';
 import { RobustJsonParser } from '@/core/utils/JsonParser';
+import { Logger } from '@/core/logger';
+import { regexProcessor } from '@/modules/workflow/steps';
 import type { EventNode } from '@/data/types/graph';
+
+const MODULE = 'Pipeline';
 
 interface PipelineInput {
     /** JSON 格式的事件数据 (来自 SummarizerService 的 LLM 输出) */
@@ -49,34 +54,37 @@ interface ParsedEventsResponse {
 class Pipeline {
     /**
      * 执行 Pipeline
-     * V0.6: 直接解析 JSON，不再调用 Extractor LLM
+     * 直接解析 JSON，并应用正则清洗
      */
     async run(input: PipelineInput): Promise<PipelineOutput> {
         const store = useMemoryStore.getState();
         const startTime = Date.now();
 
         try {
-            console.log('[Pipeline] Starting...');
+            Logger.debug(MODULE, '开始执行 Pipeline...');
             store.setProcessing(true);
 
             // 1. 初始化当前聊天数据库
             const db = await store.initChat();
             if (!db) {
-                return { success: false, error: 'No chat context available' };
+                return { success: false, error: '无可用的聊天上下文 (Chat Context)' };
             }
-            console.log(`[Pipeline] Chat database initialized (${Date.now() - startTime}ms)`);
+            // Logger.debug(MODULE, `聊天数据库已初始化 (${Date.now() - startTime}ms)`);
 
-            // 2. 解析 JSON (不再调用 LLM！)
-            const parsed = RobustJsonParser.parse<ParsedEventsResponse>(input.jsonContent);
+            // 2. 预处理清洗 (移除 <think> 等标签)
+            const cleanedInput = regexProcessor.process(input.jsonContent, 'output');
+
+            // 3. 解析 JSON
+            const parsed = RobustJsonParser.parse<ParsedEventsResponse>(cleanedInput);
 
             if (!parsed || !parsed.events || parsed.events.length === 0) {
-                console.warn('[Pipeline] No events found in JSON');
-                return { success: false, error: 'No events in JSON content' };
+                Logger.warn(MODULE, 'JSON 中未发现有效事件数据');
+                return { success: false, error: 'JSON 内容为空或解析失败' };
             }
-            console.log(`[Pipeline] Parsed ${parsed.events.length} events from JSON (${Date.now() - startTime}ms)`);
+            Logger.info(MODULE, `成功解析 ${parsed.events.length} 个事件`, { duration: Date.now() - startTime });
 
-            // 3. 转换为 EventNode 并保存到 DB
-            const savedEvents: EventNode[] = [];
+            // 4. 转换为 EventNode 并保存到 DB
+            const eventsToSave: Omit<EventNode, 'id' | 'timestamp'>[] = [];
 
             for (const parsedEvent of parsed.events) {
                 // V0.7 完整烧录格式：
@@ -108,18 +116,15 @@ class Pipeline {
                 // 完整烧录文本：标题 + 元数据 + 摘要 + 逻辑因果
                 let rawSummary = parsedEvent.summary;
 
-                // 调试日志：检查解析出的 summary
-                console.log(`[Pipeline] Processing event: ${meta.event || 'Unknown'}, Summary length: ${rawSummary?.length}`);
-
                 // 兜底逻辑：防止 summary 丢失导致只显示 KV
                 if (!rawSummary || rawSummary.trim() === '') {
-                    console.warn('[Pipeline] Event summary is empty! Using fallback.', parsedEvent);
+                    Logger.warn(MODULE, '事件摘要为空，使用兜底文本', parsedEvent);
                     rawSummary = `[Summary Missing] ${meta.event || '无摘要内容'}`;
                 }
 
                 const burnedSummary = `${titleLine}${metaLine}${rawSummary}${logicLine}`;
 
-                const eventNode = await store.saveEvent({
+                eventsToSave.push({
                     summary: burnedSummary,
                     structured_kv: {
                         time_anchor: meta.time_anchor || '',
@@ -141,25 +146,24 @@ class Pipeline {
                         end_index: input.sourceRange.end
                     }
                 });
-                savedEvents.push(eventNode);
             }
-            console.log(`[Pipeline] Saved ${savedEvents.length} events to DB (${Date.now() - startTime}ms)`);
+
+            const savedEvents = await store.saveEvents(eventsToSave);
+            Logger.info(MODULE, `已保存 ${savedEvents.length} 个事件到数据库`, { duration: Date.now() - startTime });
 
             // 5. 更新进度
             await store.setLastSummarizedFloor(input.sourceRange.end);
 
-            // 4. 刷新宏缓存 (优化：只刷新 Engram DB 数据，不扫描世界书)
+            // 6. 刷新宏缓存 (优化：只刷新 Engram DB 数据，不扫描世界书)
             const { MacroService } = await import('@/integrations/tavern/macros');
             await MacroService.refreshEngramCache();
-            console.log(`[Pipeline] Macro cache refreshed (Fast) (${Date.now() - startTime}ms)`);
+            Logger.debug(MODULE, '宏缓存已刷新');
 
-            // V0.9.1: 实体提取触发已移至 SummarizerService
-
-            console.log(`[Pipeline] Completed successfully in ${Date.now() - startTime}ms`);
+            Logger.success(MODULE, 'Pipeline 执行完成', { duration: Date.now() - startTime });
             return { success: true, events: savedEvents };
 
         } catch (error) {
-            console.error('[Pipeline] Failed:', error);
+            Logger.error(MODULE, 'Pipeline 执行失败', error);
             return { success: false, error: String(error) };
         } finally {
             store.setProcessing(false);

@@ -45,6 +45,12 @@ export class WorkflowEngine {
 
         try {
             // 2. 顺序执行 Steps
+            // 构建 Step 索引缓存 (O(N))
+            const stepIndexMap = new Map<string, number>();
+            for (let i = 0; i < workflow.steps.length; i++) {
+                stepIndexMap.set(workflow.steps[i].name, i);
+            }
+
             // 2. 顺序执行 Steps (支持跳转)
             for (let i = 0; i < workflow.steps.length; i++) {
                 const step = workflow.steps[i];
@@ -70,8 +76,8 @@ export class WorkflowEngine {
                     }
 
                     if (result.action === 'jump') {
-                        const targetIndex = workflow.steps.findIndex(s => s.name === result.targetStep);
-                        if (targetIndex === -1) {
+                        const targetIndex = stepIndexMap.get(result.targetStep);
+                        if (targetIndex === undefined) {
                             throw new Error(`Jump target not found: ${result.targetStep}`);
                         }
                         Logger.info('Workflow', `跳转步骤: ${step.name} -> ${result.targetStep}`, { reason: result.reason });

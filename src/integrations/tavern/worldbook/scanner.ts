@@ -3,6 +3,8 @@ import { getEntries } from './crud';
 import { getTavernHelper } from './adapter';
 import { Logger } from '@/core/logger';
 
+const MODULE = 'Worldbook';
+
 // 动态加载 world-info.js 中模块的类型定义 (近似)
 interface WorldInfoModule {
     checkWorldInfo: (
@@ -40,11 +42,12 @@ async function getConstantWorldInfo(): Promise<string> {
             content?: string;
         }) => e.constant === true && e.disable !== true && e.content);
 
+
         if (constantEntries.length === 0) {
             return '';
         }
 
-        console.debug(`[Engram] WorldbookScanner: 回退获取 ${constantEntries.length} 个常驻条目`);
+        Logger.debug(MODULE, `回退获取 ${constantEntries.length} 个常驻条目`);
         return constantEntries.map((e: { content: string }) => e.content).join('\n\n');
     } catch {
         return '';
@@ -169,7 +172,7 @@ export class WorldbookScannerService {
         }
 
         if (activeEntries.length > 0) {
-            Logger.debug('WorldbookScanner', `扫描白名单世界书 [${worldbookName}]`, {
+            Logger.debug(MODULE, `扫描白名单世界书 [${worldbookName}]`, {
                 total: entries.length,
                 matched: activeEntries.length
             });
@@ -206,7 +209,7 @@ export class WorldbookScannerService {
             }
 
             if (typeof getWorldInfoPrompt !== 'function') {
-                Logger.warn('WorldbookScanner', 'getWorldInfoPrompt 不可用，回退到常驻条目');
+                Logger.warn(MODULE, 'getWorldInfoPrompt 不可用，回退到常驻条目');
                 return getConstantWorldInfo();
             }
 
@@ -221,7 +224,7 @@ export class WorldbookScannerService {
                 if (context?.chat && Array.isArray(context.chat)) {
                     const rangeChat = context.chat.slice(startFloor - 1, endFloor);
                     messages = rangeChat.map((m: { mes?: string }) => m.mes || '').reverse();
-                    Logger.debug('WorldbookScanner', '使用楼层范围扫描', {
+                    Logger.debug(MODULE, '使用楼层范围扫描', {
                         floorRange: options.floorRange,
                         messageCount: messages.length
                     });
@@ -230,7 +233,7 @@ export class WorldbookScannerService {
                 if (context?.chat && Array.isArray(context.chat)) {
                     const recentChat = context.chat.slice(-DEFAULT_SCAN_LIMIT);
                     messages = recentChat.map((m: { mes?: string }) => m.mes || '').reverse();
-                    Logger.debug('WorldbookScanner', '使用默认最近消息扫描', {
+                    Logger.debug(MODULE, '使用默认最近消息扫描', {
                         scanLimit: DEFAULT_SCAN_LIMIT,
                         messageCount: messages.length
                     });
@@ -238,7 +241,7 @@ export class WorldbookScannerService {
             }
 
             if (!messages || messages.length === 0) {
-                Logger.warn('WorldbookScanner', '无聊天消息，回退到常驻条目');
+                Logger.warn(MODULE, '无聊天消息，回退到常驻条目');
                 return getConstantWorldInfo();
             }
 
@@ -248,7 +251,7 @@ export class WorldbookScannerService {
             const checkWorldInfo = worldInfoModule?.checkWorldInfo;
 
             if (typeof checkWorldInfo !== 'function') {
-                Logger.error('WorldbookScanner', 'checkWorldInfo 不可用');
+                Logger.error(MODULE, 'checkWorldInfo 不可用');
                 return getConstantWorldInfo();
             }
 
@@ -261,7 +264,7 @@ export class WorldbookScannerService {
             const allEntriesSet: Set<any> = result?.allActivatedEntries;
             const entries = allEntriesSet ? Array.from(allEntriesSet.values()) : [];
 
-            Logger.info('WorldbookScanner', `扫描完成，共激活 ${entries.length} 个条目`);
+            Logger.info(MODULE, `扫描完成，共激活 ${entries.length} 个条目`);
 
             const filterState = await loadFilteringState();
             const { disabledGlobalBooks, disabledEntries, globalWorldbooks, config } = filterState;
@@ -270,7 +273,7 @@ export class WorldbookScannerService {
                 shouldIncludeEntry(entry, globalWorldbooks, disabledGlobalBooks, disabledEntries, config)
             );
 
-            Logger.info('WorldbookScanner', '筛选结果', {
+            Logger.info(MODULE, '筛选结果', {
                 total: entries.length,
                 kept: filteredEntries.length,
                 filteredOut: entries.length - filteredEntries.length
@@ -284,7 +287,7 @@ export class WorldbookScannerService {
                 .join('\n\n');
 
         } catch (e) {
-            Logger.error('WorldbookScanner', '获取激活世界书失败', e);
+            Logger.error(MODULE, '获取激活世界书失败', e);
             return getConstantWorldInfo();
         }
     }

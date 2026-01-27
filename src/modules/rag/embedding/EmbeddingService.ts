@@ -523,19 +523,42 @@ export class EmbeddingService {
     // ==================== 工具方法 ====================
 
     /**
-     * 计算余弦相似度
+     * 计算向量范数 (L2 Norm)
      */
-    public cosineSimilarity(vecA: number[], vecB: number[]): number {
+    public computeNorm(vec: number[]): number {
+        let sum = 0;
+        for (let i = 0; i < vec.length; i++) {
+            sum += vec[i] * vec[i];
+        }
+        return sum; // 返回平方和，调用方自行 sqrt 以保持灵活性
+    }
+
+    /**
+     * 计算余弦相似度
+     * 支持传入预计算的范数平方以提升性能
+     *
+     * @param vecA 向量 A
+     * @param vecB 向量 B
+     * @param normSqA (可选) 向量 A 的范数平方
+     * @param normSqB (可选) 向量 B 的范数平方
+     */
+    public cosineSimilarity(vecA: number[], vecB: number[], normSqA?: number, normSqB?: number): number {
         if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
 
-        let dot = 0, normA = 0, normB = 0;
+        let dot = 0;
+        let nA = normSqA ?? 0;
+        let nB = normSqB ?? 0;
+
+        const calcA = normSqA === undefined;
+        const calcB = normSqB === undefined;
+
         for (let i = 0; i < vecA.length; i++) {
             dot += vecA[i] * vecB[i];
-            normA += vecA[i] * vecA[i];
-            normB += vecB[i] * vecB[i];
+            if (calcA) nA += vecA[i] * vecA[i];
+            if (calcB) nB += vecB[i] * vecB[i];
         }
 
-        const denom = Math.sqrt(normA) * Math.sqrt(normB);
+        const denom = Math.sqrt(nA) * Math.sqrt(nB);
         return denom === 0 ? 0 : dot / denom;
     }
 

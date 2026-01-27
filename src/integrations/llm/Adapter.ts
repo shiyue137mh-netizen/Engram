@@ -10,6 +10,8 @@ import { SettingsManager } from "@/config/settings";
 import type { LLMPreset } from "@/config/types/llm";
 import { Logger } from "@/core/logger";
 
+const MODULE = 'LLMAdapter';
+
 /** LLM 生成请求 */
 interface LLMRequest {
     /** 系统提示词 */
@@ -109,7 +111,7 @@ class LLMAdapter {
 
             if (preset && preset.source !== 'tavern') {
                 customApiConfig = {};
-                Logger.info('LLMAdapter', `使用预设: ${preset.name} (${preset.source})`);
+                Logger.info(MODULE, `使用预设: ${preset.name} (${preset.source})`);
 
                 // 1. 映射采样参数 (Common Parameters)
                 if (preset.parameters) {
@@ -143,7 +145,7 @@ class LLMAdapter {
                     const profile = profiles.find(p => p.id === preset.tavernProfileId);
 
                     if (profile) {
-                        Logger.info('LLMAdapter', `找到酒馆 Profile: ${profile.name}`);
+                        Logger.info(MODULE, `找到酒馆 Profile: ${profile.name}`);
 
                         // 映射 Profile 字段到 custom_api
                         // 根据调研文档，Tavern Profile 字段可能包括 api, api-url, model, etc.
@@ -173,7 +175,7 @@ class LLMAdapter {
                         }
 
                     } else {
-                        Logger.warn('LLMAdapter', `未找到 ID 为 ${preset.tavernProfileId} 的酒馆配置，将回退到默认设置`);
+                        Logger.warn(MODULE, `未找到 ID 为 ${preset.tavernProfileId} 的酒馆配置，将回退到默认设置`);
                         customApiConfig = undefined; // 回退
                     }
                 }
@@ -287,7 +289,7 @@ class LLMAdapter {
             };
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
-            console.error('[Engram] LLMAdapter 调用失败:', e);
+            Logger.error(MODULE, '调用失败', e);
 
             return {
                 success: false,

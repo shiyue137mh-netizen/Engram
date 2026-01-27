@@ -3,24 +3,18 @@
  * 输入预处理系统类型定义
  */
 
+import { PreprocessingConfig, DEFAULT_PREPROCESSING_CONFIG } from '@/config/types/data_processing';
+
+// 重新导出以便模块内其他文件使用
+export type { PreprocessingConfig };
+export { DEFAULT_PREPROCESSING_CONFIG };
+
 /** 预处理模式 */
 type PreprocessingMode =
     | 'query_enhance'    // RAG Query 增强
     | 'plot_director'    // 剧情构思
     | 'description'      // 描写增强
     | 'custom';          // 自定义
-
-/** 预处理配置 */
-export interface PreprocessingConfig {
-    /** 是否启用 */
-    enabled: boolean;
-    /** 当前使用的提示词模板 ID */
-    templateId: string;
-    /** 是否自动触发 (每次发送消息) */
-    autoTrigger: boolean;
-    /** 是否开启预览修订 (V0.8.6+) */
-    preview: boolean;
-}
 
 /** 预处理结果 */
 export interface PreprocessingResult {
@@ -39,11 +33,3 @@ export interface PreprocessingResult {
     /** 错误信息 */
     error?: string;
 }
-
-/** 默认预处理配置 */
-export const DEFAULT_PREPROCESSING_CONFIG: PreprocessingConfig = {
-    enabled: false,
-    templateId: 'query_enhance',
-    autoTrigger: true,
-    preview: true, // 默认开启预览
-};
