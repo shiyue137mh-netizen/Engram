@@ -12,31 +12,19 @@
 
 /* ==========================================================================
    Scoped Preflight / Reset
-   Strictly scoped to #engram-panel-root to prevent cleaning global ST styles
+   Strictly scoped to .engram-app-root to prevent cleaning global ST styles
    ========================================================================== */
 
-/* Root Isolation */
-#engram-panel-root {
-    @apply border-border bg-background text-foreground;
-    box-sizing: border-box;
+/*
+ * Shared Root Configuration (Main Panel + Global Overlay)
+ * Apply base variables and resets here.
+ */
+.engram-app-root {
+    @apply border-border text-foreground box-border;
+    /* Do NOT apply bg-background here blindly, overlay needs to be transparent */
+
     /* Ensure we don't inherit weird line-heights or fonts globally unless we want to */
     line-height: normal;
-
-    /*
-     * Structural Styles (moved from utility classes because Tailwind 'important' scope
-     * prevents utilities from applying to the root element itself)
-     */
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 10000;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
 
     /* Manual Injection of Tailwind Base Vars scoped to Root */
     --tw-border-spacing-x: 0;
@@ -92,11 +80,10 @@
     --tw-contain-style: ;
 }
 
-#engram-panel-root *,
-#engram-panel-root ::before,
-#engram-panel-root ::after {
-    @apply border-border;
-    box-sizing: border-box;
+.engram-app-root *,
+.engram-app-root ::before,
+.engram-app-root ::after {
+    @apply border-border box-border;
 
     /* Inject these here too just in case */
     --tw-border-spacing-x: 0;
@@ -153,10 +140,31 @@
 }
 
 /*
- * Manual Reset for Engram Components
- * Only targets elements INSIDE #engram-panel-root
+ * Specific Structural Styles for Main Panel
+ * These are strictly for the full-screen view
  */
-:where(#engram-panel-root) button {
+#engram-panel-root {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    @apply bg-background;
+    /* Only main panel gets the background color */
+}
+
+
+/*
+ * Manual Reset for Engram Components
+ * Only targets elements INSIDE .engram-app-root
+ */
+:where(.engram-app-root) button {
     background-color: transparent;
     background-image: none;
     border: none;
@@ -174,12 +182,12 @@
     outline: none;
 }
 
-:where(#engram-panel-root) input[type="text"],
-:where(#engram-panel-root) input[type="number"],
-:where(#engram-panel-root) input[type="password"],
-:where(#engram-panel-root) input[type="search"],
-:where(#engram-panel-root) textarea,
-:where(#engram-panel-root) select {
+:where(.engram-app-root) input[type="text"],
+:where(.engram-app-root) input[type="number"],
+:where(.engram-app-root) input[type="password"],
+:where(.engram-app-root) input[type="search"],
+:where(.engram-app-root) textarea,
+:where(.engram-app-root) select {
     background-color: transparent;
     color: inherit;
     border: none;
@@ -279,15 +287,15 @@
    Markdown Content
    ========================================================================== */
 
-:where(#engram-panel-root) .engram-changelog-content {
+:where(.engram-app-root) .engram-changelog-content {
     font-size: 0.85rem;
     line-height: 1.6;
     color: var(--foreground);
 }
 
-:where(#engram-panel-root) .engram-changelog-content h1,
-:where(#engram-panel-root) .engram-changelog-content h2,
-:where(#engram-panel-root) .engram-changelog-content h3 {
+:where(.engram-app-root) .engram-changelog-content h1,
+:where(.engram-app-root) .engram-changelog-content h2,
+:where(.engram-app-root) .engram-changelog-content h3 {
     font-weight: 600;
     margin-top: 1.5em;
     margin-bottom: 0.5em;
@@ -295,28 +303,28 @@
     line-height: 1.3;
 }
 
-:where(#engram-panel-root) .engram-changelog-content h1 {
+:where(.engram-app-root) .engram-changelog-content h1 {
     font-size: 1.25em;
     border-bottom: 1px solid var(--border);
     padding-bottom: 0.3em;
 }
 
-:where(#engram-panel-root) .engram-changelog-content ul,
-:where(#engram-panel-root) .engram-changelog-content ol {
+:where(.engram-app-root) .engram-changelog-content ul,
+:where(.engram-app-root) .engram-changelog-content ol {
     margin-top: 0.5em;
     margin-bottom: 0.5em;
     padding-left: 1.5em;
     list-style: disc;
 }
 
-:where(#engram-panel-root) .engram-changelog-content code {
+:where(.engram-app-root) .engram-changelog-content code {
     background-color: var(--muted);
     padding: 0.2em 0.4em;
     border-radius: 4px;
     font-family: var(--font-mono);
 }
 
-:where(#engram-panel-root) .engram-changelog-content pre {
+:where(.engram-app-root) .engram-changelog-content pre {
     background: var(--muted) !important;
     padding: 1em !important;
     border-radius: 8px;

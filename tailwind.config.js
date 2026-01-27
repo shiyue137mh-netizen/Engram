@@ -82,7 +82,7 @@ export default {
     plugins: [],
     // Scope all Tailwind utilities to the Engram panel container
     // This prevents conflicting with other extensions/core that also use Tailwind
-    important: '#engram-panel-root',
+    important: '.engram-app-root',
     corePlugins: {
         preflight: false,
     }

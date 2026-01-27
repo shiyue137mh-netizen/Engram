@@ -122,59 +122,61 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     if (!isOpen) return null;
 
     return ReactDOM.createPortal(
-        <div
-            ref={panelRef}
-            className="fixed z-[11000] flex flex-col rounded-lg shadow-2xl border border-border overflow-hidden engram-animate-scale-in"
-            style={{
-                left: position.x,
-                top: position.y,
-                width: size.width,
-                height: size.height === 'auto' ? 'auto' : size.height,
-                minHeight: minHeight,
-                backgroundColor: 'var(--popover, #1a1a2e)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-            }}
-        >
-            {/* 标题栏 - 可拖拽 */}
+        <div className="engram-app-root" style={{ display: 'contents' }}>
             <div
-                className="flex items-center justify-between px-3 py-2 border-b border-border select-none"
-                onMouseDown={handleMouseDown}
+                ref={panelRef}
+                className="fixed z-[11000] flex flex-col rounded-lg shadow-2xl border border-border overflow-hidden engram-animate-scale-in"
                 style={{
-                    cursor: isDragging ? 'grabbing' : 'grab',
-                    backgroundColor: 'var(--surface, rgba(255,255,255,0.05))',
+                    left: position.x,
+                    top: position.y,
+                    width: size.width,
+                    height: size.height === 'auto' ? 'auto' : size.height,
+                    minHeight: minHeight,
+                    backgroundColor: 'var(--popover, #1a1a2e)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
                 }}
             >
-                <div className="flex items-center gap-2">
-                    <GripVertical size={14} className="text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">{title}</span>
-                </div>
-                <button
-                    onClick={onClose}
-                    className="p-1 text-muted-foreground hover:text-foreground rounded transition-all duration-[var(--duration-fast)] hover:rotate-90 hover:bg-accent"
-                    style={{ backgroundColor: 'transparent' }}
-                    aria-label="关闭"
-                    onMouseDown={(e) => e.stopPropagation()}
-                >
-                    <X size={14} />
-                </button>
-            </div>
-
-            {/* 内容区域 */}
-            <div className="flex-1 overflow-auto p-3">
-                {children}
-            </div>
-
-            {/* 调整大小手柄 */}
-            {resizable && (
+                {/* 标题栏 - 可拖拽 */}
                 <div
-                    className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
-                    onMouseDown={handleResizeStart}
+                    className="flex items-center justify-between px-3 py-2 border-b border-border select-none"
+                    onMouseDown={handleMouseDown}
                     style={{
-                        background: 'linear-gradient(135deg, transparent 50%, var(--border, #333) 50%)',
+                        cursor: isDragging ? 'grabbing' : 'grab',
+                        backgroundColor: 'var(--surface, rgba(255,255,255,0.05))',
                     }}
-                />
-            )}
+                >
+                    <div className="flex items-center gap-2">
+                        <GripVertical size={14} className="text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">{title}</span>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-1 text-muted-foreground hover:text-foreground rounded transition-all duration-[var(--duration-fast)] hover:rotate-90 hover:bg-accent"
+                        style={{ backgroundColor: 'transparent' }}
+                        aria-label="关闭"
+                        onMouseDown={(e) => e.stopPropagation()}
+                    >
+                        <X size={14} />
+                    </button>
+                </div>
+
+                {/* 内容区域 */}
+                <div className="flex-1 overflow-auto p-3">
+                    {children}
+                </div>
+
+                {/* 调整大小手柄 */}
+                {resizable && (
+                    <div
+                        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+                        onMouseDown={handleResizeStart}
+                        style={{
+                            background: 'linear-gradient(135deg, transparent 50%, var(--border, #333) 50%)',
+                        }}
+                    />
+                )}
+            </div>
         </div>,
         document.body
     );

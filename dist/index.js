@@ -25361,7 +25361,7 @@ const GW = ({ onNavigate: e }) => {
     }
   }, m = () => {
     u.length > 0 && s < u.length ? u[s].action(e) : t && (console.log("Searching memory for:", t), e("/memory")), i(!1), n("");
-  }, x = /* @__PURE__ */ c.jsx(
+  }, x = /* @__PURE__ */ c.jsx("div", { className: "engram-app-root", style: { display: "contents" }, children: /* @__PURE__ */ c.jsx(
     "div",
     {
       className: "fixed inset-0 flex items-start justify-center pt-[15vh] px-4 animate-in fade-in duration-200",
@@ -25463,7 +25463,7 @@ const GW = ({ onNavigate: e }) => {
         }
       )
     }
-  );
+  ) });
   return /* @__PURE__ */ c.jsxs(c.Fragment, { children: [
     /* @__PURE__ */ c.jsx(
       "button",
@@ -35888,7 +35888,7 @@ function Mne() {
     return;
   const e = "engram-global-overlay";
   let t = document.getElementById(e);
-  t || (t = document.createElement("div"), t.id = e, t.className = "pointer-events-none fixed inset-0 z-[11000]", document.body.appendChild(t)), YN || (YN = q3(t, () => {
+  t || (t = document.createElement("div"), t.id = e, t.className = "pointer-events-none fixed inset-0 z-[11000] engram-app-root", document.body.appendChild(t)), YN || (YN = q3(t, () => {
   }));
 }
 let h_ = !1, H0 = null, $1 = null;
@@ -35898,7 +35898,7 @@ function mb() {
 function One() {
   var t;
   const e = document.createElement("div");
-  return e.className = "fixed inset-0 w-full h-full z-[10000] flex flex-col bg-background text-foreground overflow-hidden", e.style.backgroundColor = "var(--background)", e.style.color = "var(--foreground)", e.style.height = "100dvh", e.style.width = "100vw", e.style.top = "0", e.style.left = "0", e.id = "engram-panel-root", pb ? $1 = pb(e, mb) : (e.innerHTML = `
+  return e.className = "fixed inset-0 w-full h-full z-[10000] flex flex-col bg-background text-foreground overflow-hidden engram-app-root", e.style.backgroundColor = "var(--background)", e.style.color = "var(--foreground)", e.style.height = "100dvh", e.style.width = "100vw", e.style.top = "0", e.style.left = "0", e.id = "engram-panel-root", pb ? $1 = pb(e, mb) : (e.innerHTML = `
             <div class="flex items-center justify-between p-4 border-b border-slate-400/20">
                 <h2 class="m-0 text-lg text-slate-200 flex items-center gap-2">Engram</h2>
                 <button class="bg-transparent border-none text-slate-400 text-2xl cursor-pointer p-1 hover:text-slate-200">&times;</button>
@@ -36494,7 +36494,7 @@ const Ine = (e) => {
     }
   };
   return Vb.createPortal(
-    /* @__PURE__ */ c.jsxs(
+    /* @__PURE__ */ c.jsx("div", { className: "engram-app-root", style: { display: "contents" }, children: /* @__PURE__ */ c.jsxs(
       "div",
       {
         className: "fixed inset-0 z-[11000] flex items-center justify-center p-4",
@@ -36596,7 +36596,7 @@ const Ine = (e) => {
           ] })
         ]
       }
-    ),
+    ) }),
     document.body
   );
 }, Wne = ({
@@ -36614,7 +36614,7 @@ const Ine = (e) => {
     lg: "max-w-2xl"
   };
   return Vb.createPortal(
-    /* @__PURE__ */ c.jsxs(
+    /* @__PURE__ */ c.jsx("div", { className: "engram-app-root", style: { display: "contents" }, children: /* @__PURE__ */ c.jsxs(
       "div",
       {
         className: "fixed inset-0 z-[2147483647] flex items-center justify-center p-4 pointer-events-auto",
@@ -36644,7 +36644,7 @@ const Ine = (e) => {
           ] })
         ]
       }
-    ),
+    ) }),
     document.body
   );
 }, Zne = ({
@@ -36699,7 +36699,7 @@ const Ine = (e) => {
         window.removeEventListener("mousemove", D), window.removeEventListener("mouseup", q);
       };
   }, [S, T, D, q]), e ? Vb.createPortal(
-    /* @__PURE__ */ c.jsxs(
+    /* @__PURE__ */ c.jsx("div", { className: "engram-app-root", style: { display: "contents" }, children: /* @__PURE__ */ c.jsxs(
       "div",
       {
         ref: h,
@@ -36756,7 +36756,7 @@ const Ine = (e) => {
           )
         ]
       }
-    ),
+    ) }),
     document.body
   ) : null;
 }, sh = class sh {

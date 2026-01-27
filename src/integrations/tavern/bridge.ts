@@ -194,7 +194,7 @@ function mountGlobalOverlay(): void {
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = overlayId;
-        overlay.className = 'pointer-events-none fixed inset-0 z-[11000]'; // 极高层级，不妨碍交互
+        overlay.className = 'pointer-events-none fixed inset-0 z-[11000] engram-app-root'; // 极高层级，不妨碍交互
         document.body.appendChild(overlay);
     }
 
@@ -235,7 +235,7 @@ function createMainPanel(): HTMLElement {
     const panel = document.createElement('div');
     // 使用 Tailwind 类 - 全屏模式
     // z-[10000] 确保在最顶层，bg-background 确保有背景色
-    panel.className = 'fixed inset-0 w-full h-full z-[10000] flex flex-col bg-background text-foreground overflow-hidden';
+    panel.className = 'fixed inset-0 w-full h-full z-[10000] flex flex-col bg-background text-foreground overflow-hidden engram-app-root';
     // 强制内联样式，确保颜色生效 (解决 Tailwind 类在某些环境下失效的问题)
     panel.style.backgroundColor = 'var(--background)';
     panel.style.color = 'var(--foreground)';

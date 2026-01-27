@@ -124,118 +124,120 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
 
     // Modal Content
     const modalContent = (
-        <div
-            className="fixed inset-0 flex items-start justify-center pt-[15vh] px-4 animate-in fade-in duration-200"
-            style={{
-                height: '100dvh',
-                width: '100vw',
-                backgroundColor: 'rgba(0,0,0,0.4)', // Slightly more transparent to not feel too heavy
-                backdropFilter: 'var(--glass-backdrop-filter, blur(4px))',
-                zIndex: 2147483647, // Max safe integer to ensure it's on top of SillyTavern UI
-            }}
-            onClick={(e) => {
-                if (e.target === e.currentTarget) setIsOpen(false);
-            }}
-        >
+        <div className="engram-app-root" style={{ display: 'contents' }}>
             <div
-                className="w-full max-w-xl border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-top-4 duration-200"
+                className="fixed inset-0 flex items-start justify-center pt-[15vh] px-4 animate-in fade-in duration-200"
                 style={{
-                    backgroundColor: 'var(--popover)',
-                    color: 'var(--popover-foreground)',
-                    backdropFilter: 'var(--glass-backdrop-filter)',
-                    maxHeight: '70vh'
+                    height: '100dvh',
+                    width: '100vw',
+                    backgroundColor: 'rgba(0,0,0,0.4)', // Slightly more transparent to not feel too heavy
+                    backdropFilter: 'var(--glass-backdrop-filter, blur(4px))',
+                    zIndex: 2147483647, // Max safe integer to ensure it's on top of SillyTavern UI
+                }}
+                onClick={(e) => {
+                    if (e.target === e.currentTarget) setIsOpen(false);
                 }}
             >
-                {/* Input Area */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
-                    <Search size={20} className="text-muted-foreground shrink-0" />
-                    <input
-                        ref={inputRef}
-                        type="text"
-                        className="flex-1 bg-transparent border-none outline-none text-lg text-foreground placeholder:text-muted-foreground/50"
-                        placeholder="输入命令、设置或关键词..."
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                    />
-                    <div className="text-[10px] text-muted-foreground border border-border px-1.5 py-0.5 rounded bg-muted/50 hidden sm:block">ESC</div>
-                </div>
+                <div
+                    className="w-full max-w-xl border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-top-4 duration-200"
+                    style={{
+                        backgroundColor: 'var(--popover)',
+                        color: 'var(--popover-foreground)',
+                        backdropFilter: 'var(--glass-backdrop-filter)',
+                        maxHeight: '70vh'
+                    }}
+                >
+                    {/* Input Area */}
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
+                        <Search size={20} className="text-muted-foreground shrink-0" />
+                        <input
+                            ref={inputRef}
+                            type="text"
+                            className="flex-1 bg-transparent border-none outline-none text-lg text-foreground placeholder:text-muted-foreground/50"
+                            placeholder="输入命令、设置或关键词..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                        />
+                        <div className="text-[10px] text-muted-foreground border border-border px-1.5 py-0.5 rounded bg-muted/50 hidden sm:block">ESC</div>
+                    </div>
 
-                {/* Results List */}
-                <div className="overflow-y-auto p-2 scroll-smooth">
-                    {/* Explicit Results */}
-                    {results.length > 0 && (
-                        <div className="space-y-1">
-                            {results.map((item, index) => (
-                                <div
-                                    key={item.id}
-                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-[var(--duration-fast)] ${index === selectedIndex
-                                        ? 'bg-primary/10 text-primary'
-                                        : 'text-foreground hover:bg-muted/50'
-                                        }`}
-                                    onClick={() => {
-                                        item.action(onNavigate);
-                                        setIsOpen(false);
-                                        setQuery('');
-                                    }}
-                                    onMouseEnter={() => setSelectedIndex(index)}
-                                >
-                                    {/* Icon Box */}
-                                    <div className={`
+                    {/* Results List */}
+                    <div className="overflow-y-auto p-2 scroll-smooth">
+                        {/* Explicit Results */}
+                        {results.length > 0 && (
+                            <div className="space-y-1">
+                                {results.map((item, index) => (
+                                    <div
+                                        key={item.id}
+                                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-[var(--duration-fast)] ${index === selectedIndex
+                                            ? 'bg-primary/10 text-primary'
+                                            : 'text-foreground hover:bg-muted/50'
+                                            }`}
+                                        onClick={() => {
+                                            item.action(onNavigate);
+                                            setIsOpen(false);
+                                            setQuery('');
+                                        }}
+                                        onMouseEnter={() => setSelectedIndex(index)}
+                                    >
+                                        {/* Icon Box */}
+                                        <div className={`
                                         w-8 h-8 rounded-md flex items-center justify-center shrink-0
                                         ${index === selectedIndex ? 'bg-primary/20' : 'bg-muted/50 text-muted-foreground'}
                                     `}>
-                                        {item.icon ? <item.icon size={16} /> : <Command size={16} />}
-                                    </div>
+                                            {item.icon ? <item.icon size={16} /> : <Command size={16} />}
+                                        </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-medium">{item.title}</span>
-                                            {item.type !== 'command' && (
-                                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground uppercase">
-                                                    {item.type}
-                                                </span>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-medium">{item.title}</span>
+                                                {item.type !== 'command' && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground uppercase">
+                                                        {item.type}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {item.description && (
+                                                <div className="text-xs text-muted-foreground/80 truncate">{item.description}</div>
                                             )}
                                         </div>
-                                        {item.description && (
-                                            <div className="text-xs text-muted-foreground/80 truncate">{item.description}</div>
-                                        )}
+
+                                        {index === selectedIndex && <CornerDownLeft size={16} className="text-muted-foreground/50" />}
                                     </div>
+                                ))}
+                            </div>
+                        )}
 
-                                    {index === selectedIndex && <CornerDownLeft size={16} className="text-muted-foreground/50" />}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Fallback: Search Memory */}
-                    {query && (
-                        <div className={`
+                        {/* Fallback: Search Memory */}
+                        {query && (
+                            <div className={`
                             mt-2 pt-2 border-t border-border/50
                             flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-colors
                             ${selectedIndex === results.length ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted/50'}
                         `}
-                            onClick={() => executeSelected()}
-                            onMouseEnter={() => setSelectedIndex(results.length)}
-                        >
-                            <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${selectedIndex === results.length ? 'bg-primary/20' : 'bg-muted/50 text-muted-foreground'}`}>
-                                <Search size={16} />
+                                onClick={() => executeSelected()}
+                                onMouseEnter={() => setSelectedIndex(results.length)}
+                            >
+                                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${selectedIndex === results.length ? 'bg-primary/20' : 'bg-muted/50 text-muted-foreground'}`}>
+                                    <Search size={16} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-medium">全站搜索: "<span className="text-primary">{query}</span>"</div>
+                                    <div className="text-xs text-muted-foreground/80">在记忆和知识图谱中查找...</div>
+                                </div>
+                                {selectedIndex === results.length && <CornerDownLeft size={16} className="text-muted-foreground/50" />}
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium">全站搜索: "<span className="text-primary">{query}</span>"</div>
-                                <div className="text-xs text-muted-foreground/80">在记忆和知识图谱中查找...</div>
-                            </div>
-                            {selectedIndex === results.length && <CornerDownLeft size={16} className="text-muted-foreground/50" />}
-                        </div>
-                    )}
+                        )}
 
-                    {/* Empty State */}
-                    {results.length === 0 && !query && (
-                        <div className="px-4 py-8 text-center text-muted-foreground text-sm">
-                            <Command size={32} className="mx-auto mb-2 opacity-20" />
-                            <p>随时随地，想搜就搜 (Cmd+K)</p>
-                        </div>
-                    )}
+                        {/* Empty State */}
+                        {results.length === 0 && !query && (
+                            <div className="px-4 py-8 text-center text-muted-foreground text-sm">
+                                <Command size={32} className="mx-auto mb-2 opacity-20" />
+                                <p>随时随地，想搜就搜 (Cmd+K)</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
