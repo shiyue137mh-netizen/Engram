@@ -1,8 +1,11 @@
 import React, { useRef } from 'react';
+import { dump, load } from 'js-yaml';
 import { FileText, Copy, Trash2, Download, Upload, Check, Power, RotateCcw } from 'lucide-react';
 import type { PromptTemplate, PromptTemplateSingleExport, PromptCategory } from '@/config/types/prompt';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';
 import { createPromptTemplate, getBuiltInTemplateByCategory, getBuiltInTemplateById } from '@/config/types/defaults';
+import { Logger, LogModule } from '@/core/logger';
+import { notificationService } from '@/ui/services/NotificationService';
 
 interface PromptTemplateCardProps {
     template: PromptTemplate;
@@ -65,11 +68,16 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
             },
         };
 
-        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const yamlString = dump(exportData, {
+            lineWidth: -1, // 不换行
+            quotingType: '"',
+        });
+
+        const blob = new Blob([yamlString], { type: 'text/yaml' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `engram_template_${template.name.replace(/\s+/g, '_')}.json`;
+        a.download = `engram_template_${template.name.replace(/\s+/g, '_')}.yaml`;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -87,8 +95,11 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const data = JSON.parse(e.target?.result as string) as PromptTemplateSingleExport;
-                if (data.version && data.template) {
+                const content = e.target?.result as string;
+                // 尝试解析 YAML (兼容 JSON)
+                const data = load(content) as PromptTemplateSingleExport;
+
+                if (data && data.version && data.template) {
                     const importedTemplate = createPromptTemplate(
                         data.template.name,
                         data.template.category as PromptCategory,
@@ -103,9 +114,15 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                     // 保持原 ID
                     importedTemplate.id = template.id;
                     onImport(importedTemplate);
+                    notificationService.success(`模板 "${importedTemplate.name}" 导入成功`);
+                    Logger.info(LogModule.TAVERN, `Prompt template imported: ${importedTemplate.name}`);
+                } else {
+                    Logger.error(LogModule.TAVERN, 'Invalid template format during import', data);
+                    notificationService.error('导入失败: 无效的模板文件格式');
                 }
             } catch (err) {
-                console.error('导入失败:', err);
+                Logger.error(LogModule.TAVERN, 'Failed to parse template file', err);
+                notificationService.error('导入失败: 无法解析文件');
             }
         };
         reader.readAsText(file);
@@ -227,7 +244,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
             <input
                 ref={fileInputRef}
                 type="file"
-                accept=".json"
+                accept=".yaml,.yml,.json"
                 onChange={handleImportFile}
                 className="hidden"
             />

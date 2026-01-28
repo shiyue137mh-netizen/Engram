@@ -3,7 +3,7 @@ import React from 'react';
 import type { RecallConfig, RerankConfig } from '@/config/types/rag';
 import { NumberField, SwitchField } from '@/ui/components/form/FormComponents';
 import { Switch } from '@/ui/components/core/Switch';
-import { Network, Database, BrainCircuit, Zap, AlertTriangle, Layers } from 'lucide-react';
+import { Network, Database, BrainCircuit, Zap, AlertTriangle, Layers, Sliders, Sparkles } from 'lucide-react';
 
 interface RecallConfigFormProps {
     config: RecallConfig;
@@ -207,7 +207,7 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                 ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
                                 : 'bg-muted text-muted-foreground border-transparent'
                                 }`}>
-                                EXPERIMENTAL
+                                实验性功能,不保证更好的召回效力
                             </span>
                         </div>
                         <Switch
@@ -332,6 +332,103 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     brainRecall: { ...config.brainRecall!, contextSwitchThreshold: val }
                                 })}
                             />
+                        </div>
+
+                        {/* 进阶调优 (V1.2) */}
+                        <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                            <div className="flex items-center gap-2 text-xs text-primary/80 font-medium uppercase tracking-wider">
+                                <Sliders size={12} />
+                                进阶调优 (V1.2)
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <NumberField
+                                    label="Rerank 门控"
+                                    description="Rerank 分数 < 此值不进行强化"
+                                    min={0}
+                                    max={1}
+                                    step={0.05}
+                                    value={config.brainRecall.gateThreshold ?? 0.6}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, gateThreshold: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="最大阻尼"
+                                    description="单次强化的最大增量限制"
+                                    min={0.1}
+                                    max={10.0}
+                                    step={0.1}
+                                    value={config.brainRecall.maxDamping ?? 3.0}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, maxDamping: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="Sigmoid 温度"
+                                    description="控制强化曲线的陡峭程度 (越小越陡)"
+                                    min={0.1}
+                                    max={20.0}
+                                    step={0.5}
+                                    value={config.brainRecall.sigmoidTemperature ?? 5.0}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, sigmoidTemperature: val }
+                                    })}
+                                />
+                            </div>
+                        </div>
+
+                        {/* 多样性与厌倦 (V1.3) */}
+                        <div className="space-y-3 pl-2 border-l-2 border-primary/20 ml-2">
+                            <div className="flex items-center gap-2 text-xs text-primary/80 font-medium uppercase tracking-wider">
+                                <Sparkles size={12} />
+                                多样性与厌倦 (V1.3)
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <NumberField
+                                    label="厌倦阈值"
+                                    description="连续进入工作记忆多少次触发厌倦"
+                                    min={1}
+                                    max={20}
+                                    step={1}
+                                    value={config.brainRecall.boredomThreshold ?? 3}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, boredomThreshold: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="厌倦惩罚"
+                                    description="触发厌倦时的额外衰减系数"
+                                    min={0}
+                                    max={2.0}
+                                    step={0.1}
+                                    value={config.brainRecall.boredomPenalty ?? 0.2}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, boredomPenalty: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="MMR 阈值"
+                                    description="相似度 > 此值时为了多样性降权"
+                                    min={0}
+                                    max={1}
+                                    step={0.05}
+                                    value={config.brainRecall.mmrThreshold ?? 0.6}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, mmrThreshold: val }
+                                    })}
+                                />
+                                <NumberField
+                                    label="新人红利"
+                                    description="新记忆条目的初始加成"
+                                    min={0}
+                                    max={2.0}
+                                    step={0.1}
+                                    value={config.brainRecall.newcomerBoost ?? 0.3}
+                                    onChange={(val) => updateConfig({
+                                        brainRecall: { ...config.brainRecall!, newcomerBoost: val }
+                                    })}
+                                />
+                            </div>
                         </div>
                     </div>
                 )}

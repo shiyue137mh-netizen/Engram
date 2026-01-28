@@ -1,4 +1,4 @@
-import { HelpCircle, AlertTriangle, Bug, Cpu, Database, FileText, Search } from 'lucide-react';
+import { HelpCircle, AlertTriangle, Bug, Cpu, Database, FileText, Search, ShieldAlert, Clock } from 'lucide-react';
 
 # 常见问题与故障排查 (FAQ)
 
@@ -19,7 +19,7 @@ import { HelpCircle, AlertTriangle, Bug, Cpu, Database, FileText, Search } from 
     * 这些错误通常是因为 IndexedDB 连接失败、SillyTavern 版本不兼容或网络环境导致的核心崩溃。
     * **应对**: 尝试刷新页面；如果是数据库错误，可能需要重置数据。
 
-### 2. 自动总结没触发 / 总结内容奇怪
+### 2. 自动总结没触发 / 总结内容奇怪 / 总结没有被保存
 > **症状**: 聊了很久没有新记忆生成，或者生成的记忆全是乱码/重复内容。
 
 * **检查目标**: <Cpu className="inline w-4 h-4 mb-1"/> **模型日志**
@@ -54,7 +54,25 @@ import { HelpCircle, AlertTriangle, Bug, Cpu, Database, FileText, Search } from 
 * **原因**: 向量索引是基于修改前的文本生成的，修改文本后索引失效。
 * **解决**: 在 **记忆编辑** 页面，找到修改过的条目，点击卡片上的 **<Search className="inline w-3 h-3"/> Re-embed** 按钮，重新生成向量数据。
 
+#### Q: <ShieldAlert className="inline w-4 h-4 mb-1"/> 更新时提示 "Forbidden" 或 "EACCES" 错误？
+* **原因**: SillyTavern 也就是 Node.js 进程没有权限覆盖旧文件。
+* **解决**:
+    1.  手动前往 `SillyTavern/public/scripts/extensions` 目录删除 `Engram` 文件夹，然后重新下载安装。
+    2.  或者赋予您的系统当前用户对 SillyTavern 文件夹的完全读写权限。
+
 ### <FileText className="inline w-5 h-5 mb-1 text-blue-500"/> 功能逻辑类
+
+#### Q: <Clock className="inline w-4 h-4 mb-1"/> 为什么我刚发完消息，自动总结没有立刻开始？
+* **原因**: 这是有意为之的。Engram 使用了 **缓冲层 (Buffer)** 机制（默认 10 层）。
+* **解释**: 系统会等待最新的消息变成"旧闻"后才进行总结。这样做是为了给你留出修改、撤回、重新生成的时间。如果立刻总结，一旦你修改了聊天记录，生成的记忆就会和最新的聊天对不上，产生"幻觉"或冲突。
+
+#### Q: 预处理 (Preprocessing) 到底是干嘛的？我需要开启吗？
+* **解释**: 这是一个高级功能。它允许你在发送消息给角色 **之前**，先拦截你的输入，用另一个 AI 跑一遍自定义指令。
+* **场景**:
+    *   **润色**: 输入"帮我把这句话改得更委婉点：你是个白痴"，AI 润色后，再发送给角色。
+    *   **旁白**: 输入"描述一下现在的环境"，AI 生成一段环境描写，自动封装成旁白发送。
+    *   **情报分析**: 让 AI 分析当前对话局势，把分析结果作为 `System Note` 注入。
+* **结论**: 如果你只是想单纯聊天的玩家，可以关闭它。如果你是硬核 Roleplayer 或写手，它会是神技。
 
 #### Q: 自动总结没有触发？
 * **原因**: 为了防止 LLM 刷屏，Engram 设有保护机制。

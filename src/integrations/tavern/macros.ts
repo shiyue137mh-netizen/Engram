@@ -574,16 +574,17 @@ export class MacroService {
 
     /**
      * V0.9.2: 获取动态计算的 chatHistory 消息条数
-     * 公式: floorInterval - bufferSize
+     * 直接使用 bufferSize,从而和{{engramsummaries}}进行衔接
      * 无参数调用 {{chatHistory}} 时使用
      */
     static getDynamicChatHistoryLimit(): number {
         try {
             const summarizerConfig = SettingsManager.get('summarizerConfig') as SummarizerConfig | undefined;
             const floorInterval = summarizerConfig?.floorInterval ?? 20;
-            const bufferSize = summarizerConfig?.bufferSize ?? 3;
-            const limit = Math.max(1, floorInterval - bufferSize);
-            Logger.debug('MacroService', '动态计算 chatHistory limit', { floorInterval, bufferSize, limit });
+            const bufferSize = summarizerConfig?.bufferSize ?? 10;
+            // V1.0.3: 用户需求：预处理和实体提取的"最近上下文"直接使用 summary 的 bufferSize
+            const limit = Math.max(1, bufferSize);
+            Logger.debug('MacroService', '动态计算 chatHistory limit (Shared Buffer)', { floorInterval, bufferSize, limit });
             return limit;
         } catch (e) {
             Logger.warn('MacroService', '动态计算 limit 失败，使用默认值 17', e);

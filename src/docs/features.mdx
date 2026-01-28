@@ -1,8 +1,8 @@
-import { Database, Search, Layers, Command, Brain, FileText } from 'lucide-react';
+import { Database, Search, Layers, Command, Brain, FileText, Settings, Users, GitBranch, Sparkles } from 'lucide-react';
 
 # 功能指南
 
-> Engram 不仅仅是记忆扩展，更是一个完整的知识管理系统。
+> Engram 不仅仅是记忆扩展，更是一个完整的知识管理系统。本页将详细介绍各个功能模块的用法。
 
 ---
 
@@ -28,29 +28,60 @@ import { Database, Search, Layers, Command, Brain, FileText } from 'lucide-react
 
 ---
 
-## <Layers className="inline-block w-4 h-4 align-text-bottom" /> 预处理与批量处理
+## <Settings className="inline-block w-4 h-4 align-text-bottom" /> 运行时配置 (Processing)
 
-在侧边栏的 **数据处理** → **批量处理** 页面，您可以对大规模文本进行操作。
+位于 **数据处理** -> **运行时配置**。这里掌管着记忆产生的节奏。
 
-### 历史消息批处理
-如果您是中途安装的 Engram，可以使用此功能扫描之前的聊天记录，批量生成摘要和实体数据，填补记忆空白。
+### 1. 总结面板 (Summary Panel)
+*   **自动总结**: 全局开关。如果不希望产生新记忆，可以临时关闭。
+*   **楼层间隔 (Interval)**: 决定了记忆颗粒度。
+    *   设为 `10`: 记忆非常密集，可能有大量流水账。
+    *   设为 `50`: 记忆很精简，但可能丢细节。
+    *   **推荐**: `20-30`。
+*   **缓冲层 (Buffer)**: **重要机制**。
+    *   为了防止 AI 总结了你还在修改的最后几句话，不管是手动总结还是自动总结，系统都会刻意跳过最近的 N 条消息。
+    *   这些消息被称为"不稳定区"。只有当它们被新的对话顶到后面去，变成"稳定历史"时，才会被纳入总结。
 
-### <FileText className="inline-block w-4 h-4 align-text-bottom" /> 导入小说
+### 2. 精简配置 (Trimmer)
+随着时间推移，如果你的记忆库里有成百上千条短摘要，检索效率会下降。Trimmer 就像垃圾回收机制。
+*   **触发条件**: 当积累了 N 条（如 5 条）未压缩的摘要时，触发一次合并。
+*   **合并逻辑**: 它会读取这 5 条短摘要，重新生成一个更概括的长摘要，替代原有的 5 条。
 
-支持将外部 `.txt` 或 `.md` 文件导入为长期记忆。
-
-*   **快速模式**:
-    直接按字数切块并向量化。速度快，适合大段背景设定。
-*   **精细模式**:
-    切块后先通过 LLM 生成摘要，再对摘要进行向量化。适合剧情复杂的小说，检索精度更高，但消耗更多 Token。
+### 3. 实体提取 (Entity Extractor)
+*   这是与总结平行的进程。它专注于从每一段对话中"淘金"，把重要的人名、地名、物品属性挖掘出来，存入实体库。
 
 ---
 
-## <Database className="inline-block w-4 h-4 align-text-bottom" /> 记忆管理
+## <Database className="inline-block w-4 h-4 align-text-bottom" /> 记忆流 (Memory Stream)
 
-通过侧边栏的 **记忆编辑** 页面管理数据。
+位于侧边栏的 **记忆编辑**。这是您的知识库后台，支持三种视图：
 
-*   **列表视图**: 按时间查看摘要。
-*   **图谱视图**: 可视化展示事件与实体之间的关联网络。
-*   **批量操作**: 支持多选删除或修改。
-*   **手动重嵌**: 修改摘要文本后，务必点击 **Re-embed** 按钮更新向量索引，否则搜不到新内容。
+### 1. <Layers className="inline-block w-4 h-4 align-text-bottom" /> 列表视图
+按时间轴展示所有发生的"事件"。
+*   **搜索**: 顶部输入框支持全文检索。
+*   **过滤**: 可以只看"当前激活"（被 RAG 召回）的记忆。
+*   **CRUD**: 点击任意卡片可进行编辑或删除。
+
+### 2. <Users className="inline-block w-4 h-4 align-text-bottom" /> 实体视图
+展示所有提取出的实体。
+*   如果你发现 AI 提取了奇怪的东西（比如把动词当成人名），请在这里删除它。
+*   你也可以手动修改实体的属性（Profile），这些属性会在 AI 生成回复时作为参考。
+
+### 3. <GitBranch className="inline-block w-4 h-4 align-text-bottom" /> 图谱视图
+上帝视角。
+*   展示事件与实体之间的连接。
+*   在这个视图下，你可以直观地看到哪些实体参与了哪些事件，帮助你梳理复杂的人物关系网。
+
+### <Sparkles className="inline-block w-4 h-4 align-text-bottom" /> 手动重嵌 (Re-embed)
+**这非常重要！**
+由于 Engram 使用向量数据库来检索记忆。当你手动修改了卡片上的文字内容后，原本的"向量索引"并不会自动更新。
+*   **症状**: 明明把"他手里拿着苹果"改成了"他手里拿着香蕉"，但搜"香蕉"搜不到，搜"苹果"反而出来了。
+*   **解决**: 点击列表顶部的 **Re-embed** 按钮（或单条卡片上的重嵌图标），让系统重新为文本生成索引。
+
+---
+
+## <Layers className="inline-block w-4 h-4 align-text-bottom" /> 批量处理
+
+如果您是中途安装的 Engram，可以使用 **数据处理** -> **批量处理** 功能，一次性扫描之前的聊天记录，补全缺失的记忆。
+此外，这里还支持 **导入小说** 功能，将外部文本转化为长期记忆。
+

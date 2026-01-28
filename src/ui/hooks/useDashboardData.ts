@@ -11,6 +11,7 @@ import { useMemoryStore } from '@/state/memoryStore';
 import { summarizerService } from '@/modules/memory';
 import { SettingsManager } from '@/config/settings';
 import { getSTContext } from '@/integrations/tavern/bridge';
+import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
 
 // ==================== 类型定义 ====================
@@ -174,7 +175,9 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 const { MacroService } = await import('@/integrations/tavern/macros');
 
                 const snapshot = brainRecallCache.getShortTermSnapshot();
-                const config = brainRecallCache.getConfig();
+                // FIX: 直接从 SettingsManager 读取最新的配置，而不是 Cache 里的旧副本
+                const apiSettings = SettingsManager.get('apiSettings');
+                const brainConfig = apiSettings?.recallConfig?.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
 
                 // Get working memory items (Tier = 'working')
                 const workingItems = snapshot.filter(s => s.tier === 'working');
@@ -188,9 +191,9 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 
                 setBrainStats({
                     shortTermCount: snapshot.length,
-                    shortTermLimit: config.shortTermLimit,
+                    shortTermLimit: brainConfig.shortTermLimit,
                     workingCount: workingItems.length,
-                    workingLimit: config.workingLimit,
+                    workingLimit: brainConfig.workingLimit,
                     topItems: topActiveItems
                 });
 
