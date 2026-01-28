@@ -4,6 +4,10 @@
  * 封装对 SillyTavern/TavernHelper LLM API 的调用
  *
  * 通用服务：可被 Summarizer、RAG、Graph 等模块复用
+ *
+ * V0.9.1 改进：
+ * - 添加请求队列和执行锁，防止并发请求导致的配置冲突
+ * - 支持 tavern_profile 临时切换模式
  */
 
 import { SettingsManager } from "@/config/settings";
@@ -40,6 +44,13 @@ interface LLMResponse {
     };
 }
 
+/** 队列中的请求项 */
+interface QueuedRequest {
+    request: LLMRequest;
+    resolve: (value: LLMResponse) => void;
+    reject: (reason: unknown) => void;
+}
+
 /**
  * 获取 TavernHelper API
  */
@@ -69,15 +80,73 @@ function getTavernProfiles(): any[] {
 }
 
 /**
+ * 获取当前 Profile ID
+ */
+function getCurrentProfileId(): string | null {
+    try {
+        // @ts-ignore
+        const context = window.SillyTavern?.getContext?.();
+        return context?.extensionSettings?.connectionManager?.selectedProfile || null;
+    } catch {
+        return null;
+    }
+}
+
+/**
  * LLMAdapter 类
- * 封装 LLM 调用
+ * 封装 LLM 调用，支持队列和锁机制
  */
 class LLMAdapter {
+    /** 执行锁 */
+    private isExecuting = false;
+
+    /** 请求队列 */
+    private requestQueue: QueuedRequest[] = [];
+
+    /** 切换前的原始 Profile ID */
+    private originalProfileId: string | null = null;
+
+    /** 防抖延迟 (ms) */
+    private static readonly PROFILE_SWITCH_DELAY = 150;
+
     /**
-     * 调用 LLM 生成
+     * 调用 LLM 生成 (队列模式)
      * @param request 请求参数
      */
     async generate(request: LLMRequest): Promise<LLMResponse> {
+        return new Promise((resolve, reject) => {
+            this.requestQueue.push({ request, resolve, reject });
+            this.processQueue();
+        });
+    }
+
+    /**
+     * 处理请求队列
+     */
+    private async processQueue(): Promise<void> {
+        if (this.isExecuting || this.requestQueue.length === 0) {
+            return;
+        }
+
+        this.isExecuting = true;
+        const { request, resolve, reject } = this.requestQueue.shift()!;
+
+        try {
+            const result = await this.executeRequest(request);
+            resolve(result);
+        } catch (e) {
+            reject(e);
+        } finally {
+            this.isExecuting = false;
+            // 递归处理下一个请求
+            this.processQueue();
+        }
+    }
+
+    /**
+     * 执行单个请求
+     */
+    private async executeRequest(request: LLMRequest): Promise<LLMResponse> {
         const helper = getTavernHelper();
 
         if (!helper?.generateRaw && !helper?.generate) {
@@ -89,204 +158,27 @@ class LLMAdapter {
         }
 
         try {
-            let content: string;
-
-            // [Step 0] 获取预设配置 (Fix for API Presets issue)
+            // 获取预设配置
             const settings = SettingsManager.getSettings();
             let preset: LLMPreset | undefined;
 
             if (request.presetId) {
-                // 1. 尝试使用请求指定的预设
                 preset = settings.apiSettings?.llmPresets?.find(p => p.id === request.presetId);
             }
 
             if (!preset && settings.apiSettings?.selectedPresetId) {
-                // 2. 尝试使用全局选中的预设
                 preset = settings.apiSettings?.llmPresets?.find(p => p.id === settings.apiSettings?.selectedPresetId);
             }
 
-            // 如果找到了预设，且预设不是默认的 'tavern' 源，我们需要准备 Custom API 配置
-            // 根据 SillyTavern 架构，必须通过 custom_api 对象传递 overrides
-            let customApiConfig: Record<string, any> | undefined;
-
-            if (preset && preset.source !== 'tavern') {
-                customApiConfig = {};
-                Logger.info(MODULE, `使用预设: ${preset.name} (${preset.source})`);
-
-                // 1. 映射采样参数 (Common Parameters)
-                if (preset.parameters) {
-                    customApiConfig = {
-                        ...customApiConfig,
-                        // 映射标准参数到 ST API 字段
-                        temperature: preset.parameters.temperature,
-                        max_tokens: preset.parameters.maxTokens, // ST API 通常使用 max_tokens
-                        top_p: preset.parameters.topP,
-                        frequency_penalty: preset.parameters.frequencyPenalty,
-                        presence_penalty: preset.parameters.presencePenalty,
-
-                        // 某些后端可能需要 rep_pen 作为 frequency_penalty 的别名
-                        // rep_pen: preset.parameters.frequencyPenalty,
-                    };
-                }
-
-                // 2. 根据源类型映射连接配置
-                if (preset.source === 'custom' && preset.custom) {
-                    // [Custom Source]
-                    customApiConfig.apiurl = preset.custom.apiUrl;
-                    customApiConfig.key = preset.custom.apiKey;
-                    customApiConfig.model = preset.custom.model;
-
-                    // 默认为 openai，除非指定
-                    customApiConfig.source = preset.custom.apiSource || 'openai';
-
-                } else if (preset.source === 'tavern_profile' && preset.tavernProfileId) {
-                    // [Tavern Profile Source]
-                    const profiles = getTavernProfiles();
-                    const profile = profiles.find(p => p.id === preset.tavernProfileId);
-
-                    if (profile) {
-                        Logger.info(MODULE, `找到酒馆 Profile: ${profile.name}`);
-
-                        // 映射 Profile 字段到 custom_api
-                        // 根据调研文档，Tavern Profile 字段可能包括 api, api-url, model, etc.
-
-                        // 必填字段映射
-                        customApiConfig.model = profile.model;
-
-                        // 根据 API 类型推断 source
-                        // profile.api 通常是 'openai', 'anthropic' 等
-                        customApiConfig.source = profile.api;
-
-                        // 尝试提取 URL (不同版本字段可能不同)
-                        // 常见：api-url, request_url, openai_url
-                        if (profile['api-url']) customApiConfig.apiurl = profile['api-url'];
-                        else if (profile.request_url) customApiConfig.apiurl = profile.request_url;
-                        else if (profile.openai_url) customApiConfig.apiurl = profile.openai_url;
-
-                        // 尝试提取 Key
-                        // 常见：key, request_apikey, openai_key, secret-id (如果是 secret-id 需要 ST 内部解析，这里尽量找直接的 key)
-                        // 注意：如果 Key 存储在 Secret 中，Engram 可能无法直接获取明文。
-                        const potentialKeyFields = ['key', 'request_apikey', 'openai_key', 'api_key', 'auth_token', 'password'];
-                        for (const field of potentialKeyFields) {
-                            if (profile[field]) {
-                                customApiConfig.key = profile[field];
-                                break;
-                            }
-                        }
-
-                    } else {
-                        Logger.warn(MODULE, `未找到 ID 为 ${preset.tavernProfileId} 的酒馆配置，将回退到默认设置`);
-                        customApiConfig = undefined; // 回退
-                    }
-                }
-            }
-
-            // =========================================================================
-            // Context Aggregation Gateway (V0.8 Upgrade)
-            // =========================================================================
-            // 目标：
-            // 1. 兼容性: 让 ST-Prompt-Template (EJS) 和原生 Regex 生效
-            // 2. 双重管道: Native Pipeline -> Engram Pipeline
-
-            // [Step 1] 构建基础上下文 (Simulation)
-            // 即使是单次生成，我们也模拟为一次标准的 User 消息交互，以便触发扩展钩子
-            const combinedPrompt = request.systemPrompt ?
-                `${request.systemPrompt}\n\n${request.userPrompt}` :
-                request.userPrompt;
-
-            // 模拟酒馆标准生成数据结构
-            const generateData = {
-                prompt: combinedPrompt, // 核心字段：大部分扩展修改此字段
-                body: {
-                    messages: [
-                        { role: 'system', content: request.systemPrompt },
-                        { role: 'user', content: request.userPrompt }
-                    ]
-                },
-                // 尽可能提供更多上下文信息以满足某些挑剔的扩展
-                // is_engram: true, // 标记请求来源 (可选) - 暂时移除，避免污染
-            };
-
-            // [Step 2] 触发 Native Pipeline Hook (兼容 ST-Prompt-Template)
-            // 这将激活 EJS 渲染、宏替换和（可能的）原生 Regex
-            const { EventBus, TavernEventType } = await import('@/integrations/tavern/api');
-
-            // 2.1 模拟 GENERATION_AFTER_COMMANDS (ST-Prompt-Template 初始化需要)
-            // type='engram', options={}, dryRun=false
-            await EventBus.emit(TavernEventType.GENERATION_AFTER_COMMANDS, 'engram', {}, false);
-
-            // 2.2 触发 GENERATION_AFTER_DATA
-            await EventBus.emit(TavernEventType.GENERATE_AFTER_DATA, generateData);
-
-            // [Step 3] 提取处理后的上下文
-            // ST-Prompt-Template 通常会修改 generateData.prompt
-            const processedPrompt = typeof generateData.prompt === 'string' ?
-                generateData.prompt : combinedPrompt;
-
-            // 简单的回填策略：
-            // 如果 prompt 被修改了，我们将修改后的内容作为 User Trigger 发送
-            // (这是最安全的做法，因为可以将 system prompt 保持独立)
-            // 注意：如果 processedPrompt 包含了 system prompt (因为我们在 step 1 合并了)，
-            // 那么在发送给 API 时应避免重复发送 system prompt。
-
-            let finalSystemPrompt = request.systemPrompt;
-            let finalUserPrompt = request.userPrompt;
-
-            if (processedPrompt !== combinedPrompt) {
-                // 如果发生了变化（说明有 EJS/Regex 生效）
-                // 各种扩展对 prompt 的修改方式不同，简单起见，我们假设
-                // 扩展处理后的 prompt 包含了所有必要信息。
-                // 策略：清空 System Prompt，将处理后的全文作为 User Prompt 发送 (Raw Mode)
-                finalSystemPrompt = '';
-                finalUserPrompt = processedPrompt;
-            }
-
-            // [Step 4] 执行 Engram Pipeline (RegexProcessor)
-            // 这是第二道清洗，用于移除 Engram 特定的标记（如 <think> 如果还没被处理）
-            // 或者处理原生清洗后残留的问题
-            const { regexProcessor } = await import('@/modules/workflow/steps');
-            finalUserPrompt = regexProcessor.process(finalUserPrompt, 'input');
-
-            // =========================================================================
-            // End of Gateway
-            // =========================================================================
-
-            // [Fix] 显式禁用流式，否则可能继承全局设置
-            const generationOptions = {
-                should_stream: false, // 核心修正：后台任务不需要流式
-                _engram_internal: request.internal, // 内部请求标记
-            };
-
-            if (helper.generateRaw) {
-                // 使用 generateRaw 进行完全自定义
-                const prompts = [];
-                if (finalSystemPrompt) {
-                    prompts.push({ role: 'system', content: finalSystemPrompt });
-                }
-                prompts.push({ role: 'user', content: finalUserPrompt });
-
-                content = await helper.generateRaw({
-                    ordered_prompts: prompts,
-                    custom_api: customApiConfig, // V0.8.6 Fix
-                    ...generationOptions,         // [Fix] Apply should_stream: false
-                });
-            } else if (helper.generate) {
-                // fallback: 使用 generate
-                content = await helper.generate({
-                    user_input: finalUserPrompt,
-                    system_prompt: finalSystemPrompt,
-                    max_chat_history: 0,
-                    custom_api: customApiConfig, // V0.8.6 Fix
-                    ...generationOptions,         // [Fix] Apply should_stream: false
-                });
+            // 根据预设类型选择执行路径
+            if (preset?.source === 'tavern_profile' && preset.tavernProfileId) {
+                return await this.executeWithProfileSwitch(request, preset, helper);
+            } else if (preset?.source === 'custom' && preset.custom) {
+                return await this.executeWithCustomApi(request, preset, helper);
             } else {
-                throw new Error('无可用的生成 API');
+                return await this.executeWithTavern(request, helper);
             }
 
-            return {
-                success: true,
-                content: content || '',
-            };
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
             Logger.error(MODULE, '调用失败', e);
@@ -297,6 +189,207 @@ class LLMAdapter {
                 error: errorMsg,
             };
         }
+    }
+
+    // =========================================================================
+    // 执行路径：tavern_profile (临时切换)
+    // =========================================================================
+
+    private async executeWithProfileSwitch(
+        request: LLMRequest,
+        preset: LLMPreset,
+        helper: NonNullable<ReturnType<typeof getTavernHelper>>
+    ): Promise<LLMResponse> {
+        // 检查 Profile 是否存在
+        const profiles = getTavernProfiles();
+        const targetProfile = profiles.find(p => p.id === preset.tavernProfileId);
+
+        if (!targetProfile) {
+            Logger.warn(MODULE, `未找到 Profile: ${preset.tavernProfileId}，回退到默认`);
+            return await this.executeWithTavern(request, helper);
+        }
+
+        // 记录当前 Profile
+        this.originalProfileId = getCurrentProfileId();
+        Logger.info(MODULE, `临时切换 Profile: ${this.originalProfileId} -> ${preset.tavernProfileId}`);
+
+        try {
+            // 切换到目标 Profile
+            await this.switchProfile(preset.tavernProfileId!);
+            await this.waitForProfileReady();
+
+            // 使用酒馆当前设置执行 (因为已经切换了)
+            return await this.executeWithTavern(request, helper);
+
+        } finally {
+            // 切回原 Profile
+            if (this.originalProfileId && this.originalProfileId !== preset.tavernProfileId) {
+                Logger.info(MODULE, `切回原 Profile: ${this.originalProfileId}`);
+                await this.switchProfile(this.originalProfileId);
+                await this.waitForProfileReady();
+            }
+            this.originalProfileId = null;
+        }
+    }
+
+    /**
+     * 切换 Profile
+     */
+    private async switchProfile(profileId: string): Promise<void> {
+        try {
+            const { SlashCommandParser } = await import('@/integrations/tavern/api');
+
+            // 使用酒馆的 /profile 命令切换
+            if (SlashCommandParser?.commands?.['profile']?.callback) {
+                await SlashCommandParser.commands['profile'].callback({ _scope: null }, profileId);
+            } else {
+                // 备用方案：直接设置
+                // @ts-ignore
+                const context = window.SillyTavern?.getContext?.();
+                if (context?.extensionSettings?.connectionManager) {
+                    context.extensionSettings.connectionManager.selectedProfile = profileId;
+                }
+            }
+        } catch (e) {
+            Logger.error(MODULE, `切换 Profile 失败: ${profileId}`, e);
+            throw e;
+        }
+    }
+
+    /**
+     * 等待 Profile 切换生效 (防抖)
+     */
+    private async waitForProfileReady(): Promise<void> {
+        await new Promise(resolve => setTimeout(resolve, LLMAdapter.PROFILE_SWITCH_DELAY));
+    }
+
+    // =========================================================================
+    // 执行路径：custom (自定义 API)
+    // =========================================================================
+
+    private async executeWithCustomApi(
+        request: LLMRequest,
+        preset: LLMPreset,
+        helper: NonNullable<ReturnType<typeof getTavernHelper>>
+    ): Promise<LLMResponse> {
+        Logger.info(MODULE, `使用自定义 API: ${preset.name}`);
+
+        // 构建 custom_api 配置
+        const customApiConfig: Record<string, any> = {
+            // 连接配置
+            apiurl: preset.custom!.apiUrl,
+            key: preset.custom!.apiKey,
+            model: preset.custom!.model,
+            source: 'openai', // 自定义 API 走 OpenAI 兼容接口
+
+            // 采样参数
+            temperature: preset.parameters?.temperature,
+            max_tokens: preset.parameters?.maxTokens,
+            top_p: preset.parameters?.topP,
+            frequency_penalty: preset.parameters?.frequencyPenalty,
+            presence_penalty: preset.parameters?.presencePenalty,
+        };
+
+        return await this.callTavernHelper(request, helper, customApiConfig);
+    }
+
+    // =========================================================================
+    // 执行路径：tavern (使用酒馆当前配置)
+    // =========================================================================
+
+    private async executeWithTavern(
+        request: LLMRequest,
+        helper: NonNullable<ReturnType<typeof getTavernHelper>>
+    ): Promise<LLMResponse> {
+        return await this.callTavernHelper(request, helper, undefined);
+    }
+
+    // =========================================================================
+    // 核心调用逻辑
+    // =========================================================================
+
+    private async callTavernHelper(
+        request: LLMRequest,
+        helper: NonNullable<ReturnType<typeof getTavernHelper>>,
+        customApiConfig?: Record<string, any>
+    ): Promise<LLMResponse> {
+        // =========================================================================
+        // Context Aggregation Gateway (V0.8 Upgrade)
+        // =========================================================================
+        const combinedPrompt = request.systemPrompt ?
+            `${request.systemPrompt}\n\n${request.userPrompt}` :
+            request.userPrompt;
+
+        const generateData = {
+            prompt: combinedPrompt,
+            body: {
+                messages: [
+                    { role: 'system', content: request.systemPrompt },
+                    { role: 'user', content: request.userPrompt }
+                ]
+            },
+        };
+
+        // 触发 Native Pipeline Hook
+        const { EventBus, TavernEventType } = await import('@/integrations/tavern/api');
+        await EventBus.emit(TavernEventType.GENERATION_AFTER_COMMANDS, 'engram', {}, false);
+        await EventBus.emit(TavernEventType.GENERATE_AFTER_DATA, generateData);
+
+        // 提取处理后的上下文
+        const processedPrompt = typeof generateData.prompt === 'string' ?
+            generateData.prompt : combinedPrompt;
+
+        let finalSystemPrompt = request.systemPrompt;
+        let finalUserPrompt = request.userPrompt;
+
+        if (processedPrompt !== combinedPrompt) {
+            finalSystemPrompt = '';
+            finalUserPrompt = processedPrompt;
+        }
+
+        // Engram Pipeline (RegexProcessor)
+        const { regexProcessor } = await import('@/modules/workflow/steps');
+        finalUserPrompt = regexProcessor.process(finalUserPrompt, 'input');
+
+        // =========================================================================
+        // 调用 TavernHelper
+        // =========================================================================
+        const generationOptions = {
+            should_stream: false,
+            should_silence: true, // V0.9.1: 后台请求静默，不绑定停止按钮
+            _engram_internal: request.internal,
+        };
+
+        let content: string;
+
+        if (helper.generateRaw) {
+            const prompts = [];
+            if (finalSystemPrompt) {
+                prompts.push({ role: 'system', content: finalSystemPrompt });
+            }
+            prompts.push({ role: 'user', content: finalUserPrompt });
+
+            content = await helper.generateRaw({
+                ordered_prompts: prompts,
+                custom_api: customApiConfig,
+                ...generationOptions,
+            });
+        } else if (helper.generate) {
+            content = await helper.generate({
+                user_input: finalUserPrompt,
+                system_prompt: finalSystemPrompt,
+                max_chat_history: 0,
+                custom_api: customApiConfig,
+                ...generationOptions,
+            });
+        } else {
+            throw new Error('无可用的生成 API');
+        }
+
+        return {
+            success: true,
+            content: content || '',
+        };
     }
 
     /**
@@ -312,9 +405,21 @@ class LLMAdapter {
      * @param text 文本
      */
     estimateTokens(text: string): number {
-        // 简单估算：中文约 2 字符/token，英文约 4 字符/token
-        // 这里取平均值 3
         return Math.ceil(text.length / 3);
+    }
+
+    /**
+     * 获取队列长度 (调试用)
+     */
+    getQueueLength(): number {
+        return this.requestQueue.length;
+    }
+
+    /**
+     * 是否正在执行 (调试用)
+     */
+    isBusy(): boolean {
+        return this.isExecuting;
     }
 }
 
