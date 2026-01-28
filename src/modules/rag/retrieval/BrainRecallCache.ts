@@ -166,8 +166,8 @@ export class BrainRecallCache {
         // 5. 容量限制
         this.enforceShortTermLimit();
 
-        // 6. 选取工作记忆 (MMR + Sorting Logic)
-        const workingMemory = this.selectWorkingMemoryMMR();
+        // 6. 选取工作记忆 (Sorting Logic)
+        const workingMemory = this.selectWorkingMemory();
 
         // 7. 更新连胜计数 (由 selectWorkingMemoryMMR 处理更准确?
         // 不，selectWorkingMemoryMMR 只返回了选中的。
@@ -227,7 +227,8 @@ export class BrainRecallCache {
     }
 
     private calculateFinalScore(slot: MemorySlot): void {
-        const temp = this.config.sigmoidTemperature || 0.15;
+        // V1.4: 调整参数，让分数分布更平滑
+        const temp = this.config.sigmoidTemperature || 0.25; // 0.15 -> 0.25
 
         // 归一化防饱和
         const clampedRerank = Math.min(0.95, slot.rerankStrength);
@@ -238,26 +239,33 @@ export class BrainRecallCache {
         // Embedding 系数设为 0.8，因为向量相似度通常比 Rerank 概率值要“虚”一些。
         const effectiveStrength = Math.max(clampedRerank, slot.embeddingStrength * 0.8);
 
-        // 降低 Bias (0.5 -> 0.35)
-        // 只要有效强度超过 0.35，Sigmoid 结果就会超过 0.5，从而安全存活 (阈值 0.25)。
-        const bias = 0.35;
+        // V1.4: 降低 Bias (0.35 -> 0.20)，让更多记忆存活
+        const bias = 0.20;
 
         const z = (effectiveStrength - bias) / temp;
         slot.finalScore = this.sigmoid(z, temp);
     }
 
+    /**
+     * V1.4: 基于容量的淘汰策略
+     * 只有当 STM 超出容量上限时才淘汰，而非基于阈值
+     */
     private evict(): void {
-        const threshold = this.config.evictionThreshold;
-        for (const [id, slot] of this.shortTermMemory) {
-            // V1.3.2 Fix: Newcomer Protection
-            // 刚加入的新记忆即使分数低也不淘汰，给它一次参与 MMR 排序（享受 Newcomer Boost）的机会
-            if (slot.firstRound === this.currentRound) {
-                continue;
-            }
+        const limit = this.config.shortTermLimit;
 
-            if (slot.finalScore < threshold) {
-                this.shortTermMemory.delete(id);
-            }
+        // 不满，不淘汰
+        if (this.shortTermMemory.size <= limit) {
+            return;
+        }
+
+        // 超出容量时，按 finalScore 从低到高淘汰多余的
+        const overflow = this.shortTermMemory.size - limit;
+        const sorted = Array.from(this.shortTermMemory.values())
+            .filter(slot => slot.firstRound !== this.currentRound) // 保护新人
+            .sort((a, b) => a.finalScore - b.finalScore);
+
+        for (let i = 0; i < overflow && i < sorted.length; i++) {
+            this.shortTermMemory.delete(sorted[i].id);
         }
     }
 
@@ -276,16 +284,16 @@ export class BrainRecallCache {
     }
 
     /**
-     * V1.3.1: MMR + Sorting Logic
+     * V1.4: 填满优先的工作记忆选取
+     * 移除 MMR（剧情事件的相似性是特征而非缺陷）
      */
-    private selectWorkingMemoryMMR(): MemorySlot[] {
-        const k = this.config.workingLimit;
-        const mmrThreshold = this.config.mmrThreshold || 0.85;
-        const newcomerBoost = this.config.newcomerBoost || 0.2; // 0.2
+    private selectWorkingMemory(): MemorySlot[] {
+        const limit = this.config.workingLimit;
+        const newcomerBoost = this.config.newcomerBoost || 0.2;
         const boredomPenalty = this.config.boredomPenalty || 0.1;
         const boredomThreshold = this.config.boredomThreshold || 5;
 
-        // 1. 计算 Effective Score 并排序
+        // 1. 计算排序分数
         const pool = Array.from(this.shortTermMemory.values()).map(slot => {
             // Newcomer Boost (只在第一轮生效)
             const boost = (slot.firstRound === this.currentRound) ? newcomerBoost : 0;
@@ -299,40 +307,16 @@ export class BrainRecallCache {
             return { slot, sortScore };
         });
 
-        // 降序
+        // 按分数降序排序
         pool.sort((a, b) => b.sortScore - a.sortScore);
 
-        // 2. Greedy MMR
-        const selected: MemorySlot[] = [];
+        // 2. 直接取 Top-K，保证填满
+        const selected = pool.slice(0, limit).map(item => item.slot);
 
-        // 只需要遍历 pool，直到选满 k 个
-        for (const item of pool) {
-            if (selected.length >= k) break;
-
-            const currentSlot = item.slot;
-
-            // 冗余检查
-            let isRedundant = false;
-            // 只有当有向量且已选列表不为空时才检查
-            if (currentSlot.embeddingVector && selected.length > 0) {
-                for (const picked of selected) {
-                    if (!picked.embeddingVector) continue;
-
-                    const sim = embeddingService.cosineSimilarity(currentSlot.embeddingVector, picked.embeddingVector);
-                    if (sim > mmrThreshold) {
-                        isRedundant = true;
-                        // Logger.debug(LogModule.RAG_CACHE, `MMR Redundant: ${currentSlot.id} vs ${picked.id} (${sim.toFixed(2)})`);
-                        break;
-                    }
-                }
-            }
-
-            if (!isRedundant) {
-                selected.push(currentSlot);
-                currentSlot.tier = 'working';
-            } else {
-                currentSlot.tier = 'shortTerm';
-            }
+        // 3. 更新所有 slot 的 tier 状态
+        const selectedIds = new Set(selected.map(s => s.id));
+        for (const slot of this.shortTermMemory.values()) {
+            slot.tier = selectedIds.has(slot.id) ? 'working' : 'shortTerm';
         }
 
         return selected;

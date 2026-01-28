@@ -278,7 +278,7 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                 <Zap size={12} />
                                 动态参数
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <NumberField
                                     label="强化系数"
                                     description="再次召回时增强"
@@ -299,17 +299,6 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     value={config.brainRecall.decayRate}
                                     onChange={(val) => updateConfig({
                                         brainRecall: { ...config.brainRecall!, decayRate: val }
-                                    })}
-                                />
-                                <NumberField
-                                    label="淘汰阈值"
-                                    description="低于此值被移除"
-                                    min={0}
-                                    max={1}
-                                    step={0.05}
-                                    value={config.brainRecall.evictionThreshold}
-                                    onChange={(val) => updateConfig({
-                                        brainRecall: { ...config.brainRecall!, evictionThreshold: val }
                                     })}
                                 />
                             </div>
@@ -406,17 +395,7 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                         brainRecall: { ...config.brainRecall!, boredomPenalty: val }
                                     })}
                                 />
-                                <NumberField
-                                    label="MMR 阈值"
-                                    description="相似度 > 此值时为了多样性降权"
-                                    min={0}
-                                    max={1}
-                                    step={0.05}
-                                    value={config.brainRecall.mmrThreshold ?? 0.6}
-                                    onChange={(val) => updateConfig({
-                                        brainRecall: { ...config.brainRecall!, mmrThreshold: val }
-                                    })}
-                                />
+
                                 <NumberField
                                     label="新人红利"
                                     description="新记忆条目的初始加成"
