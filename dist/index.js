@@ -13707,7 +13707,7 @@ const MA = (e) => {
   catppuccin: yG,
   discord: gG,
   glass: vG
-}, bG = "1.1.0", tj = {
+}, bG = "1.2.0", tj = {
   version: bG
 };
 function Yo() {
