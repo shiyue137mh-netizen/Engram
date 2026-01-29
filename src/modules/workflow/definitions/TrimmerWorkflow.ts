@@ -4,6 +4,7 @@ import {
     FormatTrimInput,
     BuildPrompt,
     LlmRequest,
+    CleanRegex,
     StopGeneration,
     ParseJson,
     ApplyTrim
@@ -22,7 +23,9 @@ export const createTrimmerWorkflow = (): WorkflowDefinition => ({
         // V0.9.1 Preprocessor 使用 input.text. 这里我们用 FormatTrimInput 将结果放在 input.eventsText
         new BuildPrompt({ category: 'trimming' }), // 会找 'builtin_trim'
         new LlmRequest(), // 返回 JSON string
+        new CleanRegex('output'),  // V0.9.1: 清洗思维链等标签
         new ParseJson(),  // 解析为 Object
         new ApplyTrim()
     ]
 });
+

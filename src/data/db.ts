@@ -61,26 +61,34 @@ export class ChatDatabase extends Dexie {
 
     /**
      * 更新最后修改时间并调度上传
+     * V0.9.11: 增强导入期间的保护
      */
     private updateLastModified() {
-        try {
-            if (syncService.isImportingState) {
-                return;
-            }
+        // 检查导入锁 - 如果正在导入，完全跳过
+        if (syncService.isImportingState) {
+            return;
+        }
 
-            // V0.9.11: 忽略当前事务 (Fix NotFoundError)
-            Dexie.ignoreTransaction(() => {
+        // 使用 queueMicrotask 将操作推迟到当前事务完成后
+        // 这比 ignoreTransaction 更安全，避免在事务中操作 meta 表
+        queueMicrotask(() => {
+            try {
+                // 再次检查导入状态（防止在 microtask 排队期间状态变化）
+                if (syncService.isImportingState) {
+                    return;
+                }
+
                 this.meta.put({ key: 'lastModified', value: Date.now() }).catch(err => {
                     Logger.error(MODULE, '异步更新 lastModified 失败', err);
                 });
-            });
 
-            // 调度同步 (已做防抖处理)
-            syncService.scheduleUpload(this.chatId);
-        } catch (e) {
-            // CRITICAL: Hooks 绝对不能抛出异常，否则会打断数据库事务
-            Logger.error(MODULE, 'Hook 执行失败 (已捕获以保护事务)', e);
-        }
+                // 调度同步 (已做防抖处理)
+                syncService.scheduleUpload(this.chatId);
+            } catch (e) {
+                // CRITICAL: 绝对不能抛出异常
+                Logger.error(MODULE, 'Hook 执行失败 (已捕获以保护事务)', e);
+            }
+        });
     }
 }
 

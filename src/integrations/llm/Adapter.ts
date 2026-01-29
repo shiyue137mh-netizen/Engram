@@ -237,7 +237,8 @@ class LLMAdapter {
      */
     private async switchProfile(profileId: string): Promise<void> {
         try {
-            const { SlashCommandParser } = await import('@/integrations/tavern/api');
+            // @ts-ignore - 从酒馆全局获取 SlashCommandParser
+            const SlashCommandParser = window.SillyTavern?.getContext?.()?.SlashCommandParser;
 
             // 使用酒馆的 /profile 命令切换
             if (SlashCommandParser?.commands?.['profile']?.callback) {
@@ -255,6 +256,7 @@ class LLMAdapter {
             throw e;
         }
     }
+
 
     /**
      * 等待 Profile 切换生效 (防抖)

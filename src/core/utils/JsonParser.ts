@@ -7,6 +7,7 @@
  * 2. 修复与解析 (Repair & Parse)
  *
  * 注意：输入前的文本清洗（如移除 <think> 标签）应由调用方处理。
+ * 推荐在 workflow 中使用 CleanRegex 步骤进行预处理。
  */
 
 export class RobustJsonParser {

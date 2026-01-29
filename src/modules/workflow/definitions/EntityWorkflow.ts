@@ -4,6 +4,7 @@ import {
     FetchContext,
     BuildPrompt,
     LlmRequest,
+    CleanRegex,
     ParseJson,
     SaveEntity,
     UserReview
@@ -16,6 +17,7 @@ export const createEntityWorkflow = (): WorkflowDefinition => ({
         new FetchExistingEntities(),
         new BuildPrompt({ category: 'entity_extraction' }),
         new LlmRequest(),
+        new CleanRegex('output'),  // V0.9.1: 清洗思维链等标签
         new ParseJson(),
         // Add Review Step
         new UserReview({
@@ -25,3 +27,4 @@ export const createEntityWorkflow = (): WorkflowDefinition => ({
         new SaveEntity()
     ]
 });
+

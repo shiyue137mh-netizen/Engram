@@ -3,6 +3,7 @@ import { JobContext } from '../../core/JobContext';
 import { useMemoryStore } from '@/state/memoryStore';
 import { EntityNode, EntityType } from '@/data/types/graph';
 import { Logger } from '@/core/logger';
+import { RobustJsonParser } from '@/core/utils/JsonParser';
 import * as jsonpatch from 'fast-json-patch';
 import { z } from 'zod';
 
@@ -35,13 +36,12 @@ export class SaveEntity implements IStep {
 
         // Check if output was modified by UserReview (it would be a string)
         if (typeof context.output === 'string') {
-            try {
-                // Try parsing JSON first
-                sourceContent = JSON.parse(context.output);
-            } catch (e) {
-                // Use parse-json step logic or simple fallback?
-                // For now assuming it's JSON as we asked for JSON
-                throw new Error(`SaveEntity: Failed to re-parse user modified content - ${e}`);
+            // V0.9.1 Fix: 使用 RobustJsonParser 而非裸 JSON.parse
+            // 这样可以自动处理 <think> 标签和其他 LLM 输出噪音
+            sourceContent = RobustJsonParser.parse(context.output);
+
+            if (!sourceContent) {
+                throw new Error(`SaveEntity: Failed to re-parse user modified content - JSON 解析失败，请检查格式`);
             }
         } else if (context.output && typeof context.output === 'object') {
             // UserReview confirmed without changes, or wasn't run
