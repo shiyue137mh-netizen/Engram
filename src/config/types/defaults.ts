@@ -106,7 +106,7 @@ const DEFAULT_CUSTOM_MACROS: CustomMacro[] = [
 const DEFAULT_WORLDBOOK_CONFIG: WorldbookConfig = {
     enabled: true,
     includeGlobal: true,
-    disabledWorldbooks: [],
+    disabledWorldbooks: ['engram'],
     enableEJS: true, // V0.8 默认启用 EJS
 };
 

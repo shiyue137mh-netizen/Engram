@@ -29,9 +29,11 @@ Causality: ${kv.causality}
 Significance: ${e.significance_score}`;
         }).join('\n\n---\n\n');
 
-        // 将格式化后的文本放入变量，供 BuildPrompt 使用
-        // 假设 BuildPrompt 会使用 {{eventsText}}
+        // 将格式化后的文本放入变量
+        // Fix: 确保 {{engramSummaries}} 和 {{userInput}} (fallback) 都能获取到待精简的内容
         context.input.eventsText = formattedText;
+        context.input.engramSummaries = formattedText;
+        context.input.text = formattedText; // 兼容 {{userInput}}
         context.input.eventCount = events.length.toString();
 
         Logger.debug('FormatTrimInput', `格式化完成 (${formattedText.length} chars)`);

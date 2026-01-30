@@ -152,37 +152,6 @@ class EventTrimmer {
     }
 
     /**
-     * 将事件格式化为精简输入文本 (烧录格式)
-     */
-    private formatEventsForTrim(events: EventNode[]): string {
-        return events.map(e => {
-            const kv = e.structured_kv;
-            // V1.0.2: location 现在是数组
-            const locStr = Array.isArray(kv.location) ? kv.location.join(', ') : kv.location;
-            return `${e.summary}
-Role: [${kv.role.join(', ')}]
-Loc: [${locStr}]
-Event: ${kv.event}
-Logic: [${kv.logic.join(', ')}]
-Causality: ${kv.causality}
-Significance: ${e.significance_score}`;
-        }).join('\n\n---\n\n');
-    }
-
-    /**
-     * 合并多个数组并去重
-     */
-    private mergeArrays(arrays: string[][]): string[] {
-        const set = new Set<string>();
-        for (const arr of arrays) {
-            for (const item of arr) {
-                set.add(item);
-            }
-        }
-        return Array.from(set);
-    }
-
-    /**
      * 获取配置
      */
     getConfig(): TrimConfig {

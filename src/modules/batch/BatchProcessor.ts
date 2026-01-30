@@ -15,7 +15,9 @@ import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { Logger, LogModule } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 import { llmAdapter } from '@/integrations/llm/Adapter';
-import { pipeline } from '@/modules/workflow/Pipeline';
+import { WorkflowEngine, WorkflowDefinition } from '@/modules/workflow/core/WorkflowEngine';
+import { ParseJson } from '@/modules/workflow/steps/processing/ParseJson';
+import { SaveEvent } from '@/modules/workflow/steps/persistence/SaveEvent';
 import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
 
 // ==================== 类型定义 ====================
@@ -477,15 +479,28 @@ ${chunk}
                     const llmResult = await this.summarizeChunk(chunk, i);
 
                     if (llmResult) {
-                        // 尝试用 Pipeline 解析 JSON 并存储
-                        const pipelineResult = await pipeline.run({
-                            jsonContent: llmResult,
-                            sourceRange: { start: i, end: i },
-                        });
+                        // 使用 Workflow Engine 解析 JSON 并存储
+                        const savedEvents = await WorkflowEngine.run(
+                            {
+                                name: 'ImportFlow',
+                                steps: [new ParseJson(), new SaveEvent()]
+                            },
+                            {
+                                llmResponse: {
+                                    content: llmResult,
+                                    success: true,
+                                    tokenUsage: 0
+                                },
+                                input: {
+                                    // 模拟 range，用于 SaveEvent 记录 source_range
+                                    range: [i, i]
+                                }
+                            }
+                        );
 
-                        if (pipelineResult.success && pipelineResult.events?.length) {
+                        if (Array.isArray(savedEvents) && savedEvents.length > 0) {
                             // Pipeline 已处理存储，只需嵌入
-                            for (const evt of pipelineResult.events) {
+                            for (const evt of savedEvents) {
                                 await embeddingService.embedEvent(evt);
                             }
                             success++;

@@ -53,7 +53,8 @@ export const MemoryStream: React.FC = () => {
 
     // 批量修改状态
     const [pendingChanges, setPendingChanges] = useState<Map<string, Partial<EventNode>>>(new Map());
-    const hasChanges = pendingChanges.size > 0;
+    const [pendingEntityChanges, setPendingEntityChanges] = useState<Map<string, Partial<EntityNode>>>(new Map()); // Added for Entities
+    const hasChanges = pendingChanges.size > 0 || pendingEntityChanges.size > 0;
 
     // 重嵌状态
     const [isReembedding, setIsReembedding] = useState(false);
@@ -155,10 +156,16 @@ export const MemoryStream: React.FC = () => {
         return event;
     }, [events, selectedId, pendingChanges]);
 
-    // 选中的实体
+    // 选中的实体 (合并待保存的修改)
     const selectedEntity = useMemo(() => {
-        return entities.find(e => e.id === selectedId) || null;
-    }, [entities, selectedId]);
+        const entity = entities.find(e => e.id === selectedId);
+        if (!entity) return null;
+        const pending = pendingEntityChanges.get(entity.id);
+        if (pending) {
+            return { ...entity, ...pending } as EntityNode;
+        }
+        return entity;
+    }, [entities, selectedId, pendingEntityChanges]);
 
     // 选择事件/实体
     const handleSelect = (id: string) => {
@@ -196,34 +203,53 @@ export const MemoryStream: React.FC = () => {
 
 
 
-    // 实体修改回调
-    const handleEntityChange = useCallback(async (id: string, updates: Partial<EntityNode>) => {
-        try {
-            await store.updateEntity(id, updates);
-            setEntities(prev => prev.map(e =>
-                e.id === id ? { ...e, ...updates } as EntityNode : e
-            ));
-            console.log('[MemoryStream] Entity updated:', id);
-        } catch (e) {
-            console.error('[MemoryStream] Failed to update entity:', e);
-            alert('实体更新失败');
-        }
+    // 实体修改回调 (暂存，不立即保存)
+    const handleEntityChange = useCallback((id: string, updates: Partial<EntityNode>) => {
+        setPendingEntityChanges(prev => {
+            const newMap = new Map(prev);
+            const existing = newMap.get(id) || {};
+            newMap.set(id, { ...existing, ...updates });
+            return newMap;
+        });
+
+        // 同步更新本地显示
+        setEntities(prev => prev.map(e =>
+            e.id === id ? { ...e, ...updates } as EntityNode : e
+        ));
     }, []);
 
-    // 批量保存所有修改
+    // 批量保存所有修改 (Events & Entities)
     const handleBatchSave = async () => {
-        if (pendingChanges.size === 0) return;
+        if (pendingChanges.size === 0 && pendingEntityChanges.size === 0) return;
 
         try {
-            const promises = Array.from(pendingChanges.entries()).map(
-                ([id, updates]) => store.updateEvent(id, updates)
-            );
+            const promises: Promise<any>[] = [];
+
+            // Save Events
+            if (pendingChanges.size > 0) {
+                promises.push(...Array.from(pendingChanges.entries()).map(
+                    ([id, updates]) => store.updateEvent(id, updates)
+                ));
+            }
+
+            // Save Entities
+            if (pendingEntityChanges.size > 0) {
+                promises.push(...Array.from(pendingEntityChanges.entries()).map(
+                    ([id, updates]) => store.updateEntity(id, updates)
+                ));
+            }
+
             await Promise.all(promises);
 
-            console.log(`[MemoryStream] Batch saved ${pendingChanges.size} events`);
+            console.log(`[MemoryStream] Batch saved: Events=${pendingChanges.size}, Entities=${pendingEntityChanges.size}`);
             setPendingChanges(new Map());
+            setPendingEntityChanges(new Map());
+
+            // Optional: Show feedback
+            // alert('Saved!');
         } catch (e) {
             console.error('[MemoryStream] Batch save failed:', e);
+            alert('部分保存失败，请检查控制台');
         }
     };
 
@@ -269,10 +295,15 @@ export const MemoryStream: React.FC = () => {
         if (viewTab === 'entities') {
             await store.deleteEntity(id);
             setEntities(prev => prev.filter(e => e.id !== id));
+            // 移除实体待保存的修改
+            setPendingEntityChanges(prev => {
+                const newMap = new Map(prev);
+                newMap.delete(id);
+                return newMap;
+            });
         } else {
             await store.deleteEvents([id]);
             setEvents(prev => prev.filter(e => e.id !== id));
-            // 移除待保存的修改
             setPendingChanges(prev => {
                 const newMap = new Map(prev);
                 newMap.delete(id);
@@ -292,10 +323,15 @@ export const MemoryStream: React.FC = () => {
             const ids = Array.from(checkedIds);
             await store.deleteEntities(ids);
             setEntities(prev => prev.filter(e => !checkedIds.has(e.id)));
+            // 移除实体待保存的修改
+            setPendingEntityChanges(prev => {
+                const newMap = new Map(prev);
+                checkedIds.forEach(id => newMap.delete(id));
+                return newMap;
+            });
         } else {
             await store.deleteEvents(Array.from(checkedIds));
             setEvents(prev => prev.filter(e => !checkedIds.has(e.id)));
-            // 移除待保存的修改
             setPendingChanges(prev => {
                 const newMap = new Map(prev);
                 checkedIds.forEach(id => newMap.delete(id));
@@ -356,14 +392,15 @@ export const MemoryStream: React.FC = () => {
                 }}
                 actions={
                     <div className="flex items-center gap-2">
-                        {/* 保存按钮 - 有修改时显示 (Only for events for now) */}
-                        {viewTab === 'list' && hasChanges && (
+
+                        {/* 保存按钮 - 有修改时显示 (Shared for Events and Entities) */}
+                        {hasChanges && (
                             <button
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary hover:text-primary-foreground hover:bg-primary border border-primary/50 rounded transition-colors"
                                 onClick={handleBatchSave}
                             >
                                 <Save size={12} />
-                                保存 ({pendingChanges.size})
+                                保存 ({pendingChanges.size + pendingEntityChanges.size})
                             </button>
                         )}
 
@@ -431,7 +468,9 @@ export const MemoryStream: React.FC = () => {
                         {/* 宏预览 */}
                         <button
                             onClick={() => {
-                                setPreviewContent(MacroService.getSummaries() || '(空 - 暂无注入内容)');
+                                const summaries = MacroService.getSummaries() || '(无剧情摘要)';
+                                const entities = MacroService.getEntityStates() || '(无实体状态)';
+                                setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
                                 setShowPreview(true);
                             }}
                             className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
@@ -575,6 +614,8 @@ export const MemoryStream: React.FC = () => {
                                         isSelected={entity.id === selectedId}
                                         isCompact={isMobile}
                                         checked={checkedIds.has(entity.id)}
+                                        // 假设 EntityCard 支持 hasChanges prop (如果不支持需要添加，这里先不传以防报错，或者检查 components/EntityCard.tsx)
+                                        // hasChanges={pendingEntityChanges.has(entity.id)}
                                         onSelect={() => handleSelect(entity.id)}
                                         onCheck={(checked) => handleCheck(entity.id, checked)}
                                     />
@@ -628,7 +669,7 @@ export const MemoryStream: React.FC = () => {
                             </pre>
                         </div>
                         <div className="px-4 py-2 border-t border-border bg-muted/20 text-[10px] text-muted-foreground">
-                            *此内容为 {'{{engramSummaries}}'} 宏在当前上下文中的实际输出值
+                            *此内容为 {'{{engramSummaries}}'} 和 {'{{engramEntityStates}}'} 宏在当前上下文中的实际输出值
                         </div>
                     </div>
                 </div>
