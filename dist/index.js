@@ -16344,13 +16344,11 @@ enabled: true
 injectionMode: replace
 userPromptTemplate: |
   {{worldbookContext}}
-  以上是相关设定和剧情。
-
-  请将以下多条剧情摘要合并精简：
-
   {{engramSummaries}}
+  以上是当前故事的完整剧情概览（背景信息）。
 
-  请输出一条精简后的综合摘要。
+  请将其中的这部分多条剧情摘要合并精简成一个**一个**事件对象:
+  {{targetSummaries}}
 
   【重要】：这是一项数据归档任务。请合并已有摘要，**不要**创作新的剧情内容。仅输出 JSON 格式。
 systemPrompt: |
@@ -37683,18 +37681,18 @@ class ex {
       m = m.replace(M, N), x = x.replace(M, N);
     }
     const b = t.input, w = {
-      "{{chatHistory}}": b.chatHistory || "",
-      "{{engramSummaries}}": b.engramSummaries || "",
-      "{{worldbookContext}}": b.worldbookContext || "",
-      "{{context}}": b.context || b.worldbookContext || "",
-      // Alias
-      "{{userPersona}}": b.userPersona || "",
-      // 需要 FetchContext 支持
-      "{{char}}": b.charName || "",
-      "{{user}}": b.userName || ""
+      "{{chatHistory}}": b.chatHistory,
+      "{{engramSummaries}}": b.engramSummaries,
+      "{{targetSummaries}}": b.targetSummaries,
+      // V1.2.1 New Trigger Variable
+      "{{worldbookContext}}": b.worldbookContext,
+      "{{context}}": b.context || b.worldbookContext,
+      "{{userPersona}}": b.userPersona,
+      "{{char}}": b.charName,
+      "{{user}}": b.userName
     };
     for (const [R, N] of Object.entries(w))
-      m = m.split(R).join(N), x = x.split(R).join(N);
+      N != null && (m = m.split(R).join(N), x = x.split(R).join(N));
     try {
       const R = (j = (C = window.SillyTavern) == null ? void 0 : C.getContext) == null ? void 0 : j.call(C), N = R == null ? void 0 : R.substituteParams;
       typeof N == "function" && (m = N(m), x = N(x));
@@ -42728,7 +42726,7 @@ Significance: ${s.significance_score}`;
 ---
 
 `);
-    t.input.eventsText = r, t.input.engramSummaries = r, t.input.text = r, t.input.eventCount = n.length.toString(), ee.debug("FormatTrimInput", `格式化完成 (${r.length} chars)`);
+    t.input.targetSummaries = r, t.input.eventsText = r, t.input.text = r, t.input.eventCount = n.length.toString(), ee.debug("FormatTrimInput", `格式化完成 (${r.length} chars)`);
   }
 }
 class hw {
@@ -67398,16 +67396,16 @@ class L2e {
   }
   /** 分析历史消息，计算所需任务 */
   async analyzeHistory(t = 0, n, r) {
-    const s = Wo.getStatus().currentFloor, a = n ?? s, u = new Set(r || ["summary", "entity", "trim", "embed"]), d = Wo.getConfig(), f = Ia.getConfig(), h = J1.getConfig(), m = a - t, x = d.floorInterval || 10, b = f.floorInterval || 50, w = u.has("summary") ? Math.ceil(m / x) : 0, S = u.has("entity") && f.enabled ? Math.ceil(m / b) : 0, C = h.countLimit || 5, j = u.has("trim") && h.enabled ? Math.floor(w / C) : 0, R = u.has("embed") ? (w || 1) * 2 : 0, N = w * 2e3 + S * 2e3 + j * 2e3 + R * 200;
+    const s = Wo.getStatus().currentFloor, a = new Set(r || ["summary", "entity", "trim", "embed"]), u = Wo.getConfig(), d = Ia.getConfig(), f = J1.getConfig(), h = u.bufferSize || 0, m = s - h, x = n ?? Math.max(0, m), b = Math.max(0, x - t), w = u.floorInterval || 10, S = d.floorInterval || 50, C = a.has("summary") ? Math.ceil(b / w) : 0, j = a.has("entity") && d.enabled ? Math.ceil(b / S) : 0, R = f.countLimit || 5, N = a.has("trim") && f.enabled ? Math.floor(C / R) : 0, M = a.has("embed") ? (C || 1) * 2 : 0, P = C * 2e3 + j * 2e3 + N * 2e3 + M * 200;
     return {
       currentFloor: s,
       startFloor: t,
-      endFloor: a,
-      summaryTasks: w,
-      entityTasks: S,
-      trimTasks: j,
-      embedTasks: R,
-      estimatedTokens: N
+      endFloor: x,
+      summaryTasks: C,
+      entityTasks: j,
+      trimTasks: N,
+      embedTasks: M,
+      estimatedTokens: P
     };
   }
   /** 构建任务队列 */

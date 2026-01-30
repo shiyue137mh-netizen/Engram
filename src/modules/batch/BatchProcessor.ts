@@ -98,14 +98,21 @@ class BatchProcessor {
     async analyzeHistory(startFloor = 0, endFloor?: number, types?: BatchTaskType[]): Promise<HistoryAnalysis> {
         const status = summarizerService.getStatus();
         const currentFloor = status.currentFloor;
-        const targetEnd = endFloor ?? currentFloor;
         const targetTypes = new Set(types || ['summary', 'entity', 'trim', 'embed']);
 
         const summarizerConfig = summarizerService.getConfig();
         const entityConfig = entityBuilder.getConfig();
         const trimConfig = eventTrimmer.getConfig();
 
-        const floorRange = targetEnd - startFloor;
+        // V1.2 Fix: Apply buffer size to protect recent messages
+        const bufferSize = summarizerConfig.bufferSize || 0;
+        const maxProcessableFloor = currentFloor - bufferSize;
+
+        // If endFloor is not specified, default to buffered max floor
+        // If endFloor IS specified, we respect it (user manual override)
+        const targetEnd = endFloor ?? Math.max(0, maxProcessableFloor);
+        const floorRange = Math.max(0, targetEnd - startFloor);
+
         const summaryInterval = summarizerConfig.floorInterval || 10;
         const entityInterval = entityConfig.floorInterval || 50;
 

@@ -116,21 +116,30 @@ export class BuildPrompt implements IStep {
         const contextData = context.input;
 
         // 手动映射已知宏 (覆盖 template 中的 {{key}})
-        const macroMapping: Record<string, string> = {
-            '{{chatHistory}}': contextData.chatHistory || '',
-            '{{engramSummaries}}': contextData.engramSummaries || '',
-            '{{worldbookContext}}': contextData.worldbookContext || '',
-            '{{context}}': contextData.context || contextData.worldbookContext || '', // Alias
-            '{{userPersona}}': contextData.userPersona || '', // 需要 FetchContext 支持
-            '{{char}}': contextData.charName || '',
-            '{{user}}': contextData.userName || '',
+        // 手动映射已知宏 (覆盖 template 中的 {{key}})
+        // V1.2.1: 只映射 Context 中存在的变量，如果是空值则跳过，
+        // 从而允许后续的酒馆全局宏 (substituteParams) 进行回退处理 (例如 {{engramSummaries}})
+        const potentialMacros: Record<string, string | undefined> = {
+            '{{chatHistory}}': contextData.chatHistory,
+            '{{engramSummaries}}': contextData.engramSummaries,
+            '{{targetSummaries}}': contextData.targetSummaries, // V1.2.1 New Trigger Variable
+            '{{worldbookContext}}': contextData.worldbookContext,
+            '{{context}}': contextData.context || contextData.worldbookContext,
+            '{{userPersona}}': contextData.userPersona,
+            '{{char}}': contextData.charName,
+            '{{user}}': contextData.userName,
         };
 
         // 执行替换
-        for (const [key, value] of Object.entries(macroMapping)) {
-            // 使用 split/join 进行全局替换，或者 replaceAll
-            systemPrompt = systemPrompt.split(key).join(value);
-            userPrompt = userPrompt.split(key).join(value);
+        for (const [key, value] of Object.entries(potentialMacros)) {
+            // 只有当 value 有值时才替换 (空字符串是否要替换？)
+            // 如果我们想让 "空字符串" 覆盖全局宏，那么应该替换。
+            // 但对于 engramSummaries，在 Trim 流程中，FormatTrimInput 不再设置它，
+            // 所以这里是 undefined。undefined 不应该替换。
+            if (value !== undefined && value !== null) {
+                systemPrompt = systemPrompt.split(key).join(value);
+                userPrompt = userPrompt.split(key).join(value);
+            }
         }
 
         // 保存结果之前，调用酒馆原生宏替换 (处理 {{time}}, {{date}}, {{user}} 等标准宏)

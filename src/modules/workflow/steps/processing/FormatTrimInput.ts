@@ -30,9 +30,9 @@ Significance: ${e.significance_score}`;
         }).join('\n\n---\n\n');
 
         // 将格式化后的文本放入变量
-        // Fix: 确保 {{engramSummaries}} 和 {{userInput}} (fallback) 都能获取到待精简的内容
-        context.input.eventsText = formattedText;
-        context.input.engramSummaries = formattedText;
+        // V1.2.1: 使用 targetSummaries 存储待精简内容，避免覆盖全局 engramSummaries
+        context.input.targetSummaries = formattedText;
+        context.input.eventsText = formattedText; // 兼容旧名称
         context.input.text = formattedText; // 兼容 {{userInput}}
         context.input.eventCount = events.length.toString();
 

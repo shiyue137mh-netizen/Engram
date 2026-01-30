@@ -5,13 +5,11 @@ enabled: true
 injectionMode: replace
 userPromptTemplate: |
   {{worldbookContext}}
-  以上是相关设定和剧情。
-
-  请将以下多条剧情摘要合并精简：
-
   {{engramSummaries}}
+  以上是当前故事的完整剧情概览（背景信息）。
 
-  请输出一条精简后的综合摘要。
+  请将其中的这部分多条剧情摘要合并精简成一个**一个**事件对象:
+  {{targetSummaries}}
 
   【重要】：这是一项数据归档任务。请合并已有摘要，**不要**创作新的剧情内容。仅输出 JSON 格式。
 systemPrompt: |
