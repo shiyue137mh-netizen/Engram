@@ -64,6 +64,8 @@ export const MemoryStream: React.FC = () => {
 
     // Editor ref
     const editorRef = useRef<EventEditorHandle>(null);
+    // List container ref (for auto-scroll)
+    const listRef = useRef<HTMLDivElement>(null);
 
     // 响应式检测
     useEffect(() => {
@@ -102,10 +104,23 @@ export const MemoryStream: React.FC = () => {
         }
     };
 
+
     useEffect(() => {
         loadEvents();
         loadEntities();
     }, []);
+
+    // Auto-scroll to bottom when events invoke (initial load or refresh)
+    useEffect(() => {
+        if (listRef.current && events.length > 0) {
+            // Scroll to bottom to show latest events (Stream view)
+            requestAnimationFrame(() => {
+                if (listRef.current) {
+                    listRef.current.scrollTop = listRef.current.scrollHeight;
+                }
+            });
+        }
+    }, [events]);
 
     // 过滤事件
     const filteredEvents = useMemo(() => {
@@ -505,6 +520,7 @@ export const MemoryStream: React.FC = () => {
                     }}
                 >
                     <MasterDetailLayout
+                        listRef={listRef}
                         mobileDetailOpen={false} // Handled by separate MobileFullscreenForm return above
                         mobileDetailTitle="编辑事件"
                         header={

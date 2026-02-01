@@ -1,5 +1,5 @@
-import React from 'react';
 import { useResponsive } from '@/ui/hooks/useResponsive';
+import React from 'react';
 import { MobileFullscreenForm } from './MobileFullscreenForm';
 
 interface MasterDetailLayoutProps {
@@ -11,6 +11,8 @@ interface MasterDetailLayoutProps {
     header?: React.ReactNode;
     /** PC端列表宽度，默认 '30%'，最小 '240px' */
     listWidth?: string;
+    /** 列表区域 Ref (用于控制滚动) */
+    listRef?: React.RefObject<HTMLDivElement | null>;
 
     // --- 移动端相关配置 ---
 
@@ -41,6 +43,7 @@ export const MasterDetailLayout: React.FC<MasterDetailLayoutProps> = ({
     list,
     detail,
     header,
+    listRef,
     listWidth = '30%',
     mobileDetailOpen = false,
     onMobileDetailClose,
@@ -85,6 +88,7 @@ export const MasterDetailLayout: React.FC<MasterDetailLayoutProps> = ({
                         width: isMobile ? '100%' : listWidth,
                         minWidth: isMobile ? 'auto' : '240px'
                     }}
+                    ref={listRef}
                 >
                     {list}
                 </div>
@@ -96,6 +100,6 @@ export const MasterDetailLayout: React.FC<MasterDetailLayoutProps> = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 };

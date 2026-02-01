@@ -57,7 +57,7 @@ export class UserReview implements IStep {
                 this.config.title,
                 this.config.description || `范围: ${range} | Token: ${tokenCount}`,
                 contentToReview,
-                ['confirm', 'fill', 'reject', 'reroll'],
+                ['confirm', 'fill', 'reject', 'reroll', 'cancel'],
                 reviewType,
                 reviewData
             );

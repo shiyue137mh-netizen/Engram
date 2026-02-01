@@ -138,6 +138,16 @@ export const ReviewContainer: React.FC = () => {
                             >
                                 <Minus size={18} />
                             </button>
+                            {/* Close (Cancel) Button */}
+                            {request.actions?.includes('cancel') && (
+                                <button
+                                    onClick={() => handleAction('cancel')}
+                                    className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                    title="取消"
+                                >
+                                    <X size={18} />
+                                </button>
+                            )}
                         </div>
                     </div>
 
