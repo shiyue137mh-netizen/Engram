@@ -15,6 +15,7 @@ import React, { useEffect, useState } from 'react';
 // import { Divider } from '@/ui/components/layout/Divider'; // Already imported
 import type { EntityExtractConfig } from '@/config/types/memory';
 import { reviewService } from '@/core/events/ReviewBridge'; // V1.2 Review System
+import { notificationService } from '@/ui/services/NotificationService';
 
 interface EntityStatus {
     enabled: boolean;
@@ -80,12 +81,18 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
     // 手动提取 (带预览)
     const handleManualExtract = async () => {
         setIsLoading(true);
+        let loadingToast: any = null;
         try {
+            loadingToast = notificationService.running('正在提取实体...', '实体提取');
             // 1. Dry Run
             Logger.debug('EntityConfigPanel', 'Starting manual extract dry-run');
             const result = await entityBuilder.extractManual(true);
 
             if (result && result.success && (result.newEntities.length > 0 || result.updatedEntities.length > 0)) {
+                // Remove loading toast before showing review (optional, but cleaner)
+                if (loadingToast) notificationService.remove(loadingToast);
+                loadingToast = null;
+
                 // 2. Request Review via ReviewBridge
                 Logger.info('EntityConfigPanel', 'Requesting Review', { new: result.newEntities.length });
 
@@ -106,18 +113,25 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
                         await entityBuilder.saveRawEntities(finalData.newEntities, finalData.updatedEntities);
                         await loadStatus();
                         Logger.info('EntityConfigPanel', 'Entities saved via Review', finalData);
+                        notificationService.success(
+                            `成功保存 ${finalData.newEntities.length} 个新实体，更新 ${finalData.updatedEntities.length} 个实体。`,
+                            '实体提取'
+                        );
                     }
                 });
 
             } else {
                 Logger.info('EntityConfigPanel', 'No changes detected or extraction failed');
+                notificationService.info('没有发现新实体或变更。', '实体提取');
                 if (result && result.success) {
                     await loadStatus();
                 }
             }
         } catch (e) {
             console.error('[EntityConfigPanel] Manual extraction failed:', e);
+            notificationService.error(`提取失败: ${e}`, '实体提取');
         } finally {
+            if (loadingToast) notificationService.remove(loadingToast);
             setIsLoading(false);
         }
     };

@@ -25,6 +25,12 @@ export class UserReview implements IStep {
 
         const contentToReview = context.cleanedContent || context.llmResponse?.content || '';
 
+        // V1.2.1: 如果内容为空，视为生成失败，抛出错误中止流程 (不进入预览)
+        if (!contentToReview || !contentToReview.trim()) {
+            Logger.warn('UserReview', 'Content is empty, skipping review');
+            throw new Error('生成的摘要内容为空，请检查模型输出或 Token 限制。');
+        }
+
         // 计算 Token (供显示)
         const tokenCount = await WorldInfoService.countTokens(contentToReview);
         const range = context.input.range ? `${context.input.range[0]} - ${context.input.range[1]} 楼` : '未知范围';
