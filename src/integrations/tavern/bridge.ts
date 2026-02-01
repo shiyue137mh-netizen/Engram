@@ -5,7 +5,7 @@
  * 所有 window.SillyTavern、jQuery、eventSource 的调用都在这里统一管理。
  */
 // 使用统一的 STContext 模块
-import { getSTContext, getCurrentChat, getCurrentCharacter, STMessage } from "@/integrations/tavern/context";
+import { getSTContext, STMessage } from "@/integrations/tavern/context";
 export { getSTContext, type STMessage } from "@/integrations/tavern/context";
 
 /**
@@ -286,7 +286,10 @@ function setupEventListeners(): void {
 export async function hideMessageRange(start: number, end: number): Promise<void> {
     try {
         const importPath = '/scripts/chats.js';
+        const scriptPath = '/script.js';
+
         const chatsModule = await (new Function('path', 'return import(path)'))(importPath);
+        const scriptModule = await (new Function('path', 'return import(path)'))(scriptPath);
 
         if (chatsModule && typeof chatsModule.hideChatMessageRange === 'function') {
             // start - 1 / end - 1 ?
@@ -295,6 +298,15 @@ export async function hideMessageRange(start: number, end: number): Promise<void
             // 假设 Engram 这里的 floor 是 0-indexed 的 message index (matches context.chat length)
             // 根据之前的 SummarizerService, sourceFloors 似乎就是 message index。
             await chatsModule.hideChatMessageRange(start, end, false); // unhide=false -> hide
+
+            // Fix: Enforce save to ensure persistence
+            if (scriptModule && typeof scriptModule.saveChat === 'function') {
+                await scriptModule.saveChat();
+                console.log(`[Engram] Chat saved after hiding range: ${start}-${end}`);
+            } else {
+                console.warn('[Engram] saveChat not found in script.js');
+            }
+
             // Console is okay here for debugging interactions with ST internals
             console.log(`[Engram] Hidden messages range: ${start}-${end}`);
         } else {

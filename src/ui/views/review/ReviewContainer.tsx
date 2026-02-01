@@ -197,31 +197,20 @@ export const ReviewContainer: React.FC = () => {
                     </div>
 
                     {/* Footer / Action Bar */}
-                    <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-muted/30">
+                    <div className="flex flex-col-reverse sm:flex-row items-center justify-between px-4 py-4 sm:px-5 border-t border-border bg-muted/30 gap-4 sm:gap-0">
                         {/* Left Group */}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 w-full sm:w-auto justify-start">
                             {showFeedbackInput ? (
-                                <Button label="返回" onClick={() => setShowFeedbackInput(false)} />
+                                <Button label="返回" onClick={() => setShowFeedbackInput(false)} className="w-full sm:w-auto" />
                             ) : (
                                 <>
-                                    {/* Cancel Action */}
-                                    {request.actions?.includes('cancel') && (
-                                        <Button
-                                            label="取消"
-                                            icon={X}
-                                            onClick={() => handleAction('cancel')}
-                                            className="border-transparent text-muted-foreground hover:text-foreground hover:bg-muted"
-                                            title="取消操作"
-                                        />
-                                    )}
-
                                     {/* Fill Action (formerly Skip) */}
                                     {request.actions?.includes('fill') && (
                                         <Button
                                             label="填充"
                                             icon={ArrowDownToLine}
                                             onClick={() => handleAction('fill')}
-                                            className="border-transparent text-muted-foreground hover:text-foreground hover:bg-muted"
+                                            className="border-transparent text-muted-foreground hover:text-foreground hover:bg-muted w-full sm:w-auto"
                                             title="将内容直接作为 AI 回复填充"
                                         />
                                     )}
@@ -230,14 +219,14 @@ export const ReviewContainer: React.FC = () => {
                         </div>
 
                         {/* Right Group */}
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 w-full sm:w-auto sm:justify-end">
                             {showFeedbackInput ? (
                                 <Button
                                     label="提交打回"
                                     icon={RotateCcw}
                                     onClick={() => handleAction('reject')}
                                     disabled={!feedback.trim()}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-transparent hover:shadow-[0_0_15px_var(--destructive)]"
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90 border-transparent hover:shadow-[0_0_15px_var(--destructive)] w-full sm:w-auto"
                                 />
                             ) : (
                                 <>
@@ -248,16 +237,17 @@ export const ReviewContainer: React.FC = () => {
                                             icon={RotateCcw}
                                             onClick={() => handleAction('reject')} // Opens feedback input
                                             title="提供意见并重新生成"
-                                            className="text-destructive hover:bg-destructive/10 border-destructive/30 hover:border-destructive"
+                                            className="text-destructive hover:bg-destructive/10 border-destructive/30 hover:border-destructive flex-1 sm:flex-none"
                                         />
                                     )}
 
                                     {request.actions?.includes('reroll') && (
                                         <Button
-                                            label="重抽 (Reroll)"
+                                            label="重抽"
                                             icon={RefreshCw}
                                             onClick={() => handleAction('reroll')}
                                             title="不满意，直接重新生成"
+                                            className="flex-1 sm:flex-none"
                                         />
                                     )}
 
@@ -268,7 +258,7 @@ export const ReviewContainer: React.FC = () => {
                                             icon={Check}
                                             primary
                                             onClick={() => handleAction('confirm')}
-                                            className="min-w-[120px]"
+                                            className="min-w-[120px] flex-1 sm:flex-none"
                                         />
                                     )}
                                 </>
