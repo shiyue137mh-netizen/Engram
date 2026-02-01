@@ -241,7 +241,7 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
                                 type="range"
                                 min={2}
                                 max={100}
-                                step={5}
+                                step={1}
                                 value={config.floorInterval}
                                 onChange={(e) => handleIntervalChange(parseInt(e.target.value))}
                                 className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"

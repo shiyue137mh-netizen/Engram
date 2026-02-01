@@ -6,15 +6,15 @@
  * - 输入从原始对话提取，而非 Summary
  */
 
-import { useMemoryStore } from '@/state/memoryStore';
-import { chatManager } from '@/data/ChatManager';
-import { MacroService } from '@/integrations/tavern/macros';
-import { Logger, LogModule } from '@/core/logger';
-import { notificationService } from '@/ui/services/NotificationService';
 import { SettingsManager } from '@/config/settings';
-import type { EntityNode } from '@/data/types/graph';
-import type { EntityExtractConfig } from '@/config/types/memory';
 import { DEFAULT_ENTITY_CONFIG } from '@/config/types/defaults';
+import type { EntityExtractConfig } from '@/config/types/memory';
+import { Logger, LogModule } from '@/core/logger';
+import { chatManager } from '@/data/ChatManager';
+import type { EntityNode } from '@/data/types/graph';
+import { MacroService } from '@/integrations/tavern/macros';
+import { useMemoryStore } from '@/state/memoryStore';
+import { notificationService } from '@/ui/services/NotificationService';
 
 /**
  * 实体构建结果
@@ -66,6 +66,12 @@ export class EntityBuilder {
      * V0.9.1: 使用楼层触发器，与 SummarizerService 一致
      */
     shouldTriggerOnFloor(currentFloor: number): boolean {
+        // V0.9.12: Fix - 每次检查触发器时刷新配置，避免初始化时的 stale config
+        const savedConfig = SettingsManager.get('apiSettings')?.entityExtractConfig;
+        if (savedConfig) {
+            this.config = { ...this.config, ...savedConfig };
+        }
+
         if (!this.config.enabled) {
             return false;
         }

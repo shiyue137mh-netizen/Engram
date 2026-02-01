@@ -4129,9 +4129,11 @@ userPromptTemplate: |
   **最近对话历史**:
   {{chatHistory}}
 
+  请以以下的数据作为唯一的实体数据库状态来判断更新或者是新建实体。
   **已经存在的待更新的实体**:
+  \`\`\`实体数据
   {{engramEntityStates}}
-
+  \`\`\`
   (如果这里没有或者数据过时,请进行注册或者更新)
   ---
   请按JSON patch格式对实体和关系数据进行注册和更新。
@@ -4206,6 +4208,7 @@ systemPrompt: |
     <update_strategy>
       标准: RFC 6902 (JSON Patch)
       原则:
+        - 对于还未注册的实体，请用"\`\`\`json","\`\`\`"进行注册
         - 对于 existingEntities 中已有的实体，使用 patches 数组输出更新操作。
         - 仅输出变动部分 (op: replace/add/remove)。
         - path 必须是合法的 JSON Pointer (例如 /profile/status)。
@@ -43842,7 +43845,9 @@ class KL {
    * V0.9.1: 使用楼层触发器，与 SummarizerService 一致
    */
   shouldTriggerOnFloor(t) {
-    return !this.config.enabled || this.config.trigger !== "floor" ? !1 : t > 0 && t % this.config.floorInterval === 0;
+    var r;
+    const n = (r = it.get("apiSettings")) == null ? void 0 : r.entityExtractConfig;
+    return n && (this.config = { ...this.config, ...n }), !this.config.enabled || this.config.trigger !== "floor" ? !1 : t > 0 && t % this.config.floorInterval === 0;
   }
   /**
    * 从原始聊天历史提取实体
@@ -67557,7 +67562,7 @@ const I2e = [
                 type: "range",
                 min: 2,
                 max: 100,
-                step: 5,
+                step: 1,
                 value: e.floorInterval,
                 onChange: (h) => d(parseInt(h.target.value)),
                 className: "absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0",
