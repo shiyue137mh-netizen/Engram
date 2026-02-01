@@ -90,6 +90,11 @@ export class UserReview implements IStep {
                 return { action: 'jump', targetStep: 'BuildPrompt', reason: 'User rejected' };
             }
 
+            if (result.action === 'cancel') {
+                Logger.info('UserReview', 'User explicitly cancelled via Review UI');
+                throw new Error('UserCancelled');
+            }
+
             // Confirm
             context.cleanedContent = result.content;
 
