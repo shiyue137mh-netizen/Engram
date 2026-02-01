@@ -25,10 +25,11 @@ interface UpdateNoticeProps {
 const EXTENSION_ID = 'Engram';
 
 /**
- * 获取扩展类型（global/local/system）
+ * 获取扩展信息 (name, type)
  * 通过调用酒馆的 discover API 获取，这是最可靠的方式
+ * 支持识别: Engram, Engram_project, third-party/Engram 等
  */
-async function getExtensionType(extensionId: string): Promise<'global' | 'local' | 'system' | null> {
+async function getExtensionInfo(): Promise<{ name: string; type: 'global' | 'local' | 'system' } | null> {
     try {
         const response = await fetch('/api/extensions/discover');
         if (!response.ok) {
@@ -37,17 +38,30 @@ async function getExtensionType(extensionId: string): Promise<'global' | 'local'
         }
         const extensions: { name: string; type: string }[] = await response.json();
 
-        // 查找匹配的扩展（name 可能包含路径前缀，如 third-party/Engram_project）
-        const found = extensions.find(ext =>
-            ext.name === extensionId || ext.name.endsWith(extensionId)
-        );
+        // 查找匹配的扩展
+        // 1. 精确匹配 ID
+        // 2. 也是很常见的目录名 Engram_project
+        // 3. 检查路径结尾 (如 third-party/Engram)
+        const targetNames = ['Engram', 'Engram_project'];
+
+        const found = extensions.find(ext => {
+            // 检查是否包含关键字
+            return targetNames.some(target =>
+                ext.name === target ||
+                ext.name.endsWith('/' + target) ||
+                ext.name.endsWith('\\' + target) // Windows path safety
+            );
+        });
 
         if (found) {
             console.debug('[Engram] 找到扩展:', found.name, '类型:', found.type);
-            return found.type as 'global' | 'local' | 'system';
+            return {
+                name: found.name,
+                type: found.type as 'global' | 'local' | 'system'
+            };
         }
 
-        console.warn('[Engram] 未找到扩展:', extensionId);
+        console.warn('[Engram] 未找到扩展, 将尝试默认配置');
         return null;
     } catch (e) {
         console.warn('[Engram] 获取扩展类型失败', e);
@@ -88,10 +102,15 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
     try {
         const headers = getTavernRequestHeaders();
 
-        // 动态获取扩展类型（global 需要 global=true，其他都是 false）
-        const extensionType = await getExtensionType(EXTENSION_ID);
-        const isGlobal = extensionType === 'global';
-        console.debug('[Engram] 扩展类型:', extensionType, '| global:', isGlobal);
+        // 动态获取扩展信息
+        const extInit = await getExtensionInfo();
+
+        // 如果没找到，回退到默认
+        const extensionName = extInit?.name || EXTENSION_ID;
+        const isGlobal = extInit?.type === 'global' || extInit?.type === 'system'; // System usually treated as global for pathing? Or maybe just rely on default.
+        // 其实 system extension 一般不可更新，但这里做个保险
+
+        console.debug('[Engram] 准备更新扩展:', extensionName, '| global:', isGlobal);
 
         const response = await fetch('/api/extensions/update', {
             method: 'POST',
@@ -100,7 +119,7 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                extensionName: EXTENSION_ID,
+                extensionName: extensionName,
                 global: isGlobal,
             }),
         });
