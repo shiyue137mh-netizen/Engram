@@ -42,7 +42,7 @@ function MU() {
   return uA || (uA = 1, L2.exports = /* @__PURE__ */ RU()), L2.exports;
 }
 var c = /* @__PURE__ */ MU();
-const OU = "1.2.0", X5 = {
+const OU = "1.2.1", X5 = {
   version: OU
 };
 function Go() {
@@ -36002,7 +36002,7 @@ function $ne(e) {
   ), n = e || Bne, r = t.data(), i = r.micromarkExtensions || (r.micromarkExtensions = []), s = r.fromMarkdownExtensions || (r.fromMarkdownExtensions = []), a = r.toMarkdownExtensions || (r.toMarkdownExtensions = []);
   i.push(Lne(n)), s.push(sne()), a.push(ane(n));
 }
-const JN = "Engram_project";
+const JN = "Engram";
 async function qne(e) {
   try {
     const t = await fetch("/api/extensions/discover");

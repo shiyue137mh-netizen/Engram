@@ -6,10 +6,10 @@
  * V0.9.12: 修复更新API路径问题，参考 JS-Slash-Runner 实现
  */
 
-import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { UpdateService } from '@/core/updater/Updater';
 import { notificationService } from '@/ui/services/NotificationService';
+import { CheckCircle, Download, Loader2, RefreshCw, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -22,7 +22,7 @@ interface UpdateNoticeProps {
  * Engram 扩展 ID（目录名）
  * 注意：这是目录名，不是 manifest.json 中的 display_name
  */
-const EXTENSION_ID = 'Engram_project';
+const EXTENSION_ID = 'Engram';
 
 /**
  * 获取扩展类型（global/local/system）
