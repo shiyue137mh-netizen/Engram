@@ -3,14 +3,14 @@
  * 入口文件
  */
 
-import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
-import './ui/styles/main.css';
-import App from './App';
-import { initializeEngram, setReactRenderer, setGlobalRenderer } from '@/integrations/tavern/bridge';
-import { RevisionModal } from '@/ui/components/feedback/Modal';
-import { QuickPanel } from '@/ui/views/quick-panel';
+import { initializeEngram, setGlobalRenderer, setReactRenderer } from '@/integrations/tavern/bridge';
 import { setQuickPanelCallback } from '@/integrations/tavern/ui';
+import { QuickPanel } from '@/ui/views/quick-panel';
+import { ReviewContainer } from '@/ui/views/review/ReviewContainer';
+import React, { useEffect, useState } from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './ui/styles/main.css';
 
 // 全局 QuickPanel 状态
 let quickPanelOpen = false;
@@ -66,7 +66,7 @@ function GlobalOverlayContent() {
 
     return (
         <div className="pointer-events-auto">
-            <RevisionModal />
+            <ReviewContainer />
             <QuickPanel
                 isOpen={quickPanelVisible}
                 onClose={() => setQuickPanelVisible(false)}

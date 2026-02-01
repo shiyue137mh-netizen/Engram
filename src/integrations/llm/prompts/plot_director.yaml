@@ -257,9 +257,7 @@ systemPrompt: |
             <point>上下文-记忆与设定提醒: ${全面详细的相关记忆或者设定}</point>
             <point>上下文-纠错: ${指出错误与依据}</point>
             <point>核心动作: ${动词+目标}</point>
-            <point>信息传递: ${概念非台词}</point>
             <point>逻辑关联: ${建立逻辑联系}</point>
-            <point>情感基调: ${氛围描述}</point>
           </key_points>
         </directive>
 

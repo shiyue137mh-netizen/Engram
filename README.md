@@ -5,7 +5,6 @@
 
   > **Graph RAG Memory Operation System** - *Where memories leave their trace.*
 
-  ![Version](https://img.shields.io/badge/version-0.9.6-blue?style=for-the-badge)
   ![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)
 </div>
 
@@ -86,25 +85,6 @@ npm run dev:watch
 
 ## 📁 目录结构 (Project Structure)
 
-```
-src/
-├── core/                  # [L0] 核心层：类型与事件
-├── config/                # [L1] 配置层：设置管理
-├── data/                  # [L2] 数据层：IndexedDB 与 ChatManager
-├── integrations/          # [L3] 集成层：SillyTavern 与 LLM 适配
-├── modules/               # [L4] 模块层：核心业务逻辑
-│   ├── batch/             # 批处理
-│   ├── graph/             # 知识图谱
-│   ├── memory/            # 记忆管理
-│   ├── preprocessing/     # 输入预处理
-│   ├── rag/               # Graph RAG
-│   └── summarizer/        # 剧情总结
-├── state/                 # [L5] 状态层：Zustand Store
-└── ui/                    # [L6] 表现层：React 组件
-    ├── components/
-    ├── hooks/
-    └── views/
-```
 
 ---
 

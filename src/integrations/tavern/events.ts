@@ -51,7 +51,7 @@ export const TavernEventType = {
     CHARACTER_EDITED: 'character_edited',
     CHARACTER_DELETED: 'characterDeleted',
     // 扩展事件
-    ENGRAM_REQUEST_REVISION: 'engram:request_revision',
+    ENGRAM_REQUEST_REVIEW: 'engram:request_review',
 } as const;
 
 type TavernEventTypeKey = keyof typeof TavernEventType;

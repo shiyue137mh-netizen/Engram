@@ -1,9 +1,9 @@
-import { IStep, StepResult } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
-import { revisionService } from '@/core/events/RevisionBridge';
-import { WorldInfoService } from '@/integrations/tavern/worldbook';
+import { reviewService } from '@/core/events/ReviewBridge';
 import { Logger } from '@/core/logger';
+import { WorldInfoService } from '@/integrations/tavern/worldbook';
 import { notificationService } from '@/ui/services/NotificationService';
+import { JobContext } from '../../core/JobContext';
+import { IStep, StepResult } from '../../core/Step';
 
 interface UserReviewConfig {
     title: string;
@@ -35,35 +35,67 @@ export class UserReview implements IStep {
             // 默认动作：确认，取消 (implicit in modal close)
             // 预处理特有动作：跳过 (作为 AI 消息)，打回 (重生成)
             // 根据 context 类型判断可用动作? 暂时全部提供扩展动作
-            const result = await revisionService.requestRevision(
+            // 准备数据
+            let reviewType: 'text' | 'json' | 'entity' = 'text';
+            let reviewData = undefined;
+
+            if (context.parsedData) {
+                // 如果有 parsedData，优先假设是结构化数据
+                // 暂时简单判断: TODO: Config or Schema check
+                reviewType = 'entity'; // 默认假设，或者根据 context.workflowName 判断
+                reviewData = context.parsedData;
+            }
+
+            // V1.2.0: 使用新的 ReviewService
+            const result = await reviewService.requestReview(
                 this.config.title,
                 this.config.description || `范围: ${range} | Token: ${tokenCount}`,
                 contentToReview,
-                ['confirm', 'skip', 'reject']
+                ['confirm', 'fill', 'reject', 'reroll'],
+                reviewType,
+                reviewData
             );
 
             // 处理结果
-            if (result.action === 'skip') {
-                Logger.info('UserReview', '用户选择跳过 (转为 AI 消息)');
-                // 存入 output 供 Preprocessor.ts 注入
-                context.output = result.content; // 用户可能微调了内容
-                // 标记为需要注入
+            if (result.action === 'fill') {
+                // Fill: Use the content directly, skipping subsequent specialized processing if any
+                // But in UserReview context, 'confirm' and 'fill' might do same thing (output content)?
+                // Usually 'skip' meant "Skip review/edit", but here we reviewed.
+                // If user clicks "Fill", they mean "Take this text and put it in chat".
+                // Confirm -> "Take this text and continue flow" (which usually puts it in chat).
+                // So they act similarly here, but intent differs.
+                Logger.info('UserReview', 'User chose to Fill/Skip');
+                context.output = result.content;
                 context.metadata.skipToInjection = true;
                 return { action: 'finish' };
             }
 
+            if (result.action === 'reroll') {
+                Logger.info('UserReview', '用户选择重抽 (无反馈)');
+                // 清空旧数据以触发重生成
+                context.input.feedback = '';
+                return { action: 'jump', targetStep: 'BuildPrompt', reason: 'User reroll' };
+            }
+
             if (result.action === 'reject') {
                 Logger.info('UserReview', '用户选择打回重生成');
-                // 保存反馈
                 context.input.feedback = result.feedback;
-                context.input.previousOutput = contentToReview; // 保存旧内容供参考
-                // 跳转回 BuildPrompt
+                context.input.previousOutput = contentToReview;
                 return { action: 'jump', targetStep: 'BuildPrompt', reason: 'User rejected' };
             }
 
             // Confirm
             context.cleanedContent = result.content;
-            context.output = result.content;
+
+            // 如果 Review 返回了新的 structured data (例如实体编辑结果)，更新 context
+            if (result.data) {
+                context.parsedData = result.data;
+                // 同时更新 output 为 data，以便 SaveEntity 使用?
+                context.output = result.data;
+            } else {
+                context.output = result.content;
+            }
+
             Logger.info('UserReview', '用户确认修订');
             return { action: 'next' };
 

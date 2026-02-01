@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { PageTitle } from "@/ui/components/display/PageTitle";
-import { Divider } from "@/ui/components/layout/Divider";
-import { Tab } from "@/ui/components/layout/TabPills";
-import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
-import { useMemoryStore } from '@/state/memoryStore';
-import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { SettingsManager } from '@/config/settings';
-import type { EventNode, EntityNode } from '@/data/types/graph';
-import { EventCard } from './components/EventCard';
-import { EntityCard } from './components/EntityCard'; // Import EntityCard
-import { EventEditor, type EventEditorHandle } from './components/EventEditor';
-import { EntityEditor } from './components/EntityEditor';
-import { GraphView } from './GraphView';
-import { Search, Trash2, RefreshCw, Brain, List, GitBranch, Save, Sparkles, Users, Eye, EyeOff, Filter, ArrowDownUp, FileText } from 'lucide-react';
-import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
+import type { EntityNode, EventNode } from '@/data/types/graph';
 import { MacroService } from '@/integrations/tavern/macros';
+import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
+import { useMemoryStore } from '@/state/memoryStore';
+import { PageTitle } from "@/ui/components/display/PageTitle";
 import { EmptyState } from '@/ui/components/feedback/EmptyState';
+import { Divider } from "@/ui/components/layout/Divider";
+import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
+import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
+import { Tab } from "@/ui/components/layout/TabPills";
+import { ArrowDownUp, Brain, FileText, Filter, GitBranch, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { EntityCard } from './components/EntityCard'; // Import EntityCard
+import { EntityEditor } from './components/EntityEditor';
+import { EventCard } from './components/EventCard';
+import { EventEditor, type EventEditorHandle } from './components/EventEditor';
+import { GraphView } from './GraphView';
 
 // 响应式断点
 const DESKTOP_BREAKPOINT = 768;
@@ -358,6 +358,19 @@ export const MemoryStream: React.FC = () => {
                 event={selectedEvent}
                 isFullScreen={true}
                 onSave={handleEventChange}
+                onDelete={handleDelete}
+                onClose={handleCloseEditor}
+            />
+        );
+    }
+
+    // V1.2 Fix: Mobile Entity View
+    if (isMobile && showEditor && selectedEntity && viewTab === 'entities') {
+        return (
+            <EntityEditor
+                entity={selectedEntity}
+                isFullScreen={true}
+                onSave={handleEntityChange}
                 onDelete={handleDelete}
                 onClose={handleCloseEditor}
             />

@@ -1,6 +1,6 @@
 
-import { Project, QuoteKind, ts } from "ts-morph";
 import * as path from "path";
+import { Project, ts } from "ts-morph";
 
 async function updateImports() {
     const project = new Project({
@@ -26,6 +26,13 @@ async function updateImports() {
 
                 // Replace with unified new module import
                 imp.setModuleSpecifier("@/integrations/tavern/worldbook");
+                modified = true;
+            }
+
+            // Refactoring Review System: Rename RevisionBridge modules
+            if (moduleSpecifier.includes("RevisionBridge")) {
+                const newSpecifier = moduleSpecifier.replace("RevisionBridge", "ReviewBridge");
+                imp.setModuleSpecifier(newSpecifier);
                 modified = true;
             }
         }

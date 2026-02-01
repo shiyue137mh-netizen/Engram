@@ -1,3 +1,4 @@
-export * from './types';
 export * from './EventWatcher';
-export * from './RevisionBridge';
+export * from './ReviewBridge';
+export * from './types';
+

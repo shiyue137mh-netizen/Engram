@@ -6,14 +6,15 @@
  * - 顶层开关 + 详细配置
  * - 去卡片化，使用细线分割
  */
-import React, { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
 import { Logger } from '@/core/logger';
-import { EntityBuilder, entityBuilder } from "@/modules/memory/EntityExtractor";
-import { TextField, NumberField, SwitchField, FormSection } from '@/ui/components/form/FormComponents';
+import { entityBuilder } from "@/modules/memory/EntityExtractor";
+import { SwitchField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
-import { EntityReviewModal } from './components/EntityReviewModal';
+import { RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+// import { Divider } from '@/ui/components/layout/Divider'; // Already imported
 import type { EntityExtractConfig } from '@/config/types/memory';
+import { reviewService } from '@/core/events/ReviewBridge'; // V1.2 Review System
 
 interface EntityStatus {
     enabled: boolean;
@@ -47,16 +48,14 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
     useEffect(() => {
         loadStatus();
 
-        // V0.9.11: Persistence Check
-        // If component unmounted during extraction, restore the pending review
+        // V0.9.11: Persistence Check - Disabled during refactor or migrate to ReviewReview
+        /*
         if (entityBuilder.pendingReviewResult) {
             const result = entityBuilder.pendingReviewResult;
-            setReviewData({
-                newEntities: result.newEntities,
-                updatedEntities: result.updatedEntities
-            });
-            setShowReviewModal(true);
+             // TODO: Restore via reviewService if needed
+             // reviewService.requestReview(...)
         }
+        */
     }, []);
 
     // 切换启用状态
@@ -74,9 +73,9 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
         entityBuilder.updateConfig(newConfig);
     };
 
-    // 预览弹窗状态
-    const [showReviewModal, setShowReviewModal] = useState(false);
-    const [reviewData, setReviewData] = useState<{ newEntities: any[], updatedEntities: any[] }>({ newEntities: [], updatedEntities: [] });
+    // 预览弹窗状态 - 已移除，使用 ReviewBridge
+    // const [showReviewModal, setShowReviewModal] = useState(false);
+    // const [reviewData, setReviewData] = useState<{ newEntities: any[], updatedEntities: any[] }>({ newEntities: [], updatedEntities: [] });
 
     // 手动提取 (带预览)
     const handleManualExtract = async () => {
@@ -85,16 +84,31 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
             // 1. Dry Run
             Logger.debug('EntityConfigPanel', 'Starting manual extract dry-run');
             const result = await entityBuilder.extractManual(true);
-            Logger.debug('EntityConfigPanel', 'Manual extract result:', result);
 
             if (result && result.success && (result.newEntities.length > 0 || result.updatedEntities.length > 0)) {
-                // 2. Show Preview
-                Logger.info('EntityConfigPanel', 'Opening Review Modal', { new: result.newEntities.length });
-                setReviewData({
-                    newEntities: result.newEntities,
-                    updatedEntities: result.updatedEntities
+                // 2. Request Review via ReviewBridge
+                Logger.info('EntityConfigPanel', 'Requesting Review', { new: result.newEntities.length });
+
+                await reviewService.requestReview(
+                    '实体提取确认',
+                    `检测到 ${result.newEntities.length} 个新实体和 ${result.updatedEntities.length} 个变更。`,
+                    '', // No text content
+                    ['confirm', 'cancel'], // Actions
+                    'entity', // Type
+                    {
+                        newEntities: result.newEntities,
+                        updatedEntities: result.updatedEntities
+                    } // Data
+                ).then(async (reviewResult) => {
+                    if (reviewResult.action === 'confirm') {
+                        // Use data from review (user might have edited/deleted items)
+                        const finalData = reviewResult.data || { newEntities: [], updatedEntities: [] };
+                        await entityBuilder.saveRawEntities(finalData.newEntities, finalData.updatedEntities);
+                        await loadStatus();
+                        Logger.info('EntityConfigPanel', 'Entities saved via Review', finalData);
+                    }
                 });
-                setShowReviewModal(true);
+
             } else {
                 Logger.info('EntityConfigPanel', 'No changes detected or extraction failed');
                 if (result && result.success) {
@@ -108,15 +122,8 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
         }
     };
 
-    // 确认保存
-    const handleConfirmReview = async (data: { newEntities: any[], updatedEntities: any[] }) => {
-        try {
-            await entityBuilder.saveRawEntities(data.newEntities, data.updatedEntities);
-            await loadStatus();
-        } catch (e) {
-            console.error('[EntityConfigPanel] Failed to save reviewed entities:', e);
-        }
-    };
+    // 确认保存 - Refactored to inline in handleManualExtract
+    // const handleConfirmReview = async (data: { newEntities: any[], updatedEntities: any[] }) => { ... }
 
 
 
@@ -236,20 +243,6 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
                 </div>
             </section>
 
-            {/* 预览弹窗 */}
-            <EntityReviewModal
-                isOpen={showReviewModal}
-                onClose={() => {
-                    setShowReviewModal(false);
-                    entityBuilder.clearPendingReview();
-                }}
-                onConfirm={async (data) => {
-                    await handleConfirmReview(data);
-                    entityBuilder.clearPendingReview();
-                }}
-                newEntities={reviewData.newEntities}
-                updatedEntities={reviewData.updatedEntities}
-            />
         </div>
     );
 };
