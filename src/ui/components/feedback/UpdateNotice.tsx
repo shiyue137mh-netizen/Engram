@@ -106,7 +106,12 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
         const extInit = await getExtensionInfo();
 
         // 如果没找到，回退到默认
-        const extensionName = extInit?.name || EXTENSION_ID;
+        let extensionName = extInit?.name || EXTENSION_ID;
+        if (extensionName) {
+            const parts = extensionName.split(/[/\\]/);
+            extensionName = parts[parts.length - 1];
+        }
+
         const isGlobal = extInit?.type === 'global' || extInit?.type === 'system'; // System usually treated as global for pathing? Or maybe just rely on default.
         // 其实 system extension 一般不可更新，但这里做个保险
 

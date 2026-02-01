@@ -36122,7 +36122,13 @@ function Fne() {
 }
 async function Une() {
   try {
-    const e = Fne(), t = await qne(), n = (t == null ? void 0 : t.name) || $ne, r = (t == null ? void 0 : t.type) === "global" || (t == null ? void 0 : t.type) === "system";
+    const e = Fne(), t = await qne();
+    let n = (t == null ? void 0 : t.name) || $ne;
+    if (n) {
+      const a = n.split(/[/\\]/);
+      n = a[a.length - 1];
+    }
+    const r = (t == null ? void 0 : t.type) === "global" || (t == null ? void 0 : t.type) === "system";
     console.debug("[Engram] 准备更新扩展:", n, "| global:", r);
     const i = await fetch("/api/extensions/update", {
       method: "POST",
