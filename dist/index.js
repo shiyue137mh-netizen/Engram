@@ -42,7 +42,7 @@ function MU() {
   return uA || (uA = 1, L2.exports = /* @__PURE__ */ RU()), L2.exports;
 }
 var c = /* @__PURE__ */ MU();
-const OU = "1.2.2", X5 = {
+const OU = "1.2.3", X5 = {
   version: OU
 };
 function Go() {
