@@ -4,7 +4,7 @@
  * 监听生成事件进行预处理和 RAG 注入
  * V0.8: 使用 GENERATION_AFTER_COMMANDS 事件，阻塞生成直到预处理完成
  *
- * 参考 test/脚本.js 的剧情推进实现：
+ * 参考别人的剧情推进实现：
  * - 监听 GENERATION_AFTER_COMMANDS 事件
  * - 修改 chat 中最后一条用户消息的内容
  * - 酒馆会 await 事件处理器，确保预处理完成后再继续
@@ -154,7 +154,6 @@ class Injector {
             }
 
             // 找到最后一条用户消息
-            // 参考 test/脚本.js 策略：严格检查最新的一条消息
             // 如果最新消息不是用户消息（例如是系统消息、Thinking消息等），则跳过处理，
             // 严禁往前查找，否则会导致注入到上一轮对话中。
             const chat = context.chat;

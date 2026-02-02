@@ -6,19 +6,20 @@
  * - 有序 Pipeline 队列编排
  */
 
+import { SettingsManager } from '@/config/settings';
+import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
+import { Logger, LogModule } from '@/core/logger';
 import { generateUUID } from '@/core/utils';
-import { useMemoryStore } from '@/state/memoryStore';
+import { llmAdapter } from '@/integrations/llm/Adapter';
 import { summarizerService } from '@/modules/memory';
 import { entityBuilder } from '@/modules/memory/EntityExtractor';
 import { eventTrimmer } from '@/modules/memory/EventTrimmer';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
-import { Logger, LogModule } from '@/core/logger';
-import { notificationService } from '@/ui/services/NotificationService';
-import { llmAdapter } from '@/integrations/llm/Adapter';
-import { WorkflowEngine, WorkflowDefinition } from '@/modules/workflow/core/WorkflowEngine';
-import { ParseJson } from '@/modules/workflow/steps/processing/ParseJson';
+import { WorkflowEngine } from '@/modules/workflow/core/WorkflowEngine';
 import { SaveEvent } from '@/modules/workflow/steps/persistence/SaveEvent';
-import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
+import { ParseJson } from '@/modules/workflow/steps/processing/ParseJson';
+import { useMemoryStore } from '@/state/memoryStore';
+import { notificationService } from '@/ui/services/NotificationService';
 
 // ==================== 类型定义 ====================
 
@@ -120,15 +121,6 @@ class BatchProcessor {
         const entityTasks = (targetTypes.has('entity') && entityConfig.enabled) ? Math.ceil(floorRange / entityInterval) : 0;
         const trimThreshold = trimConfig.countLimit || 5;
         const trimTasks = (targetTypes.has('trim') && trimConfig.enabled) ? Math.floor(summaryTasks / trimThreshold) : 0;
-
-        // Embed tasks usually depend on summary tasks, but if we only run embed, we might want to scan all events?
-        // For simplicity, let's keep embed dependent on summary count if summary is running,
-        // OR if only embed is running, we might need a different logic.
-        // But the original logic was: embedTasks = summaryTasks * 2.
-        // Let's keep it simple: if embed is enabled, we assume it runs alongside others or standalone?
-        // Actually, the original logic assumes embed tasks are generated *per summary batch* or checks global?
-        // Looking at buildQueue: it pushes ONE embed task at the end with total progress.
-        // So embedTasks count is just for estimation.
         const embedTasks = targetTypes.has('embed') ? (summaryTasks || 1) * 2 : 0;
 
         const estimatedTokens = summaryTasks * 2000 + entityTasks * 2000 + trimTasks * 2000 + embedTasks * 200;
@@ -323,6 +315,12 @@ class BatchProcessor {
     }
 
     private async executeEmbedTask(task: BatchTask): Promise<void> {
+        // V1.2.2: 批处理执行前初始化配置
+        const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
+        if (vectorConfig) {
+            embeddingService.setConfig(vectorConfig);
+        }
+
         const result = await embeddingService.embedUnprocessedEvents((current: number, total: number) => {
             task.progress.current = current;
             task.progress.total = total;
@@ -507,6 +505,12 @@ ${chunk}
 
                         if (Array.isArray(savedEvents) && savedEvents.length > 0) {
                             // Pipeline 已处理存储，只需嵌入
+                            // V1.2.2: 联动嵌入前确保配置已加载
+                            const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
+                            if (vectorConfig) {
+                                embeddingService.setConfig(vectorConfig);
+                            }
+
                             for (const evt of savedEvents) {
                                 await embeddingService.embedEvent(evt);
                             }
@@ -538,6 +542,12 @@ ${chunk}
                     is_archived: false,
                     source_range: { start_index: i, end_index: i },
                 });
+
+                // V1.2.2: 联动嵌入前确保配置已加载
+                const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
+                if (vectorConfig) {
+                    embeddingService.setConfig(vectorConfig);
+                }
 
                 await embeddingService.embedEvent(eventNode);
                 success++;

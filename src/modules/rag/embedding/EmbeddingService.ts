@@ -8,10 +8,10 @@
  */
 
 import type { VectorConfig, VectorSource } from '@/config/types/rag';
-import type { EventNode } from '@/data/types/graph';
-import { getDbForChat, tryGetDbForChat } from '@/data/db';
-import { getCurrentChatId } from '@/integrations/tavern/context';
 import { Logger, LogModule } from '@/core/logger';
+import { getDbForChat, tryGetDbForChat } from '@/data/db';
+import type { EventNode } from '@/data/types/graph';
+import { getCurrentChatId } from '@/integrations/tavern/context';
 
 // ==================== 类型定义 ====================
 
@@ -380,9 +380,9 @@ export class EmbeddingService {
 
         const db = getDbForChat(chatId);
 
-        // 获取未嵌入的事件
+        // 获取未嵌入的事件 (V1.2.2: 仅处理 Level 0 事件，大纲节点不进行向量化)
         const events = await db.events
-            .filter(e => !e.is_embedded && !e.embedding)
+            .filter(e => e.level === 0 && !e.is_embedded && !e.embedding)
             .toArray();
 
         if (events.length === 0) {

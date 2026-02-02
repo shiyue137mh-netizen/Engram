@@ -1,11 +1,3 @@
-/**
- * Core Graph Data Types for Engram V0.7
- *
- * Multi-Database Architecture:
- * Each chat_id has its own database, so scope_id is no longer needed.
- *
- * V0.7: 添加 Embedding 相关字段，移除 Scope
- */
 
 /**
  * EventNode - The atom of memory

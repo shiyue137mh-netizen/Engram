@@ -4,7 +4,6 @@
  * V1.3.1: 逻辑调优
  * - Newcomer Boost: 改为排序时的临时加分，不修改永久 Strength
  * - Boredom Penalty: 改为排序时的临时减分 (Penalty * (Count - Threshold))
- * - MMR: 引入 Greedy 算法和 Cosine Similarity
  */
 
 import { Logger, LogModule } from '@/core/logger';

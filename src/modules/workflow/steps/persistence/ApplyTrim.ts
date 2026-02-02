@@ -1,12 +1,12 @@
-import { IStep } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
-import { useMemoryStore } from '@/state/memoryStore';
-import { MacroService } from '@/integrations/tavern/macros';
 import { SettingsManager } from '@/config/settings';
-import { embeddingService } from '@/modules/rag';
 import { Logger } from '@/core/logger';
-import { notificationService } from '@/ui/services/NotificationService';
 import { EventNode } from '@/data/types/graph';
+import { MacroService } from '@/integrations/tavern/macros';
+import { embeddingService } from '@/modules/rag';
+import { useMemoryStore } from '@/state/memoryStore';
+import { notificationService } from '@/ui/services/NotificationService';
+import { JobContext } from '../../core/JobContext';
+import { IStep } from '../../core/Step';
 
 export class ApplyTrim implements IStep {
     name = 'ApplyTrim';
@@ -20,7 +20,8 @@ export class ApplyTrim implements IStep {
         const eventsToMerge = context.input.eventsToMerge as EventNode[];
 
         // Output from ParseJson (TrimResponse structure)
-        const parsed = context.output as any; // We expect { events: [...] }
+        // V1.2.2: 优先从 context.parsedData 读取，对齐 ParseJson 逻辑
+        const parsed = context.parsedData || context.output;
 
         if (!parsed || !parsed.events || parsed.events.length === 0) {
             throw new Error('ApplyTrim: 无有效的精简结果');
@@ -62,6 +63,12 @@ export class ApplyTrim implements IStep {
         if (embeddingConfig?.enabled && embeddingConfig.trigger === 'with_trim') {
             Logger.info('ApplyTrim', '触发联动嵌入', { count: eventsToMerge.length });
             try {
+                // V1.2.2: 初始化 Embedding 服务配置，防止联动时配置丢失
+                const vectorConfig = settings?.vectorConfig;
+                if (vectorConfig) {
+                    embeddingService.setConfig(vectorConfig);
+                }
+
                 await embeddingService.embedEvents(eventsToMerge);
                 await store.markEventsAsEmbedded(sourceEventIds);
             } catch (embedError) {
