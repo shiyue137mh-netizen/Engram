@@ -9,6 +9,7 @@
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_ENTITY_CONFIG } from '@/config/types/defaults';
 import type { EntityExtractConfig } from '@/config/types/memory';
+import { eventWatcher } from '@/core/events/EventWatcher';
 import { Logger, LogModule } from '@/core/logger';
 import { chatManager } from '@/data/ChatManager';
 import type { EntityNode } from '@/data/types/graph';
@@ -61,11 +62,57 @@ export class EntityBuilder {
         return { ...this.config };
     }
 
+    // ==================== Event Listening (V0.9.14) ====================
+
+    /**
+     * Start the Entity Extraction service
+     * V1.0.3 Fix: 使用顶层 import 替代 require，修复浏览器环境报错
+     */
+    start(): void {
+        // V1.0.3: 确保 EventWatcher 已启动
+        eventWatcher.start();
+
+        // Listen to message received events
+        eventWatcher.on('onMessageReceived', this.handleMessageReceived.bind(this));
+
+        Logger.info(LogModule.MEMORY_ENTITY, 'EntityBuilder service started');
+    }
+
+    /**
+     * Handle message received event
+     */
+    private async handleMessageReceived(): Promise<void> {
+        // dynamic import to avoid circular dependency if needed, though chatManager is already imported
+        const { chatManager } = await import('@/data/ChatManager');
+        const { MacroService } = await import('@/integrations/tavern/macros');
+
+        const currentFloor = MacroService.getCurrentMessageCount();
+        const state = await chatManager.getState();
+        const lastExtracted = state.last_extracted_floor || 0;
+
+        // Use the robust delta check
+        if (this.shouldTriggerOnFloor(currentFloor, lastExtracted)) {
+            Logger.info(LogModule.MEMORY_ENTITY, 'Triggering Entity Extraction (Auto)', {
+                currentFloor,
+                lastExtracted
+            });
+
+            // Calculate range: lastExtracted + 1 to currentFloor
+            const startFloor = lastExtracted + 1;
+            const range: [number, number] = [startFloor, currentFloor];
+
+            // Trigger extraction (non-blocking)
+            this.extractByRange(range, false).catch(err => {
+                Logger.error(LogModule.MEMORY_ENTITY, 'Auto-extraction failed', { error: err });
+            });
+        }
+    }
+
     /**
      * 检查是否应该在指定楼层触发实体提取
      * V0.9.1: 使用楼层触发器，与 SummarizerService 一致
      */
-    shouldTriggerOnFloor(currentFloor: number): boolean {
+    shouldTriggerOnFloor(currentFloor: number, lastExtractedFloor: number): boolean {
         // V0.9.12: Fix - 每次检查触发器时刷新配置，避免初始化时的 stale config
         const savedConfig = SettingsManager.get('apiSettings')?.entityExtractConfig;
         if (savedConfig) {
@@ -80,8 +127,10 @@ export class EntityBuilder {
             return false;
         }
 
-        // 检查楼层间隔
-        return currentFloor > 0 && currentFloor % this.config.floorInterval === 0;
+        // V0.9.13: 使用增量触发 (Delta) 而非整除触发 (Modulo)
+        // 只要未提取的楼层数超过间隔，就触发
+        const pendingFloors = currentFloor - lastExtractedFloor;
+        return pendingFloors >= this.config.floorInterval;
     }
 
     /**

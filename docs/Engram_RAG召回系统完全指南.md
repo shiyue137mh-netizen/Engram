@@ -17,28 +17,28 @@ Engram V0.9.5 的 RAG (Retrieval-Augmented Generation) 召回系统旨在解决�
 graph TD
     UserInput[用户输入] --> Injector
     Injector -->|GENERATION_AFTER_COMMANDS| Preprocessor
-    
+
     subgraph Stage 1: 预处理 [可选]
         Preprocessor -->|LLM| UnifiedQuery[Unified Query<br/>统一检索指令]
     end
-    
+
     subgraph Stage 2: 向量检索
         UnifiedQuery -->|Embed| QueryVec[查询向量]
         DB[(Engram DB)] -->|Embed| EventVec[事件向量]
         QueryVec -->|Cosine Similarity| Candidates[候选集 Top-K]
         EventVec --> Candidates
     end
-    
+
     subgraph Stage 3: 重排序 [可选]
         Candidates --> RerankService
         RerankService -->|Cross-Encoder| Reranked[重排后列表]
     end
-    
+
     subgraph Stage 4: 类脑召回
         Reranked --> BrainRecallCache[类脑召回缓存]
         BrainRecallCache -->|强化/衰减/淘汰| WorkingMemory[工作记忆]
     end
-    
+
     WorkingMemory --> MacroService
     MacroService -->|"{{engramSummaries}}"| Prompt[最终 Prompt]
 ```
@@ -53,6 +53,51 @@ graph TD
 | **RerankService** | `src/modules/rag/retrieval/Reranker.ts` | 对初步召回结果进行精细化语义重排序 |
 | **BrainRecallCache** | `src/modules/rag/retrieval/BrainRecallCache.ts` | **V0.9.5 核心**：类脑记忆缓存系统 |
 | **Retriever** | `src/modules/rag/retrieval/Retriever.ts` | 统一检索服务，编排上述所有组件 |
+
+### 蓝灯/绿灯可见性机制 🚦
+
+Engram 使用「信号灯」机制控制事件的可见性，避免信息过载：
+
+| 灯色 | `is_archived` | 可见性规则 |
+|:----:|:-------------:|:-----------|
+| 🔵 **蓝灯** | `false` | **常驻显示** - 无论是否被召回，始终出现在 `{{engramSummaries}}` 中 |
+| 🟢 **绿灯** | `true` | **按需召回** - 仅当被 RAG 系统召回时才临时显示 |
+
+**工作流程**：
+
+1. 新生成的剧情事件默认为 **蓝灯**（未归档）
+2. 当积累的蓝灯事件超过阈值时，旧事件被**归档**，转为 **绿灯**
+3. RAG 召回时，相关的绿灯事件被临时激活，与蓝灯事件**合并**显示
+4. 召回结束后，绿灯事件回归休眠状态
+
+### 树状目录注入格式 🌳
+
+召回结果通过 `getEventSummaries()` 格式化，按故事时间线（`source_range`）排序，呈现为层次化结构：
+
+```
+<summary>
+[章节大纲 - Level 1 事件]
+章节1: 主角抵达王都，开始冒险
+
+  ├── [蓝灯事件 - 常驻]
+  │   事件A: 主角在酒馆遇到神秘商人
+  │
+  ├── [绿灯事件 - 召回] (当前剧情相关)
+  │   事件B: 回忆起与商人的首次交易
+  │
+  └── [蓝灯事件 - 常驻]
+      事件C: 主角决定前往北方
+
+[章节大纲 - Level 1 事件]
+章节2: 北方之旅
+  ...
+</summary>
+```
+
+**排序规则**：
+- 按 `source_range.start_index`（故事时间线）升序排列
+- 同一时间点的事件按 `source_range.end_index` 次排序
+- Level 1 大纲事件在前，Level 0 具体事件作为子节点缩进
 
 ## 3. 召回模式 (Recall Modes)
 

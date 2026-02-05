@@ -50,6 +50,15 @@ export async function initializeEngram(): Promise<void> {
         Logger.warn('Summarizer', '服务启动失败', { error: String(e) });
     }
 
+    // Start Entity Extraction Service (V0.9.14)
+    try {
+        const { entityBuilder } = await import('@/modules/memory/EntityExtractor');
+        entityBuilder.start();
+        Logger.info('EntityBuilder', 'Service started');
+    } catch (e) {
+        Logger.warn('EntityBuilder', 'Service start failed', { error: String(e) });
+    }
+
     // 优先使用顶栏按钮，找不到则使用悬浮球
     createTopBarButton();
 

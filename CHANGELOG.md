@@ -1,5 +1,47 @@
 # Changelog
 
+## [1.2.6] - 2026-02-05
+
+### 🐛 Bug 修复 (Bug Fixes)
+- **RAG 召回注入 Bug**:
+  - 修复召回条目覆盖未归档蓝灯事件的问题。
+  - 修复召回条目注入顺序混乱的问题，现按 `source_range` 正确排序并保持树状结构。
+- **实体提取触发失败**:
+  - 修复 `EntityBuilder.start()` 使用 CommonJS `require()` 导致浏览器环境报错 `ReferenceError: require is not defined` 的问题。
+  - 确保 `EventWatcher` 在实体提取监听器注册前正确启动。
+
+### ✨ 新功能 (New Features)
+- **预处理 Query 编辑**: 预处理预览界面现在显示两个独立编辑区域：
+  - **输出内容 (Output)**: 主要输出区域
+  - **检索关键词 (Query)**: 用于 RAG 召回的 query，使用 accent 颜色视觉区分
+
+### 🔧 架构优化 (Architecture Optimization)
+- **实体提取统一 JSON Patch 格式**:
+  - 移除 `entities` + `patches` 双轨制，统一使用 `patches` 数组
+  - 新实体通过 `{ op: "add", path: "/entities/{name}", value: {...} }` 表示
+  - 更新操作通过 `{ op: "replace", path: "/entities/{name}/profile/{key}", value: ... }` 表示
+  - **向后兼容**: `SaveEntity.ts` 自动识别并支持旧格式
+- **Relations 对象化**:
+  - `relations` 从数组改为对象，key 为目标实体名
+  - 便于 JSON Patch 精确更新单个关系 (如 `/profile/relations/User`)
+
+### 📝 提示词优化 (Prompt Improvements)
+- **摘要提示词 (`summary.yaml`)**:
+  - 调整对话保留阈值从 0.7 提升到 0.9
+  - 细化重要性分级 (金字塔模型) 的定义和权重范围
+
+### 📚 文档更新 (Documentation)
+- **RAG 召回指南**: 新增蓝绿灯可见性机制和树状注入格式说明
+
+## [1.2.5] - 2026-02-03
+
+### 🐛 实体提取触发器修复 (Entity Extraction Trigger Fix)
+- **触发逻辑重构 (Delta-based Trigger)**: 将实体提取的触发机制从脆弱的“整除检查”（Modulo）更改为稳健的“增量检查”（Delta）。
+  - **问题**: 旧逻辑 `floor % interval === 0` 容易因消息丢失、批量导入或编辑而完全跳过触发点。
+  - **修复**: 新逻辑 `pendingFloors >= interval` 确保只要累积了足够的新内容，无论楼层号如何，都会触发提取。
+- **架构解耦 (Decoupling)**: 实体提取服务现在拥有独立的事件监听器 (`EventWatcher`)，不再依赖 `Summarizer` 服务进行触发，进一步降低耦合度并提高稳定性。
+- **参数传递优化**: 修复了 Summarizer 调用实体检查时未传递 `lastExtractedFloor` 的问题。
+
 ## [1.2.4] - 2026-02-02
 
 ### - 记忆链路加固 (Linkage & Embedding Fix)

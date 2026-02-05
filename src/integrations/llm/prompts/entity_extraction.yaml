@@ -96,28 +96,30 @@ systemPrompt: |
 
     <update_strategy>
       标准: RFC 6902 (JSON Patch)
-      原则:
-        - 对于还未注册的实体，请用"```json","```"进行注册
-        - 对于 existingEntities 中已有的实体，使用 patches 数组输出更新操作。
-        - 仅输出变动部分 (op: replace/add/remove)。
-        - path 必须是合法的 JSON Pointer (例如 /profile/status)。
+      统一格式: 所有操作（新增和更新）都使用 patches 数组输出。
+
+      路径约定:
+        - 新实体: { op: "add", path: "/entities/{实体名}", value: {完整实体对象} }
+        - 更新属性: { op: "replace", path: "/entities/{实体名}/profile/{属性}", value: 新值 }
+        - 删除属性: { op: "remove", path: "/entities/{实体名}/profile/{属性}" }
+        - 添加别名: { op: "add", path: "/entities/{实体名}/aliases/-", value: "新别名" }
+
+      注意: 实体名中如有特殊字符，需进行 URL 编码 (如空格 -> %20)。
+
       示例:
-        已有: { name: "A", profile: { status: "健康" } }
-        变更: A 受伤了。
+        场景: A 是新人物，B 已存在但受伤了。
         输出:
           patches:
-            - name: "A"
-            ops:
-              - { op: "replace", path: "/profile/status", value: "受伤" }
+            - { op: "add", path: "/entities/A", value: { type: "char", profile: {...} } }
+            - { op: "replace", path: "/entities/B/profile/status", value: "受伤" }
     </update_strategy>
 
     <profile_structure>
       profile 是完全开放的 JSON 对象，你可以根据实体类型自由写入任何属性。
 
       约定字段 (强制):
-        - relations: EntityRelation[] — 与其他实体的关系
-          每个关系必须包含: target (目标实体名), type (关系类型)
-          可选: description (关系细节)
+        - relations: Record<目标名, RelationInfo> — 与其他实体的关系 (对象格式)
+          每个关系包含: type (关系类型), description (关系细节, 可选)
 
       推荐字段 (按需):
         - identity: string — 核心身份描述
@@ -148,7 +150,7 @@ systemPrompt: |
           - 显著性检查: 该实体是否对剧情有长期价值？(排除背景装饰)
           - 整体性检查: 是否误提取了某个实体的部件？
 
-        已有实体发生了什么状态变更？(JSON Patch)
+        已有实体发生了什么状态变更？
           - 检查 existingEntities 的状态
           - 仅对发生变化的属性生成 replace/add/remove 操作
           - 忽略无变化的字段
@@ -160,18 +162,27 @@ systemPrompt: |
 
       ```json
       {
-        "entities": [
+        "patches": [
+          // 新实体示例
           {
-            "name": "主名称",
-            "type": "char|loc|item|concept",
-            "aliases": ["别名1", "别名2"],
-            "profile": {
-              "identity": "核心身份描述",
-              "relations": [
-                { "target": "目标实体名", "type": "关系类型", "description": "可选细节" }
-              ],
-              "其他自定义属性": "值"
+            "op": "add",
+            "path": "/entities/角色名",
+            "value": {
+              "type": "char",
+              "aliases": [],
+              "profile": {
+                "identity": "核心身份描述",
+                "relations": {
+                  "目标实体名": { "type": "关系类型", "description": "可选细节" }
+                }
+              }
             }
+          },
+          // 更新已有实体示例
+          {
+            "op": "replace",
+            "path": "/entities/已有角色/profile/status",
+            "value": "新状态"
           }
         ]
       }

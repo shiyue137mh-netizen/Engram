@@ -50,6 +50,9 @@ export class UserReview implements IStep {
                 // 暂时简单判断: TODO: Config or Schema check
                 reviewType = 'entity'; // 默认假设，或者根据 context.workflowName 判断
                 reviewData = context.parsedData;
+            } else if (context.extractedTags?.query) {
+                // V1.3: 预处理模式 - 传递 query 供编辑
+                reviewData = { query: context.extractedTags.query };
             }
 
             // V1.2.0: 使用新的 ReviewService
@@ -100,9 +103,19 @@ export class UserReview implements IStep {
 
             // 如果 Review 返回了新的 structured data (例如实体编辑结果)，更新 context
             if (result.data) {
-                context.parsedData = result.data;
-                // 同时更新 output 为 data，以便 SaveEntity 使用?
-                context.output = result.data;
+                // V1.3: 处理编辑后的 query
+                if (result.data.query !== undefined && context.extractedTags) {
+                    context.extractedTags.query = result.data.query;
+                    Logger.debug('UserReview', 'Query 已更新', { query: result.data.query });
+                }
+
+                // 如果是实体数据，更新 parsedData 和 output
+                if (result.data.newEntities || result.data.updatedEntities) {
+                    context.parsedData = result.data;
+                    context.output = result.data;
+                } else {
+                    context.output = result.content;
+                }
             } else {
                 context.output = result.content;
             }

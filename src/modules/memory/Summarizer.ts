@@ -2,11 +2,10 @@
  * SummarizerService - 剧情总结核心服务
  */
 
-import { EventBus, TavernEventType } from "@/integrations/tavern/api";
+import { SettingsManager } from "@/config/settings";
 import { eventWatcher } from '@/core/events/EventWatcher';
 import { useMemoryStore } from '@/state/memoryStore'; // Used for setLastSummarizedFloor
 import { notificationService } from '@/ui/services/NotificationService';
-import { SettingsManager } from "@/config/settings";
 import type {
     SummarizerConfig,
     SummarizerStatus,
@@ -280,7 +279,8 @@ class SummarizerService {
         });
 
         // V0.9.1: 检查实体提取触发
-        await this.checkEntityExtraction(currentFloor);
+        // V0.9.14: EntityExtraction now has its own listener in EntityExtractor.ts. Removing coupled call.
+        // await this.checkEntityExtraction(currentFloor);
 
         // 检查是否达到 Summary 触发条件
         if (pendingFloors >= this.config.floorInterval) {
@@ -302,12 +302,11 @@ class SummarizerService {
             // 动态导入 ChatManager 以避免循环依赖
             const { chatManager } = await import('@/data/ChatManager');
 
-            if (entityBuilder.shouldTriggerOnFloor(currentFloor)) {
-                this.log('info', '触发实体提取', { floor: currentFloor });
+            // 计算范围：上次提取楼层+1 到 当前楼层
+            const state = await chatManager.getState();
+            const lastExtracted = state.last_extracted_floor || 0;
 
-                // 计算范围：上次提取楼层+1 到 当前楼层
-                const state = await chatManager.getState();
-                const lastExtracted = state.last_extracted_floor || 0;
+            if (entityBuilder.shouldTriggerOnFloor(currentFloor, lastExtracted)) {
                 const startFloor = lastExtracted + 1;
                 const range: [number, number] = [startFloor, currentFloor];
 

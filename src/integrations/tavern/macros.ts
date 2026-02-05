@@ -1,10 +1,10 @@
-import { useMemoryStore } from '@/state/memoryStore';
-import { Logger } from '@/core/logger';
-import { regexProcessor } from "@/modules/workflow/steps";
-import { WorldInfoService } from '@/integrations/tavern/api';
 import { SettingsManager } from '@/config/settings';
-import type { SummarizerConfig } from '@/modules/memory/types';
 import type { CustomMacro } from '@/config/types/prompt';
+import { Logger } from '@/core/logger';
+import { WorldInfoService } from '@/integrations/tavern/api';
+import type { SummarizerConfig } from '@/modules/memory/types';
+import { regexProcessor } from "@/modules/workflow/steps";
+import { useMemoryStore } from '@/state/memoryStore';
 
 declare global {
     interface Window {
@@ -342,14 +342,19 @@ export class MacroService {
     }
 
     /**
-     * V0.8.5: 使用 RAG 召回的节点直接刷新缓存
-     * 不从数据库重新读取，直接使用检索结果
+     * V0.8.5: 使用 RAG 召回的节点刷新缓存
+     * V1.0.3 Fix: 复用 getEventSummaries 逻辑，修复召回条目覆盖蓝灯事件和乱序问题
      * @param nodes RAG 召回的事件节点
      */
     static async refreshCacheWithNodes(nodes: { id: string; summary: string }[]): Promise<void> {
         try {
-            // 直接拼接召回节点的摘要
-            this.cachedSummaries = nodes.map(n => n.summary).join('\n\n---\n\n');
+            // V1.0.3: 提取召回节点的 ID，让 getEventSummaries 处理：
+            // 1. 合并蓝灯事件（未归档的 level0）
+            // 2. 按 source_range 排序
+            // 3. 构建树状结构
+            const recalledIds = nodes.map(n => n.id);
+            const store = useMemoryStore.getState();
+            this.cachedSummaries = await store.getEventSummaries(recalledIds);
 
             // 刷新世界书上下文 (支持 EJS)
             try {
@@ -366,7 +371,7 @@ export class MacroService {
 
             Logger.debug('MacroService', 'RAG 召回缓存已刷新', {
                 summariesLength: this.cachedSummaries.length,
-                nodeCount: nodes.length,
+                recalledCount: recalledIds.length,
             });
         } catch (e) {
             Logger.warn('MacroService', '刷新 RAG 召回缓存失败', e);

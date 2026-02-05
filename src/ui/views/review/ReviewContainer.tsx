@@ -17,6 +17,7 @@ export const ReviewContainer: React.FC = () => {
     // State for edited content/data
     const [content, setContent] = useState('');
     const [data, setData] = useState<any>(undefined);
+    const [query, setQuery] = useState<string | undefined>(undefined);
 
     // State for Reject Feedback
     const [feedback, setFeedback] = useState('');
@@ -32,6 +33,7 @@ export const ReviewContainer: React.FC = () => {
                 setRequest(req);
                 setContent(req.content);
                 setData(req.data);
+                setQuery(req.data?.query);
 
                 // Reset states
                 setFeedback('');
@@ -58,11 +60,12 @@ export const ReviewContainer: React.FC = () => {
 
         setIsProcessing(true); // Disable buttons
 
-        // Construct result
+        // Construct result - include query in data if present
+        const resultData = query !== undefined ? { ...data, query } : data;
         request.onResult({
             action,
             content: content,
-            data: data,
+            data: resultData,
             feedback: action === 'reject' ? feedback : undefined
         });
 
@@ -191,6 +194,8 @@ export const ReviewContainer: React.FC = () => {
                                 <MessageReview
                                     content={content}
                                     onChange={(newContent) => setContent(newContent)}
+                                    query={query}
+                                    onQueryChange={query !== undefined ? setQuery : undefined}
                                 />
                             )
                         )}
