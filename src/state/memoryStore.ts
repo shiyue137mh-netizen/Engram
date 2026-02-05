@@ -1,11 +1,10 @@
-import { create } from 'zustand';
-import { getDbForChat, tryGetDbForChat, deleteDatabase, type ChatDatabase } from '@/data/db';
+import { generateUUID } from '@/core/utils';
 import { chatManager } from '@/data/ChatManager';
+import { deleteDatabase, getDbForChat, tryGetDbForChat, type ChatDatabase } from '@/data/db';
+import type { EntityNode, EventNode } from '@/data/types/graph';
 import { WorldInfoService } from '@/integrations/tavern/api';
 import { getCurrentChatId } from '@/integrations/tavern/context';
-import { generateUUID } from '@/core/utils';
-import type { EventNode, EntityNode, ScopeState } from '@/data/types/graph';
-import { EntityType } from '@/data/types/graph';
+import { create } from 'zustand';
 
 interface MemoryState {
     /** 当前 chatId */
@@ -250,8 +249,8 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
                 // 查找属于此 level1 范围内的已召回 level0 事件（作为子节点）
                 for (const l0 of level0ArchivedRecalled) {
                     if (isWithinRange(l0, l1) && !processedRecalledIds.has(l0.id)) {
-                        // 缩进 2 空格 + 召回标记
-                        lines.push(`  (当前剧情相关) ${l0.summary}`);
+                        // 缩进 2 空格
+                        lines.push(`  ${l0.summary}`);
                         processedRecalledIds.add(l0.id);
                     }
                 }
@@ -260,7 +259,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
             // 2. 输出不属于任何 level1 范围的召回事件
             for (const l0 of level0ArchivedRecalled) {
                 if (!processedRecalledIds.has(l0.id)) {
-                    lines.push(`(当前剧情相关) ${l0.summary}`);
+                    lines.push(l0.summary);
                     processedRecalledIds.add(l0.id);
                 }
             }
