@@ -165,10 +165,15 @@ export class EntityBuilder {
             const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
             const { createEntityWorkflow } = await import('@/modules/workflow/definitions/EntityWorkflow');
 
+            // V1.0.4: 使用全局 "启用修订模式" 开关 (复用 summarizerConfig)
+            const globalSettings = SettingsManager.get('summarizerConfig');
+            const previewEnabled = manual || (globalSettings?.previewEnabled ?? true);
+
             const context = await WorkflowEngine.run(createEntityWorkflow(), {
                 trigger: manual ? 'manual' : 'auto',
                 config: {
                     dryRun,
+                    previewEnabled,
                     logType: 'entity_extraction', // For LlmRequest logging
                     templateId: this.config.promptTemplateId // V0.9.10: Support custom prompt
                 },

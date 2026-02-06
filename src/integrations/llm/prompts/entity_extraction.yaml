@@ -196,17 +196,46 @@ systemPrompt: |
 
       输出:
         ```json
-                  { "target": "A", "type": "主人", "description": "A的契约主人" }
-                ]
+        {
+          "patches": [
+            {
+              "op": "add",
+              "path": "/entities/A",
+              "value": {
+                "type": "char",
+                "aliases": [],
+                "profile": {
+                  "identity": "受伤的流浪者 -> 见习骑士",
+                  "relations": {
+                    "B": { "type": "主人", "description": "救命恩人与契约主人" }
+                  }
+                }
               }
             },
             {
-              "name": "荒野森林",
-              "type": "loc",
-              "aliases": [],
-              "profile": {
-                "atmosphere": "危险的荒野地带",
-                "features": ["森林", "野兽出没"]
+              "op": "add",
+              "path": "/entities/B",
+              "value": {
+                "type": "char",
+                "aliases": ["公主"],
+                "profile": {
+                  "identity": "王国公主",
+                  "relations": {
+                    "A": { "type": "仆从", "description": "救助并收留的骑士" }
+                  }
+                }
+              }
+            },
+            {
+              "op": "add",
+              "path": "/entities/荒野森林",
+              "value": {
+                "type": "loc",
+                "aliases": [],
+                "profile": {
+                  "atmosphere": "危险的荒野地带",
+                  "features": ["森林", "野兽出没"]
+                }
               }
             }
           ]
