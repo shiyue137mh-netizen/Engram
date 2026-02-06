@@ -52,7 +52,12 @@ export class UserReview implements IStep {
             let reviewType: 'text' | 'json' | 'entity' = 'text';
             let reviewData = undefined;
 
-            if (context.parsedData) {
+            // V1.2.7: 优先使用 context.output（来自 SaveEntity dryRun 步骤的 newEntities/updatedEntities）
+            if (context.output && typeof context.output === 'object' &&
+                ('newEntities' in context.output || 'updatedEntities' in context.output)) {
+                reviewType = 'entity';
+                reviewData = context.output;
+            } else if (context.parsedData) {
                 // 如果有 parsedData，优先假设是结构化数据
                 // 暂时简单判断: TODO: Config or Schema check
                 reviewType = 'entity'; // 默认假设，或者根据 context.workflowName 判断

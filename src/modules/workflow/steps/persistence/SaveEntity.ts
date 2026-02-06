@@ -42,6 +42,12 @@ const LegacySchema = z.object({
 
 export class SaveEntity implements IStep {
     name = 'SaveEntity';
+    private config: { dryRun?: boolean };
+
+    // V1.2.7: 支持构造函数配置 dryRun，用于预览模式
+    constructor(config?: { dryRun?: boolean }) {
+        this.config = config || {};
+    }
 
     async execute(context: JobContext): Promise<void> {
         const store = useMemoryStore.getState();
@@ -63,7 +69,8 @@ export class SaveEntity implements IStep {
 
         const newEntities: EntityNode[] = [];
         const updatedEntities: EntityNode[] = [];
-        const isDryRun = context.config.dryRun === true;
+        // V1.2.7: 优先使用构造函数配置，其次是 context.config
+        const isDryRun = this.config.dryRun ?? context.config.dryRun === true;
 
         // 尝试解析为统一 Patch 格式
         const unifiedResult = UnifiedPatchSchema.safeParse(sourceContent);

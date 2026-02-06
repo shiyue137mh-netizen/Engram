@@ -587,13 +587,15 @@ export class MacroService {
             const summarizerConfig = SettingsManager.get('summarizerConfig') as SummarizerConfig | undefined;
             const floorInterval = summarizerConfig?.floorInterval ?? 20;
             const bufferSize = summarizerConfig?.bufferSize ?? 10;
-            // V1.0.3: 用户需求：预处理和实体提取的"最近上下文"直接使用 summary 的 bufferSize
-            const limit = Math.max(1, bufferSize);
-            Logger.debug('MacroService', '动态计算 chatHistory limit (Shared Buffer)', { floorInterval, bufferSize, limit });
+            // V1.2.7: 修正：使用 floorInterval 而非 bufferSize
+            // 原因：间隔 20，缓冲 10 时，第 11~20 层可能还没被总结但也不在缓冲区内
+            // 使用 floorInterval 确保完整覆盖可能出现在上下文中的内容
+            const limit = Math.max(1, floorInterval);
+            Logger.debug('MacroService', '动态计算 chatHistory limit (FloorInterval)', { floorInterval, bufferSize, limit });
             return limit;
         } catch (e) {
-            Logger.warn('MacroService', '动态计算 limit 失败，使用默认值 17', e);
-            return 17; // 默认 20 - 3 = 17
+            Logger.warn('MacroService', '动态计算 limit 失败，使用默认值 20', e);
+            return 20; // 默认 floorInterval
         }
     }
 
