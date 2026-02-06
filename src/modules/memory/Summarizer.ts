@@ -431,6 +431,27 @@ class SummarizerService {
             this._lastSummarizedFloor = endFloor;
             this.summaryHistory.push(result);
 
+            // V1.0.5: 联动触发精简 - 总结完成后检查是否需要精简
+            try {
+                const { eventTrimmer } = await import('@/modules/memory/EventTrimmer');
+                const trimStatus = await eventTrimmer.getStatus();
+                const trimConfig = eventTrimmer.getConfig();
+
+                // 只有在精简已启用且触发条件满足时才自动执行
+                if (trimConfig.enabled && trimStatus.triggered) {
+                    this.log('info', '联动触发精简', {
+                        triggerType: trimStatus.triggerType,
+                        currentValue: trimStatus.currentValue,
+                        threshold: trimStatus.threshold
+                    });
+                    // 使用 manual=false 表示自动触发
+                    await eventTrimmer.trim(false);
+                }
+            } catch (trimError) {
+                // 精简失败不应影响总结结果
+                this.log('warn', '联动精简失败', { error: trimError });
+            }
+
             return result;
 
         } catch (e) {

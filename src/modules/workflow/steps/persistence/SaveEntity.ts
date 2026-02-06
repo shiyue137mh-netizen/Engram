@@ -136,8 +136,9 @@ export class SaveEntity implements IStep {
             );
 
             // 检查是否有 add 到 /entities/{name} 的操作 (新实体)
+            // V1.0.5: 移除 encodeURIComponent，因为 LLM 输出的路径不进行 URL 编码
             const addRootPatch = entityPatches.find(p =>
-                p.op === 'add' && p.path === `/entities/${encodeURIComponent(entityName)}`
+                p.op === 'add' && p.path === `/entities/${entityName}`
             );
 
             if (addRootPatch && !existing) {
@@ -164,11 +165,12 @@ export class SaveEntity implements IStep {
                     const targetDoc = JSON.parse(JSON.stringify(existing));
 
                     // 将路径转换为相对于实体的路径
+                    // V1.0.5: 移除 encodeURIComponent，因为 LLM 输出的路径不进行 URL 编码
                     const relativeOps = entityPatches
-                        .filter(p => p.path !== `/entities/${encodeURIComponent(entityName)}`) // 排除 add root
+                        .filter(p => p.path !== `/entities/${entityName}`) // 排除 add root
                         .map(p => ({
                             ...p,
-                            path: p.path.replace(`/entities/${encodeURIComponent(entityName)}`, '')
+                            path: p.path.replace(`/entities/${entityName}`, '')
                         }));
 
                     if (relativeOps.length > 0) {

@@ -1,4 +1,19 @@
 # Changelog
+## [1.2.7] - 2026-02-06
+
+### 🐛 Bug 修复 (Bug Fixes)
+
+- **SaveEntity 路径匹配修复**: 移除 `encodeURIComponent`，修复中文实体名 JSON Patch 路径不匹配导致的 `Patch failed` 问题
+- **EventTrimmer 事件计数修复**: `canTrim()` 和 `getStatus()` 现在使用 `activeEventCount`（只统计活跃事件），修复了精简后"待合并条目不减少"的问题
+- **entity_extraction.yaml 示例修正**: 将旧版截断示例替换为符合 RFC 6902 JSON Patch 规范的完整示例
+
+### ✨ 新功能 (New Features)
+
+- **自动精简联动触发**: 在 `Summarizer.triggerSummary()` 完成后自动检查精简阈值，如果精简已启用且达到条件则联动触发精简
+
+### 🔧 改进 (Improvements)
+
+- **UserReview 调试日志**: 添加 `previewEnabled` 调试日志，便于排查预览窗口不弹出的问题
 
 ## [1.2.6] - 2026-02-05
 
@@ -72,71 +87,4 @@
   - **EntityReview**: 实体提取审查视图，支持查看新增/变更实体。
   - **MessageReview**: 标准文本生成审查。
 - **代码库清理**: 移除了旧版的 `RevisionModal` 和 `EntityReviewModal`，代码更轻量规范。
-
-## [1.2.0] - 2026-01-29
-
-### 没什么功能更新,更多是优化和修bug,更新下版本号提醒一下更新,提示词改的比较多,记得点击刷新所有默认的提示词模版
-
-
-
-## [1.1.0] - 2026-01-24
-
-### 🏗️ 架构优化 (Architecture Optimization)
-- **UI 重构**: 统一了 Processing View 的保存逻辑与状态管理，消除了子面板的私有状态，提升了交互一致性。
-- **Workflow 模块化**: 将 `EventTrimmer` 重构为模块化的 `TrimmerWorkflow`，分离了数据获取、处理与保存逻辑，便于扩展。
-- **Prompt 约束增强**: 为所有内置 Prompt 增加了强制性的负面约束，防止模型在处理数据时意外续写剧情。
-
-### ✨ 新功能 (New Features)
-- **自定义知识书 (Worldbook Profiles)**: 支持为每个 Prompt 模板绑定特定的世界书/设定集，实现更精细的上下文控制。
-
-## [1.0.2] - 2026-01-22
-
-### 🎯 Summary 宏优化 (树状缩进格式)
-- **`{{engramSummaries}}` 输出重构**: 采用类文件树的层级缩进格式
-  - Level 1 大纲节点作为父节点（无缩进）
-  - 被 RAG 召回的 Level 0 归档事件作为子节点（缩进 2 空格 + "当前剧情相关" 标记）
-  - 未归档的 Level 0 事件直接输出（无缩进）
-- **BrainRecallCache 自动绑定**: `MacroService.refreshEngramCache()` 现在自动从类脑缓存获取召回 ID
-
-### 🔧 Trim 系统优化
-- **修复 Level 1 重复精简问题**: `getEventsToMerge()` 现在只选择 `level === 0 && !is_archived` 的事件
-- **Trim 提示词重写**: 简化为单事件输出，summary 字段 200-300 字，time_anchor 体现时间范围
-
-### 📊 数据结构变更 (Breaking Change)
-- **`location` 类型改为数组**: `structured_kv.location: string` → `string[]`
-  - 支持多地点场景，如 `["边境公会大厅", "小镇酒馆"]`
-  - UI 编辑器已适配，支持逗号分隔输入
-
-### 🖥️ UI 改进
-- **提示词模板管理**: 新增"重置为默认"按钮
-  - 可一键将所有内置模板恢复为初始状态
-  - 智能保留用户创建的自定义模板
-- **默认配置优化**: 实体提取模板默认设为启用状态
-- **UI 视觉优化**: 移除禁用模板时的删除线样式，提升可读性
-
----
-
-## [1.0.1 ] - 2026-01-22
-
-### 多端同步数据库功能
-
-## [1.0.0] - 2026-01-21
-
-### ✨ Entity State Injection (实体状态注入系统)
-- **新增宏 `{{engramEntityStates}}`**: 将实体状态注入 LLM 上下文
-  - 按实体类型分组输出 XML 标签：
-    - `char` → `<character_state>`
-    - `loc` → `<scene_state>`
-    - `item` → `<item_state>`
-    - `concept` → `<concept_state>`
-  - 直接使用 `description` 字段（已由 EntityExtractor 烧录为 YAML 格式）
-  - 所有实体常态触发，无归档逻辑
-- **WorldBook 槽位更新**: 预制条目自动包含 `{{engramSummaries}}` 和 `{{engramEntityStates}}`
-
-### 🛠️ API Changes
-- `memoryStore` 新增 `getEntityStates()` 方法
-- `MacroService` 新增 `cachedEntityStates` 缓存字段
-- `refreshEngramCache()` 现在同时刷新实体状态缓存
-
----
 

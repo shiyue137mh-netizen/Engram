@@ -4,11 +4,11 @@
  * V0.6: 直接调用 llmAdapter，不再依赖 Extractor
  */
 
-import { useMemoryStore } from '@/state/memoryStore';
-import { Logger, LogModule } from '@/core/logger';
-import { notificationService } from '@/ui/services/NotificationService';
 import { SettingsManager } from '@/config/settings';
+import { Logger, LogModule } from '@/core/logger';
 import type { EventNode } from '@/data/types/graph';
+import { useMemoryStore } from '@/state/memoryStore';
+import { notificationService } from '@/ui/services/NotificationService';
 
 
 export interface TrimConfig {
@@ -88,16 +88,17 @@ class EventTrimmer {
 
     /**
      * 检查是否可以触发精简
+     * V1.0.5: 使用 getEventsToMerge 而非 getAllEvents，确保只统计活跃事件
      */
     async canTrim(): Promise<{ canTrim: boolean; eventCount: number; pendingCount: number }> {
         const store = useMemoryStore.getState();
-        const events = await store.getAllEvents();
-        const pendingCount = Math.max(0, events.length - this.config.keepRecentCount);
+        const eventsToMerge = await store.getEventsToMerge(this.config.keepRecentCount);
+        const { activeEventCount } = await store.countEventTokens();
 
         return {
-            canTrim: pendingCount >= 2,  // 至少需要 2 条才能合并
-            eventCount: events.length,
-            pendingCount
+            canTrim: eventsToMerge.length >= 2,  // 至少需要 2 条才能合并
+            eventCount: activeEventCount,
+            pendingCount: eventsToMerge.length
         };
     }
 
@@ -165,7 +166,8 @@ class EventTrimmer {
         // 动态导入以避免循环依赖
         const { useMemoryStore } = await import('@/state/memoryStore');
         const store = useMemoryStore.getState();
-        const { totalTokens, eventCount } = await store.countEventTokens();
+        // V1.0.5: 使用 activeEventCount 而非 eventCount
+        const { totalTokens, activeEventCount } = await store.countEventTokens();
 
         // 触发检测
         let triggered = false;
@@ -189,7 +191,8 @@ class EventTrimmer {
             currentValue = totalTokens;
             threshold = tokenLimit;
         } else {
-            currentValue = eventCount;
+            // V1.0.5: 使用 activeEventCount
+            currentValue = activeEventCount;
             threshold = countLimit;
         }
 
@@ -197,7 +200,8 @@ class EventTrimmer {
 
         // 待合并条目
         const keepCount = limitConfig.keepRecentCount || 3;
-        const pendingEntryCount = Math.max(0, eventCount - keepCount);
+        // V1.0.5: 使用 activeEventCount
+        const pendingEntryCount = Math.max(0, activeEventCount - keepCount);
 
         return {
             triggered,

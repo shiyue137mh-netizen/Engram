@@ -16,10 +16,17 @@ export class UserReview implements IStep {
     constructor(private config: UserReviewConfig) { }
 
     async execute(context: JobContext): Promise<StepResult> {
+        // V1.0.5: 调试日志
+        Logger.debug('UserReview', 'previewEnabled check', {
+            previewEnabled: context.config.previewEnabled,
+            configKeys: Object.keys(context.config)
+        });
+
         // 检查配置是否启用预览
         if (!context.config.previewEnabled) {
             // 如果未启用，直接使用 cleanedContent 或 llmResponse.content
             context.output = context.cleanedContent || context.llmResponse?.content;
+            Logger.info('UserReview', 'Preview disabled, skipping review');
             return; // 默认 next
         }
 
