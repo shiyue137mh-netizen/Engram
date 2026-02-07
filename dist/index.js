@@ -6638,9 +6638,9 @@ class Rm {
 }
 it(Rm, "templates", []), it(Rm, "initialized", !1);
 const dW = {
-  temperature: 0.7,
-  topP: 0.95,
-  maxTokens: 2048,
+  temperature: 1,
+  topP: 0.98,
+  maxTokens: 6e4,
   frequencyPenalty: 0,
   presencePenalty: 0
 }, fW = {

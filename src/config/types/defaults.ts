@@ -1,23 +1,23 @@
 // Re-export types for convenience
 export type { LLMPreset } from './llm';
-export type { RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
 export type { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
-export type { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, WorldbookConfigProfile } from './prompt';
+export type { CustomMacro, PromptCategory, PromptTemplate, WorldbookConfig, WorldbookConfigProfile } from './prompt';
+export type { EmbeddingConfig, RecallConfig, RerankConfig, VectorConfig } from './rag';
 ;
 
 
-import { SamplingParameters, ContextSettings, LLMPreset } from './llm';
-import { BrainRecallConfig, RecallConfig, VectorConfig, RerankConfig, EmbeddingConfig } from './rag';
+import { ContextSettings, LLMPreset, SamplingParameters } from './llm';
 import { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
-import { CustomMacro, PromptTemplate, WorldbookConfig, PromptCategory, PROMPT_CATEGORIES, WorldbookConfigProfile } from './prompt';
+import { CustomMacro, PromptCategory, PromptTemplate, WorldbookConfig, WorldbookConfigProfile } from './prompt';
+import { BrainRecallConfig, EmbeddingConfig, RecallConfig, RerankConfig, VectorConfig } from './rag';
 
 // Import prompts from original location (will be moved in Phase 7)
 // Removed: raw text imports replaced by YAML loader
 
 const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
-    temperature: 0.7,
-    topP: 0.95,
-    maxTokens: 2048,
+    temperature: 1.0,
+    topP: 0.98,
+    maxTokens: 60000,
     frequencyPenalty: 0,
     presencePenalty: 0,
 };
