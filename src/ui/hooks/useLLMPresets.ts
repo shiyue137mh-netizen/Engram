@@ -2,10 +2,10 @@
  * useLLMPresets - LLM 预设与提示词模板管理
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import type { LLMPreset, PromptTemplate, EngramAPISettings } from '@/config/types/defaults';
-import { getDefaultAPISettings, createDefaultLLMPreset, getBuiltInPromptTemplates } from '@/config/types/defaults';
 import { SettingsManager } from '@/config/settings';
+import type { EngramAPISettings, LLMPreset, PromptTemplate } from '@/config/types/defaults';
+import { createDefaultLLMPreset, getBuiltInPromptTemplates, getDefaultAPISettings } from '@/config/types/defaults';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface UseLLMPresetsReturn {
     llmPresets: LLMPreset[];
@@ -167,19 +167,33 @@ export function useLLMPresets(): UseLLMPresetsReturn {
     }, []);
 
     /**
-     * V1.0.2: 重置所有内置模板为默认值
+     * V1.3.3: 重置所有内置模板为默认值
      * - 将所有内置模板恢复为默认内容
      * - 保留用户自定义的模板
+     * - 保留当前启用状态和世界书绑定
      */
     const resetAllTemplates = useCallback(() => {
         const builtInDefaults = getBuiltInPromptTemplates();
         setSettings(prev => {
             // 保留自定义模板
             const customTemplates = prev.promptTemplates.filter(t => !t.isBuiltIn);
-            // 用默认的内置模板替换当前的内置模板
+
+            // 合并默认值与当前状态 (保留 enabled 和 extraWorldbooks)
+            const mergedDefaults = builtInDefaults.map(def => {
+                const current = prev.promptTemplates.find(t => t.id === def.id);
+                if (current) {
+                    return {
+                        ...def,
+                        enabled: current.enabled,
+                        extraWorldbooks: current.extraWorldbooks,
+                    };
+                }
+                return def;
+            });
+
             return {
                 ...prev,
-                promptTemplates: [...builtInDefaults, ...customTemplates],
+                promptTemplates: [...mergedDefaults, ...customTemplates],
             };
         });
         setEditingTemplate(null);

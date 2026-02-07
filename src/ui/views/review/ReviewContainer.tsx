@@ -2,14 +2,12 @@ import { ReviewAction, ReviewRequest } from '@/core/events/ReviewBridge';
 import { EventBus } from '@/integrations/tavern/api'; // EventBus is from events.ts, tavern/api exports it
 import { TavernEventType } from '@/integrations/tavern/events';
 import { ModernButton as Button } from '@/ui/components/core/Button';
-import { AlertTriangle, ArrowDownToLine, Check, Minus, RefreshCw, RotateCcw } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, Check, Layers, Minus, RefreshCw, RotateCcw, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { EntityReview } from './EntityReview';
 import { MessageReview } from './MessageReview';
 import { SummaryReview } from './SummaryReview'; // V1.2
-
-import { Layers } from 'lucide-react';
 
 // --- Sub-component: ReviewSession ---
 // Encapsulates state and logic for a SINGLE review request
@@ -64,7 +62,7 @@ const ReviewSession: React.FC<ReviewSessionProps> = ({ request, isActive, onFini
             )}
 
             {/* Content Area */}
-            <div className="flex-1 p-5 overflow-y-auto bg-background/50">
+            <div className="flex-1 p-5 overflow-y-auto bg-background/50 custom-scrollbar">
                 {showFeedbackInput ? (
                     <div className="flex flex-col h-full gap-4 animate-in fade-in slide-in-from-bottom-2">
                         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md flex items-center gap-3">
@@ -227,12 +225,25 @@ export const ReviewContainer: React.FC = () => {
 
                         {/* Window Controls */}
                         <div className="flex items-center gap-1 mb-1 px-2">
-                            <button onClick={() => setIsMinimized(true)} className="p-1.5 text-muted-foreground hover:text-foreground rounded-md transition-colors">
+                            <button onClick={() => setIsMinimized(true)} className="p-1.5 text-muted-foreground hover:text-foreground rounded-md transition-colors" title="最小化">
                                 <Minus size={16} />
                             </button>
-                            {/* Global Cancel? Maybe not needed if sessions handle themselves.
-                                 Or allow closing specific tab? For now, actions are inside session.
-                                 We could add 'X' on tab to cancel specific request. */}
+                            <button
+                                onClick={() => {
+                                    if (activeId) {
+                                        // Cancel active request
+                                        const req = requests.find(r => r.id === activeId);
+                                        if (req) {
+                                            req.onResult({ action: 'cancel', content: '', data: req.data });
+                                            handleSessionFinish(activeId);
+                                        }
+                                    }
+                                }}
+                                className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                title="关闭/取消当前"
+                            >
+                                <X size={16} />
+                            </button>
                         </div>
                     </div>
 

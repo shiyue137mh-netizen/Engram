@@ -1,11 +1,11 @@
-import React, { useRef } from 'react';
-import { dump, load } from 'js-yaml';
-import { FileText, Copy, Trash2, Download, Upload, Check, Power, RotateCcw } from 'lucide-react';
-import type { PromptTemplate, PromptTemplateSingleExport, PromptCategory } from '@/config/types/prompt';
-import { PROMPT_CATEGORIES } from '@/config/types/prompt';
 import { createPromptTemplate, getBuiltInTemplateByCategory, getBuiltInTemplateById } from '@/config/types/defaults';
+import type { PromptCategory, PromptTemplate, PromptTemplateSingleExport } from '@/config/types/prompt';
+import { PROMPT_CATEGORIES } from '@/config/types/prompt';
 import { Logger, LogModule } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
+import { dump, load } from 'js-yaml';
+import { Check, Copy, Download, Power, RotateCcw, Trash2, Upload } from 'lucide-react';
+import React, { useRef } from 'react';
 
 interface PromptTemplateCardProps {
     template: PromptTemplate;
@@ -228,6 +228,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                                     ...defaultTemplate,
                                     id: template.id,
                                     enabled: template.enabled,
+                                    extraWorldbooks: template.extraWorldbooks, // V1.3.3: 保留绑定的世界书
                                 });
                             }
                         }}
