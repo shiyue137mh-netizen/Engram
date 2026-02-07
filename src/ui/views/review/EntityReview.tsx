@@ -90,8 +90,11 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
 
             {/* Editing Modal/Overlay */}
             {editingEntity && (
-                <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="w-full max-w-2xl bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95">
+                <div
+                    className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in"
+                    style={{ height: '100dvh', width: '100vw' }}
+                >
+                    <div className="w-full max-w-2xl bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 max-h-[90dvh] overflow-y-auto custom-scrollbar">
                         <h3 className="text-lg font-bold">编辑实体</h3>
 
                         <div className="grid grid-cols-2 gap-4">

@@ -62,7 +62,7 @@ const ReviewSession: React.FC<ReviewSessionProps> = ({ request, isActive, onFini
             )}
 
             {/* Content Area */}
-            <div className="flex-1 p-5 overflow-y-auto bg-background/50 custom-scrollbar">
+            <div className="flex-1 min-h-0 p-5 overflow-y-auto bg-background/50 custom-scrollbar">
                 {showFeedbackInput ? (
                     <div className="flex flex-col h-full gap-4 animate-in fade-in slide-in-from-bottom-2">
                         <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-md flex items-center gap-3">
@@ -195,10 +195,13 @@ export const ReviewContainer: React.FC = () => {
 
     return ReactDOM.createPortal(
         <div className="engram-app-root" style={{ display: 'contents' }}>
-            <div className="fixed inset-0 z-[11000] flex items-center justify-center p-4 pointer-events-auto">
+            <div
+                className="fixed inset-0 z-[11000] flex items-center justify-center p-4 sm:p-4 pointer-events-auto"
+                style={{ height: '100dvh', width: '100vw' }} // Explicitly force full viewport info
+            >
                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200" />
 
-                <div className="relative w-full max-w-4xl bg-popover border border-border rounded-lg shadow-2xl flex flex-col max-h-[90vh] min-h-[500px] animate-in zoom-in-95 border-t-4 border-t-primary">
+                <div className="relative w-full max-w-4xl bg-popover border border-border rounded-lg shadow-2xl flex flex-col max-h-[95dvh] sm:max-h-[90vh] min-h-0 sm:min-h-[500px] animate-in zoom-in-95 border-t-4 border-t-primary">
 
                     {/* Top Bar: Tabs & Window Controls */}
                     <div className="flex items-center justify-between px-2 pt-2 border-b border-border bg-muted/40">

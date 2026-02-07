@@ -15,6 +15,10 @@ declare global {
         Mvu?: {
             getMvuData: (params: any) => any;
         };
+        // V1.2.8: 新版宏系统定义
+        macros?: {
+            register: (name: string, options: any) => any;
+        };
     }
 }
 
@@ -35,15 +39,17 @@ export class MacroService {
             // @ts-ignore - SillyTavern 全局对象
             const context = window.SillyTavern?.getContext?.();
 
-            if (!context?.registerMacro) {
+            if (!context?.registerMacro && !context?.macros) {
                 Logger.warn('MacroService', 'SillyTavern registerMacro API 不可用');
                 return;
             }
 
             // --- 注册宏 ---
 
+            // --- 注册宏 ---
+
             // {{engramSummaries}} - 从 IndexedDB 获取当前聊天的所有事件摘要
-            context.registerMacro(
+            MacroService.registerMacro(
                 'engramSummaries',
                 () => {
                     // 宏替换是同步的，使用缓存值
@@ -53,7 +59,7 @@ export class MacroService {
             );
 
             // {{worldbookContext}} - 获取激活的世界书内容
-            context.registerMacro(
+            MacroService.registerMacro(
                 'worldbookContext',
                 () => {
                     // 宏替换是同步的，使用缓存值
@@ -63,7 +69,7 @@ export class MacroService {
             );
 
             // {{userInput}} - 当前用户输入（预处理专用）
-            context.registerMacro(
+            MacroService.registerMacro(
                 'userInput',
                 () => {
                     return MacroService.cachedUserInput;
@@ -72,7 +78,7 @@ export class MacroService {
             );
 
             // {{chatHistory}} - 最近对话历史 (从配置读取 floorInterval - bufferSize)
-            context.registerMacro(
+            MacroService.registerMacro(
                 'chatHistory',
                 () => {
                     return MacroService.getChatHistory();
@@ -81,7 +87,7 @@ export class MacroService {
             );
 
             // {{context}} - 角色卡设定（同酒馆 description）
-            context.registerMacro(
+            MacroService.registerMacro(
                 'context',
                 () => {
                     return MacroService.cachedCharDescription;
@@ -90,7 +96,7 @@ export class MacroService {
             );
 
             // V0.9: {{engramGraph}} - 事件和实体的结构化 JSON
-            context.registerMacro(
+            MacroService.registerMacro(
                 'engramGraph',
                 () => {
                     return MacroService.cachedGraphData;
@@ -99,7 +105,7 @@ export class MacroService {
             );
 
             // V0.9.2: {{engramArchivedSummaries}} - 已归档的历史摘要 (绿灯事件)
-            context.registerMacro(
+            MacroService.registerMacro(
                 'engramArchivedSummaries',
                 () => {
                     return MacroService.cachedArchivedSummaries;
@@ -108,7 +114,7 @@ export class MacroService {
             );
 
             // V0.9.2: {{userPersona}} - 用户角色设定
-            context.registerMacro(
+            MacroService.registerMacro(
                 'userPersona',
                 () => {
                     return MacroService.cachedUserPersona;
@@ -117,7 +123,7 @@ export class MacroService {
             );
 
             // V1.0.0: {{engramEntityStates}} - 实体状态
-            context.registerMacro(
+            MacroService.registerMacro(
                 'engramEntityStates',
                 () => {
                     return MacroService.cachedEntityStates;
@@ -663,7 +669,7 @@ export class MacroService {
 
                 // 动态注册到酒馆（使用闭包捕获宏名）
                 const macroName = macro.name;
-                context.registerMacro(
+                MacroService.registerMacro(
                     macroName,
                     () => this.cachedCustomMacros.get(macroName) ?? '',
                     `Engram 自定义宏: {{${macroName}}}`
@@ -676,6 +682,40 @@ export class MacroService {
             });
         } catch (e) {
             Logger.warn('MacroService', '刷新自定义宏失败', e);
+        }
+    }
+
+    /**
+     * V1.2.8: 统一宏注册接口，兼容新旧 API
+     * @param name 宏名称
+     * @param handler 宏处理函数
+     * @param description 宏描述
+     */
+    private static registerMacro(name: string, handler: () => string, description: string) {
+        // @ts-ignore
+        const context = window.SillyTavern?.getContext?.();
+
+        // 1. 尝试使用新版 API (macros.register)
+        if (context?.macros?.register) {
+            try {
+                context.macros.register(name, {
+                    handler: handler,
+                    description: description,
+                    category: 'extension', // 将所有 Engram 宏归类为扩展
+                    returnType: 'string',
+                    strictArgs: false
+                });
+                return;
+            } catch (e) {
+                Logger.warn('MacroService', `新版 API 注册宏 ${name} 失败，尝试回退`, e);
+            }
+        }
+
+        // 2. 回退到旧版 API (registerMacro)
+        if (context?.registerMacro) {
+            context.registerMacro(name, handler, description);
+        } else {
+            Logger.warn('MacroService', `无法注册宏 ${name}: 没有可用的注册 API`);
         }
     }
 }

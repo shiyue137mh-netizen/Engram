@@ -46,6 +46,16 @@ export interface STContext {
 
     // 宏系统
     registerMacro?: (key: string, callback: () => string | Promise<string>, description?: string) => void;
+    macros?: {
+        register: (name: string, options: {
+            handler: (context?: any) => string | Promise<string>;
+            description?: string;
+            category?: string;
+            returnType?: string;
+            strictArgs?: boolean;
+            [key: string]: any;
+        }) => void;
+    };
 
     // 聊天元数据
     chat_metadata?: Record<string, any>;
