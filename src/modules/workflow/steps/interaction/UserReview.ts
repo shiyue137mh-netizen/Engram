@@ -95,6 +95,8 @@ export class UserReview implements IStep {
                 Logger.info('UserReview', '用户选择重抽 (无反馈)');
                 // 清空旧数据以触发重生成
                 context.input.feedback = '';
+                // V1.3.2: 显式清除输出缓存，防止流程跳回后若 LLM 未生成新内容，SaveEntity 错误读取上一轮的 ProcessedResult
+                this.clearContextOutput(context);
                 return { action: 'jump', targetStep: 'BuildPrompt', reason: 'User reroll' };
             }
 
@@ -102,6 +104,8 @@ export class UserReview implements IStep {
                 Logger.info('UserReview', '用户选择打回重生成');
                 context.input.feedback = result.feedback;
                 context.input.previousOutput = contentToReview;
+                // V1.3.2: 显式清除输出缓存
+                this.clearContextOutput(context);
                 return { action: 'jump', targetStep: 'BuildPrompt', reason: 'User rejected' };
             }
 
@@ -140,5 +144,14 @@ export class UserReview implements IStep {
             notificationService.info('已取消操作', '操作取消');
             throw new Error('UserCancelled');
         }
+    }
+    private clearContextOutput(context: JobContext) {
+        context.output = undefined;
+        context.parsedData = undefined;
+        if (context.llmResponse) {
+            context.llmResponse.content = '';
+        }
+        // V1.3.2: Clear query if present to force regeneration
+        context.extractedTags = undefined;
     }
 }

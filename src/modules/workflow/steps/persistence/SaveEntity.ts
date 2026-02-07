@@ -264,8 +264,23 @@ export class SaveEntity implements IStep {
                                 name: targetDoc.name,
                                 type: targetDoc.type
                             });
+                            updatedEntities.push(targetDoc);
+                        } else {
+                            // DryRun: Attach diffs with old/new values for UI preview
+                            const diffs = relativeOps.map(op => {
+                                let oldValue: any = undefined;
+                                try {
+                                    // Try to get old value if it's a replace or remove
+                                    if (op.op === 'replace' || op.op === 'remove') {
+                                        oldValue = jsonpatch.getValueByPointer(existing, op.path);
+                                    }
+                                } catch (e) { /* ignore */ }
+
+                                return { ...op, oldValue };
+                            });
+                            (targetDoc as any)._diff = diffs;
+                            updatedEntities.push(targetDoc);
                         }
-                        updatedEntities.push(targetDoc);
                     }
                 } catch (e) {
                     Logger.warn('SaveEntity', `Patch failed for ${entityName}`, e);
@@ -328,6 +343,17 @@ export class SaveEntity implements IStep {
                         });
                         updatedEntities.push(targetDoc);
                     } else {
+                        // DryRun: Attach diffs with old/new values
+                        const diffs = patch.ops.map(op => {
+                            let oldValue: any = undefined;
+                            try {
+                                if (op.op === 'replace' || op.op === 'remove') {
+                                    oldValue = jsonpatch.getValueByPointer(target, op.path); // Note: use 'target' (original) here
+                                }
+                            } catch (e) { /* ignore */ }
+                            return { ...op, oldValue };
+                        });
+                        (targetDoc as any)._diff = diffs;
                         updatedEntities.push(targetDoc);
                     }
                 } catch (e) {
