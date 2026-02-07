@@ -1,18 +1,17 @@
 /**
  * 提示词模板编辑表单
  */
-import React from 'react';
-import { TextField, SelectField, FormSection } from '@/ui/components/form/FormComponents';
-import type { PromptTemplate, WorldbookConfigProfile, PromptCategory } from '@/config/types/prompt';
 import type { LLMPreset } from '@/config/types/llm';
+import type { PromptCategory, PromptTemplate } from '@/config/types/prompt';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';
-import { Plus, Copy, Check } from 'lucide-react';
-import { useState } from 'react';
+import { FormSection, SelectField, TextField } from '@/ui/components/form/FormComponents';
+import { WorldbookBindingField } from '@/ui/components/form/WorldbookBindingField';
+import { Check, Copy } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface PromptTemplateFormProps {
     template: PromptTemplate;
     llmPresets: LLMPreset[];
-    worldbookProfiles: WorldbookConfigProfile[];
     defaultPresetId: string | null;
     onChange: (template: PromptTemplate) => void;
 }
@@ -73,7 +72,6 @@ const MacroItem = ({ macro }: { macro: MacroDef }) => {
 export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
     template,
     llmPresets,
-    worldbookProfiles,
     defaultPresetId,
     onChange,
 }) => {
@@ -151,17 +149,11 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                 />
             </FormSection>
 
-            {/* 知识库绑定 (V1.1.0) */}
+            {/* 额外世界书绑定 (V1.2.8) */}
             <FormSection title="知识库绑定">
-                <SelectField
-                    label="绑定知识库方案"
-                    value={template.boundWorldbookProfileId || ''}
-                    onChange={(value) => updateTemplate({ boundWorldbookProfileId: value || null })}
-                    options={[
-                        { value: '', label: '继承全局设置 (Inherit Global)' },
-                        ...worldbookProfiles.map(p => ({ value: p.id, label: p.name })),
-                    ]}
-                    description="选择此模板专用的世界书加载方案。若选择“继承全局”，则使用全局世界书配置。"
+                <WorldbookBindingField
+                    selectedBooks={template.extraWorldbooks || []}
+                    onChange={(books) => updateTemplate({ extraWorldbooks: books })}
                 />
             </FormSection>
 
@@ -201,4 +193,3 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
         </div>
     );
 };
-

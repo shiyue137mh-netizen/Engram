@@ -40,6 +40,11 @@ const LegacySchema = z.object({
     patches: z.array(LegacyPatchSchema).optional()
 });
 
+const ProcessedResultSchema = z.object({
+    newEntities: z.array(z.any()).optional(),
+    updatedEntities: z.array(z.any()).optional()
+});
+
 export class SaveEntity implements IStep {
     name = 'SaveEntity';
     private config: { dryRun?: boolean };
@@ -72,25 +77,28 @@ export class SaveEntity implements IStep {
         // V1.2.7: 优先使用构造函数配置，其次是 context.config
         const isDryRun = this.config.dryRun ?? context.config.dryRun === true;
 
-        // 尝试解析为统一 Patch 格式
-        const unifiedResult = UnifiedPatchSchema.safeParse(sourceContent);
+        // V1.3.1: 检查是否为已处理的数据 (来自 DryRun + UserReview)
+        const processedResult = ProcessedResultSchema.safeParse(sourceContent);
+        const hasProcessedData = processedResult.success &&
+            ((processedResult.data.newEntities?.length ?? 0) > 0 || (processedResult.data.updatedEntities?.length ?? 0) > 0);
 
-        if (unifiedResult.success && this.isUnifiedFormat(unifiedResult.data.patches)) {
-            // V1.3 统一格式
-            await this.processUnifiedPatches(
-                unifiedResult.data.patches,
-                existingEntities,
+        if (hasProcessedData) {
+            Logger.debug('SaveEntity', 'Detected processed data structure, bypassing extraction logic');
+            await this.saveProcessedEntities(
+                processedResult.data,
                 store,
                 isDryRun,
                 newEntities,
                 updatedEntities
             );
         } else {
-            // 向后兼容 Legacy 格式
-            const legacyResult = LegacySchema.safeParse(sourceContent);
-            if (legacyResult.success) {
-                await this.processLegacyFormat(
-                    legacyResult.data,
+            // 尝试解析为统一 Patch 格式
+            const unifiedResult = UnifiedPatchSchema.safeParse(sourceContent);
+
+            if (unifiedResult.success && this.isUnifiedFormat(unifiedResult.data.patches)) {
+                // V1.3 统一格式
+                await this.processUnifiedPatches(
+                    unifiedResult.data.patches,
                     existingEntities,
                     store,
                     isDryRun,
@@ -98,12 +106,76 @@ export class SaveEntity implements IStep {
                     updatedEntities
                 );
             } else {
-                throw new Error(`SaveEntity: Zod Validation Failed - 无法解析为统一或旧版格式`);
+                // 向后兼容 Legacy 格式
+                const legacyResult = LegacySchema.safeParse(sourceContent);
+                if (legacyResult.success) {
+                    await this.processLegacyFormat(
+                        legacyResult.data,
+                        existingEntities,
+                        store,
+                        isDryRun,
+                        newEntities,
+                        updatedEntities
+                    );
+                } else {
+                    // 如果既不是 Processed，也不是 Patch，也不是 Legacy，那可能是个空对象或者格式错乱
+                    // 但如果是空对象 (UserReview return empty entities)，legacyResult.success 会是 true (fields optional)
+                    // 所以只有完全无法解析的才会到这里
+                    throw new Error(`SaveEntity: Zod Validation Failed - 无法解析为统一或旧版格式`);
+                }
             }
         }
 
         context.output = { newEntities, updatedEntities };
         Logger.info('SaveEntity', `完成: 新增 ${newEntities.length}, 更新 ${updatedEntities.length} (DryRun: ${isDryRun})`);
+    }
+
+    /** V1.3.1: 直接保存已处理的实体 (来自 UserReview) */
+    private async saveProcessedEntities(
+        data: z.infer<typeof ProcessedResultSchema>,
+        store: ReturnType<typeof useMemoryStore.getState>,
+        isDryRun: boolean,
+        outNewEntities: EntityNode[],
+        outUpdatedEntities: EntityNode[]
+    ): Promise<void> {
+        // 保存新实体
+        if (data.newEntities) {
+            for (const entity of data.newEntities) {
+                if (!isDryRun) {
+                    // 如果有 ID 且不是临时 ID，可能是误传，但通常 newEntities 在 dryRun 时会有 temp ID
+                    // saveEntity 会生成新 ID 或者是覆盖？ store.saveEntity 通常负责创建
+                    // 为了安全，重新构建对象，去除临时 ID
+                    const { id, ...entityData } = entity;
+                    const saved = await store.saveEntity(entityData);
+                    outNewEntities.push(saved);
+                } else {
+                    outNewEntities.push(entity);
+                }
+            }
+        }
+
+        // 保存更新实体
+        if (data.updatedEntities) {
+            for (const entity of data.updatedEntities) {
+                if (!isDryRun) {
+                    if (entity.id && !entity.id.startsWith('temp-')) {
+                        const description = this.profileToYaml(entity.name, entity.type || 'unknown', entity.profile || {});
+                        await store.updateEntity(entity.id, {
+                            profile: entity.profile,
+                            aliases: entity.aliases,
+                            description,
+                            name: entity.name,
+                            type: entity.type
+                        });
+                        outUpdatedEntities.push(entity);
+                    } else {
+                        Logger.warn('SaveEntity', 'Skipping update for entity without valid ID', entity);
+                    }
+                } else {
+                    outUpdatedEntities.push(entity);
+                }
+            }
+        }
     }
 
     /** 检测是否为统一格式 (patches 数组包含 path 字段) */

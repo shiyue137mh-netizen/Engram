@@ -1,11 +1,9 @@
-import { IStep } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
+import { Logger } from '@/core/logger';
+import { getCurrentCharacter, getCurrentChat } from '@/integrations/tavern/context';
 import { MacroService } from '@/integrations/tavern/macros';
 import { WorldInfoService } from '@/integrations/tavern/worldbook';
-import { SettingsManager } from '@/config/settings';
-import { getCurrentChat, getCurrentCharacter } from '@/integrations/tavern/context';
-import { WorldbookConfigProfile } from '@/config/types/prompt';
-import { Logger } from '@/core/logger';
+import { JobContext } from '../../core/JobContext';
+import { IStep } from '../../core/Step';
 
 export class FetchContext implements IStep {
     name = 'FetchContext';
@@ -49,48 +47,58 @@ export class FetchContext implements IStep {
         }
 
         // 3. 获取 World Info (依赖 range)
-        const profileId = context.input.worldbookProfileId as string | undefined;
+        // V1.2.8: 使用 extraWorldbooks 替代 profileId
+        const extraWorldbooks = (context.input.extraWorldbooks as string[] | undefined) || [];
         let wiContent = '';
-        let useProfile = false;
+        let useCustomScan = false;
 
-        if (profileId) {
-            const settings = SettingsManager.getSettings();
-            // @ts-ignore
-            const profile = settings.apiSettings?.worldbookProfiles?.find((p: WorldbookConfigProfile) => p.id === profileId);
+        // 如果有额外世界书配置，或者为了确保过滤 [Engram]，我们使用自定义扫描
+        // V1.2.9: 总是使用自定义逻辑以完全控制过滤
+        const scopes = WorldInfoService.getScopes();
 
-            if (profile && profile.mode === 'custom') {
-                useProfile = true;
-                Logger.debug('FetchContext', `使用世界书配置 [${profile.name}] (Custom Mode)`);
+        // 1. 获取各个来源的世界书
+        // 全局激活的 (可能包含用户手动开启的 [Engram]，需要过滤)
+        const globalBooks = scopes.global || [];
+        // 角色绑定的
+        const charBooks = scopes.chat || [];
+        // 额外绑定的
+        const extraBooks = (context.input.extraWorldbooks as string[] | undefined) || [];
 
-                // 获取扫描文本
-                let scanText = '';
-                if (range) {
-                    const chat = getCurrentChat();
-                    if (chat && Array.isArray(chat)) {
-                        // range is 1-based
-                        const msgs = chat.slice(Math.max(0, range[0] - 1), range[1]);
-                        scanText = msgs.map((m: any) => m.mes || '').join('\n');
-                    }
-                } else {
-                    scanText = context.input.text || history || '';
-                }
+        // 2. 合并并去重
+        const allBooks = [...new Set([...globalBooks, ...charBooks, ...extraBooks])];
 
-                if (profile.selectedWorldbooks && profile.selectedWorldbooks.length > 0) {
-                    const results = await Promise.all(
-                        profile.selectedWorldbooks.map((wbName: string) =>
-                            WorldInfoService.scanWorldbook(wbName, scanText)
-                        )
-                    );
-                    wiContent = results.filter(Boolean).join('\n\n');
-                }
+        // 3. 过滤掉 [Engram] 开头的世界书
+        const worldbooksToScan = allBooks.filter((name: string) => !name.startsWith('[Engram]'));
+
+        Logger.debug('FetchContext', '世界书扫描列表', {
+            global: globalBooks.length,
+            char: charBooks.length,
+            extra: extraBooks.length,
+            totalFilter: worldbooksToScan.length,
+            list: worldbooksToScan
+        });
+
+        // 4. 获取扫描文本
+        let scanText = '';
+        if (range) {
+            const chat = getCurrentChat();
+            if (chat && Array.isArray(chat)) {
+                // range is 1-based
+                const msgs = chat.slice(Math.max(0, range[0] - 1), range[1]);
+                scanText = msgs.map((m: any) => m.mes || '').join('\n');
             }
+        } else {
+            scanText = context.input.text || history || '';
         }
 
-        if (!useProfile) {
-            // 原生兼容扫描
-            wiContent = await WorldInfoService.getActivatedWorldInfo(undefined, {
-                floorRange: range
-            });
+        // 5. 扫描世界书
+        if (worldbooksToScan.length > 0) {
+            const results = await Promise.all(
+                worldbooksToScan.map((wbName: string) =>
+                    WorldInfoService.scanWorldbook(wbName, scanText)
+                )
+            );
+            wiContent = results.filter(Boolean).join('\n\n');
         }
         context.input.worldbookContext = wiContent;
         // 兼容旧名

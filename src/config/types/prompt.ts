@@ -37,8 +37,8 @@ export interface PromptTemplate {
     isBuiltIn: boolean;
     /** 绑定的 LLM 预设 ID，null 表示使用默认预设 */
     boundPresetId: string | null;
-    /** 绑定的世界书配置 ID，null 表示使用全局配置 */
-    boundWorldbookProfileId?: string | null;
+    /** V1.2.8: 直接绑定的额外世界书列表（导出时会被排除） */
+    extraWorldbooks?: string[];
     /** 系统提示词 */
     systemPrompt: string;
     /** 用户提示词模板，支持变量 {{chatHistory}}, {{context}} 等 */
@@ -54,13 +54,15 @@ export interface PromptTemplate {
 export interface PromptTemplateSingleExport {
     version: string;
     exportedAt: number;
-    template: Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt'>;
+    // V1.2.8: 导出时排除 extraWorldbooks（可能包含私人信息）
+    template: Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt' | 'extraWorldbooks'>;
 }
 
 interface PromptTemplateExport {
     version: string;
     exportedAt: number;
-    templates: Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt'>[];
+    // V1.2.8: 导出时排除 extraWorldbooks（可能包含私人信息）
+    templates: Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt' | 'extraWorldbooks'>[];
 }
 
 export interface WorldbookConfig {
