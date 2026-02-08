@@ -94,7 +94,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                     className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in"
                     style={{ height: '100dvh', width: '100vw' }}
                 >
-                    <div className="w-full max-w-2xl bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 max-h-[90dvh] overflow-y-auto custom-scrollbar">
+                    <div className="w-full max-w-2xl bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 h-[85dvh] sm:h-auto sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
                         <h3 className="text-lg font-bold">编辑实体</h3>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -247,7 +247,7 @@ const EntityCard: React.FC<{
                 </button>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className="text-base font-bold text-foreground">{entity.name}</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded border border-current opacity-80 uppercase ${textColor}`}>
@@ -285,7 +285,7 @@ const EntityCard: React.FC<{
                         ))}
                     </div>
                 ) : (
-                    <div className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
+                    <div className="text-xs text-muted-foreground line-clamp-3 leading-relaxed break-words">
                         {entity.description}
                     </div>
                 )}

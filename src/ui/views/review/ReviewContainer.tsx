@@ -15,9 +15,10 @@ interface ReviewSessionProps {
     request: ReviewRequest;
     isActive: boolean;
     onFinish: (requestId: string) => void;
+    footerEl: HTMLElement | null; // V1.5: Portal target for footer
 }
 
-const ReviewSession: React.FC<ReviewSessionProps> = ({ request, isActive, onFinish }) => {
+const ReviewSession: React.FC<ReviewSessionProps> = ({ request, isActive, onFinish, footerEl }) => {
     // Independent state for this session
     const [content, setContent] = useState(request.content);
     const [data, setData] = useState<any>(request.data);
@@ -52,7 +53,7 @@ const ReviewSession: React.FC<ReviewSessionProps> = ({ request, isActive, onFini
     const displayStyle = isActive ? { display: 'flex' } : { display: 'none' };
 
     return (
-        <div className="flex flex-col h-full w-full" style={displayStyle}>
+        <div className="flex flex-col flex-1 min-h-0 w-full" style={displayStyle}>
             {/* Header (Session Info) - Optional, can be merged into Tab bar or kept here */}
             {request.description && (
                 <div className="px-5 py-2 border-b border-border bg-muted/20 text-xs text-muted-foreground flex items-center justify-between">
@@ -103,29 +104,32 @@ const ReviewSession: React.FC<ReviewSessionProps> = ({ request, isActive, onFini
                 )}
             </div>
 
-            {/* Footer / Action Bar */}
-            <div className="flex flex-col-reverse sm:flex-row items-center justify-between px-4 py-4 sm:px-5 border-t border-border bg-muted/30 gap-4 sm:gap-0">
-                <div className="flex gap-2 w-full sm:w-auto">
-                    {showFeedbackInput ? (
-                        <Button label="返回" onClick={() => setShowFeedbackInput(false)} className="w-full sm:w-auto" />
-                    ) : (
-                        request.actions?.includes('fill') && (
-                            <Button label="填充" icon={ArrowDownToLine} onClick={() => handleAction('fill')} className="text-muted-foreground hover:text-foreground w-full sm:w-auto" />
-                        )
-                    )}
-                </div>
-                <div className="flex gap-3 w-full sm:w-auto">
-                    {showFeedbackInput ? (
-                        <Button label="提交打回" icon={RotateCcw} onClick={() => handleAction('reject')} disabled={!feedback.trim()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto" />
-                    ) : (
-                        <>
-                            {request.actions?.includes('reject') && <Button label="打回" icon={RotateCcw} onClick={() => handleAction('reject')} className="text-destructive hover:bg-destructive/10 border-destructive/30 flex-1 sm:flex-none" />}
-                            {request.actions?.includes('reroll') && <Button label="重抽" icon={RefreshCw} onClick={() => handleAction('reroll')} className="flex-1 sm:flex-none" />}
-                            {request.actions?.includes('confirm') && <Button label="确认" icon={Check} primary onClick={() => handleAction('confirm')} className="min-w-[100px] flex-1 sm:flex-none" />}
-                        </>
-                    )}
-                </div>
-            </div>
+            {/* Footer / Action Bar (Portaled to Window Level) */}
+            {footerEl && isActive && ReactDOM.createPortal(
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-between px-4 py-4 sm:px-5 gap-4 sm:gap-0 h-full w-full">
+                    <div className="flex gap-2 w-full sm:w-auto">
+                        {showFeedbackInput ? (
+                            <Button label="返回" onClick={() => setShowFeedbackInput(false)} className="w-full sm:w-auto" />
+                        ) : (
+                            request.actions?.includes('fill') && (
+                                <Button label="填充" icon={ArrowDownToLine} onClick={() => handleAction('fill')} className="text-muted-foreground hover:text-foreground w-full sm:w-auto" />
+                            )
+                        )}
+                    </div>
+                    <div className="flex gap-3 w-full sm:w-auto">
+                        {showFeedbackInput ? (
+                            <Button label="提交打回" icon={RotateCcw} onClick={() => handleAction('reject')} disabled={!feedback.trim()} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto" />
+                        ) : (
+                            <>
+                                {request.actions?.includes('reject') && <Button label="打回" icon={RotateCcw} onClick={() => handleAction('reject')} className="text-destructive hover:bg-destructive/10 border-destructive/30 flex-1 sm:flex-none" />}
+                                {request.actions?.includes('reroll') && <Button label="重抽" icon={RefreshCw} onClick={() => handleAction('reroll')} className="flex-1 sm:flex-none" />}
+                                {request.actions?.includes('confirm') && <Button label="确认" icon={Check} primary onClick={() => handleAction('confirm')} className="min-w-[100px] flex-1 sm:flex-none" />}
+                            </>
+                        )}
+                    </div>
+                </div>,
+                footerEl
+            )}
         </div>
     );
 };
@@ -135,6 +139,7 @@ export const ReviewContainer: React.FC = () => {
     const [requests, setRequests] = useState<ReviewRequest[]>([]);
     const [activeId, setActiveId] = useState<string | null>(null);
     const [isMinimized, setIsMinimized] = useState(false);
+    const [footerEl, setFooterEl] = useState<HTMLElement | null>(null); // State to hold ref to footer slot
 
     useEffect(() => {
         const unsubscribe = EventBus.on(
@@ -201,7 +206,7 @@ export const ReviewContainer: React.FC = () => {
             >
                 <div className="absolute inset-0 bg-background/80 backdrop-blur-sm animate-in fade-in duration-200" />
 
-                <div className="relative w-full max-w-4xl bg-popover border border-border rounded-lg shadow-2xl flex flex-col max-h-[95dvh] sm:max-h-[90vh] min-h-0 sm:min-h-[500px] animate-in zoom-in-95 border-t-4 border-t-primary">
+                <div className="relative w-full max-w-4xl bg-popover border border-border rounded-lg shadow-2xl flex flex-col h-[90dvh] sm:h-auto sm:max-h-[90vh] min-h-0 sm:min-h-[500px] animate-in zoom-in-95 border-t-4 border-t-primary">
 
                     {/* Top Bar: Tabs & Window Controls */}
                     <div className="flex items-center justify-between px-2 pt-2 border-b border-border bg-muted/40">
@@ -258,6 +263,7 @@ export const ReviewContainer: React.FC = () => {
                                 request={req}
                                 isActive={req.id === activeId}
                                 onFinish={handleSessionFinish}
+                                footerEl={footerEl}
                             />
                         ))}
                         {/* Empty State (Shouldn't happen if logic is correct) */}
@@ -267,6 +273,14 @@ export const ReviewContainer: React.FC = () => {
                                 <p>所有任务已完成</p>
                             </div>
                         )}
+                    </div>
+
+                    {/* Footer Slot (Window Level) */}
+                    <div
+                        ref={setFooterEl}
+                        className="flex-none border-t border-border bg-muted/30 min-h-[60px]"
+                    >
+                        {/* Portaled Content will appear here */}
                     </div>
                 </div>
             </div>

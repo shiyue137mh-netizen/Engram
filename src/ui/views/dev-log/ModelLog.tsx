@@ -3,9 +3,9 @@
  *
  * 伪聊天式布局展示 LLM 调用记录
  */
-import React, { useState, useEffect } from 'react';
-import { Send, Bot, Clock, Zap, AlertCircle, CheckCircle, Loader2, Trash2, ChevronDown, ChevronRight, XCircle } from 'lucide-react';
-import { ModelLogger, ModelLogEntry } from "@/core/logger/ModelLogger";
+import { ModelLogEntry, ModelLogger } from "@/core/logger/ModelLogger";
+import { AlertCircle, Bot, CheckCircle, ChevronDown, ChevronRight, Clock, Loader2, Send, Trash2, XCircle, Zap } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 /** 类型标签配置 */
 const TYPE_LABELS: Record<ModelLogEntry['type'], { label: string; color: string }> = {
@@ -99,7 +99,7 @@ const LogCard: React.FC<{
             {expanded && (
                 <div className="flex flex-col md:flex-row">
                     {/* 左侧：发送 */}
-                    <div className="flex-1 border-r border-border p-3">
+                    <div className="flex-1 border-r border-border p-3 min-w-0">
                         <div className="flex items-center gap-2 mb-2 text-sm font-medium text-blue-400">
                             <Send size={14} />
                             发送
@@ -113,7 +113,7 @@ const LogCard: React.FC<{
                         {sent.systemPrompt && (
                             <div className="mb-3">
                                 <div className="text-xs text-muted-foreground mb-1">System</div>
-                                <div className="text-sm p-2 bg-muted-20 rounded max-h-[500px] overflow-y-auto whitespace-pre-wrap">
+                                <div className="text-sm p-2 bg-muted-20 rounded max-h-[500px] overflow-y-auto whitespace-pre-wrap break-words">
                                     {sent.systemPrompt}
                                 </div>
                             </div>
@@ -130,7 +130,7 @@ const LogCard: React.FC<{
                     </div>
 
                     {/* 右侧：接收 */}
-                    <div className="flex-1 p-3">
+                    <div className="flex-1 p-3 min-w-0">
                         <div className="flex items-center gap-2 mb-2 text-sm font-medium text-green-400">
                             <Bot size={14} />
                             接收
@@ -148,7 +148,7 @@ const LogCard: React.FC<{
                         )}
 
                         {received?.response && (
-                            <div className="text-sm p-2 bg-muted-20 rounded max-h-[500px] overflow-y-auto whitespace-pre-wrap">
+                            <div className="text-sm p-2 bg-muted-20 rounded max-h-[500px] overflow-y-auto whitespace-pre-wrap break-words">
                                 {received.response}
                             </div>
                         )}

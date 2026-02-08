@@ -245,12 +245,97 @@ export class SaveEntity implements IStep {
 
                     // 将路径转换为相对于实体的路径
                     // V1.0.5: 移除 encodeURIComponent，因为 LLM 输出的路径不进行 URL 编码
-                    const relativeOps = entityPatches
-                        .filter(p => p.path !== `/entities/${entityName}`) // 排除 add root
-                        .map(p => ({
-                            ...p,
-                            path: p.path.replace(`/entities/${entityName}`, '')
-                        }));
+                    // V1.4: Smart-handle root updates (e.g. replace /entities/Name with full object)
+                    // The LLM often wants to "replace" the whole entity. We must not lose ID.
+                    const relativeOps = [];
+
+                    for (const p of entityPatches) {
+                        const isRoot = p.path === `/entities/${entityName}`;
+
+                        // Case 1: Root Add (handled above) - skip
+                        if (isRoot && p.op === 'add') continue;
+
+                        // Case 2: Root Replace - Decompose into field updates to preserve ID/Metadata
+                        if (isRoot && (p.op === 'replace' || p.op === 'test')) { // 'test' on root is rare but valid
+                            if (p.value && typeof p.value === 'object') {
+                                const val = p.value as any;
+                                // Merge known fields
+                                if (val.profile) relativeOps.push({ op: p.op, path: '/profile', value: val.profile });
+                                if (val.type) relativeOps.push({ op: p.op, path: '/type', value: val.type });
+                                if (val.aliases) relativeOps.push({ op: p.op, path: '/aliases', value: val.aliases });
+                                // Ignore others to protect ID
+                            }
+                            continue;
+                        }
+
+
+
+                        // Case 3: Sub-path update (normal)
+                        if (!isRoot) {
+                            let relPath = p.path.replace(`/entities/${entityName}`, '');
+
+                            // Check if path effectively exists (fast check)
+                            // jsonpatch.getValueByPointer throws if missing, but we can try/catch
+                            // But for 'add', it might be adding a new leaf.
+
+                            // V1.6: Universal Smart Pointer
+                            // If path looks like it might be wrong (e.g. simplified prompts), try to find the real home.
+                            // We assume keys in 'profile' are somewhat unique.
+
+                            // Extract the target key or "anchor" key from the path
+                            // e.g. /profile/relations/Meihan -> Anchor: Meihan? No, generic. Anchor: relations.
+                            // e.g. /profile/body_scent -> Anchor: body_scent.
+
+                            const parts = relPath.split('/').filter(Boolean); // ["profile", "relations", "Meihan"]
+
+                            // Generic keys that are too common to be anchors
+                            const GENERIC_KEYS = new Set(['profile', 'type', 'description', 'desc', 'value', 'name', 'id', 'status', 'features', 'traits']);
+
+                            // Find the deepest non-generic key to use as anchor
+                            let anchorKey = '';
+                            let anchorIndex = -1;
+
+                            for (let i = parts.length - 1; i >= 0; i--) {
+                                if (!GENERIC_KEYS.has(parts[i])) {
+                                    anchorKey = parts[i];
+                                    anchorIndex = i;
+                                    break;
+                                }
+                            }
+
+                            if (anchorKey) {
+                                // Search for this anchor in the existing entity
+                                // We search in 'profile' specifically (or the whole object?)
+                                // Usually these are profile attributes.
+                                const searchRoot = targetDoc.profile || {};
+                                const foundPaths = this.findUniquePath(searchRoot, anchorKey, '/profile');
+
+                                if (foundPaths.length === 1) {
+                                    const realAnchorPath = foundPaths[0]; // e.g. "/profile/dynamic_status/relations" (if anchor was relations)
+
+                                    // Reconstruct the full path
+                                    // Old path parts: [0...anchorIndex] was the old prefix to anchor
+                                    // [anchorIndex+1...] are the suffixes (children of anchor)
+
+                                    // But wait, the `foundPaths` INCLUDES the anchor key at the end.
+                                    // So we just need to append the stuff *after* the anchor from the original path.
+
+                                    const suffix = parts.slice(anchorIndex + 1).join('/');
+                                    const newPath = suffix ? `${realAnchorPath}/${suffix}` : realAnchorPath;
+
+                                    if (newPath !== relPath) {
+                                        Logger.debug('SaveEntity', `🔭 Smart Pointer Redirect: ${relPath} -> ${newPath}`);
+                                        relPath = newPath;
+                                    }
+                                }
+                            }
+
+                            relativeOps.push({
+                                ...p,
+                                path: relPath
+                            });
+                        }
+                    }
 
                     if (relativeOps.length > 0) {
                         jsonpatch.applyPatch(targetDoc, relativeOps as jsonpatch.Operation[]);
@@ -365,6 +450,33 @@ export class SaveEntity implements IStep {
 
     private profileToYaml(name: string, type: string, profile: any): string {
         return `${name} (${type})\n${JSON.stringify(profile, null, 2)}`;
+    }
+
+    /**
+     * V1.6: Universal Smart Pointer (Deep Search)
+     * Recursively search for a key in the object structure.
+     * Returns the relative path (slash-separated) to the key if found uniquely.
+     */
+    private findUniquePath(obj: any, targetKey: string, currentPath: string = ''): string[] {
+        let results: string[] = [];
+
+        if (!obj || typeof obj !== 'object') return [];
+
+        for (const key of Object.keys(obj)) {
+            const newPath = currentPath ? `${currentPath}/${key}` : key;
+
+            if (key === targetKey) {
+                results.push(newPath);
+            }
+
+            // Recurse (avoid arrays for now? or search inside arrays too? Entity structure is mostly objects)
+            // But strict recursion on objects only
+            if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+                results = results.concat(this.findUniquePath(obj[key], targetKey, newPath));
+            }
+        }
+
+        return results;
     }
 }
 
