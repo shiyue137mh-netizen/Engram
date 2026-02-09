@@ -480,11 +480,29 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
         try {
             const { id: _id, ...safeUpdates } = updates as any;
-            await db.entities.update(entityId, {
+
+            // V1.2.9: Get existing entity first, then put with merged data
+            const existing = await db.entities.get(entityId);
+            if (!existing) {
+                console.warn(`[MemoryStore] Entity not found for update: ${entityId}`);
+                return;
+            }
+
+            // DEBUG: Log values
+            console.log('[MemoryStore] Existing entity:', existing);
+            console.log('[MemoryStore] Updates to apply:', safeUpdates);
+
+            // Merge and put (more reliable than update())
+            const merged = {
+                ...existing,
                 ...safeUpdates,
                 last_updated_at: Date.now(),
-            });
-            console.log(`[MemoryStore] Updated entity: ${entityId}`);
+            };
+
+            console.log('[MemoryStore] Merged entity:', merged);
+
+            await db.entities.put(merged);
+            console.log(`[MemoryStore] Put completed for entity: ${entityId}`);
         } catch (e) {
             console.error('[MemoryStore] Failed to update entity:', e);
             throw e;
@@ -617,10 +635,10 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
                 if (entityList.length === 0) continue;
 
                 const tag = tagMap[typeKey];
-                // 使用 description 字段（已是 YAML 格式）
+                // 使用 description 字段（已是 YAML 格式），用 --- 分隔每个实体
                 const contents = entityList
                     .map(e => e.description || `# ${e.name}\n(无详细信息)`)
-                    .join('\n\n');
+                    .join('\n---\n');
 
                 sections.push(`<${tag}>\n${contents}\n</${tag}>`);
             }

@@ -41,7 +41,7 @@ systemPrompt: |
       工作禁令:
         - 禁止创造原文中不存在的实体
         - 禁止推测未明确提及的关系
-        - 如果实体已存在于 existingEntities，使用已有数据，不创建重复项
+        - 如果实体已存在于 existingEntities，使用已有数据，不使用"add"创建重复项
         - 禁止输出额外解释或道德评价
     </role_definition>
 

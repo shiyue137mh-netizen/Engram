@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { SwitchField, FormSection } from '@/ui/components/form/FormComponents';
 import type { WorldbookConfig } from '@/config/types/prompt';
-import { ChevronRight, ChevronDown, Book, FileText, Ban, RefreshCw, AlertCircle, Search } from 'lucide-react';
+import { FormSection, SwitchField } from '@/ui/components/form/FormComponents';
+import { AlertCircle, Book, ChevronDown, ChevronRight, RefreshCw, Search } from 'lucide-react';
+import React, { useState } from 'react';
 
 interface WorldbookConfigFormProps {
     config: WorldbookConfig;
@@ -165,17 +165,32 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
                                                     entries.map((entry: any) => {
                                                         const isEntryItemDisabled = isEntryDisabled(book, entry.uid);
                                                         return (
-                                                            <div key={entry.uid} className={`flex items-start justify-between py-2 -mx-2 px-2 rounded hover:bg-accent/40 transition-colors group ${isEntryItemDisabled ? 'bg-muted/10 opacity-60 grayscale' : ''}`}>
+                                                            <div key={entry.uid} className={`flex items-start justify-between py-2 -mx-2 px-2 rounded hover:bg-accent/40 transition-colors group ${isEntryItemDisabled ? 'opacity-40' : ''}`}>
                                                                 <div className="flex flex-col gap-1 min-w-0 flex-1 pr-4">
                                                                     <div className="flex items-center gap-2 flex-wrap min-w-0">
-                                                                        {/* 状态指示灯 */}
+                                                                        {/* 状态指示灯 V1.2.9:
+                                                                            - 蓝灯 (bg-primary): constant 常驻
+                                                                            - 绿灯 (bg-emerald-500): selective 条件触发
+                                                                            - 灰灯 (bg-muted-foreground/50): 世界书原本就禁用的条目
+                                                                        */}
                                                                         <div
-                                                                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${entry.constant ? 'bg-primary' : 'bg-emerald-500'}`}
-                                                                            title={entry.constant ? "常驻 (Constant)" : "条件触发 (Selective)"}
+                                                                            className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${entry.disabled
+                                                                                    ? 'bg-muted-foreground/50'
+                                                                                    : entry.constant
+                                                                                        ? 'bg-primary'
+                                                                                        : 'bg-emerald-500'
+                                                                                }`}
+                                                                            title={
+                                                                                entry.disabled
+                                                                                    ? "已禁用 (世界书原设定)"
+                                                                                    : entry.constant
+                                                                                        ? "常驻 (Constant) 🔵"
+                                                                                        : "条件触发 (Selective) 🟢"
+                                                                            }
                                                                         />
 
                                                                         {/* 条目名称 - 添加 truncate 防止溢出 */}
-                                                                        <span className={`text-sm font-medium truncate max-w-full ${isEntryItemDisabled ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
+                                                                        <span className={`text-sm font-medium truncate max-w-full ${isEntryItemDisabled ? 'text-muted-foreground line-through' : entry.disabled ? 'text-muted-foreground' : 'text-foreground'}`}>
                                                                             {entry.name || `条目 #${entry.uid}`}
                                                                         </span>
 

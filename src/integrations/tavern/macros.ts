@@ -695,27 +695,12 @@ export class MacroService {
         // @ts-ignore
         const context = window.SillyTavern?.getContext?.();
 
-        // 1. 尝试使用新版 API (macros.register)
-        if (context?.macros?.register) {
-            try {
-                context.macros.register(name, {
-                    handler: handler,
-                    description: description,
-                    category: 'extension', // 将所有 Engram 宏归类为扩展
-                    returnType: 'string',
-                    strictArgs: false
-                });
-                return;
-            } catch (e) {
-                Logger.warn('MacroService', `新版 API 注册宏 ${name} 失败，尝试回退`, e);
-            }
-        }
-
-        // 2. 回退到旧版 API (registerMacro)
+        // 兼容性修复: 强制使用旧版 registerMacro API
+        // 新版 context.macros.register API 在某些 ST 版本中可能存在参数兼容问题导致 filter undefined 错误
         if (context?.registerMacro) {
-            context.registerMacro(name, handler, description);
+            context.registerMacro(name, handler);
         } else {
-            Logger.warn('MacroService', `无法注册宏 ${name}: 没有可用的注册 API`);
+            Logger.warn('MacroService', `无法注册宏 ${name}: 没有可用的 registerMacro API`);
         }
     }
 }

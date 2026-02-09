@@ -3,6 +3,7 @@ import { RobustJsonParser } from '@/core/utils/JsonParser';
 import { EntityNode, EntityType } from '@/data/types/graph';
 import { useMemoryStore } from '@/state/memoryStore';
 import * as jsonpatch from 'fast-json-patch';
+import * as yaml from 'js-yaml';
 import { z } from 'zod';
 import { JobContext } from '../../core/JobContext';
 import { IStep } from '../../core/Step';
@@ -242,6 +243,8 @@ export class SaveEntity implements IStep {
                 // 更新已有实体
                 try {
                     const targetDoc = JSON.parse(JSON.stringify(existing));
+                    // V1.5: Attach original for UI Diff
+                    (targetDoc as any)._original = JSON.parse(JSON.stringify(existing));
 
                     // 将路径转换为相对于实体的路径
                     // V1.0.5: 移除 encodeURIComponent，因为 LLM 输出的路径不进行 URL 编码
@@ -363,6 +366,10 @@ export class SaveEntity implements IStep {
 
                                 return { ...op, oldValue };
                             });
+
+                            // V1.5: Update description even in DryRun so Preview shows the new YAML
+                            targetDoc.description = this.profileToYaml(targetDoc.name, targetDoc.type, targetDoc.profile || {});
+
                             (targetDoc as any)._diff = diffs;
                             updatedEntities.push(targetDoc);
                         }
@@ -449,7 +456,19 @@ export class SaveEntity implements IStep {
     }
 
     private profileToYaml(name: string, type: string, profile: any): string {
-        return `${name} (${type})\n${JSON.stringify(profile, null, 2)}`;
+        try {
+            const entityObj = { profile };
+            const yamlContent = yaml.dump(entityObj, {
+                indent: 2,
+                lineWidth: -1,
+                noRefs: true,
+                sortKeys: false,
+            });
+            return `${name}\n${yamlContent.trim()}`;
+        } catch (e) {
+            Logger.warn('SaveEntity', 'YAML Dump failed', e);
+            return `${name} (${type})\n${JSON.stringify(profile, null, 2)}`;
+        }
     }
 
     /**

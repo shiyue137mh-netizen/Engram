@@ -4,14 +4,15 @@ category: preprocessing
 enabled: false
 injectionMode: append
 userPromptTemplate: |
-  **角色设定**:
-  {{context}}
 
   **用户人设**:
   {{userPersona}}
 
   **设定或者知识库**:
   {{worldbookContext}}
+  
+  **实体数据**:
+  {{engramEntityStates}}
 
   **已有剧情摘要**:
   {{engramSummaries}}

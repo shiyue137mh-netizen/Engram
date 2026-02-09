@@ -10,6 +10,9 @@ userPromptTemplate: |
   **用户人设**:
   {{userPersona}}
 
+  **实体数据**:
+  {{engramEntityStates}}
+
   **已有剧情摘要**:
   {{engramSummaries}}
 

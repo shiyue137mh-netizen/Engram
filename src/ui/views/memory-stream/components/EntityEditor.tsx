@@ -6,12 +6,11 @@
  * 2. 编辑 Profile JSON (核心)
  * 3. 自动同步/手动修改 Description (YAML from Profile)
  */
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 'react';
 import type { EntityNode, EntityType } from '@/data/types/graph';
-import { Trash2, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Divider } from '@/ui/components/layout/Divider';
-import { TextField } from '@/ui/components/form/FormComponents';
 import yaml from 'js-yaml'; // 需要确认项目是否已安装 js-yaml，如果没有则需要简单实现或引入
+import { AlertTriangle, ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 // 类型别名简化
 type EntityEditorHandle = {
@@ -139,26 +138,43 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     };
 
     const handleGenerateDesc = () => {
-        if (jsonError) return;
+        if (jsonError || !entity) return;
         try {
-            const obj = JSON.parse(profileJson);
-            // Simple YAML dump or specific format?
-            // Since we don't have js-yaml installed yet in this snippet context,
-            // we'll do a simple conversion or use a placeholder if yaml lib is missing.
-            //Ideally: const desc = yaml.dump(obj);
-            // For now, let's just assume we want a readable text format.
-            // Using a mock YAML generator for now to avoid dependency error if not installed
-            const desc = JSON.stringify(obj, null, 2)
-                .replace(/[{"},]/g, '')
-                .replace(/^\s*[\r\n]/gm, ''); // Very rough "YAML-like"
+            const profileObj = JSON.parse(profileJson);
 
-            setDescription(desc.trim());
+            // V1.2.9: Simple YAML structure
+            // Format:
+            // 实体名称
+            // profile:
+            //   (indented content)
+            // Note: type is already indicated by XML tag <character_state> etc.
+
+            const entityObj = {
+                profile: profileObj,
+            };
+
+            const yamlContent = yaml.dump(entityObj, {
+                indent: 2,
+                lineWidth: -1,
+                noRefs: true,
+                sortKeys: false,
+            });
+
+            const newDesc = `${name}\n${yamlContent.trim()}`;
+
+            setDescription(newDesc);
             setIsDirty(true);
-            // Immediate sync to save the generated desc
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
-            timeoutRef.current = window.setTimeout(() => {
-                if (isMountedRef.current) syncToParent();
-            }, 50);
+
+            // V1.2.9 FIX: Directly call onSave with new values to avoid stale closure
+            // (syncToParent captures old description value from closure)
+            const updates: Partial<EntityNode> = {
+                name,
+                type: type as EntityType,
+                aliases: aliases.split(/[,，]/).map(s => s.trim()).filter(Boolean),
+                description: newDesc, // Use the new value directly!
+                profile: profileObj,
+            };
+            onSave?.(entity.id, updates);
 
         } catch (e) {
             alert('Profile JSON 格式错误，无法生成描述');

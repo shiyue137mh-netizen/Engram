@@ -5,11 +5,11 @@
  * - KV 自动烧录进 summary（始终开启）
  * - 编辑即时反馈到父组件
  */
-import React, { useState, useEffect, useCallback, useImperativeHandle, forwardRef, useRef } from 'react';
 import type { EventNode } from '@/data/types/graph';
-import { Trash2, ArrowLeft, Save } from 'lucide-react';
+import { TextField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
-import { TextField, SwitchField } from '@/ui/components/form/FormComponents';
+import { ArrowLeft, Trash2 } from 'lucide-react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 // ==================== 类型定义 ====================
 
@@ -35,6 +35,7 @@ interface FieldOverrides {
     roleText?: string;
     logicText?: string;
     score?: number;
+    summary?: string;  // V1.2.9: Add summary to avoid stale closure
 }
 
 // ==================== 样式 ====================
@@ -166,16 +167,18 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
         const kv = {
             event: fields.eventType,
             time_anchor: fields.timeAnchor,
-            location: splitTrim(fields.location),  // V1.0.2: 改为数组
+            location: splitTrim(fields.location),
             role: splitTrim(fields.roleText),
             logic: splitTrim(fields.logicText),
             causality: event.structured_kv?.causality || '',
         };
 
+        // V1.2.9: Use overrides.summary if provided, else auto-generate, else use state
         const autoSummary = generateSummaryFromKV(kv);
+        const finalSummary = overrides.summary ?? (autoSummary || summary);
 
         onSave?.(event.id, {
-            summary: autoSummary || summary,
+            summary: finalSummary,
             structured_kv: { ...event.structured_kv, ...kv },
             significance_score: fields.score,
         });
@@ -260,13 +263,14 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                             const autoSummary = generateSummaryFromKV({
                                 event: eventType,
                                 time_anchor: timeAnchor,
-                                location: location.split(',').map(s => s.trim()).filter(Boolean),  // V1.0.2
+                                location: location.split(',').map(s => s.trim()).filter(Boolean),
                                 role: roleText.split(',').map(s => s.trim()).filter(Boolean),
                                 logic: logicText.split(',').map(s => s.trim()).filter(Boolean),
                             });
                             setSummary(autoSummary);
                             setIsDirty(true);
-                            syncToParent({ ...{ summary: autoSummary } } as any); // Hacky pass but works via closure
+                            // V1.2.9: Pass summary directly to avoid stale closure
+                            syncToParent({ summary: autoSummary });
                         }}
                         className="text-[10px] text-primary hover:underline"
                     >

@@ -1,5 +1,6 @@
 import { EntityNode, EntityType } from '@/data/types/graph';
 import { ModernButton as Button } from '@/ui/components/core/Button';
+import * as jsYaml from 'js-yaml';
 import { AlertTriangle, Edit2, Save, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -15,12 +16,14 @@ interface EntityReviewProps {
 // 扩展类型以包含 diff 信息
 interface EntityNodeWithDiff extends EntityNode {
     _diff?: any[];
+    _original?: EntityNode;
 }
 
 export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) => {
     const [newEntities, setNewEntities] = useState<EntityNodeWithDiff[]>(data.newEntities || []);
     const [updatedEntities, setUpdatedEntities] = useState<EntityNodeWithDiff[]>(data.updatedEntities || []);
     const [editingEntity, setEditingEntity] = useState<{ list: 'new' | 'updated', index: number, entity: EntityNodeWithDiff } | null>(null);
+    const [previewDescription, setPreviewDescription] = useState<string>('');
 
     // Sync when external data changes
     useEffect(() => {
@@ -28,10 +31,32 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
         setUpdatedEntities(data.updatedEntities || []);
     }, [data]);
 
+    // Update preview when editing entity changes
+    useEffect(() => {
+        if (editingEntity) {
+            updatePreview(editingEntity.entity);
+        }
+    }, [editingEntity?.entity.profile, editingEntity?.entity.name, editingEntity?.entity.type]); // Depend on profile/name/type
+
+    const updatePreview = (entity: EntityNode) => {
+        try {
+            const entityObj = { profile: entity.profile };
+            // @ts-ignore
+            const yamlContent = jsYaml.dump(entityObj, {
+                indent: 2,
+                lineWidth: -1,
+                noRefs: true,
+                sortKeys: false,
+            });
+            setPreviewDescription(`${entity.name}\n${yamlContent.trim()}`);
+        } catch (e) {
+            // If JSON is invalid during typing, we might not have a valid object to dump.
+            // But here entity.profile is already an object (parsed from JSON input).
+            // So this catch is for yaml dump errors.
+        }
+    };
+
     const notifyChange = (n: EntityNodeWithDiff[], u: EntityNodeWithDiff[]) => {
-        // Remove _diff before passing back if needed, or keep it.
-        // SaveEntity (DryRun=false) ignores _diff usually, or we should clean it?
-        // Actually SaveEntity expects EntityNode, _diff is extra. It's fine to pass it.
         onChange({ newEntities: n, updatedEntities: u });
     };
 
@@ -55,6 +80,12 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
         if (!editingEntity) return;
         const { list, index, entity } = editingEntity;
 
+        // V1.5: Enforce Standard YAML Description Format on Save
+        // We use the calculated preview as the source of truth for description
+        if (previewDescription) {
+            entity.description = previewDescription;
+        }
+
         if (list === 'new') {
             const next = [...newEntities];
             next[index] = entity;
@@ -63,7 +94,6 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
         } else {
             const next = [...updatedEntities];
             next[index] = entity;
-            // Clear diff on edit because it's now manually overridden
             delete next[index]._diff;
             setUpdatedEntities(next);
             notifyChange(newEntities, next);
@@ -94,12 +124,15 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                     className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in"
                     style={{ height: '100dvh', width: '100vw' }}
                 >
-                    <div className="w-full max-w-2xl bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 h-[85dvh] sm:h-auto sm:max-h-[85vh] overflow-y-auto custom-scrollbar">
-                        <h3 className="text-lg font-bold">编辑实体</h3>
+                    <div className="w-full max-w-6xl bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 h-[90dvh] overflow-hidden">
+                        <div className="flex items-center justify-between border-b pb-2 mb-2 shrink-0">
+                            <h3 className="text-lg font-bold">编辑实体</h3>
+                            <div className="text-xs text-muted-foreground">保存时将自动使用右侧预览的 YAML 格式</div>
+                        </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4 shrink-0">
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-medium text-muted-foreground">名称</label>
+                                <label className="text-xs font-medium text-muted-foreground">名称 (Name)</label>
                                 <input
                                     className="p-2 rounded-md bg-muted border border-border text-sm"
                                     value={editingEntity.entity.name}
@@ -107,7 +140,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-xs font-medium text-muted-foreground">类型</label>
+                                <label className="text-xs font-medium text-muted-foreground">类型 (Type)</label>
                                 <select
                                     className="p-2 rounded-md bg-muted border border-border text-sm"
                                     value={editingEntity.entity.type}
@@ -120,34 +153,59 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                             </div>
                         </div>
 
-                        <div className="flex flex-col gap-2">
-                            <label className="text-xs font-medium text-muted-foreground">描述 (Description)</label>
-                            <textarea
-                                className="p-2 rounded-md bg-muted border border-border text-xs min-h-[80px] font-mono"
-                                value={editingEntity.entity.description}
-                                onChange={(e) => setEditingEntity({ ...editingEntity, entity: { ...editingEntity.entity, description: e.target.value } })}
-                            />
+                        {/* Comparison View */}
+                        <div className="flex-1 min-h-0 grid grid-cols-2 gap-6">
+                            {/* Left Column: Original Description + Profile Editor */}
+                            <div className="flex flex-col gap-4 min-h-0">
+                                {/* If updated, show original description */}
+                                {editingEntity.list === 'updated' && editingEntity.entity._original && (
+                                    <div className="flex-1 min-h-0 flex flex-col gap-2">
+                                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-muted-foreground/30"></span>
+                                            原始烧录文本 (Original Description)
+                                        </label>
+                                        <div className="flex-1 p-3 bg-muted/30 border border-border rounded-md text-xs font-mono overflow-y-auto custom-scrollbar select-text opacity-70 whitespace-pre-wrap break-all">
+                                            {editingEntity.entity._original.description}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Profile JSON Editor (Always Visible) */}
+                                <div className={`${editingEntity.list === 'updated' ? 'h-1/2' : 'h-full'} flex flex-col gap-2 min-h-0`}>
+                                    <label className="text-xs font-medium text-foreground flex items-center gap-2">
+                                        <Edit2 size={12} />
+                                        编辑属性 (Edit Profile JSON)
+                                    </label>
+                                    <textarea
+                                        className="flex-1 p-3 rounded-md bg-muted border border-border text-xs font-mono resize-none focus:ring-2 focus:ring-primary/20 outline-none custom-scrollbar"
+                                        value={JSON.stringify(editingEntity.entity.profile, null, 2)}
+                                        onChange={(e) => {
+                                            try {
+                                                const profile = JSON.parse(e.target.value);
+                                                setEditingEntity({ ...editingEntity, entity: { ...editingEntity.entity, profile } });
+                                            } catch (err) {
+                                                // Ignore parse error while typing
+                                            }
+                                        }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Right Column: New Description Preview */}
+                            <div className="flex flex-col gap-2 min-h-0">
+                                <label className="text-xs font-medium text-primary flex items-center gap-2">
+                                    <span className="w-2 h-2 rounded-full bg-primary"></span>
+                                    新烧录文本预览 (New Description Preview)
+                                </label>
+                                <div className="flex-1 p-3 bg-primary/5 border border-primary/20 rounded-md text-xs font-mono overflow-y-auto custom-scrollbar select-text whitespace-pre-wrap break-all text-foreground">
+                                    {previewDescription}
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-2 flex-1 min-h-[200px]">
-                            <label className="text-xs font-medium text-muted-foreground">详细属性 (Profile JSON)</label>
-                            <textarea
-                                className="p-2 rounded-md bg-muted border border-border text-xs flex-1 font-mono"
-                                value={JSON.stringify(editingEntity.entity.profile, null, 2)}
-                                onChange={(e) => {
-                                    try {
-                                        const profile = JSON.parse(e.target.value);
-                                        setEditingEntity({ ...editingEntity, entity: { ...editingEntity.entity, profile } });
-                                    } catch (err) {
-                                        // Ignore parse error while typing
-                                    }
-                                }}
-                            />
-                        </div>
-
-                        <div className="flex justify-end gap-2 mt-2">
+                        <div className="flex justify-end gap-2 mt-2 shrink-0 pt-2 border-t border-border">
                             <Button label="取消" onClick={handleEditCancel} />
-                            <Button label="保存" onClick={handleEditSave} primary icon={Save} />
+                            <Button label="确认更新" onClick={handleEditSave} primary icon={Save} />
                         </div>
                     </div>
                 </div>
