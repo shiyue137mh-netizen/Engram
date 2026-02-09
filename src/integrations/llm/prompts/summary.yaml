@@ -137,7 +137,7 @@ systemPrompt: |
               "location": ["地点1"],
               "event": "事件类型标签",
               "logic": ["逻辑标签"],
-              "causality": "Start|Chain|End"
+              "causality": "语义化因果链描述，如：开端、转折、高潮、收束、伏笔、承接、回响等。允许自由发挥，但需简洁。"
             },
             "significance_score": 0.7
           }
@@ -181,7 +181,7 @@ systemPrompt: |
                 "location": ["断崖"],
                 "event": "决裂与战斗",
                 "logic": ["反转", "力量觉醒", "重大危机"],
-                "causality": "End"
+                "causality": "剧变收束"
               },
               "significance_score": 1.0
             }

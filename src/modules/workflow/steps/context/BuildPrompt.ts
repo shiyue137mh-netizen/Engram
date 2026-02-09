@@ -1,9 +1,8 @@
-import { IStep } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
-import { PromptLoader } from '@/integrations/llm/PromptLoader';
-import { MacroService } from '@/integrations/tavern/macros';
-import { Logger } from '@/core/logger';
 import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
+import { Logger } from '@/core/logger';
+import { PromptLoader } from '@/integrations/llm/PromptLoader';
+import { JobContext } from '../../core/JobContext';
+import { IStep } from '../../core/Step';
 
 interface BuildPromptConfig {
     templateId?: string;       // 指定模板 ID
@@ -122,6 +121,7 @@ export class BuildPrompt implements IStep {
         const potentialMacros: Record<string, string | undefined> = {
             '{{chatHistory}}': contextData.chatHistory,
             '{{engramSummaries}}': contextData.engramSummaries,
+            '{{engramEntityStates}}': contextData.engramEntityStates, // V1.0.0: 实体状态
             '{{targetSummaries}}': contextData.targetSummaries, // V1.2.1 New Trigger Variable
             '{{worldbookContext}}': contextData.worldbookContext,
             '{{context}}': contextData.context || contextData.worldbookContext,

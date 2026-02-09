@@ -108,6 +108,11 @@ export class FetchContext implements IStep {
         const summaryContent = await WorldInfoService.getEngramSummariesContent();
         context.input.engramSummaries = summaryContent;
 
+        // 5. V1.0.0: 获取 Engram Entity States
+        const { useMemoryStore } = await import('@/state/memoryStore');
+        const entityStatesContent = await useMemoryStore.getState().getEntityStates();
+        context.input.engramEntityStates = entityStatesContent;
+
         Logger.debug('FetchContext', '上下文获取完成', {
             historyLen: history?.length || 0,
             wiLen: wiContent.length,
