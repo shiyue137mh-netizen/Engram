@@ -18,11 +18,18 @@ export class RobustJsonParser {
      */
     static parse<T = any>(input: string): T | null {
         // 1. 提取 JSON 块
-        const jsonString = this.extractJsonBlock(input);
+        let jsonString = this.extractJsonBlock(input);
 
         if (!jsonString) {
             console.warn('[RobustJsonParser] 未找到 JSON 数据块');
             return null;
+        }
+
+        // V1.0.1: 智能封装 (Array -> Object)
+        // 如果提取到的是数组 [...]，自动封装为 { events: [...] } 以适配下游消费
+        if (jsonString.trim().startsWith('[')) {
+            console.log('[RobustJsonParser] 检测到数组格式，尝试自动封装为 { events: [] }');
+            jsonString = `{ "events": ${jsonString} }`;
         }
 
         // 2. 尝试解析
@@ -51,12 +58,34 @@ export class RobustJsonParser {
             return codeBlockMatch[1].trim();
         }
 
-        // 2. 尝试查找最外层的大括号
-        const firstOpen = text.indexOf('{');
-        const lastClose = text.lastIndexOf('}');
+        // 2. 尝试查找最外层的大括号 (Object)
+        const firstOpenBrace = text.indexOf('{');
+        const lastCloseBrace = text.lastIndexOf('}');
 
-        if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
-            return text.substring(firstOpen, lastClose + 1);
+        // 3. 尝试查找最外层的方括号 (Array) - V1.0.1
+        const firstOpenBracket = text.indexOf('[');
+        const lastCloseBracket = text.lastIndexOf(']');
+
+        // 比较哪个出现得更早且有效
+        let foundObject = (firstOpenBrace !== -1 && lastCloseBrace !== -1 && lastCloseBrace > firstOpenBrace);
+        let foundArray = (firstOpenBracket !== -1 && lastCloseBracket !== -1 && lastCloseBracket > firstOpenBracket);
+
+        // 如果两者都存在，取最外层的（索引更小的）
+        // 实际上很少混合，通常是二选一
+        if (foundObject && foundArray) {
+            if (firstOpenBrace < firstOpenBracket) {
+                return text.substring(firstOpenBrace, lastCloseBrace + 1);
+            } else {
+                return text.substring(firstOpenBracket, lastCloseBracket + 1);
+            }
+        }
+
+        if (foundObject) {
+            return text.substring(firstOpenBrace, lastCloseBrace + 1);
+        }
+
+        if (foundArray) {
+            return text.substring(firstOpenBracket, lastCloseBracket + 1);
         }
 
         return null; // 未找到有效的 JSON 结构

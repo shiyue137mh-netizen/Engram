@@ -6,7 +6,6 @@
  * - 顶层开关 + 详细配置
  * - 去卡片化，使用细线分割
  */
-import { Logger } from '@/core/logger';
 import { entityBuilder } from "@/modules/memory/EntityExtractor";
 import { SwitchField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
@@ -14,8 +13,6 @@ import { RefreshCw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 // import { Divider } from '@/ui/components/layout/Divider'; // Already imported
 import type { EntityExtractConfig } from '@/config/types/memory';
-import { reviewService } from '@/core/events/ReviewBridge'; // V1.2 Review System
-import { notificationService } from '@/ui/services/NotificationService';
 
 interface EntityStatus {
     enabled: boolean;
@@ -81,57 +78,21 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
     // 手动提取 (带预览)
     const handleManualExtract = async () => {
         setIsLoading(true);
-        let loadingToast: any = null;
+        // Loading toast is handled by EntityExtractor or we can show one here
+        // But EntityExtractor shows "正在进行实体提取..."
         try {
-            loadingToast = notificationService.running('正在提取实体...', '实体提取');
-            // 1. Dry Run
-            Logger.debug('EntityConfigPanel', 'Starting manual extract dry-run');
-            const result = await entityBuilder.extractManual(true);
+            // V1.2.8: Delegate entire flow to Workflow (which includes UserReview and Save)
+            // Call with dryRun=false to execute the full workflow
+            const result = await entityBuilder.extractManual(false);
 
-            if (result && result.success && (result.newEntities.length > 0 || result.updatedEntities.length > 0)) {
-                // Remove loading toast before showing review (optional, but cleaner)
-                if (loadingToast) notificationService.remove(loadingToast);
-                loadingToast = null;
-
-                // 2. Request Review via ReviewBridge
-                Logger.info('EntityConfigPanel', 'Requesting Review', { new: result.newEntities.length });
-
-                await reviewService.requestReview(
-                    '实体提取确认',
-                    `检测到 ${result.newEntities.length} 个新实体和 ${result.updatedEntities.length} 个变更。`,
-                    '', // No text content
-                    ['confirm', 'cancel'], // Actions
-                    'entity', // Type
-                    {
-                        newEntities: result.newEntities,
-                        updatedEntities: result.updatedEntities
-                    } // Data
-                ).then(async (reviewResult) => {
-                    if (reviewResult.action === 'confirm') {
-                        // Use data from review (user might have edited/deleted items)
-                        const finalData = reviewResult.data || { newEntities: [], updatedEntities: [] };
-                        await entityBuilder.saveRawEntities(finalData.newEntities, finalData.updatedEntities);
-                        await loadStatus();
-                        Logger.info('EntityConfigPanel', 'Entities saved via Review', finalData);
-                        notificationService.success(
-                            `成功保存 ${finalData.newEntities.length} 个新实体，更新 ${finalData.updatedEntities.length} 个实体。`,
-                            '实体提取'
-                        );
-                    }
-                });
-
-            } else {
-                Logger.info('EntityConfigPanel', 'No changes detected or extraction failed');
-                notificationService.info('没有发现新实体或变更。', '实体提取');
-                if (result && result.success) {
-                    await loadStatus();
-                }
+            if (result && result.success) {
+                await loadStatus();
+                // Success notification is handled by EntityExtractor
             }
         } catch (e) {
             console.error('[EntityConfigPanel] Manual extraction failed:', e);
-            notificationService.error(`提取失败: ${e}`, '实体提取');
+            // Error notification is handled by EntityExtractor
         } finally {
-            if (loadingToast) notificationService.remove(loadingToast);
             setIsLoading(false);
         }
     };

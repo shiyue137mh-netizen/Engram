@@ -1,33 +1,33 @@
-export * from './types';
-export * from './constants';
 export * from './adapter';
+export * from './constants';
 export * from './crud';
+export * from './engram';
 export * from './metrics';
 export * from './scanner';
-export * from './engram';
-export * from './state';
 export * from './slot';
+export * from './state';
+export * from './types';
 
 // Facade Implementation moved here
-import {
-    WorldInfoEntry,
-    CreateWorldInfoEntryParams,
-    WorldInfoTokenStats,
-} from './types';
 import { getTavernHelper } from './adapter';
 import {
-    getEntries,
     createEntry,
-    updateEntry,
-    deleteEntry,
     deleteEntries,
+    deleteEntry,
+    deleteWorldbook,
     findEntryByKey,
+    getEntries,
     getWorldbookNames,
-    deleteWorldbook
+    updateEntry
 } from './crud';
+import { WorldbookEngramService } from './engram';
 import { WorldbookMetricsService } from './metrics';
 import { WorldbookScannerService } from './scanner';
-import { WorldbookEngramService } from './engram';
+import {
+    CreateWorldInfoEntryParams,
+    WorldInfoEntry,
+    WorldInfoTokenStats,
+} from './types';
 
 /**
  * WorldInfoService (Facade)
@@ -114,8 +114,8 @@ export class WorldInfoService {
         return WorldbookScannerService.getActivatedWorldInfo(chatMessages, options);
     }
 
-    static async scanWorldbook(worldbookName: string, contextText: string): Promise<string> {
-        return WorldbookScannerService.scanWorldbook(worldbookName, contextText);
+    static async scanWorldbook(worldbookName: string, contextText: string, options?: { forceInclude?: boolean }): Promise<string> {
+        return WorldbookScannerService.scanWorldbook(worldbookName, contextText, options);
     }
 
     static getScopes() {

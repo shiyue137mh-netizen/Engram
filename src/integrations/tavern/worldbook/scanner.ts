@@ -1,7 +1,7 @@
-import { WorldInfoEntry } from './types';
-import { getEntries } from './crud';
-import { getTavernHelper } from './adapter';
 import { Logger } from '@/core/logger';
+import { getTavernHelper } from './adapter';
+import { getEntries } from './crud';
+import { WorldInfoEntry } from './types';
 
 const MODULE = 'Worldbook';
 
@@ -119,9 +119,6 @@ function shouldIncludeEntry(
         }
     }
 
-    // (4) 额外保险：排除常见全局规则世界书命名前缀 (硬编码规则)
-    if (entry.world?.startsWith('格式')) return false;
-    if (entry.world?.startsWith('---')) return false;
 
     // (5) 其他条目：保留
     return true;
@@ -135,17 +132,44 @@ export class WorldbookScannerService {
      * V1.1.0: 扫描指定世界书（白名单模式）
      * @param worldbookName 世界书名称
      * @param contextText 扫描上下文
+     * @param options 扫描选项 (V1.2.10: forceInclude 用于强制扫描绑定的世界书，忽略全局禁用)
      */
-    static async scanWorldbook(worldbookName: string, contextText: string): Promise<string> {
+    static async scanWorldbook(worldbookName: string, contextText: string, options?: { forceInclude?: boolean }): Promise<string> {
         const entries = await getEntries(worldbookName);
         if (entries.length === 0) return '';
+
+        // V1.2.9: 加载过滤配置，确保遵循白名单/黑名单逻辑
+        const filterState = await loadFilteringState();
+        let { disabledGlobalBooks, disabledEntries, globalWorldbooks, config } = filterState;
+
+        // Check if disabled globally and not forced
+        const isDisabled = disabledGlobalBooks.includes(worldbookName);
+        if (isDisabled && !options?.forceInclude) {
+            Logger.debug(MODULE, `世界书 [${worldbookName}] 全局已禁用`, { forceInclude: false });
+            return '';
+        }
+
+        // V1.2.10: 如果强制包含（例如模板绑定），则临时从禁用列表中移除该书
+        // 但仍然保留 disabledEntries (条目黑名单) 的效力
+        if (options?.forceInclude) {
+            disabledGlobalBooks = disabledGlobalBooks.filter(name => name !== worldbookName);
+        }
 
         const activeEntries: WorldInfoEntry[] = [];
         const lowerContext = contextText.toLowerCase();
 
         for (const entry of entries) {
+            // 0. 全局/黑名单过滤 (新增)
+            if (!shouldIncludeEntry(entry, globalWorldbooks, disabledGlobalBooks, disabledEntries, config)) {
+                // Logger.debug(MODULE, `Entry excluded by filter`, { name: entry.name, world: entry.world });
+                continue;
+            }
+
             // 1. 必须启用
-            if (!entry.enabled) continue;
+            if (!entry.enabled) {
+                // Logger.debug(MODULE, `Entry not enabled`, { name: entry.name });
+                continue;
+            }
 
             // 2. 常驻条目直接激活
             if (entry.constant) {
@@ -157,28 +181,43 @@ export class WorldbookScannerService {
             if (entry.keys && entry.keys.length > 0) {
                 // ST 逻辑: OR 关系 (只要命中一个 key)
                 let matched = false;
+                const matchedKeys = [];
                 for (const key of entry.keys) {
                     if (!key) continue;
                     // 简单包含检查 (忽略大小写)
                     if (lowerContext.includes(key.toLowerCase())) {
                         matched = true;
+                        matchedKeys.push(key);
+                        // break; // Don't break, capture all for debug? No, one is enough.
                         break;
                     }
                 }
                 if (matched) {
                     activeEntries.push(entry);
+                } else {
+                    // Log failed match for specific bound books if needed, but might be spammy
+                    // Logger.warn(MODULE, 'Entry key mismatch', { name: entry.name, keys: entry.keys });
                 }
+            } else {
+                // No keys and not constant -> Not activated
             }
         }
 
         if (activeEntries.length > 0) {
             Logger.debug(MODULE, `扫描白名单世界书 [${worldbookName}]`, {
                 total: entries.length,
-                matched: activeEntries.length
+                matched: activeEntries.length,
+                matchedEntries: activeEntries.map(e => e.name)
             });
             // 按 order 排序
             activeEntries.sort((a, b) => a.order - b.order);
             return activeEntries.map(e => e.content).join('\n\n');
+        } else {
+            // Log output for bound books that yielded 0 result
+            Logger.debug(MODULE, `扫描白名单世界书 [${worldbookName}] - 无匹配条目`, {
+                total: entries.length,
+                reason: 'No keys matched or no constant entries'
+            });
         }
 
         return '';

@@ -1,6 +1,6 @@
-import { WorldInfoEntry, CreateWorldInfoEntryParams, WorldInfoPosition } from './types';
-import { getTavernHelper } from './adapter';
 import { Logger } from '@/core/logger';
+import { getTavernHelper } from './adapter';
+import { CreateWorldInfoEntryParams, WorldInfoEntry, WorldInfoPosition } from './types';
 
 const MODULE = 'Worldbook';
 
@@ -24,6 +24,8 @@ export async function getEntries(worldbookName: string): Promise<WorldInfoEntry[
             const position = entry.position as Record<string, unknown> | undefined;
             const recursion = entry.recursion as Record<string, boolean> | undefined;
 
+
+
             // 从 strategy.keys 提取关键词（可能是字符串或正则）
             const keys: string[] = [];
             if (strategy?.keys && Array.isArray(strategy.keys)) {
@@ -40,9 +42,10 @@ export async function getEntries(worldbookName: string): Promise<WorldInfoEntry[
             return {
                 uid: entry.uid as number || 0,
                 name: entry.name as string || '',
+                world: worldbookName, // Inject worldbook name for filtering context
                 content: entry.content as string || '',
                 enabled: typeof entry.enabled === 'boolean' ? entry.enabled : (entry.disable !== true),
-                constant: strategy?.type === 'constant',
+                constant: strategy?.type === 'constant' || (entry.constant as boolean) === true,
                 keys,
                 position: (position?.type as WorldInfoPosition) || 'before_character_definition',
                 depth: position?.depth as number || 0,

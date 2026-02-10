@@ -47,7 +47,7 @@ systemPrompt: |
     </role_definition>
 
     <formatting_protocol>
-      输出格式: 严格的 JSON 数组。
+      输出格式: 严格的 JSON 对象，必须包含 "events" 数组。 (例如: { "events": [...] })
       每个事件对象包含:
         - summary: 高密度摘要文本，包含时间/地点/人物的完整事件描述。对于高权重事件，应将关键对白以（角色名：'对白'）的形式融入其中。
         - meta: 结构化元数据 (role, location, event, logic, causality)

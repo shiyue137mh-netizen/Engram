@@ -463,10 +463,25 @@ export class MacroService {
                         firstMsgIndex: context.chat.indexOf(messages[0])
                     });
                 } else {
-                    // 默认模式：最近 N 条
-                    const limit = this.getDynamicChatHistoryLimit();
-                    messages = context.chat.slice(-limit);
-                    Logger.debug('MacroService', 'getChatHistory (Recent)', { limit, count: messages.length });
+                    // 默认模式：智能增量 (Last Summarized -> End)
+                    const store = useMemoryStore.getState();
+                    const lastFloor = store.lastSummarizedFloor;
+
+                    if (lastFloor > 0) {
+                        // 如果有上次总结的记录，从下一层开始获取
+                        // lastFloor 是 index + 1 (1-based)
+                        // slice(lastFloor) 刚好是从 lastFloor (index) 开始，即 floor lastFloor + 1
+                        messages = context.chat.slice(lastFloor);
+                        Logger.debug('MacroService', 'getChatHistory (Smart Incremental)', {
+                            lastSummarizedFloor: lastFloor,
+                            count: messages.length
+                        });
+                    } else {
+                        // Fallback: 最近 N 条
+                        const limit = this.getDynamicChatHistoryLimit();
+                        messages = context.chat.slice(-limit);
+                        Logger.debug('MacroService', 'getChatHistory (Recent Fallback)', { limit, count: messages.length });
+                    }
                 }
 
                 if (messages.length === 0) return '';

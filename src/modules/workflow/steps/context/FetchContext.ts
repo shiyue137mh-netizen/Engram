@@ -61,8 +61,47 @@ export class FetchContext implements IStep {
         const globalBooks = scopes.global || [];
         // 角色绑定的
         const charBooks = scopes.chat || [];
-        // 额外绑定的
-        const extraBooks = (context.input.extraWorldbooks as string[] | undefined) || [];
+        // 额外绑定的 (Task Input)
+        let extraBooks = (context.input.extraWorldbooks as string[] | undefined) || [];
+
+        // V1.2.10: 尝试从当前提示词模板中获取绑定的额外世界书
+        // 因为 FetchContext 在 BuildPrompt 之前运行，我们需要提前预判或查找模板
+        try {
+            const { SettingsManager } = await import('@/config/settings');
+            const { PromptLoader } = await import('@/integrations/llm/PromptLoader');
+
+            // 确定 templateId (逻辑同 BuildPrompt)
+            let templateId = context.config.templateId;
+            const category = context.config.category;
+
+            if (!templateId && category) {
+                // 简单查找该分类下启用的模板
+                // 注意：这里只是为了获取 worldbooks，做个尽力而为的查找
+                const allTemplates = SettingsManager.get('apiSettings')?.promptTemplates || [];
+                const enabledTemplate = allTemplates.find(t => t.category === category && t.enabled === true);
+                if (enabledTemplate) {
+                    templateId = enabledTemplate.id;
+                }
+            }
+
+            if (templateId) {
+                // 读取完整模板配置（包含 user override）
+                const userTemplates = SettingsManager.get('apiSettings')?.promptTemplates || [];
+                const builtinTemplates = PromptLoader.getAllTemplates(); // 确保加载内置
+
+                const template = userTemplates.find(t => t.id === templateId) ||
+                    builtinTemplates.find(t => t.id === templateId);
+
+                if (template && template.extraWorldbooks && template.extraWorldbooks.length > 0) {
+                    Logger.debug('FetchContext', `发现模板 [${template.name}] 绑定的额外世界书`, {
+                        books: template.extraWorldbooks
+                    });
+                    extraBooks = [...extraBooks, ...template.extraWorldbooks];
+                }
+            }
+        } catch (e) {
+            Logger.warn('FetchContext', '获取模板绑定世界书失败', e);
+        }
 
         // 2. 合并并去重
         const allBooks = [...new Set([...globalBooks, ...charBooks, ...extraBooks])];
@@ -92,25 +131,49 @@ export class FetchContext implements IStep {
         }
 
         // 5. 扫描世界书
-        if (worldbooksToScan.length > 0) {
+        const worldInfoContentParts: string[] = [];
+
+        // Scan template-bound extra worldbooks with forceInclude: true
+        for (const book of extraBooks) {
+            // V1.2.10: 绑定的世界书强制生效，忽略全局禁用设置
+            // Also ensure it's not an [Engram] book, as those are handled separately
+            if (!book.startsWith('[Engram]')) {
+                const content = await WorldInfoService.scanWorldbook(book, scanText, { forceInclude: true });
+                if (content) {
+                    worldInfoContentParts.push(content);
+                }
+            }
+        }
+
+        // Scan other worldbooks (global, char, and task-input extra books not already covered)
+        // We need to ensure we don't double-scan books already processed with forceInclude.
+        // The `worldbooksToScan` already contains a unique list of all non-[Engram] books.
+        // We will filter out the `extraWorldbooks` (and `extraBooks`) that were already processed with `forceInclude`.
+        const booksToScanNormally = worldbooksToScan.filter(book => !extraBooks.includes(book));
+
+        if (booksToScanNormally.length > 0) {
             const results = await Promise.all(
-                worldbooksToScan.map((wbName: string) =>
+                booksToScanNormally.map((wbName: string) =>
                     WorldInfoService.scanWorldbook(wbName, scanText)
                 )
             );
-            wiContent = results.filter(Boolean).join('\n\n');
+            worldInfoContentParts.push(...results.filter(Boolean));
         }
+
+        wiContent = worldInfoContentParts.filter(Boolean).join('\n\n');
+
         context.input.worldbookContext = wiContent;
         // 兼容旧名
         context.input.context = wiContent;
 
         // 4. 获取 Engram Summaries
-        const summaryContent = await WorldInfoService.getEngramSummariesContent();
+        // V1.3.2: 统一使用 MacroService 缓存，确保包含 RAG 召回内容 (由 Injector 写入)
+        const summaryContent = MacroService.getSummaries();
         context.input.engramSummaries = summaryContent;
 
         // 5. V1.0.0: 获取 Engram Entity States
-        const { useMemoryStore } = await import('@/state/memoryStore');
-        const entityStatesContent = await useMemoryStore.getState().getEntityStates();
+        // 同样使用 MacroService 缓存
+        const entityStatesContent = MacroService.getEntityStates();
         context.input.engramEntityStates = entityStatesContent;
 
         Logger.debug('FetchContext', '上下文获取完成', {

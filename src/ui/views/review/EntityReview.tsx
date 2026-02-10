@@ -156,7 +156,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                         {/* Comparison View */}
                         <div className="flex-1 min-h-0 grid grid-cols-2 gap-6">
                             {/* Left Column: Original Description + Profile Editor */}
-                            <div className="flex flex-col gap-4 min-h-0">
+                            <div className="flex flex-col gap-4 min-h-0 min-w-0">
                                 {/* If updated, show original description */}
                                 {editingEntity.list === 'updated' && editingEntity.entity._original && (
                                     <div className="flex-1 min-h-0 flex flex-col gap-2">
@@ -177,7 +177,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                                         编辑属性 (Edit Profile JSON)
                                     </label>
                                     <textarea
-                                        className="flex-1 p-3 rounded-md bg-muted border border-border text-xs font-mono resize-none focus:ring-2 focus:ring-primary/20 outline-none custom-scrollbar"
+                                        className="flex-1 p-3 rounded-md bg-muted border border-border text-xs font-mono resize-none focus:ring-2 focus:ring-primary/20 outline-none custom-scrollbar overflow-x-auto whitespace-pre"
                                         value={JSON.stringify(editingEntity.entity.profile, null, 2)}
                                         onChange={(e) => {
                                             try {

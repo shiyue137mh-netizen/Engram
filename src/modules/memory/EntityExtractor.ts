@@ -97,8 +97,16 @@ export class EntityBuilder {
                 lastExtracted
             });
 
-            // Calculate range: lastExtracted + 1 to currentFloor
-            const startFloor = lastExtracted + 1;
+            // V1.0.6: 自动提取也统一使用 "上次总结" 到现在的范围
+            // 确保上下文连贯，并在 extracting 阶段更新已有实体状态
+            const lastSummarized = state.last_summarized_floor || 0;
+            let startFloor = lastSummarized + 1;
+
+            // 同样应用 50 层上限保护
+            if (currentFloor - startFloor > 50) {
+                startFloor = currentFloor - 49;
+            }
+
             const range: [number, number] = [startFloor, currentFloor];
 
             // Trigger extraction (non-blocking)
@@ -145,7 +153,8 @@ export class EntityBuilder {
         chatHistory: string, // Kept for signature compatibility, but workflow fetches it again or receives it
         floor: number,
         manual = false,
-        dryRun = false
+        dryRun = false,
+        range?: [number, number] // V1.0.7: Allow passing explicit range
     ): Promise<EntityBuildResult | null> {
         if (this.isExtracting) {
             Logger.warn(LogModule.MEMORY_ENTITY, '正在执行提取，跳过本次触发');
@@ -175,12 +184,13 @@ export class EntityBuilder {
                     dryRun,
                     previewEnabled,
                     logType: 'entity_extraction', // For LlmRequest logging
-                    templateId: this.config.promptTemplateId // V0.9.10: Support custom prompt
+                    templateId: this.config.promptTemplateId, // V0.9.10: Support custom prompt
+                    category: 'entity_extraction', // V1.0.8: Explicitly pass category for FetchContext to find default template
                 },
                 input: {
                     // Pass range if possible, otherwise FetchChatHistory logic needs to handle single floor or raw string
                     // Ideally pass range: [floor, floor] or the actual range
-                    range: [floor, floor], // Placeholder range
+                    range: range || [floor, floor], // Use passed range or default to single floor
                     chatHistory // Pass raw string as optimization
                 }
             });
@@ -256,7 +266,7 @@ export class EntityBuilder {
         }
 
         // 调用核心提取逻辑 (floor 参数传入结束楼层)
-        return this.extractFromChat(chatHistory, range[1], manual);
+        return this.extractFromChat(chatHistory, range[1], manual, false, range);
     }
 
     /**
@@ -264,13 +274,30 @@ export class EntityBuilder {
      */
     async extractManual(dryRun = false): Promise<EntityBuildResult | null> {
         // 获取当前聊天历史 (不传参使用默认 recent)
-        const chatHistory = MacroService.getChatHistory();
-
-        // 使用真实楼层作为标记
+        // V1.0.5: 手动提取应该基于 "上次总结" 到现在的范围，
+        // 这样给 LLM 提供的上下文才是完整的 (避免 "他说了什么" 这种指代不明)
+        // 用户反馈: "上次提取" 会导致中间一段丢失上下文
+        const state = await chatManager.getState();
+        const lastSummarized = state.last_summarized_floor || 0;
         const currentFloor = MacroService.getCurrentMessageCount();
 
-        // 如果是从 recent 提取，floor 标记应该大概是当前最新楼层
-        return this.extractFromChat(chatHistory, currentFloor, true, dryRun);
+        // 计算范围: (lastSummarized + 1) -> current
+        // 如果 lastSummarized 离现在太远 (>50)，则只取最近 50 层
+        let startFloor = lastSummarized + 1;
+        if (currentFloor - startFloor > 50) {
+            startFloor = currentFloor - 49; // 包含当前层共 50 层
+        }
+
+        // 确保 start <= current
+        if (startFloor > currentFloor) {
+            startFloor = currentFloor;
+        }
+
+        const range: [number, number] = [startFloor, currentFloor];
+        Logger.info(LogModule.MEMORY_ENTITY, '手动触发实体提取', { range });
+
+        // 复用 extractByRange 逻辑，它会正确调用 FetchContext 并传入 range
+        return this.extractByRange(range, true);
     }
 
     /**
