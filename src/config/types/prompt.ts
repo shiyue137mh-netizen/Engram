@@ -51,12 +51,7 @@ export interface PromptTemplate {
     updatedAt: number;
 }
 
-export interface PromptTemplateSingleExport {
-    version: string;
-    exportedAt: number;
-    // V1.2.8: 导出时排除 extraWorldbooks（可能包含私人信息）
-    template: Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt' | 'extraWorldbooks'>;
-}
+export type PromptTemplateSingleExport = Omit<PromptTemplate, 'id' | 'isBuiltIn' | 'enabled' | 'createdAt' | 'updatedAt' | 'extraWorldbooks'>;
 
 interface PromptTemplateExport {
     version: string;

@@ -79,7 +79,7 @@ const LogCard: React.FC<{
                 {/* Character Badge */}
                 {sent.character && (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20 truncate max-w-[120px]" title={`角色: ${sent.character}`}>
-                        {sent.character}
+                        {sent.character.length > 8 ? sent.character.slice(0, 8) + '...' : sent.character}
                     </span>
                 )}
                 <span className="text-xs text-muted-foreground">{formatTime(sent.timestamp)}</span>

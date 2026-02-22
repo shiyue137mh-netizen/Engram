@@ -192,7 +192,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                             </div>
 
                             {/* Right Column: New Description Preview */}
-                            <div className="flex flex-col gap-2 min-h-0">
+                            <div className="flex flex-col gap-2 min-w-0 min-h-0">
                                 <label className="text-xs font-medium text-primary flex items-center gap-2">
                                     <span className="w-2 h-2 rounded-full bg-primary"></span>
                                     新烧录文本预览 (New Description Preview)

@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
 import { Switch } from '@/ui/components/core/Switch';
+import { ChevronDown, Search, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface FormSectionProps {
     title: string;
@@ -216,9 +216,9 @@ export const NumberField: React.FC<NumberFieldProps> = ({
                         {/* 移除已填充部分，保持单色极简 */}
                         {/* <div className="absolute left-0 h-[1px] bg-primary/80" style={{ width: `${percentage}%` }} /> */}
 
-                        {/* 自定义 Thumb (圆点) - 使用低调的中性色 */}
+                        {/* 自定义 Thumb (圆点) - 保持可见，加深颜色以区分于底部分割线 */}
                         <div
-                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
+                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-primary"
                             style={{ left: `${percentage}%`, transform: `translate(-50%, -50%)` }}
                         />
 

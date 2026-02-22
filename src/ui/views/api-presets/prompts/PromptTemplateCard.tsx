@@ -1,10 +1,10 @@
 import { createPromptTemplate, getBuiltInTemplateByCategory, getBuiltInTemplateById } from '@/config/types/defaults';
-import type { PromptCategory, PromptTemplate, PromptTemplateSingleExport } from '@/config/types/prompt';
+import type { PromptCategory, PromptTemplate } from '@/config/types/prompt';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';
 import { Logger, LogModule } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 import { dump, load } from 'js-yaml';
-import { Check, Copy, Download, Power, RotateCcw, Trash2, Upload } from 'lucide-react';
+import { Check, Copy, Download, FolderInput, Power, RotateCcw, Trash2 } from 'lucide-react';
 import React, { useRef } from 'react';
 
 interface PromptTemplateCardProps {
@@ -56,16 +56,13 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
     // 导出单个模板
     const handleExport = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const exportData: PromptTemplateSingleExport = {
-            version: '1.0',
-            exportedAt: Date.now(),
-            template: {
-                name: template.name,
-                category: template.category,
-                boundPresetId: template.boundPresetId,
-                systemPrompt: template.systemPrompt,
-                userPromptTemplate: template.userPromptTemplate,
-            },
+        const exportData = {
+            name: template.name,
+            category: template.category,
+            boundPresetId: template.boundPresetId,
+            systemPrompt: template.systemPrompt,
+            userPromptTemplate: template.userPromptTemplate,
+            injectionMode: template.injectionMode,
         };
 
         const yamlString = dump(exportData, {
@@ -97,18 +94,20 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
             try {
                 const content = e.target?.result as string;
                 // 尝试解析 YAML (兼容 JSON)
-                const data = load(content) as PromptTemplateSingleExport;
+                const data = load(content) as any;
+                const templateData = data?.template || data;
 
-                if (data && data.version && data.template) {
+                if (templateData && templateData.name) {
                     const importedTemplate = createPromptTemplate(
-                        data.template.name,
-                        data.template.category as PromptCategory,
+                        templateData.name,
+                        templateData.category as PromptCategory,
                         {
                             enabled: template.enabled, // 保持当前启用状态
                             isBuiltIn: template.isBuiltIn, // 保持内置状态
-                            boundPresetId: data.template.boundPresetId,
-                            systemPrompt: data.template.systemPrompt,
-                            userPromptTemplate: data.template.userPromptTemplate,
+                            boundPresetId: templateData.boundPresetId,
+                            systemPrompt: templateData.systemPrompt,
+                            userPromptTemplate: templateData.userPromptTemplate,
+                            injectionMode: templateData.injectionMode,
                         }
                     );
                     // 保持原 ID
@@ -205,7 +204,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
 
             {/* Action Buttons - Visible on hover or selected */}
             <div className={`mt-2 flex justify-end gap-1 ${isSelected || 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleImportClick} title="Import"><Upload size={12} /></button>
+                <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleImportClick} title="Import"><FolderInput size={12} /></button>
                 <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={handleExport} title="Export"><Download size={12} /></button>
                 <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => { e.stopPropagation(); onCopy?.(); }} title="Copy"><Copy size={12} /></button>
                 {template.isBuiltIn && (

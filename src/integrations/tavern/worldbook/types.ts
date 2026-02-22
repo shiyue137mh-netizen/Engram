@@ -56,7 +56,6 @@ export interface CreateWorldInfoEntryParams {
  */
 export interface WorldInfoEntry {
     uid: number;
-    uid: number;
     name: string;
     /** 所属世界书名称 (Engram 扩展字段) */
     world?: string;

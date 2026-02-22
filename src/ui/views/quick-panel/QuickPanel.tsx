@@ -15,15 +15,15 @@
  * 用于快捷切换预处理模式、查看 RAG 状态等
  */
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { FloatingPanel } from '@/ui/components/overlay/FloatingPanel';
-import { Switch } from '@/ui/components/core/Switch';
+import { SettingsManager } from '@/config/settings';
+import { Logger } from '@/core/logger';
 import { preprocessor } from '@/modules/preprocessing';
 import type { PreprocessingConfig } from '@/modules/preprocessing/types';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
-import { Search, AlertCircle, Wand2 } from 'lucide-react';
-import { Logger } from '@/core/logger';
-import { SettingsManager } from '@/config/settings';
+import { Switch } from '@/ui/components/core/Switch';
+import { FloatingPanel } from '@/ui/components/overlay/FloatingPanel';
+import { AlertCircle, Search, Wand2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface QuickPanelProps {
     isOpen: boolean;
@@ -204,7 +204,7 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
                                 </span>
                             </div>
                         ) : (
-                            <div className="space-y-1">
+                            <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                                 {availableModes.map((mode) => {
                                     const Icon = mode.icon;
                                     const isSelected = config.templateId === mode.id;

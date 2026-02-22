@@ -10,13 +10,12 @@ import { Divider } from "@/ui/components/layout/Divider";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
 import { Tab } from "@/ui/components/layout/TabPills";
-import { ArrowDownUp, Brain, FileText, Filter, GitBranch, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
+import { ArrowDownUp, Brain, FileText, Filter, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EntityCard } from './components/EntityCard'; // Import EntityCard
 import { EntityEditor } from './components/EntityEditor';
 import { EventCard } from './components/EventCard';
 import { EventEditor, type EventEditorHandle } from './components/EventEditor';
-import { GraphView } from './GraphView';
 
 // 响应式断点
 const DESKTOP_BREAKPOINT = 768;
@@ -25,10 +24,9 @@ const DESKTOP_BREAKPOINT = 768;
 const VIEW_TABS: Tab[] = [
     { id: 'list', label: '列表', icon: <List size={14} /> },
     { id: 'entities', label: '实体', icon: <Users size={14} /> }, // Add Entity Tab
-    { id: 'graph', label: '图谱', icon: <GitBranch size={14} /> },
 ];
 
-type ViewTab = 'list' | 'graph' | 'entities';
+type ViewTab = 'list' | 'entities';
 
 export const MemoryStream: React.FC = () => {
     // 状态
@@ -396,7 +394,6 @@ export const MemoryStream: React.FC = () => {
     const TAB_INFO: Record<ViewTab, { title: string; subtitle: string }> = {
         list: { title: '列表视图', subtitle: '查看和管理记忆事件' },
         entities: { title: '实体列表', subtitle: '查看和管理提取的实体' },
-        graph: { title: '图谱视图', subtitle: '记忆事件的可视化关联' },
     };
     const currentInfo = TAB_INFO[viewTab];
 
@@ -664,18 +661,6 @@ export const MemoryStream: React.FC = () => {
                 </div>
             )}
 
-            {/* 图谱视图 */}
-            {viewTab === 'graph' && (
-                <div
-                    className="flex-1 min-h-0"
-                    style={{
-                        height: 'calc(100vh - 100px)',
-                        minHeight: '400px',
-                    }}
-                >
-                    <GraphView events={events} entities={entities} />
-                </div>
-            )}
             {/* Preview Modal */}
             {showPreview && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
