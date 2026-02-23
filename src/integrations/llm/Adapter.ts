@@ -176,7 +176,7 @@ class LLMAdapter {
             } else if (preset?.source === 'custom' && preset.custom) {
                 return await this.executeWithCustomApi(request, preset, helper);
             } else {
-                return await this.executeWithTavern(request, helper);
+                return await this.executeWithTavern(request, helper, preset);
             }
 
         } catch (e) {
@@ -206,7 +206,7 @@ class LLMAdapter {
 
         if (!targetProfile) {
             Logger.warn(MODULE, `未找到 Profile: ${preset.tavernProfileId}，回退到默认`);
-            return await this.executeWithTavern(request, helper);
+            return await this.executeWithTavern(request, helper, preset);
         }
 
         // 记录当前 Profile
@@ -219,7 +219,7 @@ class LLMAdapter {
             await this.waitForProfileReady();
 
             // 使用酒馆当前设置执行 (因为已经切换了)
-            return await this.executeWithTavern(request, helper);
+            return await this.executeWithTavern(request, helper, preset);
 
         } finally {
             // 切回原 Profile
@@ -290,6 +290,7 @@ class LLMAdapter {
             top_p: preset.parameters?.topP,
             frequency_penalty: preset.parameters?.frequencyPenalty,
             presence_penalty: preset.parameters?.presencePenalty,
+            max_context: preset.parameters?.maxContext,
         };
 
         return await this.callTavernHelper(request, helper, customApiConfig);
@@ -301,9 +302,23 @@ class LLMAdapter {
 
     private async executeWithTavern(
         request: LLMRequest,
-        helper: NonNullable<ReturnType<typeof getTavernHelper>>
+        helper: NonNullable<ReturnType<typeof getTavernHelper>>,
+        preset?: LLMPreset
     ): Promise<LLMResponse> {
-        return await this.callTavernHelper(request, helper, undefined);
+        let customApiConfig: Record<string, any> | undefined;
+
+        if (preset && (preset.modelOverride || preset.parameters?.maxContext)) {
+            customApiConfig = {};
+            if (preset.modelOverride) {
+                Logger.info(MODULE, `Tavern 模式，局部覆盖模型名: ${preset.modelOverride}`);
+                customApiConfig.model = preset.modelOverride;
+            }
+            if (preset.parameters?.maxContext) {
+                customApiConfig.max_context = preset.parameters.maxContext;
+            }
+        }
+
+        return await this.callTavernHelper(request, helper, customApiConfig);
     }
 
     // =========================================================================

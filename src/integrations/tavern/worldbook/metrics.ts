@@ -1,7 +1,6 @@
-import { WorldInfoTokenStats, WorldInfoEntry } from './types';
-import { getEntries } from '@/integrations/tavern/worldbook/crud';
-import { SUMMARY_ENTRY_KEY } from './constants';
 import { Logger } from '@/core/logger';
+import { getEntries } from '@/integrations/tavern/worldbook/crud';
+import { WorldInfoEntry, WorldInfoTokenStats } from './types';
 
 const MODULE = 'Worldbook';
 
@@ -45,25 +44,6 @@ export class WorldbookMetricsService {
      */
     static async countTokensBatch(texts: string[]): Promise<number[]> {
         return Promise.all(texts.map(t => getTokenCountAsync(t)));
-    }
-
-    /**
-     * 计算特定世界书中所有 Engram 总结条目的 Token 总和
-     * 仅计算已启用的条目，使用关键词筛选
-     * @param worldbookName 世界书名称
-     */
-    static async countSummaryTokens(worldbookName: string): Promise<number> {
-        const entries = await getEntries(worldbookName);
-        // 使用关键词筛选 Engram 总结条目
-        const summaryEntries = entries.filter((e: WorldInfoEntry) =>
-            e.enabled && e.keys.includes(SUMMARY_ENTRY_KEY)
-        );
-
-        if (summaryEntries.length === 0) return 0;
-
-        const contents = summaryEntries.map((e: WorldInfoEntry) => e.content);
-        const tokens = await Promise.all(contents.map((c: string) => this.countTokens(c)));
-        return tokens.reduce((sum: number, t: number) => sum + t, 0);
     }
 
     /**

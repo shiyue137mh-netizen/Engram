@@ -16,6 +16,7 @@ export function getTavernHelper(): {
     deleteWorldbookEntries?: (name: string, filter: (entry: unknown) => boolean) => Promise<void>;
     getWorldbookNames?: () => string[];
     getGlobalWorldbookNames?: () => string[];
+    rebindGlobalWorldbooks?: (worldbook_names: string[]) => Promise<void>;
     deleteWorldbook?: (name: string) => Promise<boolean>;
     // 角色世界书绑定
     getCharWorldbookNames?: (mode: 'current' | 'all') => { primary?: string; additional: string[] } | null;

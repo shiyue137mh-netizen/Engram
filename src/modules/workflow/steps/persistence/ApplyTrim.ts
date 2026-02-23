@@ -48,6 +48,8 @@ export class ApplyTrim implements IStep {
             level: 1,  // 标记为二层精简
             is_embedded: false,
             is_archived: false,
+            // V1.5: 时空归一化核心，抢占它所有子节点中最老的一个时间点并再提前 1 毫秒，确立绝对统领排序位置
+            timestamp: Math.min(...eventsToMerge.map(e => e.timestamp)) - 1,
             source_range: {
                 start_index: Math.min(...eventsToMerge.map(e => e.source_range?.start_index ?? 0)),
                 end_index: Math.max(...eventsToMerge.map(e => e.source_range?.end_index ?? 0))

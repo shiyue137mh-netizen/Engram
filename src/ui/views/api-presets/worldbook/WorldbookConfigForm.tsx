@@ -51,7 +51,9 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
     };
 
     // 过滤和排序处理
-    const worldbooks = Object.keys(worldbookStructure).sort();
+    const worldbooks = Object.keys(worldbookStructure)
+        .filter(book => !book.startsWith('[Engram]'))
+        .sort();
     const filteredWorldbooks = worldbooks.filter(book =>
         book.toLowerCase().includes(filterText.toLowerCase()) ||
         worldbookStructure[book].some((e: any) =>
@@ -175,10 +177,10 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
                                                                         */}
                                                                         <div
                                                                             className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${entry.disabled
-                                                                                    ? 'bg-muted-foreground/50'
-                                                                                    : entry.constant
-                                                                                        ? 'bg-primary'
-                                                                                        : 'bg-emerald-500'
+                                                                                ? 'bg-muted-foreground/50'
+                                                                                : entry.constant
+                                                                                    ? 'bg-primary'
+                                                                                    : 'bg-emerald-500'
                                                                                 }`}
                                                                             title={
                                                                                 entry.disabled

@@ -22,6 +22,8 @@ export interface SamplingParameters {
     frequencyPenalty: number;
     /** 存在惩罚 (-2 到 2) */
     presencePenalty: number;
+    /** 上下文 Token 上限 (可选，用于控制大模型的 max_context) */
+    maxContext?: number;
 }
 
 export interface ContextSettings {
@@ -40,6 +42,8 @@ export interface LLMPreset {
     tavernProfileId?: string;
     /** 自定义 API 配置（仅当 source === 'custom' 时有效） */
     custom?: CustomAPIConfig;
+    /** 在 source: 'tavern' 时用于临时覆盖大模型名称，若为空则不覆盖 */
+    modelOverride?: string;
     /** 模型采样参数 */
     parameters: SamplingParameters;
     /** 上下文设置 */

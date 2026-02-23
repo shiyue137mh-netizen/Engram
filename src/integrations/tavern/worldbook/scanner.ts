@@ -67,15 +67,8 @@ async function loadFilteringState() {
     const config = settings.apiSettings?.worldbookConfig;
     const disabledGlobalBooks = config?.disabledWorldbooks || [];
 
-    // 加载角色特定状态 (用于条目黑名单)
-    const { WorldBookStateService } = await import('./state');
-    const charBooks = helper?.getCharWorldbookNames?.('current');
-    let disabledEntries: Record<string, number[]> = {};
-
-    if (charBooks?.primary) {
-        const state = await WorldBookStateService.loadState(charBooks.primary);
-        disabledEntries = state.disabledEntries || {};
-    }
+    // 加载条目黑名单 (取代了老版本的角色独占状态存储)
+    let disabledEntries: Record<string, number[]> = config?.disabledEntries || {};
 
     return {
         globalWorldbooks,
@@ -96,9 +89,9 @@ function shouldIncludeEntry(
     disabledEntries: Record<string, number[]>,
     config: any
 ): boolean {
-    // (1) Engram 自身条目：始终保留
+    // (1) Engram 自身条目：如果是 [Engram] 创建的注入占位世界书，不应该拼补到 worldbookContext 中，防止与内置提示词里的相同宏撞车
     if (entry.extra?.engram === true) return true;
-    if (entry.world?.startsWith('[Engram]')) return true;
+    if (entry.world?.startsWith('[Engram]')) return false;
 
     // (1.5) 显式禁用检查：如果在 Engram 全局禁用列表中，直接排除
     if (entry.world && disabledGlobalBooks.includes(entry.world)) {

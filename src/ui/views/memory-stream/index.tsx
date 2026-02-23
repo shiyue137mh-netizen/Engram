@@ -10,7 +10,7 @@ import { Divider } from "@/ui/components/layout/Divider";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
 import { Tab } from "@/ui/components/layout/TabPills";
-import { ArrowDownUp, Brain, FileText, Filter, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
+import { ArrowDownUp, Brain, Database, FileText, Filter, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EntityCard } from './components/EntityCard'; // Import EntityCard
 import { EntityEditor } from './components/EntityEditor';
@@ -56,6 +56,11 @@ export const MemoryStream: React.FC = () => {
 
     // 重嵌状态
     const [isReembedding, setIsReembedding] = useState(false);
+
+    // V1.5 导入功能状态
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [availableDbs, setAvailableDbs] = useState<string[]>([]);
+    const [selectedDbToImport, setSelectedDbToImport] = useState<string>('');
 
     // Store
     const store = useMemoryStore.getState();
@@ -303,6 +308,50 @@ export const MemoryStream: React.FC = () => {
         }
     };
 
+    // 执行导入
+    const handleOpenImportModal = async () => {
+        try {
+            const Dexie = (await import('dexie')).default;
+            const names = await Dexie.getDatabaseNames();
+            // 过滤出 Engram_ 开头的，排除当前的
+            // @ts-ignore
+            const currentDbName = store.getCurrentDb?.()?.name || '';
+            const engramDbs = names.filter(n => n.startsWith('Engram_') && n !== currentDbName);
+            setAvailableDbs(engramDbs);
+            if (engramDbs.length > 0) {
+                setSelectedDbToImport(engramDbs[0]);
+            }
+            setShowImportModal(true);
+        } catch (e) {
+            console.error('[MemoryStream] Failed to get database names:', e);
+            alert('获取历史数据库列表失败');
+        }
+    };
+
+    const handleImportExecute = async () => {
+        if (!selectedDbToImport) {
+            alert('请选择要导入的数据库');
+            return;
+        }
+        if (!confirm(`确定要将 [${selectedDbToImport}] 的数据合并到当前聊天吗？这不会影响被合并的源数据库。`)) {
+            return;
+        }
+
+        try {
+            setIsLoading(true);
+            setShowImportModal(false);
+            const res = await store.importDatabase(selectedDbToImport);
+            alert(`导入成功！共导入及合并记录: 事件 ${res.events} 条, 实体 ${res.entities} 条。`);
+            await loadEvents();
+            await loadEntities();
+        } catch (e: any) {
+            console.error('[MemoryStream] Import failed:', e);
+            alert('导入失败: ' + (e.message || '未知错误'));
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     // 删除事件/实体
     const handleDelete = async (id: string) => {
         if (viewTab === 'entities') {
@@ -428,6 +477,16 @@ export const MemoryStream: React.FC = () => {
                                 保存 ({pendingChanges.size + pendingEntityChanges.size})
                             </button>
                         )}
+
+                        {/* 导入外部/历史数据库按钮 */}
+                        <button
+                            onClick={handleOpenImportModal}
+                            className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors"
+                            title="导入历史分卷/外部库"
+                        >
+                            <Database size={12} />
+                            合并导入
+                        </button>
 
                         {/* 重嵌按钮 (Events only) */}
                         {viewTab === 'list' && (
@@ -684,6 +743,65 @@ export const MemoryStream: React.FC = () => {
                         </div>
                         <div className="px-4 py-2 border-t border-border bg-muted/20 text-[10px] text-muted-foreground">
                             *此内容为 {'{{engramSummaries}}'} 和 {'{{engramEntityStates}}'} 宏在当前上下文中的实际输出值
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Import Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="w-full max-w-md bg-background border border-border rounded-lg shadow-xl flex flex-col">
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                            <h3 className="text-sm font-medium flex items-center gap-2">
+                                <Database size={16} className="text-primary" />
+                                合并历史数据库
+                            </h3>
+                            <button
+                                onClick={() => setShowImportModal(false)}
+                                className="text-muted-foreground hover:text-foreground"
+                            >
+                                关闭
+                            </button>
+                        </div>
+                        <div className="p-4 space-y-4">
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                                基于全新的绝对时间单库对齐架构，您可以无缝、极速地将旧存档（或其他聊天）的底层知识与历史事迹全盘并入当前聊天中！
+                            </p>
+
+                            {availableDbs.length === 0 ? (
+                                <div className="p-4 border border-dashed rounded text-center text-sm text-muted-foreground">
+                                    未找到其他 Engram 历史数据库
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium">选择要合并提取的底层库源：</label>
+                                    <select
+                                        value={selectedDbToImport}
+                                        onChange={(e) => setSelectedDbToImport(e.target.value)}
+                                        className="w-full p-2 text-sm bg-background border rounded focus:ring-1 focus:ring-primary outline-none"
+                                    >
+                                        {availableDbs.map(name => (
+                                            <option key={name} value={name}>{name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                        <div className="px-4 py-3 border-t border-border flex justify-end gap-2 bg-muted/20">
+                            <button
+                                onClick={() => setShowImportModal(false)}
+                                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                            >
+                                取消
+                            </button>
+                            <button
+                                onClick={handleImportExecute}
+                                disabled={availableDbs.length === 0}
+                                className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
+                            >
+                                执行穿梭合并
+                            </button>
                         </div>
                     </div>
                 </div>

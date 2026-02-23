@@ -20,9 +20,11 @@ interface MemoryState {
     /** 初始化/切换聊天 (返回数据库实例) */
     initChat: () => Promise<ChatDatabase | null>;
     /** 写入事件到当前聊天的 DB */
-    saveEvent: (event: Omit<EventNode, 'id' | 'timestamp'>) => Promise<EventNode>;
+    saveEvent: (event: Omit<EventNode, 'id' | 'timestamp'> & { timestamp?: number }) => Promise<EventNode>;
     /** 批量写入事件 */
-    saveEvents: (events: Omit<EventNode, 'id' | 'timestamp'>[]) => Promise<EventNode[]>;
+    saveEvents: (events: (Omit<EventNode, 'id' | 'timestamp'> & { timestamp?: number })[]) => Promise<EventNode[]>;
+    /** 导入外部历史数据库的所有事件和实体并入当前库 */
+    importDatabase: (sourceDbName: string) => Promise<{ events: number, entities: number }>;
     /** 获取当前聊天的所有事件摘要 (用于宏组装)
      * @param recalledIds 可选，RAG 召回的事件 ID 列表（绿灯事件临时显示）
      */
@@ -150,7 +152,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         const event: EventNode = {
             ...eventData,
             id: generateUUID(),
-            timestamp: Date.now(),
+            timestamp: eventData.timestamp ?? Date.now(),
             is_embedded: eventData.is_embedded ?? false, // V0.7: 默认未嵌入
             is_archived: eventData.is_archived ?? false, // V0.7: 默认未归档
         };
@@ -174,7 +176,7 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         const events: EventNode[] = eventsData.map(data => ({
             ...data,
             id: generateUUID(),
-            timestamp: Date.now(),
+            timestamp: data.timestamp ?? Date.now(),
             is_embedded: data.is_embedded ?? false,
             is_archived: data.is_archived ?? false,
         }));
@@ -188,6 +190,47 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
         return events;
     },
 
+    importDatabase: async (sourceDbName: string) => {
+        const destDb = getCurrentDb();
+        if (!destDb) throw new Error('[MemoryStore] No current chat context to import into');
+
+        // Create a temporary connection to the source database
+        // We know Engram databases use ChatDatabase class or we can just use Dexie
+        const Dexie = (await import('dexie')).default;
+        const sourceDb = new Dexie(sourceDbName);
+        sourceDb.version(3).stores({
+            events: 'id, timestamp, level, is_archived, [source_range.start_index+source_range.end_index]',
+            entities: 'id, name, last_updated_at',
+            meta: 'key'
+        });
+
+        try {
+            if (!(await Dexie.exists(sourceDbName))) {
+                throw new Error(`Database ${sourceDbName} does not exist`);
+            }
+            await sourceDb.open();
+
+            const allEvents = await sourceDb.table('events').toArray();
+            const allEntities = await sourceDb.table('entities').toArray();
+
+            // Insert into current database. We don't overwrite IDs to maintain referential integrity.
+            // If there's a collision (same ID), it will throw, but it shouldn't happen for different chats unless cloned.
+            // To be safe and just merge, we can use bulkPut instead of bulkAdd
+            if (allEvents.length > 0) {
+                await destDb.events.bulkPut(allEvents);
+            }
+            if (allEntities.length > 0) {
+                await destDb.entities.bulkPut(allEntities);
+            }
+
+            return { events: allEvents.length, entities: allEntities.length };
+        } finally {
+            if (sourceDb.isOpen()) {
+                sourceDb.close();
+            }
+        }
+    },
+
     getEventSummaries: async (recalledIds?: string[]) => {
         // V0.6: 使用 tryGetCurrentDb 避免自动创建数据库
         const db = tryGetCurrentDb();
@@ -198,75 +241,39 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
             if (events.length === 0) return '';
 
-            // V1.0.2: 可见性过滤 + 树状缩进格式
-            // - Level 1+ (大纲) → 总是显示（作为父节点）
-            // - Level 0 未归档 (蓝灯) → 总是显示（无缩进）
-            // - Level 0 已归档 (绿灯) → 仅当被 RAG 召回时显示（作为子节点，带缩进）
+            // V1.5: 移除基于 source_range 的树状装配，改用极致单向 O(N) 分析
             const recalledSet = recalledIds ? new Set(recalledIds) : null;
 
-            // 分离不同类型的事件
-            const level1Events = events.filter(e => e.level >= 1);
-            const level0Unarchived = events.filter(e => e.level === 0 && !e.is_archived);
-            const level0ArchivedRecalled = events.filter(e =>
-                e.level === 0 && e.is_archived && recalledSet?.has(e.id)
-            );
+            // 分离需要渲染的事件
+            const targetEvents = events.filter(e => {
+                if (e.level >= 1) return true; // 大纲节点必须包含
+                if (!e.is_archived) return true; // 最新发生的蓝灯细节必须包含
+                if (e.is_archived && recalledSet?.has(e.id)) return true; // 被 RAG 点亮的绿灯事件
+                return false;
+            });
 
-            // 按 source_range.start_index 排序的辅助函数
-            const sortByRange = (a: EventNode, b: EventNode) => {
-                const startA = a.source_range?.start_index ?? 0;
-                const startB = b.source_range?.start_index ?? 0;
-                if (startA !== startB) return startA - startB;
-                const endA = a.source_range?.end_index ?? 0;
-                const endB = b.source_range?.end_index ?? 0;
-                if (endA !== endB) return endA - endB;
-                return a.timestamp - b.timestamp;
-            };
+            // O(N log N) 绝对时间碾压排序
+            targetEvents.sort((a, b) => a.timestamp - b.timestamp);
 
-            level1Events.sort(sortByRange);
-            level0Unarchived.sort(sortByRange);
-            level0ArchivedRecalled.sort(sortByRange);
-
-            // 构建树状结构输出
             const lines: string[] = [];
+            let hasParent = false;
 
-            // 辅助函数：检查 level0 事件是否在 level1 的覆盖范围内
-            const isWithinRange = (child: EventNode, parent: EventNode): boolean => {
-                const childStart = child.source_range?.start_index ?? 0;
-                const childEnd = child.source_range?.end_index ?? 0;
-                const parentStart = parent.source_range?.start_index ?? 0;
-                const parentEnd = parent.source_range?.end_index ?? 0;
-                return childStart >= parentStart && childEnd <= parentEnd;
-            };
-
-            // 已处理的召回事件 ID（避免重复输出）
-            const processedRecalledIds = new Set<string>();
-
-            // 1. 输出 level1 节点及其子节点
-            for (const l1 of level1Events) {
-                // 输出 level1 大纲（无缩进）
-                lines.push(l1.summary);
-
-                // 查找属于此 level1 范围内的已召回 level0 事件（作为子节点）
-                for (const l0 of level0ArchivedRecalled) {
-                    if (isWithinRange(l0, l1) && !processedRecalledIds.has(l0.id)) {
-                        // 缩进 2 空格
-                        lines.push(`  ${l0.summary}`);
-                        processedRecalledIds.add(l0.id);
+            for (const node of targetEvents) {
+                if (node.level >= 1) {
+                    // 大纲不带缩进，输出作为长官
+                    lines.push(node.summary);
+                    hasParent = true;
+                } else if (node.is_archived) {
+                    // 绿灯历史回顾
+                    if (hasParent) {
+                        lines.push(`  ${node.summary}`); // 在长官后方的缩进
+                    } else {
+                        lines.push(node.summary); // (极端情况)如果历史没有大哥护体
                     }
+                } else {
+                    // 最新发生的蓝灯，尚未被归档，作为当前的新鲜空气直接顶格贴出即可
+                    lines.push(node.summary);
                 }
-            }
-
-            // 2. 输出不属于任何 level1 范围的召回事件
-            for (const l0 of level0ArchivedRecalled) {
-                if (!processedRecalledIds.has(l0.id)) {
-                    lines.push(l0.summary);
-                    processedRecalledIds.add(l0.id);
-                }
-            }
-
-            // 3. 输出未归档的 level0 事件（最新事件，无缩进）
-            for (const l0 of level0Unarchived) {
-                lines.push(l0.summary);
             }
 
             if (lines.length === 0) return '';
@@ -574,13 +581,8 @@ export const useMemoryStore = create<MemoryState>((set, get) => ({
 
             if (archivedEvents.length === 0) return '';
 
-            // 按时间线排序
-            archivedEvents.sort((a, b) => {
-                const startA = a.source_range?.start_index ?? 0;
-                const startB = b.source_range?.start_index ?? 0;
-                if (startA !== startB) return startA - startB;
-                return a.timestamp - b.timestamp;
-            });
+            // 纯时间线排序
+            archivedEvents.sort((a, b) => a.timestamp - b.timestamp);
 
             const summaries = archivedEvents.map(e => e.summary).join('\n\n');
             return `<archived_summary>\n${summaries}\n</archived_summary>`;

@@ -4,10 +4,7 @@
 			"path": "."
 		},
 		{
-			"path": "../../../../../Desktop/extension_extension_project/SillyTavern-release"
-		},
-		{
-			"path": "../../../../../Desktop/extension_extension_project/new_extension_extension/packages/frameworks/step-framework"
+			"path": "../../../../.."
 		}
 	],
 	"settings": {}

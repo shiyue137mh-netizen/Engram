@@ -78,12 +78,15 @@ export async function initializeEngram(): Promise<void> {
         Logger.warn('Injector', '注入服务初始化失败', { error: String(e) });
     }
 
-    // Initialize MacroService (Global ST Macros)
+    // Initialize MacroService (Global ST Macros) and Worldbook Slot
     try {
+        const { WorldBookSlotService } = await import('@/integrations/tavern/worldbook');
+        await WorldBookSlotService.init();
+
         const { MacroService } = await import('@/integrations/tavern/macros');
         await MacroService.init();
     } catch (e) {
-        Logger.warn('MacroService', '宏服务初始化失败', { error: String(e) });
+        Logger.warn('MacroService', '宏服务/世界书初始化失败', { error: String(e) });
     }
 
     // V0.8: Initialize QR 栏快捷按钮

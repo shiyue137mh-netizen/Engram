@@ -1,11 +1,9 @@
 export * from './adapter';
-export * from './constants';
 export * from './crud';
 export * from './engram';
 export * from './metrics';
 export * from './scanner';
 export * from './slot';
-export * from './state';
 export * from './types';
 
 // Facade Implementation moved here
@@ -47,10 +45,6 @@ export class WorldInfoService {
 
     static async countTokensBatch(texts: string[]): Promise<number[]> {
         return WorldbookMetricsService.countTokensBatch(texts);
-    }
-
-    static async countSummaryTokens(worldbookName: string): Promise<number> {
-        return WorldbookMetricsService.countSummaryTokens(worldbookName);
     }
 
     static async getWorldbookTokenStats(worldbookName: string): Promise<WorldInfoTokenStats> {
@@ -176,23 +170,4 @@ export class WorldInfoService {
         return WorldbookEngramService.getOrCreateWorldbook();
     }
 
-    static async getEngramSummariesContent(): Promise<string> {
-        return WorldbookEngramService.getEngramSummariesContent();
-    }
-
-    static async getSummaryEntries(worldbookName: string): Promise<WorldInfoEntry[]> {
-        return WorldbookEngramService.getSummaryEntries(worldbookName);
-    }
-
-    static async ensureSeparatorEntries(worldbookName: string): Promise<void> {
-        return WorldbookEngramService.ensureSeparatorEntries(worldbookName);
-    }
-
-    static async getNextSummaryOrder(worldbookName: string): Promise<number> {
-        return WorldbookEngramService.getNextSummaryOrder(worldbookName);
-    }
-
-    static parseFloorRangeFromName(entryName: string): [number, number] | null {
-        return WorldbookEngramService.parseFloorRangeFromName(entryName);
-    }
 }

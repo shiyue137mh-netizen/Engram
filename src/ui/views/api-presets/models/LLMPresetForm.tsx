@@ -1,11 +1,11 @@
 /**
  * LLM 预设编辑表单
  */
-import React, { useState, useEffect } from 'react';
-import { TextField, NumberField, SelectField, SwitchField, FormSection } from '@/ui/components/form/FormComponents';
-import type { LLMPreset, APISource } from '@/config/types/llm';
-import { RefreshCw, Loader2 } from 'lucide-react';
-import { ModelService, ModelInfo, ModelAPIType } from '@/integrations/llm/ModelDiscovery';
+import type { APISource, LLMPreset } from '@/config/types/llm';
+import { ModelInfo, ModelService } from '@/integrations/llm/ModelDiscovery';
+import { FormSection, NumberField, SelectField, TextField } from '@/ui/components/form/FormComponents';
+import { Loader2, RefreshCw } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 
 interface LLMPresetFormProps {
@@ -240,6 +240,19 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                 </FormSection>
             )}
 
+            {/* 酒馆原生配置覆盖 */}
+            {preset.source === 'tavern' && (
+                <FormSection title="酒馆预设覆盖" description="在使用酒馆当前连接配置时，可临时覆盖部分配置">
+                    <TextField
+                        label="模型名称覆盖 (可选)"
+                        value={preset.modelOverride || ''}
+                        onChange={(value) => updatePreset({ modelOverride: value })}
+                        placeholder="例如 gpt-4o-mini，留空则使用酒馆默认模型"
+                        description="将会以 custom_api 对象包装后传给酒馆生成宏，并非所有后端支持"
+                    />
+                </FormSection>
+            )}
+
             {/* 自定义 API 配置 */}
             {preset.source === 'custom' && (
                 <FormSection title="API 配置" description="自定义 API 端点和密钥">
@@ -343,6 +356,17 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                     max={16384}
                     step={64}
                     showSlider={false}
+                />
+
+                <NumberField
+                    label="上下文 Token 上限 (Max Context)"
+                    value={preset.parameters.maxContext ?? 150000}
+                    onChange={(value) => updateParameters('maxContext', value)}
+                    min={0}
+                    max={2000000}
+                    step={1000}
+                    showSlider={false}
+                    description="建议值: 150000。限制传给大模型的最大上下文 Token 长度。"
                 />
 
                 <NumberField

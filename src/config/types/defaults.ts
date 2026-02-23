@@ -20,6 +20,7 @@ const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
     maxTokens: 60000,
     frequencyPenalty: 0,
     presencePenalty: 0,
+    maxContext: 150000,
 };
 
 const DEFAULT_CONTEXT_SETTINGS: ContextSettings = {

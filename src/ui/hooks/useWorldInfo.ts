@@ -1,10 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
-import { WorldBookStateService } from "@/integrations/tavern/worldbook";
-import { WorldInfoService } from '@/integrations/tavern/worldbook';
-import { getTavernHelper } from '@/integrations/tavern/worldbook';
 import { SettingsManager } from "@/config/settings";
-import type { WorldbookConfig, EngramAPISettings, WorldbookConfigProfile } from '@/config/types/defaults';
+import type { EngramAPISettings, WorldbookConfig, WorldbookConfigProfile } from '@/config/types/defaults';
 import { getDefaultAPISettings } from '@/config/types/defaults';
+import { getTavernHelper, WorldInfoService } from '@/integrations/tavern/worldbook';
+import { useCallback, useEffect, useState } from 'react';
 
 export interface UseWorldInfoReturn {
     worldbookStructure: Record<string, any[]>;
@@ -30,7 +28,7 @@ export interface UseWorldInfoReturn {
 
 export function useWorldInfo(): UseWorldInfoReturn {
     const [worldbookStructure, setWorldbookStructure] = useState<Record<string, any[]>>({});
-    const [disabledEntries, setDisabledEntries] = useState<Record<string, number[]>>({});
+    const [disabledEntries, setDisabledEntries] = useState<Record<string, number[]>>(SettingsManager.get('apiSettings')?.worldbookConfig?.disabledEntries || {});
     const [disabledWorldbooks, setDisabledWorldbooks] = useState<string[]>([]);
     const [currentCharWorldbook, setCurrentCharWorldbook] = useState<string | null>(null);
     const [worldbookConfig, setWorldbookConfig] = useState<WorldbookConfig | undefined>(SettingsManager.get('apiSettings')?.worldbookConfig || getDefaultAPISettings().worldbookConfig);
@@ -47,15 +45,11 @@ export function useWorldInfo(): UseWorldInfoReturn {
         const scopes = WorldInfoService.getScopes();
         setWorldbookScopes(scopes);
 
-        // 2. 加载当前角色状态
+        // 2. 加载当前角色状态 (仅记录当前角色世界书用于 fallback)
         const helper = getTavernHelper();
         const charBooks = helper?.getCharWorldbookNames?.('current');
         if (charBooks?.primary) {
             setCurrentCharWorldbook(charBooks.primary);
-            const state = await WorldBookStateService.loadState(charBooks.primary);
-            if (state.disabledEntries) {
-                setDisabledEntries(state.disabledEntries);
-            }
         }
 
         // 3. 加载设置
@@ -64,6 +58,9 @@ export function useWorldInfo(): UseWorldInfoReturn {
         setWorldbookConfig(config);
         if (config?.disabledWorldbooks) {
             setDisabledWorldbooks(config.disabledWorldbooks);
+        }
+        if (config?.disabledEntries) {
+            setDisabledEntries(config.disabledEntries);
         }
         setWorldbookProfiles(apiSettings?.worldbookProfiles || []);
     }, []);
@@ -119,7 +116,8 @@ export function useWorldInfo(): UseWorldInfoReturn {
         const newWorldbookConfig = {
             ...currentSettings.worldbookConfig,
             ...worldbookConfig,
-            disabledWorldbooks: disabledWorldbooks
+            disabledWorldbooks: disabledWorldbooks,
+            disabledEntries: disabledEntries
         };
 
         SettingsManager.set('apiSettings', {
@@ -128,12 +126,7 @@ export function useWorldInfo(): UseWorldInfoReturn {
             worldbookProfiles: worldbookProfiles
         });
 
-        // 保存角色状态
-        if (currentCharWorldbook) {
-            await WorldBookStateService.saveState(currentCharWorldbook, {
-                disabledEntries
-            });
-        }
+        // 角色世界书的本地状态废弃，统一写入上述全局 config
         setHasChanges(false);
     }, [disabledWorldbooks, disabledEntries, currentCharWorldbook, worldbookConfig, worldbookProfiles]);
 

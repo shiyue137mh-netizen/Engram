@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.2.12] - 2026-02-23
+
+### ✨ 改进 (Improvements)
+
+- **世界书架构重构 (Global Worldbook Refactor)**:
+  - 从按角色各自创建 `[Engram] 角色名` 专属世界书，改为统一使用单一的 `[Engram] Global` 全局注入层，大幅减少世界书列表的数量和 UI 污染。
+  - 插件启动时即自动创建并挂载 `[Engram] Global` 至全局世界书（`initializeEngram` 中提前初始化），不再依赖首次总结时的懒加载。
+  - `WorldInfoService` 和 `WorldbookConfigForm` 的世界书列表均已过滤 `[Engram]` 前缀的系统内部书，防止用户误选导致宏注入口重入。
+
+- **冲突防护 (Macro Collision Guard)**:
+  - `WorldbookScannerService.shouldIncludeEntry` 现对所有 `[Engram]` 开头的世界书条目返回 `false`，使其不会再被拼补进通用的 `{{worldbookContext}}` 中，彻底防止与提示词模板内 `{{engramSummaries}}`、`{{engramEntityStates}}` 等宏重入。
+
+### 🗑️ 代码移除 (Removals)
+
+- **旧版世界书摘要机制清理**:
+  - 彻底删除了旧版逐条写入摘要到世界书的相关遗留实现：`getSummaryEntries`、`getEngramSummariesContent`、`ensureSeparatorEntries`、`getNextSummaryOrder`、`parseFloorRangeFromName`。
+  - 移除了废弃的 `WorldBookStateService`（`state.ts`）及其依赖的 `constants.ts`（包含旧版 `SUMMARY_ENTRY_KEY`、`STATE_ENTRY_KEY`），相关存储统一收归 `apiSettings.worldbookConfig` 全局配置（IndexedDB）。
+  - 移除 `WorldbookMetricsService.countSummaryTokens`（旧版基于世界书条目遍历计算摘要 Token 的方法）。
+
 ## [1.2.11] - 2026-02-22
 
 ### 🐛 Bug 修复 (Bug Fixes)
