@@ -283,6 +283,7 @@ class LLMAdapter {
             key: preset.custom!.apiKey,
             model: preset.custom!.model,
             source: 'openai', // 自定义 API 走 OpenAI 兼容接口
+            stream: preset.stream ?? false, // V1.5 透传给 Custom OpenAi 端点强制验证
 
             // 采样参数
             temperature: preset.parameters?.temperature,
@@ -371,8 +372,16 @@ class LLMAdapter {
         // =========================================================================
         // 调用 TavernHelper
         // =========================================================================
+
+        // V1.5 获取此请求所用的 Preset (如果是内部预设，需要再查一次或从上层传下来)
+        // 这里基于 SettingsManager 直接根据 context 取一下当前在跑哪个 preset
+        const settings = SettingsManager.getSettings();
+        let currentPreset = request.presetId
+            ? settings.apiSettings?.llmPresets?.find(p => p.id === request.presetId)
+            : settings.apiSettings?.llmPresets?.find(p => p.id === settings.apiSettings?.selectedPresetId);
+
         const generationOptions = {
-            should_stream: false,
+            should_stream: currentPreset?.stream ?? false, // 释放底层硬编码
             should_silence: true, // V0.9.1: 后台请求静默，不绑定停止按钮
             _engram_internal: request.internal,
         };

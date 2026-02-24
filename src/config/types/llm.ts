@@ -44,6 +44,8 @@ export interface LLMPreset {
     custom?: CustomAPIConfig;
     /** 在 source: 'tavern' 时用于临时覆盖大模型名称，若为空则不覆盖 */
     modelOverride?: string;
+    /** 是否开启流式传输 (兼容强制要求 stream 选项的端点) */
+    stream?: boolean;
     /** 模型采样参数 */
     parameters: SamplingParameters;
     /** 上下文设置 */

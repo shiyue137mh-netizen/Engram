@@ -3,7 +3,7 @@
  */
 import type { APISource, LLMPreset } from '@/config/types/llm';
 import { ModelInfo, ModelService } from '@/integrations/llm/ModelDiscovery';
-import { FormSection, NumberField, SelectField, TextField } from '@/ui/components/form/FormComponents';
+import { FormSection, NumberField, SelectField, SwitchField, TextField } from '@/ui/components/form/FormComponents';
 import { Loader2, RefreshCw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -188,6 +188,13 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                     onChange={handleSourceChange}
                     options={SOURCE_OPTIONS}
                     description="选择 API 配置的来源"
+                />
+
+                <SwitchField
+                    label="流式传输 (Streaming)"
+                    checked={preset.stream || false}
+                    onChange={(checked) => updatePreset({ stream: checked })}
+                    description="针对特定后端的兼容性开关。开启后对强制校验 stream 的 Custom API 生效，同时解放酒馆原生 generateRaw 获取流式分块（后台自动拼合，不影响前台展现）。遇报错时可尝试拨动。"
                 />
             </FormSection>
 
