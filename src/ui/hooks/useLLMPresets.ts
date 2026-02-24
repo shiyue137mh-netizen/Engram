@@ -74,6 +74,7 @@ export function useLLMPresets(): UseLLMPresetsReturn {
             setSettings({
                 ...defaultSettings,
                 ...savedAPISettings,
+                selectedPresetId: savedAPISettings.selectedPresetId || defaultSettings.selectedPresetId,
                 llmPresets: savedAPISettings.llmPresets?.length > 0
                     ? savedAPISettings.llmPresets
                     : defaultSettings.llmPresets,
@@ -88,6 +89,7 @@ export function useLLMPresets(): UseLLMPresetsReturn {
     const selectPreset = useCallback((preset: LLMPreset) => {
         setSettings(prev => ({ ...prev, selectedPresetId: preset.id }));
         setEditingPreset(preset);
+        setHasChanges(true);
     }, []);
 
     const addPreset = useCallback(() => {

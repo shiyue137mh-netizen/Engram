@@ -77,7 +77,7 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
 }) => {
     // 构建模型来源选项
     const modelSourceOptions = [
-        { value: '', label: '使用默认预设' + (defaultPresetId ? ` (${llmPresets.find(p => p.id === defaultPresetId)?.name || defaultPresetId})` : '') },
+        { value: '', label: '跟随全局选中预设' + (defaultPresetId ? ` (${llmPresets.find(p => p.id === defaultPresetId)?.name || defaultPresetId})` : '') },
         ...llmPresets.map(p => ({ value: p.id, label: p.name })),
     ];
 

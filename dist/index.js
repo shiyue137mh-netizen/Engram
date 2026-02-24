@@ -46684,7 +46684,7 @@ const w3 = ({
 }) => {
   var f, h;
   const s = [
-    { value: "", label: "使用默认预设" + (n ? ` (${((f = t.find((p) => p.id === n)) == null ? void 0 : f.name) || n})` : "") },
+    { value: "", label: "跟随全局选中预设" + (n ? ` (${((f = t.find((p) => p.id === n)) == null ? void 0 : f.name) || n})` : "") },
     ...t.map((p) => ({ value: p.id, label: p.name }))
   ], u = (p) => {
     r({ ...e, ...p, updatedAt: Date.now() });
@@ -52545,6 +52545,7 @@ function OW() {
       t({
         ...Q,
         ...I,
+        selectedPresetId: I.selectedPresetId || Q.selectedPresetId,
         llmPresets: ((X = I.llmPresets) == null ? void 0 : X.length) > 0 ? I.llmPresets : Q.llmPresets,
         promptTemplates: MW(
           Q.promptTemplates,
@@ -52554,7 +52555,7 @@ function OW() {
     }
   }, []);
   const h = D.useCallback((I) => {
-    t((X) => ({ ...X, selectedPresetId: I.id })), r(I);
+    t((X) => ({ ...X, selectedPresetId: I.id })), r(I), f(!0);
   }, []), p = D.useCallback(() => {
     const I = Pw(`预设 ${e.llmPresets.length + 1}`);
     I.isDefault = !1, t((X) => ({
