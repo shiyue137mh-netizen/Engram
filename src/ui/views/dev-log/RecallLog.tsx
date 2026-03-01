@@ -8,7 +8,7 @@
  */
 
 import { RecallLogService } from '@/core/logger/RecallLogger';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     ArrowLeft,
     ChevronRight,
@@ -21,6 +21,7 @@ import {
     Zap
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 import type { RecallLogEntry, RecallResultItem } from './types';
 
 // 响应式断点
@@ -395,9 +396,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                         无匹配结果
                     </div>
                 ) : (
-                    displayedResults.map((item, idx) => (
-                        <ResultItem key={idx} item={item} />
-                    ))
+                    <Virtuoso
+                        data={displayedResults}
+                        style={{ height: '100%' }}
+                        itemContent={(index, item) => (
+                            <ResultItem item={item} />
+                        )}
+                    />
                 )}
             </div>
 
@@ -499,18 +504,19 @@ export const RecallLog: React.FC = () => {
                             <p className="text-xs opacity-70">触发 RAG 召回后显示</p>
                         </div>
                     ) : (
-                        <motion.div layout className="flex flex-col">
-                            <AnimatePresence initial={false}>
-                                {logs.map((entry) => (
+                        <div className="h-full">
+                            <Virtuoso
+                                data={logs}
+                                style={{ height: '100%' }}
+                                itemContent={(index, entry) => (
                                     <LogListItem
-                                        key={entry.id}
                                         entry={entry}
                                         isSelected={entry.id === selectedId}
                                         onSelect={() => handleSelect(entry.id)}
                                     />
-                                ))}
-                            </AnimatePresence>
-                        </motion.div>
+                                )}
+                            />
+                        </div>
                     )}
                 </div>
 

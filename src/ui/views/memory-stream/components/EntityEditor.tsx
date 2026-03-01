@@ -10,8 +10,9 @@ import type { EntityNode, EntityType } from '@/data/types/graph';
 import { Divider } from '@/ui/components/layout/Divider';
 import { useResponsive } from '@/ui/hooks/useResponsive';
 import yaml from 'js-yaml'; // 需要确认项目是否已安装 js-yaml，如果没有则需要简单实现或引入
+import { debounce } from 'lodash'; // Phase 3 Performance Add: 引入防抖
 import { AlertTriangle, ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 // 类型别名简化
 type EntityEditorHandle = {
@@ -117,17 +118,36 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     }), [syncToParent, isDirty]);
 
     // Handlers
+    // Phase 3 Performance Fix: 将大量字符串解析加上防抖，避免卡死输入法
+    const handleJsonChangeDebounced = useMemo(
+        () =>
+            debounce((val: string) => {
+                setProfileJson(val);
+                setIsDirty(true);
+                try {
+                    JSON.parse(val);
+                    setJsonError(null);
+                } catch (e: any) {
+                    setJsonError(e.message);
+                }
+            }, 300),
+        []
+    );
+
+    // 清理防抖
+    useEffect(() => {
+        return () => {
+            handleJsonChangeDebounced.cancel();
+        };
+    }, [handleJsonChangeDebounced]);
+
     const handleJsonChange = (val: string) => {
-        setProfileJson(val);
+        // 先局部更新 UI 输入框视图（可以用非受控或直接存一个 immediate state）
+        // 但这里沿用组件自带的方法因为 React 18 对 onChange 的处理比较好
+        // 主要是对 JSON 校验动作进行防抖
+        setProfileJson(val); // 保持流畅的回显
         setIsDirty(true);
-        try {
-            JSON.parse(val);
-            setJsonError(null);
-            // Debounced sync handled by onBlur/Effect usually,
-            // but for JSON we might want to wait until valid.
-        } catch (e: any) {
-            setJsonError(e.message);
-        }
+        handleJsonChangeDebounced(val); // 防抖进行语法检查
     };
 
     const handleBlur = () => {

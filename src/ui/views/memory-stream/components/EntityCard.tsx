@@ -4,9 +4,9 @@
  * 显示单个 EntityNode 的摘要信息
  * 遵循「无框流体」设计
  */
-import React from 'react';
 import type { EntityNode } from '@/data/types/graph';
 import { ChevronRight } from 'lucide-react';
+import React from 'react';
 
 interface EntityCardProps {
     entity: EntityNode;
@@ -73,7 +73,7 @@ export const EntityCard: React.FC<EntityCardProps> = ({
     return (
         <div
             className={`
-                p-4 cursor-pointer rounded-lg
+                p-4 cursor-pointer rounded-lg h-full flex flex-col
                 transition-all duration-150
                 ${isSelected
                     ? 'border border-primary bg-transparent'

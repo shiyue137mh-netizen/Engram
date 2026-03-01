@@ -155,6 +155,9 @@ class KeyboardManager {
     /**
      * 键盘事件处理核心逻辑
      */
+    private lastTriggerTime: Map<string, number> = new Map(); // Phase 3: 记录各按键上次触发时间
+    private THROTTLE_DELAY = 500; // 500ms 内禁止连续触发同一快捷键
+
     private handleKeydown(event: KeyboardEvent): void {
         // 避免在输入框中触发快捷键
         if (this.isTyping(event.target as Element)) {
@@ -170,6 +173,15 @@ class KeyboardManager {
         const shortcut = this.shortcuts.get(currentKey);
 
         if (shortcut) {
+            // Phase 3 Fix: 节流检查
+            const now = Date.now();
+            const lastTime = this.lastTriggerTime.get(currentKey) || 0;
+            if (now - lastTime < this.THROTTLE_DELAY) {
+                Logger.debug(MODULE, `拦截过快的连续快捷键: ${currentKey}`);
+                return;
+            }
+            this.lastTriggerTime.set(currentKey, now);
+
             Logger.debug(MODULE, `触发快捷键: ${currentKey}`);
 
             // 阻止浏览器默认行为

@@ -25,8 +25,8 @@ import { HelpCircle, AlertTriangle, Bug, Cpu, Database, FileText, Search, Shield
 * **检查目标**: <Cpu className="inline w-4 h-4 mb-1"/> **模型日志**
 * **如何自查**:
     * **触发检查**: 如果这里一片空白，说明根本没有触发总结任务。请检查 **数据处理** → **记忆摘要** 中的楼层阈值设置。
-    * **Prompt 检查**: 点击日志条目查看发送给 LLM 的 Prompt。
-    * **Response 检查**: 查看 LLM 返回的内容。如果返回了 `404` 或 `Connection Refused`，说明 API 配置错误；如果返回了非 JSON 格式的胡言乱语，说明模型不够聪明，建议更换模型或调整 **提示词模板**。
+    * **提示词 检查**: 点击日志条目查看发送给 LLM 的 提示词。
+    * **返回 检查**: 查看 LLM 返回的内容。如果返回了 `404` 或 `Connection Refused`，说明 API 配置错误；如果返回了非 JSON 格式的胡言乱语，说明模型不够聪明，建议更换模型或调整 **提示词模板**。
 
 ### 3. 聊过的事情没记起来 (RAG 失效)
 > **症状**: 我明明前两句刚提过这事，AI 还是不知道，或者召回了无关的内容。

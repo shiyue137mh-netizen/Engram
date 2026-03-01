@@ -24,6 +24,13 @@ const ReviewSession: React.FC<ReviewSessionProps> = ({ request, isActive, onFini
     const [data, setData] = useState<any>(request.data);
     const [query, setQuery] = useState<string | undefined>(request.data?.query);
 
+    // Phase 2 Fix: 监听 request 的变化以同步状态（防御闭包读取到早期缓存）
+    useEffect(() => {
+        setContent(request.content);
+        setData(request.data);
+        setQuery(request.data?.query);
+    }, [request.content, request.data, request.data?.query]);
+
     // Reject Feedback State
     const [feedback, setFeedback] = useState('');
     const [showFeedbackInput, setShowFeedbackInput] = useState(false);

@@ -24,7 +24,7 @@ interface WorldInfoModule {
 async function getConstantWorldInfo(): Promise<string> {
     try {
         const importPath = '/scripts/world-info.js';
-        const worldInfoModule = await (new Function('path', 'return import(path)'))(importPath);
+        const worldInfoModule = await import(/* @vite-ignore */ importPath);
         const getSortedEntries = worldInfoModule?.getSortedEntries;
 
         if (typeof getSortedEntries !== 'function') {
@@ -227,7 +227,7 @@ export class WorldbookScannerService {
         try {
             // 使用运行时动态导入
             const importPath = '/scripts/world-info.js';
-            const worldInfoModule = await (new Function('path', 'return import(path)'))(importPath);
+            const worldInfoModule = await import(/* @vite-ignore */ importPath);
             const getWorldInfoPrompt = worldInfoModule?.getWorldInfoPrompt;
             const getSortedEntries = worldInfoModule?.getSortedEntries;
 

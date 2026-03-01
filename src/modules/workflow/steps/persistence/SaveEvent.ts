@@ -1,6 +1,6 @@
 import { Logger } from '@/core/logger';
 import { EventNode } from '@/data/types/graph';
-import { hideMessageRange } from '@/integrations/tavern/bridge';
+import { hideMessageRange } from '@/integrations/tavern/chat';
 import { MacroService } from '@/integrations/tavern/macros';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';

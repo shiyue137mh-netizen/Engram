@@ -1,3 +1,4 @@
+import { SliderField } from '@/ui/components/core/SliderField';
 import { Switch } from '@/ui/components/core/Switch';
 import { ChevronDown, Search, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -149,6 +150,7 @@ interface NumberFieldProps extends BaseFieldProps {
  * 极简数字输入 - 细线滑块 + 底部衬线输入框
  * 完全使用 div 模拟滑块外观，input opacity=0 负责交互
  */
+
 export const NumberField: React.FC<NumberFieldProps> = ({
     label,
     description,
@@ -180,11 +182,6 @@ export const NumberField: React.FC<NumberFieldProps> = ({
         color: 'var(--foreground, inherit)',
     };
 
-    // 计算百分比
-    const percentage = min !== undefined && max !== undefined
-        ? Math.min(100, Math.max(0, ((value - min) / (max - min)) * 100))
-        : 0;
-
     return (
         <div className={`flex flex-col gap-2 ${className}`}>
             <div className="flex justify-between items-center">
@@ -192,48 +189,31 @@ export const NumberField: React.FC<NumberFieldProps> = ({
                     {label}
                     {required && <span className="text-destructive">*</span>}
                 </label>
-                <input
-                    type="number"
-                    min={min}
-                    max={max}
-                    step={step}
-                    value={value}
-                    onChange={(e) => onChange(Number(e.target.value))}
-                    style={numberInputStyle}
-                    className="focus:text-primary transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
+                <div className="flex items-center gap-1">
+                    <input
+                        type="number"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={value}
+                        onChange={(e) => onChange(Number(e.target.value))}
+                        style={numberInputStyle}
+                        className="focus:text-primary transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
+                </div>
             </div>
 
             <div className="flex items-center gap-3 pt-1">
                 {showSlider && min !== undefined && max !== undefined && (
-                    <div className="flex-1 relative h-4 flex items-center group cursor-pointer">
-                        {/* 极简滑块轨道 - 1px 细线 - 与 UI 分割线一致 */}
-                        <div
-                            className="absolute inset-x-0 h-[1px]"
-                            style={{ backgroundColor: 'var(--border)' }}
-                        />
-
-                        {/* 移除已填充部分，保持单色极简 */}
-                        {/* <div className="absolute left-0 h-[1px] bg-primary/80" style={{ width: `${percentage}%` }} /> */}
-
-                        {/* 自定义 Thumb (圆点) - 保持可见，加深颜色以区分于底部分割线 */}
-                        <div
-                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-primary/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-primary"
-                            style={{ left: `${percentage}%`, transform: `translate(-50%, -50%)` }}
-                        />
-
-                        {/* 交互层 - 透明 input */}
-                        <input
-                            type="range"
-                            min={min}
-                            max={max}
-                            step={step}
-                            value={value}
-                            onChange={(e) => onChange(Number(e.target.value))}
-                            className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
-                            style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                        />
-                    </div>
+                    <SliderField
+                        className="flex-1"
+                        min={min}
+                        max={max}
+                        step={step}
+                        value={value}
+                        onChange={onChange}
+                    />
                 )}
             </div>
             {description && <p className="text-[10px] text-muted-foreground/70 break-words">{description}</p>}

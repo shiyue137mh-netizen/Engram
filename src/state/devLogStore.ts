@@ -1,11 +1,11 @@
 /**
  * DevLog Store - 使用 Zustand 管理开发日志状态
- * 
+ *
  * 替换原有的 useDevLog hook 中的状态管理部分
  */
 
-import { create } from 'zustand';
 import { LogEntry, LogLevel } from '@/core/logger';
+import { create } from 'zustand';
 
 // 模块列表（用于过滤）
 export const LOG_MODULES = [
@@ -60,10 +60,10 @@ export const useDevLogStore = create<DevLogState>((set) => ({
     autoScroll: true,
 
     addLog: (entry) => set((state) => ({
-        logs: [...state.logs, entry]
+        logs: [...state.logs, entry].slice(-500) // Phase 2: FIFO (保留最新 500 条)
     })),
 
-    setLogs: (logs) => set({ logs }),
+    setLogs: (logs) => set({ logs: logs.slice(-500) }), // Phase 2: FIFO
 
     clearLogs: () => set({ logs: [] }),
 

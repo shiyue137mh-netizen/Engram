@@ -18,7 +18,7 @@ Engram 在后台维护两条并行的数据流：
     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
         <li>自动监控对话进度</li>
         <li>达到设定间隔（如 10 楼）时，调用 LLM 提炼剧情摘要或者提取和更新实体状态</li>
-        <li>摘要和实体状态存入 IndexedDB，不干扰当前对话</li>
+        <li>摘要和实体状态存入 IndexedDB(浏览器中)，不干扰当前对话</li>
     </ul>
   </div>
 
@@ -29,7 +29,7 @@ Engram 在后台维护两条并行的数据流：
     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
         <li>发送消息前，对输入进行向量化（可选预处理）</li>
         <li>检索数据库中语义相关的历史摘要</li>
-        <li>将 Top-K 结果注入到 Prompt 中</li>
+        <li>将召回结果注入到发送给SillyTavern写剧情的AI的提示词中</li>
     </ul>
   </div>
 </div>

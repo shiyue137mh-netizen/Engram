@@ -4,6 +4,7 @@ import { MacroService } from '@/integrations/tavern/macros';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
 import { useMemoryStore } from '@/state/memoryStore';
+import { ErrorBoundary } from '@/ui/components/core/ErrorBoundary'; // 核心错误捕获
 import { PageTitle } from "@/ui/components/display/PageTitle";
 import { EmptyState } from '@/ui/components/feedback/EmptyState';
 import { Divider } from "@/ui/components/layout/Divider";
@@ -11,9 +12,9 @@ import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { MasterDetailLayout } from "@/ui/components/layout/MasterDetailLayout";
 import { MobileFullscreenForm } from "@/ui/components/layout/MobileFullscreenForm";
 import { Tab } from "@/ui/components/layout/TabPills";
-import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDownUp, Brain, Database, FileText, Filter, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { GroupedVirtuoso, Virtuoso, VirtuosoGrid } from 'react-virtuoso';
 import { EntityCard } from './components/EntityCard'; // Import EntityCard
 import { EntityEditor } from './components/EntityEditor';
 import { EventCard } from './components/EventCard';
@@ -464,8 +465,56 @@ export const MemoryStream: React.FC = () => {
     };
     const currentInfo = TAB_INFO[viewTab];
 
+    // =============== 移动端独立渲染 (顶层覆盖) ===============
+    if (isMobile && viewMode === 'edit') {
+        if (viewTab === 'list' && selectedEvent) {
+            return (
+                <MobileFullscreenForm
+                    title="编辑事件"
+                    onClose={handleCloseEditor}
+                    actions={
+                        <button onClick={() => selectedId && handleDelete(selectedId)} className="p-1.5 hover:bg-destructive/10 rounded text-destructive mr-1 transition-colors">
+                            <Trash2 size={16} />
+                        </button>
+                    }
+                >
+                    <EventEditor
+                        ref={editorRef}
+                        event={selectedEvent}
+                        isFullScreen={false}
+                        onSave={handleEventChange}
+                        onDelete={handleDelete}
+                        onClose={handleCloseEditor}
+                    />
+                </MobileFullscreenForm>
+            );
+        }
+
+        if (viewTab === 'entities' && selectedEntity) {
+            return (
+                <MobileFullscreenForm
+                    title="编辑实体"
+                    onClose={handleCloseEditor}
+                    actions={
+                        <button onClick={() => selectedId && handleDelete(selectedId)} className="p-1.5 hover:bg-destructive/10 rounded text-destructive mr-1 transition-colors">
+                            <Trash2 size={16} />
+                        </button>
+                    }
+                >
+                    <EntityEditor
+                        entity={selectedEntity}
+                        isFullScreen={false}
+                        onSave={handleEntityChange}
+                        onDelete={handleDelete}
+                        onClose={handleCloseEditor}
+                    />
+                </MobileFullscreenForm>
+            );
+        }
+    }
+
     return (
-        <div className="flex flex-col h-full animate-in fade-in overflow-hidden absolute inset-0">
+        <div className="absolute inset-0 flex flex-col animate-in fade-in overflow-hidden p-4 md:p-6">
             <PageTitle
                 breadcrumbs={['记忆编辑']}
                 title={currentInfo.title}
@@ -691,7 +740,7 @@ export const MemoryStream: React.FC = () => {
 
                             {/* List View */}
                             {viewTab === 'list' && (
-                                <div className="flex-1 overflow-y-auto no-scrollbar pb-4 pr-1">
+                                <div className="flex-1 min-h-0 pb-4 pr-1 flex flex-col">
                                     {isLoading ? (
                                         <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
                                             <RefreshCw size={24} className="animate-spin" />
@@ -704,102 +753,99 @@ export const MemoryStream: React.FC = () => {
                                             description={!searchQuery ? "开始聊天后将自动记录" : undefined}
                                         />
                                     ) : (
-                                        <div className="space-y-6">
-                                            {groupedEvents.map(group => {
+                                        <GroupedVirtuoso
+                                            className="flex-1 min-h-0"
+                                            style={{ height: '100%' }}
+                                            groupCounts={groupedEvents.map(g => g.events.length)}
+                                            groupContent={(index) => {
+                                                const group = groupedEvents[index];
                                                 const allChecked = group.events.length > 0 && group.events.every(e => checkedIds.has(e.id));
                                                 const someChecked = group.events.some(e => checkedIds.has(e.id));
 
                                                 return (
-                                                    <div key={group.key} className="relative">
-                                                        {/* 分组头部：使用半透明背景标识 */}
+                                                    <div className="flex items-center gap-3 mb-4 sticky top-0 z-10 py-2 bg-background/80 backdrop-blur-sm">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={allChecked}
+                                                            ref={input => {
+                                                                if (input) {
+                                                                    input.indeterminate = !allChecked && someChecked;
+                                                                }
+                                                            }}
+                                                            onChange={(e) => {
+                                                                const checked = e.target.checked;
+                                                                const newSet = new Set(checkedIds);
+                                                                group.events.forEach(ev => {
+                                                                    if (checked) newSet.add(ev.id);
+                                                                    else newSet.delete(ev.id);
+                                                                });
+                                                                setCheckedIds(newSet);
+                                                            }}
+                                                            className="w-4 h-4 rounded border-border accent-primary shrink-0"
+                                                        />
                                                         <div
-                                                            className="flex items-center gap-3 mb-4 sticky top-0 z-10 py-2"
+                                                            className="text-xs font-medium text-foreground px-3 py-1.5 rounded-full border border-border/50 shadow-sm backdrop-blur-md"
+                                                            style={{ backgroundColor: 'var(--SmartThemeChatColor, var(--bg-color, var(--background, #1e1e1e)))' }}
                                                         >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={allChecked}
-                                                                ref={input => {
-                                                                    if (input) {
-                                                                        input.indeterminate = !allChecked && someChecked;
-                                                                    }
-                                                                }}
-                                                                onChange={(e) => {
-                                                                    const checked = e.target.checked;
-                                                                    const newSet = new Set(checkedIds);
-                                                                    group.events.forEach(ev => {
-                                                                        if (checked) newSet.add(ev.id);
-                                                                        else newSet.delete(ev.id);
-                                                                    });
-                                                                    setCheckedIds(newSet);
-                                                                }}
-                                                                className="w-4 h-4 rounded border-border accent-primary shrink-0"
-                                                            />
-                                                            <div
-                                                                className="text-xs font-medium text-foreground px-3 py-1.5 rounded-full border border-border/50 shadow-sm backdrop-blur-md"
-                                                                style={{ backgroundColor: 'var(--SmartThemeChatColor, var(--bg-color, var(--background, #1e1e1e)))' }}
-                                                            >
-                                                                {group.title}
-                                                            </div>
-                                                            <div className="h-[1px] flex-1 bg-border/50" />
-                                                            <span className="text-[10px] text-muted-foreground mr-2">{group.events.length} 项</span>
+                                                            {group.title}
                                                         </div>
-
-                                                        {/* 组内容树状结构 - 经典目录树风格 */}
-                                                        <motion.div layout className="relative pl-6 mt-2 pt-1">
-                                                            <AnimatePresence mode='popLayout'>
-                                                                {group.events.map((event, index) => {
-                                                                    const isLast = index === group.events.length - 1;
-                                                                    return (
-                                                                        <motion.div
-                                                                            layout
-                                                                            key={event.id}
-                                                                            initial={{ opacity: 0, x: -10 }}
-                                                                            animate={{ opacity: 1, x: 0 }}
-                                                                            exit={{ opacity: 0, x: -10 }}
-                                                                            transition={{ duration: 0.2 }}
-                                                                            className="relative group/card pb-3"
-                                                                        >
-                                                                            {/* 垂直主干线 */}
-                                                                            <div
-                                                                                className="absolute -left-3 top-[-10px] w-[2px] bg-foreground transition-colors opacity-20 group-hover/card:bg-primary group-hover/card:opacity-50 z-0"
-                                                                                style={{ height: isLast ? 'calc(50% + 10px - 6px)' : 'calc(100% + 10px)' }}
-                                                                            />
-                                                                            {/* 横向分支线 */}
-                                                                            <div className="absolute -left-3 top-[calc(50%-6px)] w-3 h-[2px] bg-foreground transition-colors opacity-20 group-hover/card:bg-primary group-hover/card:opacity-50 z-0" />
-
-                                                                            {/* 圆点指示器 */}
-                                                                            <div className="absolute -left-[15px] top-[calc(50%-8px)] w-[6px] h-[6px] rounded-full bg-foreground opacity-30 transition-colors group-hover/card:bg-primary z-10" />
-
-                                                                            <div className="relative z-10 w-full">
-                                                                                <EventCard
-                                                                                    event={event}
-                                                                                    isSelected={viewMode === 'edit' && selectedId === event.id}
-                                                                                    isCompact={viewMode === 'edit'} // 在分栏时使用紧凑模式
-                                                                                    isActive={activeIds.has(event.id)}
-                                                                                    checked={checkedIds.has(event.id)}
-                                                                                    hasChanges={pendingChanges.has(event.id)}
-                                                                                    onSelect={() => handleSelect(event.id)}
-                                                                                    onCheck={(checked) => handleCheck(event.id, checked)}
-                                                                                    className={event.level > 0 ? 'bg-primary/5 border-primary/20 shadow-sm' : ''} // 重点高亮总结
-                                                                                />
-                                                                            </div>
-                                                                        </motion.div>
-                                                                    );
-                                                                })}
-                                                            </AnimatePresence>
-                                                        </motion.div>
+                                                        <div className="h-[1px] flex-1 bg-border/50" />
+                                                        <span className="text-[10px] text-muted-foreground mr-2">{group.events.length} 项</span>
                                                     </div>
                                                 );
-                                            })}
-                                        </div>
-                                    )
-                                    }
+                                            }}
+                                            itemContent={(index, groupIndex) => {
+                                                const group = groupedEvents[groupIndex];
+                                                // Virtuoso GroupedList 不提供直接的分组内索引，需要自行从全局 index 中推演
+                                                let previousCounts = 0;
+                                                for (let i = 0; i < groupIndex; i++) {
+                                                    previousCounts += groupedEvents[i].events.length;
+                                                }
+                                                const itemIndex = index - previousCounts;
+
+                                                const event = group.events[itemIndex];
+                                                if (!event) return null; // 预防通过索引访问失败引发 TypeError Cannot read properties of undefined (reading 'id')
+                                                const isLast = itemIndex === group.events.length - 1;
+
+                                                return (
+                                                    <div className="relative pl-6 pt-1 pb-3 group/card">
+                                                        {/* 垂直主干线 */}
+                                                        <div
+                                                            className="absolute left-3 top-[-10px] w-[2px] bg-foreground transition-colors opacity-20 group-hover/card:bg-primary group-hover/card:opacity-50 z-0"
+                                                            style={{ height: isLast ? 'calc(50% + 10px - 6px)' : 'calc(100% + 10px)' }}
+                                                        />
+                                                        {/* 横向分支线 */}
+                                                        <div className="absolute left-3 top-[calc(50%-6px)] w-3 h-[2px] bg-foreground transition-colors opacity-20 group-hover/card:bg-primary group-hover/card:opacity-50 z-0" />
+
+                                                        {/* 圆点指示器 */}
+                                                        <div className="absolute left-[9px] top-[calc(50%-8px)] w-[6px] h-[6px] rounded-full bg-foreground opacity-30 transition-colors group-hover/card:bg-primary z-10" />
+
+                                                        <div className="relative z-10 w-full pl-3">
+                                                            <ErrorBoundary>
+                                                                <EventCard
+                                                                    event={event}
+                                                                    isSelected={viewMode === 'edit' && selectedId === event.id}
+                                                                    isCompact={viewMode === 'edit'} // 在分栏时使用紧凑模式
+                                                                    isActive={activeIds.has(event.id)}
+                                                                    checked={checkedIds.has(event.id)}
+                                                                    hasChanges={pendingChanges.has(event.id)}
+                                                                    onSelect={() => handleSelect(event.id)}
+                                                                    onCheck={(checked) => handleCheck(event.id, checked)}
+                                                                    className={event.level > 0 ? 'bg-primary/5 border-primary/20 shadow-sm transition-all' : 'transition-all'} // 重点高亮总结
+                                                                />
+                                                            </ErrorBoundary>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }}
+                                        />
+                                    )}
                                 </div>
                             )}
 
                             {/* Entities View */}
                             {viewTab === 'entities' && (
-                                <div className="flex-1 overflow-y-auto no-scrollbar pb-4 pr-1">
+                                <div className="flex-1 min-h-0 pb-4 pr-1 flex flex-col">
                                     {isLoading ? (
                                         <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
                                             <RefreshCw size={24} className="animate-spin" />
@@ -812,29 +858,47 @@ export const MemoryStream: React.FC = () => {
                                             description={!searchQuery ? "请先执行实体提取" : undefined}
                                         />
                                     ) : (
-                                        <motion.div layout className={viewMode === 'browse' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
-                                            <AnimatePresence mode='popLayout'>
-                                                {filteredEntities.map(entity => (
-                                                    <motion.div
-                                                        layout
-                                                        key={entity.id}
-                                                        initial={{ opacity: 0, scale: 0.9 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        exit={{ opacity: 0, scale: 0.9 }}
-                                                        transition={{ duration: 0.2 }}
-                                                    >
-                                                        <EntityCard
-                                                            entity={entity}
-                                                            isSelected={viewMode === 'edit' && selectedId === entity.id}
-                                                            isCompact={viewMode === 'edit'} // 编辑模式下紧凑，浏览模式下完整(网格)
-                                                            checked={checkedIds.has(entity.id)}
-                                                            onSelect={() => handleSelect(entity.id)}
-                                                            onCheck={(checked) => handleCheck(entity.id, checked)}
-                                                        />
-                                                    </motion.div>
-                                                ))}
-                                            </AnimatePresence>
-                                        </motion.div>
+                                        <>
+                                            {viewMode === 'browse' ? (
+                                                <VirtuosoGrid
+                                                    data={filteredEntities}
+                                                    className="flex-1 min-h-0"
+                                                    style={{ height: '100%' }}
+                                                    listClassName="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4 items-start"
+                                                    itemClassName="h-full flex flex-col"
+                                                    itemContent={(index: number, entity: EntityNode) => (
+                                                        <div className="flex-1 flex flex-col h-full"> {/* Wrap in a static flex container so Height gets correctly pushed outwards */}
+                                                            <EntityCard
+                                                                entity={entity}
+                                                                isSelected={false}
+                                                                isCompact={false} // 编辑模式下紧凑，浏览模式下完整(网格)
+                                                                checked={checkedIds.has(entity.id)}
+                                                                onSelect={() => handleSelect(entity.id)}
+                                                                onCheck={(checked) => handleCheck(entity.id, checked)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                />
+                                            ) : (
+                                                <Virtuoso
+                                                    data={filteredEntities}
+                                                    className="flex-1 min-h-0 flex flex-col gap-4 pb-4"
+                                                    style={{ height: '100%' }}
+                                                    itemContent={(index: number, entity: EntityNode) => (
+                                                        <div className="flex-1 flex flex-col h-full"> {/* Wrap in a static flex container so Height gets correctly pushed outwards */}
+                                                            <EntityCard
+                                                                entity={entity}
+                                                                isSelected={viewMode === 'edit' && selectedId === entity.id}
+                                                                isCompact={viewMode === 'edit'} // 编辑模式下紧凑，浏览模式下完整(网格)
+                                                                checked={checkedIds.has(entity.id)}
+                                                                onSelect={() => handleSelect(entity.id)}
+                                                                onCheck={(checked) => handleCheck(entity.id, checked)}
+                                                            />
+                                                        </div>
+                                                    )}
+                                                />
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             )}
@@ -868,126 +932,97 @@ export const MemoryStream: React.FC = () => {
                 />
             </div>
 
-            {/* Mobile Edit Modal */}
-            {isMobile && viewMode === 'edit' && (
-                <MobileFullscreenForm
-                    title={viewTab === 'list' ? '编辑事件' : '编辑实体'}
-                    onClose={handleCloseEditor}
-                    actions={
-                        <button onClick={() => selectedId && handleDelete(selectedId)} className="p-1.5 hover:bg-destructive/10 rounded text-destructive mr-1 transition-colors">
-                            <Trash2 size={16} />
-                        </button>
-                    }
-                >
-                    {viewTab === 'list' && selectedEvent && (
-                        <EventEditor
-                            ref={editorRef}
-                            event={selectedEvent}
-                            isFullScreen={false}
-                            onSave={handleEventChange}
-                            onDelete={handleDelete}
-                            onClose={handleCloseEditor}
-                        />
-                    )}
-                    {viewTab === 'entities' && selectedEntity && (
-                        <EntityEditor
-                            entity={selectedEntity}
-                            isFullScreen={false}
-                            onSave={handleEntityChange}
-                            onDelete={handleDelete}
-                            onClose={handleCloseEditor}
-                        />
-                    )}
-                </MobileFullscreenForm>
-            )}
-
             {/* Preview Modal */}
-            {showPreview && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-2xl bg-background border border-border rounded-lg shadow-xl flex flex-col max-h-[80vh]">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                            <h3 className="text-sm font-medium flex items-center gap-2">
-                                <FileText size={16} className="text-primary" />
-                                宏注入预览 (Active Injection)
-                            </h3>
-                            <button
-                                onClick={() => setShowPreview(false)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                关闭
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-auto p-4">
-                            <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-muted-foreground bg-muted/30 p-4 rounded border border-border/50">
-                                {previewContent}
-                            </pre>
-                        </div>
-                        <div className="px-4 py-2 border-t border-border bg-muted/20 text-[10px] text-muted-foreground">
-                            *此内容为 {'{{engramSummaries}}'} 和 {'{{engramEntityStates}}'} 宏在当前上下文中的实际输出值
+            {
+                showPreview && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="w-full max-w-2xl bg-background border border-border rounded-lg shadow-xl flex flex-col max-h-[80vh]">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                                <h3 className="text-sm font-medium flex items-center gap-2">
+                                    <FileText size={16} className="text-primary" />
+                                    宏注入预览 (Active Injection)
+                                </h3>
+                                <button
+                                    onClick={() => setShowPreview(false)}
+                                    className="text-muted-foreground hover:text-foreground"
+                                >
+                                    关闭
+                                </button>
+                            </div>
+                            <div className="flex-1 overflow-auto p-4">
+                                <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-muted-foreground bg-muted/30 p-4 rounded border border-border/50">
+                                    {previewContent}
+                                </pre>
+                            </div>
+                            <div className="px-4 py-2 border-t border-border bg-muted/20 text-[10px] text-muted-foreground">
+                                *此内容为 {'{{engramSummaries}}'} 和 {'{{engramEntityStates}}'} 宏在当前上下文中的实际输出值
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Import Modal */}
-            {showImportModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="w-full max-w-md bg-background border border-border rounded-lg shadow-xl flex flex-col">
-                        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-                            <h3 className="text-sm font-medium flex items-center gap-2">
-                                <Database size={16} className="text-primary" />
-                                合并历史数据库
-                            </h3>
-                            <button
-                                onClick={() => setShowImportModal(false)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                关闭
-                            </button>
-                        </div>
-                        <div className="p-4 space-y-4">
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                基于全新的绝对时间单库对齐架构，您可以无缝、极速地将旧存档（或其他聊天）的底层知识与历史事迹全盘并入当前聊天中！
-                            </p>
+            {
+                showImportModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                        <div className="w-full max-w-md bg-background border border-border rounded-lg shadow-xl flex flex-col">
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+                                <h3 className="text-sm font-medium flex items-center gap-2">
+                                    <Database size={16} className="text-primary" />
+                                    合并历史数据库
+                                </h3>
+                                <button
+                                    onClick={() => setShowImportModal(false)}
+                                    className="text-muted-foreground hover:text-foreground"
+                                >
+                                    关闭
+                                </button>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    基于全新的绝对时间单库对齐架构，您可以无缝、极速地将旧存档（或其他聊天）的底层知识与历史事迹全盘并入当前聊天中！
+                                </p>
 
-                            {availableDbs.length === 0 ? (
-                                <div className="p-4 border border-dashed rounded text-center text-sm text-muted-foreground">
-                                    未找到其他 Engram 历史数据库
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <label className="text-xs font-medium">选择要合并提取的底层库源：</label>
-                                    <select
-                                        value={selectedDbToImport}
-                                        onChange={(e) => setSelectedDbToImport(e.target.value)}
-                                        className="w-full p-2 text-sm bg-background border rounded focus:ring-1 focus:ring-primary outline-none"
-                                    >
-                                        {availableDbs.map(name => (
-                                            <option key={name} value={name}>{name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-                        </div>
-                        <div className="px-4 py-3 border-t border-border flex justify-end gap-2 bg-muted/20">
-                            <button
-                                onClick={() => setShowImportModal(false)}
-                                className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded"
-                            >
-                                取消
-                            </button>
-                            <button
-                                onClick={handleImportExecute}
-                                disabled={availableDbs.length === 0}
-                                className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
-                            >
-                                执行穿梭合并
-                            </button>
+                                {availableDbs.length === 0 ? (
+                                    <div className="p-4 border border-dashed rounded text-center text-sm text-muted-foreground">
+                                        未找到其他 Engram 历史数据库
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium">选择要合并提取的底层库源：</label>
+                                        <select
+                                            value={selectedDbToImport}
+                                            onChange={(e) => setSelectedDbToImport(e.target.value)}
+                                            className="w-full p-2 text-sm bg-background border rounded focus:ring-1 focus:ring-primary outline-none"
+                                        >
+                                            {availableDbs.map(name => (
+                                                <option key={name} value={name}>{name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="px-4 py-3 border-t border-border flex justify-end gap-2 bg-muted/20">
+                                <button
+                                    onClick={() => setShowImportModal(false)}
+                                    className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                                >
+                                    取消
+                                </button>
+                                <button
+                                    onClick={handleImportExecute}
+                                    disabled={availableDbs.length === 0}
+                                    className="px-3 py-1.5 text-xs bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
+                                >
+                                    执行穿梭合并
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

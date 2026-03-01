@@ -5,8 +5,12 @@
  * 所有 window.SillyTavern、jQuery、eventSource 的调用都在这里统一管理。
  */
 // 使用统一的 STContext 模块
-import { getSTContext, STMessage } from "@/integrations/tavern/context";
 export { getSTContext, type STMessage } from "@/integrations/tavern/context";
+// 从专门化的 Adapter 中导出方法
+export { hideMessageRange, injectMessage } from "@/integrations/tavern/chat";
+export {
+    callPopup, createTopBarButton, mountGlobalOverlay, setGlobalRenderer, setReactRenderer, toggleMainPanel
+} from "@/integrations/tavern/ui";
 
 /**
  * 初始化 Engram 插件
@@ -59,6 +63,8 @@ export async function initializeEngram(): Promise<void> {
         Logger.warn('EntityBuilder', 'Service start failed', { error: String(e) });
     }
 
+    // 从 ui 提取加载顶部按钮指令
+    const { createTopBarButton } = await import('@/integrations/tavern/ui');
     // 优先使用顶栏按钮，找不到则使用悬浮球
     createTopBarButton();
 
@@ -99,6 +105,7 @@ export async function initializeEngram(): Promise<void> {
     }
 
     // 挂载全局悬浮层 (用于修订弹窗等)
+    const { mountGlobalOverlay } = await import('@/integrations/tavern/ui');
     mountGlobalOverlay();
 
     // 初始化角色删除联动服务
@@ -114,6 +121,8 @@ export async function initializeEngram(): Promise<void> {
     try {
         const { setupKeyboardShortcuts } = await import('@/core/KeyboardManager');
         const { toggleQuickPanel, openCommandPalette } = await import('@/index');
+        const { toggleMainPanel } = await import('@/integrations/tavern/ui');
+
         setupKeyboardShortcuts({
             toggleMainPanel: toggleMainPanel,
             toggleQuickPanel: toggleQuickPanel,
@@ -128,159 +137,6 @@ export async function initializeEngram(): Promise<void> {
 }
 
 /**
- * 创建顶栏按钮入口（模仿 ST 的 drawer 结构）
- */
-function createTopBarButton(): void {
-    const holder = document.querySelector('#top-settings-holder');
-    const wiButton = document.querySelector('#WI-SP-button');
-
-    if (!holder) {
-        // 非法操作，可能 DOM 尚未加载
-        return;
-    }
-
-    // 创建 drawer 容器（模仿 ST 结构）
-    const drawer = document.createElement('div');
-    drawer.id = 'engram-drawer';
-    drawer.className = 'drawer';
-
-    // drawer-toggle 包装器
-    const toggle = document.createElement('div');
-    toggle.className = 'drawer-toggle drawer-header';
-
-    // drawer-icon 图标 - 使用 Font Awesome "E" 图标
-    const icon = document.createElement('div');
-    icon.id = 'engram-drawer-icon';
-    icon.className = 'drawer-icon fa-solid fa-e fa-fw closedIcon';
-    icon.title = 'Engram - 记忆操作系统';
-    icon.setAttribute('data-i18n', '[title]Engram - Memory OS');
-    icon.addEventListener('click', toggleMainPanel);
-
-    // 组装结构
-    toggle.appendChild(icon);
-    drawer.appendChild(toggle);
-
-    // 插入到 WI-SP-button 之前，如果找不到则添加到末尾
-    if (wiButton) {
-        holder.insertBefore(drawer, wiButton);
-    } else {
-        holder.appendChild(drawer);
-    }
-}
-
-
-// React 渲染器类型
-type ReactRenderer = (container: HTMLElement, onClose: () => void) => any;
-let reactRenderer: ReactRenderer | null = null;
-
-/**
- * 设置 React 渲染器（从 index.tsx 注入）
- */
-export function setReactRenderer(renderer: ReactRenderer): void {
-    reactRenderer = renderer;
-    reactRenderer = renderer;
-}
-
-let globalRenderer: ReactRenderer | null = null;
-let globalRoot: any = null;
-
-/**
- * 设置全局渲染器（用于悬浮窗等）
- */
-export function setGlobalRenderer(renderer: ReactRenderer): void {
-    globalRenderer = renderer;
-}
-
-/**
- * 挂载全局悬浮层
- */
-function mountGlobalOverlay(): void {
-    if (!globalRenderer) {
-        return;
-    }
-
-    const overlayId = 'engram-global-overlay';
-    let overlay = document.getElementById(overlayId);
-
-    // 如果已存在但未挂载，则复用
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = overlayId;
-        overlay.className = 'pointer-events-none fixed inset-0 z-[11000] engram-app-root'; // 极高层级，不妨碍交互
-        document.body.appendChild(overlay);
-    }
-
-    // 挂载
-    if (!globalRoot) {
-        globalRoot = globalRenderer(overlay, () => { }); // global overlay usually doesn't need onClose
-    }
-}
-
-/**
- * 切换主面板显示
- */
-let panelVisible = false;
-let panelElement: HTMLElement | null = null;
-let reactRoot: any = null;
-
-function toggleMainPanel(): void {
-    if (panelVisible && panelElement) {
-        // 卸载 React 组件
-        if (reactRoot) {
-            reactRoot.unmount();
-            reactRoot = null;
-        }
-        panelElement.remove();
-        panelElement = null;
-        panelVisible = false;
-    } else {
-        panelElement = createMainPanel();
-        document.body.appendChild(panelElement);
-        panelVisible = true;
-    }
-}
-
-/**
- * 创建主面板（使用注入的 React 渲染器）
- */
-function createMainPanel(): HTMLElement {
-    const panel = document.createElement('div');
-    // 使用 Tailwind 类 - 全屏模式
-    // z-[10000] 确保在最顶层，bg-background 确保有背景色
-    panel.className = 'fixed inset-0 w-full h-full z-[10000] flex flex-col bg-background text-foreground overflow-hidden engram-app-root';
-    // 强制内联样式，确保颜色生效 (解决 Tailwind 类在某些环境下失效的问题)
-    panel.style.backgroundColor = 'var(--background)';
-    panel.style.color = 'var(--foreground)';
-    // 强制视口高度，解决移动端 Flex 布局塌陷
-    panel.style.height = '100dvh';
-    panel.style.width = '100vw';
-    panel.style.top = '0';
-    panel.style.left = '0';
-
-    panel.id = 'engram-panel-root';
-
-    // 使用注入的渲染器
-    if (reactRenderer) {
-        reactRoot = reactRenderer(panel, toggleMainPanel);
-    } else {
-        // 降级到简单 HTML（渲染器未注入时）
-        panel.innerHTML = `
-            <div class="flex items-center justify-between p-4 border-b border-slate-400/20">
-                <h2 class="m-0 text-lg text-slate-200 flex items-center gap-2">Engram</h2>
-                <button class="bg-transparent border-none text-slate-400 text-2xl cursor-pointer p-1 hover:text-slate-200">&times;</button>
-            </div>
-            <div class="flex-1 overflow-auto p-5">
-                <p style="color: #94a3b8;">React 渲染器未加载，请检查配置。</p>
-            </div>
-        `;
-        // 注意：这里需要根据新的 class 选择器绑定事件
-        panel.querySelector('button')?.addEventListener('click', toggleMainPanel);
-    }
-
-    return panel;
-}
-
-/**
  * 设置事件监听
  */
 function setupEventListeners(): void {
@@ -288,119 +144,4 @@ function setupEventListeners(): void {
     // eventSource?.addEventListener('chatChanged', () => {
     //     EventBus.emit({ type: 'CHAT_CHANGED', payload: {} });
     // });
-}
-
-/**
- * 隐藏指定范围的消息
- * @param start 起始楼层
- * @param end 结束楼层
- */
-export async function hideMessageRange(start: number, end: number): Promise<void> {
-    try {
-        const importPath = '/scripts/chats.js';
-        const scriptPath = '/script.js';
-
-        const chatsModule = await (new Function('path', 'return import(path)'))(importPath);
-        const scriptModule = await (new Function('path', 'return import(path)'))(scriptPath);
-
-        if (chatsModule && typeof chatsModule.hideChatMessageRange === 'function') {
-            // start - 1 / end - 1 ?
-            // 注意：酒馆的 messageId 通常是 0-indexed (array index)，但楼层显示通常是 1-indexed
-            // 我们需要确认一下 Engram 使用的 'floor' 是什么。
-            // 假设 Engram 这里的 floor 是 0-indexed 的 message index (matches context.chat length)
-            // 根据之前的 SummarizerService, sourceFloors 似乎就是 message index。
-            await chatsModule.hideChatMessageRange(start, end, false); // unhide=false -> hide
-
-            // Fix: Enforce save to ensure persistence
-            if (scriptModule && typeof scriptModule.saveChat === 'function') {
-                await scriptModule.saveChat();
-                console.log(`[Engram] Chat saved after hiding range: ${start}-${end}`);
-            } else {
-                console.warn('[Engram] saveChat not found in script.js');
-            }
-
-            // Console is okay here for debugging interactions with ST internals
-            console.log(`[Engram] Hidden messages range: ${start}-${end}`);
-        } else {
-            console.warn('[Engram] hideChatMessageRange not found in chats.js');
-        }
-    } catch (e) {
-        console.error('[Engram] Failed to hide messages:', e);
-    }
-}
-
-/**
- * 注入一条消息到聊天记录
- * @param role 角色 ('user' | 'char')
- * @param content 消息内容
- * @param name 发送者名称 (可选，默认使用当前角色或用户名)
- */
-export async function injectMessage(role: 'user' | 'char', content: string, name?: string): Promise<void> {
-    try {
-        const ctx = getSTContext();
-        if (!ctx) throw new Error('ST Context unavailable');
-
-        const senderName = name || (role === 'user' ? ctx.name1 : ctx.name2);
-
-        // 动态导入 chats.js 中的核心函数
-        const chatsPath = '/scripts/chats.js';
-        const scriptPath = '/script.js';
-
-        // 1. 获取必要的模块
-        const chatsModule = await (new Function('path', 'return import(path)'))(chatsPath);
-        const scriptModule = await (new Function('path', 'return import(path)'))(scriptPath);
-
-        // 2. 构造消息对象 (模仿 ST 内部结构)
-        // 注意：我们直接操作 chat 数组和 saveChat，而不是调用 addOneMessage，因为 addOneMessage 可能会触发生成或其他副作用
-        // 或者我们可以尝试调用 scriptModule.processInput? 不，那太复杂了。
-        // 最安全的方式是：推入数组 -> 保存 -> 刷新
-
-        if (!ctx.chat) throw new Error('Chat array unavailable');
-
-        const newMessage: STMessage = {
-            name: senderName,
-            is_user: role === 'user',
-            is_system: false,
-            send_date: Date.now(),
-            mes: content,
-            // @ts-ignore
-            force_avatar: role === 'char' ? scriptModule.characters[ctx.characterId]?.avatar : undefined
-        };
-
-        // 3. 推入聊天记录
-        ctx.chat.push(newMessage);
-
-        // 4. 保存并刷新
-        // 使用 chatsModule.saveChatConditional 或者 scriptModule.saveChat
-        if (scriptModule.saveChat) {
-            await scriptModule.saveChat();
-        }
-
-        // 5. 刷新界面
-        if (scriptModule.reloadCurrentChat) {
-            await scriptModule.reloadCurrentChat();
-        }
-
-        const { Logger } = await import('@/core/logger');
-        Logger.info('STBridge', '已注入消息', { role, length: content.length });
-    } catch (e) {
-        console.error('[Engram] Failed to inject message:', e);
-        throw e;
-    }
-}
-
-/**
- * 调用 SillyTavern 原生弹窗
- * @param content 弹窗内容 (HTML)
- * @param type 弹窗类型 ('text', 'confirm', 'input')
- * @param inputValue 输入框默认值
- */
-export async function callPopup(content: string, type: 'text' | 'confirm' | 'input' = 'text', inputValue: string = ''): Promise<any> {
-    // @ts-ignore
-    if (window.callPopup) {
-        // @ts-ignore
-        return window.callPopup(content, type, inputValue);
-    }
-    console.warn('[Engram] callPopup not available');
-    return Promise.resolve(type === 'confirm' ? true : null);
 }

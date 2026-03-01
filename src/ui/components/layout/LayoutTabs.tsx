@@ -1,3 +1,4 @@
+import { useIsPresent } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TabPills, TabPillsProps } from './TabPills';
@@ -12,6 +13,8 @@ import { TabPills, TabPillsProps } from './TabPills';
  */
 export const LayoutTabs: React.FC<TabPillsProps> = (props) => {
     const [mounted, setMounted] = useState(false);
+    // 判断当前组件所在的页面组件树是否正在被 AnimatePresence 卸载(即退场动画播放中)
+    const isPresent = useIsPresent();
 
     useEffect(() => {
         setMounted(true);
@@ -20,8 +23,8 @@ export const LayoutTabs: React.FC<TabPillsProps> = (props) => {
 
     const container = document.getElementById('engram-header-extension');
 
-    // 如果未挂载或找不到容器，暂不渲染 (或可选择渲染在原位作为 fallback)
-    if (!mounted || !container) {
+    // 如果未挂载或找不到容器，或者当前正在播退出动画，暂不向 Portal 渲染，防止重叠
+    if (!mounted || !container || !isPresent) {
         return null;
     }
 

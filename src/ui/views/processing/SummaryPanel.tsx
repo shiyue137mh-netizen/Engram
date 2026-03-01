@@ -14,6 +14,7 @@ import React, { useEffect, useState } from 'react';
 import { type TrimConfig } from '@/modules/memory/EventTrimmer';
 
 import type { TrimmerStatus } from "@/modules/memory";
+import { SliderField } from '@/ui/components/core/SliderField';
 import { SwitchField } from '@/ui/components/form/FormComponents';
 import { Divider } from "@/ui/components/layout/Divider";
 import type { UseSummarizerConfigReturn } from '@/ui/hooks/useSummarizerConfig';
@@ -403,30 +404,17 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                                     <div className="text-xs text-muted-foreground">
                                         楼层将每隔 <span className="text-base font-medium text-foreground mx-0.5">{settings.floorInterval}</span> 层总结
                                     </div>
-                                    <div className="relative h-4 flex items-center group cursor-pointer">
-                                        {/* 极简滑块轨道 */}
-                                        <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
-                                        {/* Thumb */}
-                                        <div
-                                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
-                                            style={{ left: `${((settings.floorInterval - 5) / (100 - 5)) * 100}%`, transform: 'translate(-50%, -50%)' }}
-                                        />
-                                        <input
-                                            type="range"
-                                            min={5}
-                                            max={100}
-                                            step={5}
-                                            value={settings.floorInterval}
-                                            onChange={async (e) => {
-                                                const val = Number(e.target.value);
-                                                onSummarizerSettingsChange({ ...settings, floorInterval: val });
-                                                const { summarizerService } = await import('@/modules/memory');
-                                                summarizerService.updateConfig({ floorInterval: val });
-                                            }}
-                                            className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
-                                            style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                                        />
-                                    </div>
+                                    <SliderField
+                                        min={5}
+                                        max={100}
+                                        step={5}
+                                        value={settings.floorInterval}
+                                        onChange={async (val) => {
+                                            onSummarizerSettingsChange({ ...settings, floorInterval: val });
+                                            const { summarizerService } = await import('@/modules/memory');
+                                            summarizerService.updateConfig({ floorInterval: val });
+                                        }}
+                                    />
                                 </div>
 
                                 {/* 缓冲楼层 - 指引式标签 */}
@@ -434,31 +422,18 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                                     <div className="text-xs text-muted-foreground">
                                         保留最近 <span className="text-base font-medium text-foreground mx-0.5">{settings.bufferSize}</span> 层作为缓冲
                                     </div>
-                                    <div className="relative h-4 flex items-center group cursor-pointer">
-                                        {/* 极简滑块轨道 */}
-                                        <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
-                                        {/* Thumb */}
-                                        <div
-                                            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
-                                            style={{ left: `${(settings.bufferSize / 20) * 100}%`, transform: 'translate(-50%, -50%)' }}
-                                        />
-                                        <input
-                                            type="range"
-                                            min={0}
-                                            max={20}
-                                            step={1}
-                                            value={settings.bufferSize}
-                                            onChange={(e) => {
-                                                const val = Number(e.target.value);
-                                                onSummarizerSettingsChange({ ...settings, bufferSize: val });
-                                                import('@/modules/memory').then(({ summarizerService }) => {
-                                                    summarizerService.updateConfig({ bufferSize: val });
-                                                });
-                                            }}
-                                            className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
-                                            style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                                        />
-                                    </div>
+                                    <SliderField
+                                        min={0}
+                                        max={20}
+                                        step={1}
+                                        value={settings.bufferSize}
+                                        onChange={(val) => {
+                                            onSummarizerSettingsChange({ ...settings, bufferSize: val });
+                                            import('@/modules/memory').then(({ summarizerService }) => {
+                                                summarizerService.updateConfig({ bufferSize: val });
+                                            });
+                                        }}
+                                    />
                                 </div>
                             </div>
                         </>
@@ -533,29 +508,16 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                                 <>当活跃事件超过 <span className="text-base font-medium text-foreground mx-0.5">{limitConfig.value}</span> 条时触发</>
                             )}
                         </div>
-                        <div className="relative h-4 flex items-center group cursor-pointer">
-                            {/* 极简滑块轨道 */}
-                            <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
-                            {/* Thumb */}
-                            <div
-                                className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
-                                style={{ left: `${((limitConfig.value - limitConfig.min) / (limitConfig.max - limitConfig.min)) * 100}%`, transform: 'translate(-50%, -50%)' }}
-                            />
-                            <input
-                                type="range"
-                                min={limitConfig.min}
-                                max={limitConfig.max}
-                                step={limitConfig.step}
-                                value={limitConfig.value}
-                                onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    const key = trimConfig.trigger === 'token' ? 'tokenLimit' : 'countLimit';
-                                    handleLimitChange(key, val);
-                                }}
-                                className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
-                                style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                            />
-                        </div>
+                        <SliderField
+                            min={limitConfig.min}
+                            max={limitConfig.max}
+                            step={limitConfig.step}
+                            value={limitConfig.value}
+                            onChange={(val) => {
+                                const key = trimConfig.trigger === 'token' ? 'tokenLimit' : 'countLimit';
+                                handleLimitChange(key, val);
+                            }}
+                        />
                     </div>
 
                     {/* 缓冲设置 - 指引式标签 */}
@@ -563,25 +525,13 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                         <div className="text-xs text-muted-foreground">
                             保留最近 <span className="text-base font-medium text-foreground mx-0.5">{trimConfig.keepRecentCount ?? 3}</span> 条不合并
                         </div>
-                        <div className="relative h-4 flex items-center group cursor-pointer">
-                            {/* 极简滑块轨道 */}
-                            <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
-                            {/* Thumb */}
-                            <div
-                                className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
-                                style={{ left: `${((trimConfig.keepRecentCount ?? 3) / 10) * 100}%`, transform: 'translate(-50%, -50%)' }}
-                            />
-                            <input
-                                type="range"
-                                min={0}
-                                max={10}
-                                step={1}
-                                value={trimConfig.keepRecentCount ?? 3}
-                                onChange={(e) => handleLimitChange('keepRecentCount', Number(e.target.value))}
-                                className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
-                                style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                            />
-                        </div>
+                        <SliderField
+                            min={0}
+                            max={10}
+                            step={1}
+                            value={trimConfig.keepRecentCount ?? 3}
+                            onChange={(val) => handleLimitChange('keepRecentCount', val)}
+                        />
                     </div>
 
                     {/* 精简状态显示 */}

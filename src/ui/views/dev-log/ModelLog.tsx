@@ -4,9 +4,9 @@
  * 伪聊天式布局展示 LLM 调用记录
  */
 import { ModelLogEntry, ModelLogger } from "@/core/logger/ModelLogger";
-import { AnimatePresence, motion } from 'framer-motion';
 import { AlertCircle, Bot, CheckCircle, ChevronDown, ChevronRight, Clock, Loader2, Send, Trash2, XCircle, Zap } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { Virtuoso } from 'react-virtuoso';
 
 /** 类型标签配置 */
 const TYPE_LABELS: Record<ModelLogEntry['type'], { label: string; color: string }> = {
@@ -205,22 +205,17 @@ export const ModelLog: React.FC = () => {
                         <p className="text-xs">触发总结或向量化后，调用记录将显示在这里</p>
                     </div>
                 ) : (
-                    <motion.div layout className="flex flex-col gap-3">
-                        <AnimatePresence initial={false}>
-                            {logs.map(({ sent, received }) => (
-                                <motion.div
-                                    key={sent.id}
-                                    layout
-                                    initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                                    transition={{ duration: 0.3 }}
-                                >
+                    <div className="h-full">
+                        <Virtuoso
+                            data={logs}
+                            style={{ height: '100%' }}
+                            itemContent={(index, { sent, received }) => (
+                                <div className="pb-3">
                                     <LogCard sent={sent} received={received} />
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
-                    </motion.div>
+                                </div>
+                            )}
+                        />
+                    </div>
                 )}
             </div>
         </div>

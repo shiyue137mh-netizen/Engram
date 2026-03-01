@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 /**
  * 优化的字体加载 - 使用 preload 替代阻塞的 @import
@@ -31,7 +31,17 @@ const injectFontLinks = () => {
 
 export const GlobalStyles = () => {
   useEffect(() => {
+    // 注入字体
     injectFontLinks();
+
+    // Phase 3 Fix: 清理函数，防止重复挂载或热重载时无限累积
+    return () => {
+      const preload = document.getElementById('engram-font-preload');
+      if (preload) preload.remove();
+      // 这里不对 href 为 https://fonts.googleapis.com 的 link 做直接移除，
+      // 因为它们一般只加载一次全局复用，频繁增删反倒影响宿主的字体解析，
+      // 此处主要为了防止同 ID 重复冗余。
+    };
   }, []);
 
   return (
@@ -46,11 +56,11 @@ export const GlobalStyles = () => {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
-    
+
     .font-mono {
       font-family: var(--font-mono);
     }
-    
+
     /* Custom Scrollbar for dark theme - Minimalist */
     ::-webkit-scrollbar {
       width: 6px;
@@ -78,13 +88,13 @@ export const GlobalStyles = () => {
       opacity: 0;
       animation: fadeIn 0.3s ease-out forwards;
     }
-    
+
     @keyframes float {
       0% { transform: translateY(0px); }
       50% { transform: translateY(-10px); }
       100% { transform: translateY(0px); }
     }
-    
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }

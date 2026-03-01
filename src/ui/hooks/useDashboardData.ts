@@ -6,13 +6,13 @@
  * - Memory Stats: 事件/实体统计
  * - Feature Status: 功能开关状态
  */
-import { useState, useEffect, useCallback } from 'react';
-import { useMemoryStore } from '@/state/memoryStore';
-import { summarizerService } from '@/modules/memory';
 import { SettingsManager } from '@/config/settings';
-import { getSTContext } from '@/integrations/tavern/bridge';
 import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
+import { getSTContext } from '@/integrations/tavern/bridge';
+import { summarizerService } from '@/modules/memory';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
+import { useMemoryStore } from '@/state/memoryStore';
+import { useCallback, useEffect, useState } from 'react';
 
 // ==================== 类型定义 ====================
 
@@ -293,12 +293,35 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         refresh();
     }, [features, refresh]);
 
-    // 初始加载 + 定时刷新
+    // 初始加载 + 定时刷新 (Phase 3 Performance)
     useEffect(() => {
-        refresh();
+        refresh(); // 立即执行一次
 
-        const timer = setInterval(refresh, refreshInterval);
-        return () => clearInterval(timer);
+        let timer: NodeJS.Timeout | null = null;
+        let isTabActive = document.visibilityState === 'visible';
+
+        // 动态调整轮询帧率：活动时高频查询，放到后台时降低查询频率
+        const scheduleTimer = () => {
+            if (timer) clearInterval(timer);
+            const currentInterval = isTabActive ? refreshInterval : refreshInterval * 5; // 后台延长 5 倍间隙
+            timer = setInterval(refresh, currentInterval);
+        };
+
+        const handleVisibilityChange = () => {
+            isTabActive = document.visibilityState === 'visible';
+            scheduleTimer();
+            if (isTabActive) {
+                refresh(); // 重新获得焦点时火速更新补偿
+            }
+        };
+
+        scheduleTimer();
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            if (timer) clearInterval(timer);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
     }, [refresh, refreshInterval]);
 
     return {

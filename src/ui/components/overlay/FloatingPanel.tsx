@@ -8,9 +8,9 @@
  * - 独立于 Modal 组件
  */
 
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { GripVertical, X } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { X, GripVertical } from 'lucide-react';
 
 interface FloatingPanelProps {
     isOpen: boolean;
@@ -60,6 +60,24 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             });
         }
     }, [isOpen, initialPosition, initialWidth]);
+
+    // Phase 2 Fix: 监听窗口 Resize 自动吸附回可视范围, 避免面板飘到窗口外部无法找回
+    useEffect(() => {
+        const handleWindowResize = () => {
+            if (!panelRef.current) return;
+            const currentWidth = typeof size.width === 'number' ? size.width : 300;
+            const newX = Math.max(0, Math.min(window.innerWidth - currentWidth, position.x));
+            const newY = Math.max(0, Math.min(window.innerHeight - 100, position.y)); // 预留点高度避免没入底部
+
+            // 如果计算出的位置和当前不一样，则重新吸附
+            if (newX !== position.x || newY !== position.y) {
+                setPosition({ x: newX, y: newY });
+            }
+        };
+
+        window.addEventListener('resize', handleWindowResize);
+        return () => window.removeEventListener('resize', handleWindowResize);
+    }, [position.x, position.y, size.width]);
 
     // 拖拽处理
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
