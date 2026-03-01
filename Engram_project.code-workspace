@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../../../../.."
+		},
+		{
+			"path": "../../../../../data/default-user/extensions/JS-Slash-Runner"
 		}
 	],
 	"settings": {}

@@ -421,21 +421,21 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     // 全屏模式（移动端）
     if (isFullScreen) {
         return (
-            <div className="fixed inset-0 bg-background z-50 flex flex-col" style={{ height: '100dvh' }}>
+            <div className="h-full flex flex-col bg-background">
                 {/* 头部 */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
                     <button
                         onClick={onClose}
-                        className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors"
                     >
-                        <ArrowLeft size={20} />
+                        <ArrowLeft size={18} />
                     </button>
-                    <h2 className="text-lg font-light flex-1">编辑事件</h2>
+                    <h2 className="text-sm font-medium text-foreground flex-1">编辑事件</h2>
                     <button
                         onClick={handleDelete}
-                        className="p-2 text-destructive hover:bg-destructive/10 rounded"
+                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
                     >
-                        <Trash2 size={18} />
+                        <Trash2 size={16} />
                     </button>
                 </div>
 

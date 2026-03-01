@@ -356,6 +356,17 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                 />
 
                 <NumberField
+                    label="Top-K"
+                    value={preset.parameters.topK ?? 60}
+                    onChange={(value) => updateParameters('topK', value)}
+                    min={0}
+                    max={200}
+                    step={1}
+                    showSlider={false}
+                    description="候选词采样截断（可选）。控制只从前 K 个最可能的结果中进行概率抽取（建议保留 0 为关闭或 60 默认）"
+                />
+
+                <NumberField
                     label="最大输出 Tokens"
                     value={preset.parameters.maxTokens}
                     onChange={(value) => updateParameters('maxTokens', value)}

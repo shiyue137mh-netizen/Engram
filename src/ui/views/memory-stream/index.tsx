@@ -8,7 +8,6 @@ import { PageTitle } from "@/ui/components/display/PageTitle";
 import { EmptyState } from '@/ui/components/feedback/EmptyState';
 import { Divider } from "@/ui/components/layout/Divider";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
-import { MasterDetailLayout } from '@/ui/components/layout/MasterDetailLayout';
 import { Tab } from "@/ui/components/layout/TabPills";
 import { ArrowDownUp, Brain, Database, FileText, Filter, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -43,10 +42,10 @@ export const MemoryStream: React.FC = () => {
     const [previewContent, setPreviewContent] = useState('');
 
     const [isLoading, setIsLoading] = useState(true);
-    const [isMobile, setIsMobile] = useState(window.innerWidth < DESKTOP_BREAKPOINT);
-    const [showEditor, setShowEditor] = useState(false);
+    const [viewMode, setViewMode] = useState<'browse' | 'edit'>('browse'); // New viewMode state
     const [viewTab, setViewTab] = useState<ViewTab>('list');
     // V0.9: 实体数据
+    const [isMobile, setIsMobile] = useState(window.innerWidth < DESKTOP_BREAKPOINT);
     const [entities, setEntities] = useState<EntityNode[]>([]);
 
     // 批量修改状态
@@ -152,6 +151,48 @@ export const MemoryStream: React.FC = () => {
         });
     }, [events, searchQuery, showActiveOnly, activeIds, sortOrder]);
 
+    // 分组事件 (基于楼层区间)
+    const groupedEvents = useMemo(() => {
+        const interval = SettingsManager.get('summarizerConfig')?.floorInterval || 10;
+        const groups = new Map<number, { title: string, events: EventNode[] }>();
+
+        filteredEvents.forEach(event => {
+            // V1.0.6: start_index as baseline
+            const startIndex = event.source_range?.start_index || 0;
+            const groupKey = Math.floor(startIndex / interval) * interval;
+
+            if (!groups.has(groupKey)) {
+                // Formatting display e.g., 0 -> 1-10, 10 -> 11-20
+                const displayStart = groupKey === 0 ? 1 : groupKey + 1;
+                const displayEnd = groupKey + interval;
+                groups.set(groupKey, {
+                    title: `第 ${displayStart} - ${displayEnd} 楼`,
+                    events: []
+                });
+            }
+            groups.get(groupKey)!.events.push(event);
+        });
+
+        // 排序组
+        const sortedKeys = Array.from(groups.keys()).sort((a, b) => sortOrder === 'asc' ? a - b : b - a);
+
+        return sortedKeys.map(key => {
+            const group = groups.get(key)!;
+            // 组内排序: 总结层级 (level > 0) 优先，其次按时间
+            group.events.sort((a, b) => {
+                if (a.level !== b.level) {
+                    return b.level - a.level; // higher level first
+                }
+                return sortOrder === 'asc' ? a.timestamp - b.timestamp : b.timestamp - a.timestamp;
+            });
+            return {
+                key,
+                title: group.title,
+                events: group.events
+            };
+        });
+    }, [filteredEvents, sortOrder]);
+
     // 过滤实体
     const filteredEntities = useMemo(() => {
         if (!searchQuery.trim()) return entities;
@@ -188,9 +229,7 @@ export const MemoryStream: React.FC = () => {
     // 选择事件/实体
     const handleSelect = (id: string) => {
         setSelectedId(id);
-        if (isMobile) {
-            setShowEditor(true);
-        }
+        setViewMode('edit');
     };
 
     // 勾选事件/实体
@@ -373,7 +412,7 @@ export const MemoryStream: React.FC = () => {
             });
         }
         setSelectedId(null);
-        setShowEditor(false);
+        setViewMode('browse');
     };
 
     // 批量删除
@@ -406,39 +445,9 @@ export const MemoryStream: React.FC = () => {
 
     // 关闭编辑器
     const handleCloseEditor = () => {
-        setShowEditor(false);
-        if (isMobile) {
-            setSelectedId(null);
-        }
+        setViewMode('browse');
+        setSelectedId(null);
     };
-
-    // 移动端全屏编辑器 (Entities not supported for full editor yet, just simple view)
-    if (isMobile && showEditor && selectedEvent && viewTab === 'list') {
-        return (
-            <EventEditor
-                ref={editorRef}
-                event={selectedEvent}
-                isFullScreen={true}
-                onSave={handleEventChange}
-                onDelete={handleDelete}
-                onClose={handleCloseEditor}
-            />
-        );
-    }
-
-    // V1.2 Fix: Mobile Entity View
-    if (isMobile && showEditor && selectedEntity && viewTab === 'entities') {
-        return (
-            <EntityEditor
-                entity={selectedEntity}
-                isFullScreen={true}
-                onSave={handleEntityChange}
-                onDelete={handleDelete}
-                onClose={handleCloseEditor}
-            />
-        );
-    }
-    // Mobile Entity View could be added here similar to EventEditor
 
     const TAB_INFO: Record<ViewTab, { title: string; subtitle: string }> = {
         list: { title: '列表视图', subtitle: '查看和管理记忆事件' },
@@ -566,43 +575,43 @@ export const MemoryStream: React.FC = () => {
                 }
             />
 
-            {/* List View */}
-            {viewTab === 'list' && (
-                <div
-                    className="flex flex-col overflow-hidden"
-                    style={{
-                        height: 'calc(100vh - 100px)',
-                        minHeight: '300px',
-                    }}
-                >
-                    <MasterDetailLayout
-                        listRef={listRef}
-                        mobileDetailOpen={false} // Handled by separate MobileFullscreenForm return above
-                        mobileDetailTitle="编辑事件"
-                        header={
-                            <div className="relative mb-4 shrink-0">
-                                <Search size={14} className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="搜索事件..."
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        borderBottom: '1px solid var(--border)',
-                                        borderRadius: 0,
-                                        outline: 'none',
-                                        padding: '8px 0 8px 24px',
-                                        fontSize: '14px',
-                                        width: '100%',
-                                        color: 'var(--foreground)',
-                                    }}
-                                    className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
-                                />
-                            </div>
-                        }
-                        list={isLoading ? (
+            {/* View Area */}
+            <div
+                className="flex flex-col overflow-hidden relative"
+                style={{
+                    height: 'calc(100vh - 100px)',
+                    minHeight: '300px',
+                }}
+            >
+                {/* 搜索框 (Both Lists) */}
+                {viewMode === 'browse' && (
+                    <div className="relative mb-4 shrink-0 px-1">
+                        <Search size={14} className="absolute left-1 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={viewTab === 'list' ? "搜索事件..." : "搜索实体..."}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                borderBottom: '1px solid var(--border)',
+                                borderRadius: 0,
+                                outline: 'none',
+                                padding: '8px 0 8px 24px',
+                                fontSize: '14px',
+                                width: '100%',
+                                color: 'var(--foreground)',
+                            }}
+                            className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
+                        />
+                    </div>
+                )}
+
+                {/* List View */}
+                {viewTab === 'list' && viewMode === 'browse' && (
+                    <div className="flex-1 overflow-y-auto no-scrollbar" ref={listRef}>
+                        {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
                                 <RefreshCw size={24} className="animate-spin" />
                                 <p className="text-sm font-light">加载中...</p>
@@ -614,72 +623,81 @@ export const MemoryStream: React.FC = () => {
                                 description={!searchQuery ? "开始聊天后将自动记录" : undefined}
                             />
                         ) : (
-                            <div className={isMobile ? '' : 'space-y-1 pb-4'}>
-                                {filteredEvents.map(event => (
-                                    <EventCard
-                                        key={event.id}
-                                        event={event}
-                                        isSelected={event.id === selectedId}
-                                        isCompact={isMobile}
-                                        isActive={activeIds.has(event.id)} // Pass Active State
-                                        checked={checkedIds.has(event.id)}
-                                        hasChanges={pendingChanges.has(event.id)}
-                                        onSelect={() => handleSelect(event.id)}
-                                        onCheck={(checked) => handleCheck(event.id, checked)}
-                                    />
-                                ))}
+                            <div className="space-y-6 pb-4 px-2">
+                                {groupedEvents.map(group => {
+                                    // 检查组内是否全部被选中
+                                    const allChecked = group.events.length > 0 && group.events.every(e => checkedIds.has(e.id));
+                                    const someChecked = group.events.some(e => checkedIds.has(e.id));
+
+                                    return (
+                                        <div key={group.key} className="relative">
+                                            {/* 分组头部：使用半透明背景标识 */}
+                                            <div className="flex items-center gap-3 mb-4 sticky top-0 z-10 bg-background/95 backdrop-blur py-2">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={allChecked}
+                                                    ref={input => {
+                                                        if (input) {
+                                                            input.indeterminate = !allChecked && someChecked;
+                                                        }
+                                                    }}
+                                                    onChange={(e) => {
+                                                        const checked = e.target.checked;
+                                                        const newSet = new Set(checkedIds);
+                                                        group.events.forEach(ev => {
+                                                            if (checked) newSet.add(ev.id);
+                                                            else newSet.delete(ev.id);
+                                                        });
+                                                        setCheckedIds(newSet);
+                                                    }}
+                                                    className="w-4 h-4 rounded border-border accent-primary shrink-0"
+                                                />
+                                                <div className="text-xs font-medium text-foreground bg-muted/50 px-3 py-1.5 rounded-full border border-border/50 shadow-sm">
+                                                    {group.title}
+                                                </div>
+                                                <div className="h-[1px] flex-1 bg-border/50" />
+                                                <span className="text-[10px] text-muted-foreground mr-2">{group.events.length} 项</span>
+                                            </div>
+
+                                            {/* 组内容树状结构 */}
+                                            <div className="relative pl-6 space-y-3">
+                                                {/* 垂直主干线 */}
+                                                <div className="absolute left-[11px] top-4 bottom-6 w-[1px] bg-border transition-colors group-hover:bg-primary/30" />
+
+                                                {group.events.map((event, index) => (
+                                                    <div key={event.id} className="relative group/card">
+                                                        {/* 横向分支线 */}
+                                                        <div className="absolute -left-6 top-1/2 w-[20px] h-[1px] bg-border transition-colors group-hover/card:bg-primary/50" />
+
+                                                        {/* 分支节点小圆点 */}
+                                                        <div className="absolute -left-6 top-1/2 -translate-y-1/2 -translate-x-[2px] w-1.5 h-1.5 rounded-full bg-border transition-colors group-hover/card:bg-primary/50" />
+
+                                                        <EventCard
+                                                            event={event}
+                                                            isSelected={false} // list only
+                                                            isCompact={false} // Use full card view
+                                                            isActive={activeIds.has(event.id)}
+                                                            checked={checkedIds.has(event.id)}
+                                                            hasChanges={pendingChanges.has(event.id)}
+                                                            onSelect={() => handleSelect(event.id)}
+                                                            onCheck={(checked) => handleCheck(event.id, checked)}
+                                                            className={event.level > 0 ? 'bg-primary/5 border-primary/20 shadow-sm' : ''} // 重点高亮总结
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
-                        detail={
-                            <EventEditor
-                                ref={editorRef}
-                                event={selectedEvent}
-                                isFullScreen={false}
-                                onSave={handleEventChange}
-                                onDelete={handleDelete}
-                                onClose={() => setSelectedId(null)}
-                            />
-                        }
-                    />
-                </div>
-            )}
+                    </div>
+                )}
 
-            {/* Entities View */}
-            {viewTab === 'entities' && (
-                <div
-                    className="flex flex-col overflow-hidden"
-                    style={{
-                        height: 'calc(100vh - 100px)',
-                        minHeight: '300px',
-                    }}
-                >
-                    <MasterDetailLayout
-                        mobileDetailOpen={false}
-                        mobileDetailTitle="编辑实体"
-                        header={
-                            <div className="relative mb-4 shrink-0">
-                                <Search size={14} className="absolute left-0 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    placeholder="搜索实体..."
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        borderBottom: '1px solid var(--border)',
-                                        borderRadius: 0,
-                                        outline: 'none',
-                                        padding: '8px 0 8px 24px',
-                                        fontSize: '14px',
-                                        width: '100%',
-                                        color: 'var(--foreground)',
-                                    }}
-                                    className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
-                                />
-                            </div>
-                        }
-                        list={isLoading ? (
+                {/* Entities View */}
+                {viewTab === 'entities' && viewMode === 'browse' && (
+                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                        {isLoading ? (
                             <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
                                 <RefreshCw size={24} className="animate-spin" />
                                 <p className="text-sm font-light">加载中...</p>
@@ -691,34 +709,49 @@ export const MemoryStream: React.FC = () => {
                                 description={!searchQuery ? "请先执行实体提取" : undefined}
                             />
                         ) : (
-                            <div className={isMobile ? '' : 'space-y-1 pb-4'}>
+                            <div className="space-y-4 pb-4">
                                 {filteredEntities.map(entity => (
                                     <EntityCard
                                         key={entity.id}
                                         entity={entity}
-                                        isSelected={entity.id === selectedId}
-                                        isCompact={isMobile}
+                                        isSelected={false}
+                                        isCompact={false}
                                         checked={checkedIds.has(entity.id)}
-                                        // 假设 EntityCard 支持 hasChanges prop (如果不支持需要添加，这里先不传以防报错，或者检查 components/EntityCard.tsx)
-                                        // hasChanges={pendingEntityChanges.has(entity.id)}
                                         onSelect={() => handleSelect(entity.id)}
                                         onCheck={(checked) => handleCheck(entity.id, checked)}
                                     />
                                 ))}
                             </div>
                         )}
-                        detail={
-                            <EntityEditor
-                                entity={selectedEntity}
-                                isFullScreen={false}
-                                onSave={handleEntityChange}
-                                onDelete={handleDelete}
-                                onClose={() => setSelectedId(null)}
-                            />
-                        }
-                    />
-                </div>
-            )}
+                    </div>
+                )}
+
+                {/* Editor Overlays in Edit Mode (in place, taking full height of container) */}
+                {viewMode === 'edit' && viewTab === 'list' && selectedEvent && (
+                    <div className="absolute inset-0 bg-background z-10 flex flex-col">
+                        <EventEditor
+                            ref={editorRef}
+                            event={selectedEvent}
+                            isFullScreen={true}
+                            onSave={handleEventChange}
+                            onDelete={handleDelete}
+                            onClose={handleCloseEditor}
+                        />
+                    </div>
+                )}
+
+                {viewMode === 'edit' && viewTab === 'entities' && selectedEntity && (
+                    <div className="absolute inset-0 bg-background z-10 flex flex-col">
+                        <EntityEditor
+                            entity={selectedEntity}
+                            isFullScreen={true}
+                            onSave={handleEntityChange}
+                            onDelete={handleDelete}
+                            onClose={handleCloseEditor}
+                        />
+                    </div>
+                )}
+            </div>
 
             {/* Preview Modal */}
             {showPreview && (

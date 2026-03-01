@@ -289,6 +289,7 @@ class LLMAdapter {
             temperature: preset.parameters?.temperature,
             max_tokens: preset.parameters?.maxTokens,
             top_p: preset.parameters?.topP,
+            top_k: preset.parameters?.topK ?? 60, // V1.5
             frequency_penalty: preset.parameters?.frequencyPenalty,
             presence_penalty: preset.parameters?.presencePenalty,
             max_context: preset.parameters?.maxContext,
@@ -389,13 +390,15 @@ class LLMAdapter {
         let content: string;
 
         if (helper.generateRaw) {
-            const prompts = [];
+            const prompts: any[] = [];
             if (finalSystemPrompt) {
                 prompts.push({ role: 'system', content: finalSystemPrompt });
             }
-            prompts.push({ role: 'user', content: finalUserPrompt });
+            // 在指定位置插入内置的 user_input
+            prompts.push('user_input');
 
             content = await helper.generateRaw({
+                user_input: finalUserPrompt,
                 ordered_prompts: prompts,
                 custom_api: customApiConfig,
                 ...generationOptions,

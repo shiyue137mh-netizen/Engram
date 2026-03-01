@@ -314,14 +314,14 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     // Render logic matches EventEditor (Mobile/Desktop modes)
     if (isFullScreen) {
         return (
-            <div className="fixed inset-0 bg-background z-50 flex flex-col" style={{ height: '100dvh' }}>
+            <div className="h-full flex flex-col bg-background">
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
-                    <button onClick={onClose} className="p-1 rounded hover:bg-muted">
-                        <ArrowLeft size={20} />
+                    <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors">
+                        <ArrowLeft size={18} />
                     </button>
-                    <h2 className="text-lg font-light flex-1">编辑实体</h2>
-                    <button onClick={() => isFullScreen && onDelete?.(entity.id)} className="p-2 text-destructive">
-                        <Trash2 size={18} />
+                    <h2 className="text-sm font-medium flex-1">编辑实体</h2>
+                    <button onClick={() => isFullScreen && onDelete?.(entity.id)} className="p-1.5 text-destructive hover:bg-destructive/10 rounded">
+                        <Trash2 size={16} />
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">

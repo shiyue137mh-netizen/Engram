@@ -16,6 +16,8 @@ export interface SamplingParameters {
     temperature: number;
     /** Top-P 采样 (0-1) */
     topP: number;
+    /** Top-K 采样 (建议默认 60，用于截断极低概率标记) */
+    topK?: number;
     /** 最大输出 tokens */
     maxTokens: number;
     /** 频率惩罚 (-2 到 2) */
