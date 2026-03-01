@@ -69,6 +69,9 @@ export const MemoryStream: React.FC = () => {
     // List container ref (for auto-scroll)
     const listRef = useRef<HTMLDivElement>(null);
 
+    // Mobile Actions Menu State
+    const [showMobileActions, setShowMobileActions] = useState(false);
+
     // 响应式检测
     useEffect(() => {
         const handleResize = () => {
@@ -77,6 +80,9 @@ export const MemoryStream: React.FC = () => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // 关闭菜单当点击外部 (简易实现通过一个全屏透明背景)
+    const closeMobileActions = () => setShowMobileActions(false);
 
     // 加载事件
     const loadEvents = async () => {
@@ -474,7 +480,7 @@ export const MemoryStream: React.FC = () => {
                     setCheckedIds(new Set());
                 }}
                 actions={
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 md:gap-2 relative">
 
                         {/* 保存按钮 - 有修改时显示 (Shared for Events and Entities) */}
                         {hasChanges && (
@@ -483,34 +489,11 @@ export const MemoryStream: React.FC = () => {
                                 onClick={handleBatchSave}
                             >
                                 <Save size={12} />
-                                保存 ({pendingChanges.size + pendingEntityChanges.size})
+                                {isMobile ? pendingChanges.size + pendingEntityChanges.size : `保存 (${pendingChanges.size + pendingEntityChanges.size})`}
                             </button>
                         )}
 
-                        {/* 导入外部/历史数据库按钮 */}
-                        <button
-                            onClick={handleOpenImportModal}
-                            className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors"
-                            title="导入历史分卷/外部库"
-                        >
-                            <Database size={12} />
-                            合并导入
-                        </button>
-
-                        {/* 重嵌按钮 (Events only) */}
-                        {viewTab === 'list' && (
-                            <button
-                                onClick={handleReembedAll}
-                                disabled={isReembedding}
-                                className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors disabled:opacity-50"
-                                title="重新嵌入所有事件"
-                            >
-                                <Sparkles size={12} className={isReembedding ? 'animate-pulse' : ''} />
-                                {isReembedding ? '嵌入中...' : '重嵌'}
-                            </button>
-                        )}
-
-                        {/* 刷新按钮 */}
+                        {/* 刷新按钮 (Always visible) */}
                         <button
                             onClick={() => {
                                 loadEvents();
@@ -522,55 +505,150 @@ export const MemoryStream: React.FC = () => {
                             <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
                         </button>
 
-                        {/* 批量删除 */}
+                        {/* 批量删除 (Always visible if checked) */}
                         {checkedIds.size > 0 && (
                             <button
                                 onClick={handleBatchDelete}
-                                className="flex items-center gap-1 px-2 py-1 text-xs text-destructive hover:bg-destructive/10 rounded-md"
+                                className="flex items-center gap-1 px-2 py-1.5 text-xs text-destructive hover:bg-destructive/10 rounded-md"
                             >
                                 <Trash2 size={12} />
-                                删除 ({checkedIds.size})
+                                {!isMobile && `删除 (${checkedIds.size})`}
                             </button>
                         )}
 
-                        {/* Divider */}
-                        <div className="w-[1px] h-4 bg-border mx-1" />
-
-                        {/* 排序切换 */}
-                        {viewTab === 'list' && (
+                        {/* Desktop Advanced Actions */}
+                        <div className="hidden md:flex items-center gap-2">
+                            {/* 导入外部/历史数据库按钮 */}
                             <button
-                                onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                onClick={handleOpenImportModal}
+                                className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors"
+                                title="导入历史分卷/外部库"
+                            >
+                                <Database size={12} />
+                                合并导入
+                            </button>
+
+                            {/* 重嵌按钮 (Events only) */}
+                            {viewTab === 'list' && (
+                                <button
+                                    onClick={handleReembedAll}
+                                    disabled={isReembedding}
+                                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors disabled:opacity-50"
+                                    title="重新嵌入所有事件"
+                                >
+                                    <Sparkles size={12} className={isReembedding ? 'animate-pulse' : ''} />
+                                    {isReembedding ? '嵌入中...' : '重嵌'}
+                                </button>
+                            )}
+
+                            {/* Divider */}
+                            <div className="w-[1px] h-4 bg-border mx-1" />
+
+                            {/* 排序切换 */}
+                            {viewTab === 'list' && (
+                                <button
+                                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                                    title={sortOrder === 'asc' ? '当前: 旧 -> 新' : '当前: 新 -> 旧'}
+                                >
+                                    <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+                                </button>
+                            )}
+
+                            {/* 激活筛选 */}
+                            {viewTab === 'list' && (
+                                <button
+                                    onClick={() => setShowActiveOnly(prev => !prev)}
+                                    className={`p-1.5 rounded-md transition-colors ${showActiveOnly ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                                    title={showActiveOnly ? '显示全部' : '只看激活 (Recall)'}
+                                >
+                                    <Filter size={14} />
+                                </button>
+                            )}
+
+                            {/* 宏预览 */}
+                            <button
+                                onClick={() => {
+                                    const summaries = MacroService.getSummaries() || '(无剧情摘要)';
+                                    const entities = MacroService.getEntityStates() || '(无实体状态)';
+                                    setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
+                                    setShowPreview(true);
+                                }}
                                 className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                                title={sortOrder === 'asc' ? '当前: 旧 -> 新' : '当前: 新 -> 旧'}
+                                title="查看当前注入内容"
                             >
-                                <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+                                <FileText size={14} />
                             </button>
-                        )}
+                        </div>
 
-                        {/* 激活筛选 */}
-                        {viewTab === 'list' && (
+                        {/* Mobile More Actions Button */}
+                        <div className="md:hidden">
                             <button
-                                onClick={() => setShowActiveOnly(prev => !prev)}
-                                className={`p-1.5 rounded-md transition-colors ${showActiveOnly ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                                title={showActiveOnly ? '显示全部' : '只看激活 (Recall)'}
+                                onClick={() => setShowMobileActions(!showMobileActions)}
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
                             >
-                                <Filter size={14} />
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
                             </button>
-                        )}
 
-                        {/* 宏预览 */}
-                        <button
-                            onClick={() => {
-                                const summaries = MacroService.getSummaries() || '(无剧情摘要)';
-                                const entities = MacroService.getEntityStates() || '(无实体状态)';
-                                setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
-                                setShowPreview(true);
-                            }}
-                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                            title="查看当前注入内容"
-                        >
-                            <FileText size={14} />
-                        </button>
+                            {/* Mobile Actions Dropdown */}
+                            {showMobileActions && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={closeMobileActions} />
+                                    <div className="absolute right-0 top-full mt-2 w-40 bg-background border border-border rounded-md shadow-lg py-1 z-50 flex flex-col">
+                                        <button
+                                            onClick={() => { handleOpenImportModal(); closeMobileActions(); }}
+                                            className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                        >
+                                            <Database size={14} className="text-muted-foreground" />
+                                            合并导入
+                                        </button>
+
+                                        {viewTab === 'list' && (
+                                            <>
+                                                <button
+                                                    onClick={() => { handleReembedAll(); closeMobileActions(); }}
+                                                    disabled={isReembedding}
+                                                    className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left disabled:opacity-50"
+                                                >
+                                                    <Sparkles size={14} className={isReembedding ? 'text-primary animate-pulse' : 'text-muted-foreground'} />
+                                                    {isReembedding ? '嵌入中...' : '重嵌'}
+                                                </button>
+
+                                                <button
+                                                    onClick={() => { setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); closeMobileActions(); }}
+                                                    className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                                >
+                                                    <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180 text-primary' : 'text-muted-foreground'} />
+                                                    排序: {sortOrder === 'asc' ? '旧到新' : '新到旧'}
+                                                </button>
+
+                                                <button
+                                                    onClick={() => { setShowActiveOnly(prev => !prev); closeMobileActions(); }}
+                                                    className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                                >
+                                                    <Filter size={14} className={showActiveOnly ? 'text-primary' : 'text-muted-foreground'} />
+                                                    {showActiveOnly ? '显示全部' : '只看激活'}
+                                                </button>
+                                            </>
+                                        )}
+
+                                        <button
+                                            onClick={() => {
+                                                const summaries = MacroService.getSummaries() || '(无剧情摘要)';
+                                                const entities = MacroService.getEntityStates() || '(无实体状态)';
+                                                setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
+                                                setShowPreview(true);
+                                                closeMobileActions();
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                        >
+                                            <FileText size={14} className="text-muted-foreground" />
+                                            宏预览
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                     </div>
                 }
             />

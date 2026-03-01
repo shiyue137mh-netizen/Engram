@@ -53895,11 +53895,11 @@ ${Ee.trim()}`;
     /* @__PURE__ */ o.jsx("div", { className: "h-4" }),
     " "
   ] });
-  return t ? /* @__PURE__ */ o.jsxs("div", { className: "fixed inset-0 bg-background z-50 flex flex-col", style: { height: "100dvh" }, children: [
+  return t ? /* @__PURE__ */ o.jsxs("div", { className: "h-full flex flex-col bg-background", children: [
     /* @__PURE__ */ o.jsxs("div", { className: "flex items-center gap-3 px-4 py-3 border-b border-border shrink-0", children: [
-      /* @__PURE__ */ o.jsx("button", { onClick: s, className: "p-1 rounded hover:bg-muted", children: /* @__PURE__ */ o.jsx($1, { size: 20 }) }),
-      /* @__PURE__ */ o.jsx("h2", { className: "text-lg font-light flex-1", children: "编辑实体" }),
-      /* @__PURE__ */ o.jsx("button", { onClick: () => t && (r == null ? void 0 : r(e.id)), className: "p-2 text-destructive", children: /* @__PURE__ */ o.jsx(Vs, { size: 18 }) })
+      /* @__PURE__ */ o.jsx("button", { onClick: s, className: "p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors", children: /* @__PURE__ */ o.jsx($1, { size: 18 }) }),
+      /* @__PURE__ */ o.jsx("h2", { className: "text-sm font-medium flex-1", children: "编辑实体" }),
+      /* @__PURE__ */ o.jsx("button", { onClick: () => t && (r == null ? void 0 : r(e.id)), className: "p-1.5 text-destructive hover:bg-destructive/10 rounded", children: /* @__PURE__ */ o.jsx(Vs, { size: 16 }) })
     ] }),
     /* @__PURE__ */ o.jsx("div", { className: "flex-1 overflow-y-auto p-4 space-y-4", children: le })
   ] }) : /* @__PURE__ */ o.jsxs("div", { className: "h-full flex flex-col", children: [
