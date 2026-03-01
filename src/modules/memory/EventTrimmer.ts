@@ -198,10 +198,10 @@ class EventTrimmer {
 
         triggered = currentValue >= threshold;
 
-        // 待合并条目
+        // 待合并条目 —— 复用 getEventsToMerge 确保口径一致（仅统计 level 0 未归档事件）
         const keepCount = limitConfig.keepRecentCount || 3;
-        // V1.0.5: 使用 activeEventCount
-        const pendingEntryCount = Math.max(0, activeEventCount - keepCount);
+        const eventsToMerge = await store.getEventsToMerge(keepCount);
+        const pendingEntryCount = eventsToMerge.length;
 
         return {
             triggered,

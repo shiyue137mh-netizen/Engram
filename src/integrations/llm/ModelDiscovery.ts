@@ -119,7 +119,9 @@ export class ModelService {
     static async fetchOllamaModels(config: FetchModelsConfig): Promise<ModelInfo[]> {
         const { apiUrl, timeout = this.DEFAULT_TIMEOUT } = config;
 
-        const baseUrl = apiUrl.replace(/\/+$/, '');
+        // 智能提取 base URL：移除末尾斜杠和可能的 /api/... 路径
+        let baseUrl = apiUrl.replace(/\/+$/, '');
+        baseUrl = baseUrl.replace(/\/api\/(embeddings?|tags)$/, '');
         const tagsUrl = `${baseUrl}/api/tags`;
 
         try {

@@ -1,11 +1,11 @@
 /**
  * 向量化配置表单
  */
-import React, { useState } from 'react';
-import { TextField, SelectField, FormSection, SearchableSelectField } from '@/ui/components/form/FormComponents';
 import type { VectorConfig, VectorSource } from '@/config/types/rag';
-import { RefreshCw, Loader2 } from 'lucide-react';
-import { ModelService, ModelInfo, ModelAPIType } from '@/integrations/llm/ModelDiscovery';
+import { ModelAPIType, ModelInfo, ModelService } from '@/integrations/llm/ModelDiscovery';
+import { FormSection, SearchableSelectField, SelectField, TextField } from '@/ui/components/form/FormComponents';
+import { Loader2, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
 
 
 interface VectorConfigFormProps {
@@ -158,7 +158,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                             onChange={(e) => updateConfig({ apiUrl: e.target.value })}
                             placeholder={
                                 config.source === 'ollama'
-                                    ? 'http://localhost:11434/api/embeddings'
+                                    ? 'http://localhost:11434'
                                     : 'http://localhost:8000'
                             }
                             style={{
@@ -176,7 +176,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                         />
                         <p className="text-[10px] text-muted-foreground/70 break-all">
                             {config.source === 'ollama'
-                                ? '需输入完整路径，如 /api/embeddings'
+                                ? '填写 base URL 即可，会自动拼接 /api/embeddings'
                                 : (config.autoSuffix !== false && config.apiUrl)
                                     ? `完整 URL: ${config.apiUrl.replace(/\/+$/, '')}/embeddings`
                                     : '输入 base URL (如 http://xxx/v1)，将自动添加 /embeddings 后缀'

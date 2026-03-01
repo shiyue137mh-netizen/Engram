@@ -279,7 +279,15 @@ export class EmbeddingService {
      * Ollama API 调用
      */
     private async callOllama(text: string, config: VectorConfig): Promise<number[]> {
-        const endpoint = config.apiUrl || DEFAULT_ENDPOINTS.ollama!;
+        let endpoint = config.apiUrl || DEFAULT_ENDPOINTS.ollama!;
+
+        // 智能 URL 处理：
+        // - 如果已包含 /api/embed 或 /api/embeddings 路径，直接使用
+        // - 否则当作 base URL，自动拼接 /api/embeddings
+        endpoint = endpoint.replace(/\/+$/, '');
+        if (!endpoint.includes('/api/embed')) {
+            endpoint = `${endpoint}/api/embeddings`;
+        }
 
         // 智能判断是否为新版 API (/api/embed)
         // 新版 API 使用 "input" 字段，旧版使用 "prompt" 字段
