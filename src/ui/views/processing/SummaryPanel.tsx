@@ -7,15 +7,15 @@
  * - 状态项按重要性区分字体大小
  * - 去卡片化，使用细线分割
  */
-import React, { useState, useEffect } from 'react';
-import { Play, Pause, RefreshCw, CheckCircle2, AlertCircle, Scissors, Calculator, Layers, Hash } from 'lucide-react';
 import type { TrimTriggerType } from '@/config/types/memory';
+import { AlertCircle, Calculator, CheckCircle2, Hash, Pause, Play, RefreshCw, Scissors } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 // import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService'; // V0.7 Deprecated
-import { DEFAULT_TRIM_CONFIG, type TrimConfig } from '@/modules/memory/EventTrimmer';
+import { type TrimConfig } from '@/modules/memory/EventTrimmer';
 
-import { NumberField, SwitchField, FormSection, SelectField } from '@/ui/components/form/FormComponents';
-import { Divider } from "@/ui/components/layout/Divider";
 import type { TrimmerStatus } from "@/modules/memory";
+import { SwitchField } from '@/ui/components/form/FormComponents';
+import { Divider } from "@/ui/components/layout/Divider";
 import type { UseSummarizerConfigReturn } from '@/ui/hooks/useSummarizerConfig';
 
 interface SummarizerStatus {
@@ -55,7 +55,9 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
     const [trimStatus, setTrimStatus] = useState<TrimmerStatus | null>(null);
     const [worldbookTokens, setWorldbookTokens] = useState<number>(0);
     const [activeEventCount, setActiveEventCount] = useState<number>(0);  // V0.7.1: 蓝灯数
-
+    const [extractedFloor, setExtractedFloor] = useState<number>(0);
+    const [editSummarizedFloor, setEditSummarizedFloor] = useState<number>(0);
+    const [editExtractedFloor, setEditExtractedFloor] = useState<number>(0);
 
     useEffect(() => {
         loadStatus();
@@ -82,8 +84,43 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             const { totalTokens, activeEventCount: activeCount } = await store.countEventTokens();
             setWorldbookTokens(totalTokens);
             setActiveEventCount(activeCount);  // 蓝灯数
+
+            const { entityBuilder } = await import('@/modules/memory/EntityExtractor');
+            const entityStatus = await entityBuilder.getStatus();
+            setExtractedFloor(entityStatus.lastExtractedFloor || 0);
+
+            // Sync edit buffers
+            setEditSummarizedFloor(currentStatus.lastSummarizedFloor);
+            setEditExtractedFloor(entityStatus.lastExtractedFloor || 0);
+
         } catch (e) {
             console.error('加载 Summarizer 状态失败:', e);
+        }
+    };
+
+    const handleSetSummarizedFloor = async () => {
+        try {
+            const { summarizerService } = await import('@/modules/memory');
+            await summarizerService.setLastSummarizedFloor(editSummarizedFloor);
+            await loadStatus();
+            import('@/ui/services/NotificationService').then(({ notificationService }) => {
+                notificationService.success(`总结指针已更新至 ${editSummarizedFloor}`, 'Engram');
+            });
+        } catch (e) {
+            console.error('修改总结指针失败:', e);
+        }
+    };
+
+    const handleSetExtractedFloor = async () => {
+        try {
+            const { chatManager } = await import('@/data/ChatManager');
+            await chatManager.updateState({ last_extracted_floor: editExtractedFloor });
+            await loadStatus();
+            import('@/ui/services/NotificationService').then(({ notificationService }) => {
+                notificationService.success(`提取指针已更新至 ${editExtractedFloor}`, 'Engram');
+            });
+        } catch (e) {
+            console.error('修改提取指针失败:', e);
         }
     };
 
@@ -233,7 +270,52 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                             {/* 分割线 */}
                             <Divider length={30} spacing="md" />
 
-                            {/* 第三层级：信息 - 世界书 Token */}
+                            {/* 第三层级：指针管理 */}
+                            <div className="grid grid-cols-2 gap-6">
+                                <div>
+                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">总结指针 (已处理)</span>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={editSummarizedFloor}
+                                            onChange={(e) => setEditSummarizedFloor(Number(e.target.value))}
+                                            className="w-16 bg-transparent border-b border-border/50 focus:border-primary outline-none transition-colors text-xl font-mono text-foreground/80 pb-0.5"
+                                        />
+                                        <button
+                                            onClick={handleSetSummarizedFloor}
+                                            disabled={status.lastSummarizedFloor === editSummarizedFloor}
+                                            className="text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+                                        >
+                                            设置
+                                        </button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">提取指针 (已处理)</span>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={editExtractedFloor}
+                                            onChange={(e) => setEditExtractedFloor(Number(e.target.value))}
+                                            className="w-16 bg-transparent border-b border-border/50 focus:border-primary outline-none transition-colors text-xl font-mono text-foreground/80 pb-0.5"
+                                        />
+                                        <button
+                                            onClick={handleSetExtractedFloor}
+                                            disabled={extractedFloor === editExtractedFloor}
+                                            className="text-[10px] px-2 py-1 rounded bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 transition-colors"
+                                        >
+                                            设置
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 分割线 */}
+                            <Divider length={30} spacing="md" />
+
+                            {/* 第四层级：信息 - 世界书 Token */}
                             <div>
                                 <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider block mb-1">已总结内容 Token (Engram)</span>
                                 <div className="text-sm font-mono text-primary/80">{worldbookTokens.toLocaleString()}</div>
