@@ -1,9 +1,10 @@
-import React from 'react';
-import { Plus, FileText, RotateCcw } from 'lucide-react';
-import { PromptTemplateCard } from './PromptTemplateCard';
+import { createPromptTemplate } from '@/config/types/defaults';
 import type { PromptTemplate } from '@/config/types/prompt';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';
-import { createPromptTemplate } from '@/config/types/defaults';
+import { AnimatePresence, motion } from 'framer-motion';
+import { FileText, Plus, RotateCcw } from 'lucide-react';
+import React from 'react';
+import { PromptTemplateCard } from './PromptTemplateCard';
 
 interface PromptTemplateListProps {
     templates: PromptTemplate[];
@@ -104,27 +105,37 @@ export const PromptTemplateList: React.FC<PromptTemplateListProps> = ({
             {/* 模板列表 */}
             <div className="flex flex-col gap-6 overflow-y-auto flex-1 no-scrollbar">
                 {groupedTemplates.map((group) => (
-                    <div key={group.value} className="flex flex-col gap-2">
-                        <div className="text-[10px] items-center gap-2 text-muted-foreground font-medium px-1 uppercase tracking-wider flex">
+                    <motion.div layout key={group.value} className="flex flex-col gap-2">
+                        <motion.div layout className="text-[10px] items-center gap-2 text-muted-foreground font-medium px-1 uppercase tracking-wider flex">
                             {group.label}
                             <div className="h-px bg-border flex-1"></div>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            {group.templates.map((template) => (
-                                <PromptTemplateCard
-                                    key={template.id}
-                                    template={template}
-                                    isSelected={selectedId === template.id}
-                                    onSelect={() => onSelect(template)}
-                                    onCopy={() => handleCopy(template)}
-                                    onDelete={() => onDelete(template)}
-                                    onToggleEnabled={(enabled) => handleToggleEnabled(template, enabled)}
-                                    onImport={handleImport}
-                                    onResetToDefault={(resetTemplate) => onUpdate(resetTemplate)}
-                                />
-                            ))}
-                        </div>
-                    </div>
+                        </motion.div>
+                        <motion.div layout className="flex flex-col gap-1">
+                            <AnimatePresence initial={false}>
+                                {group.templates.map((template) => (
+                                    <motion.div
+                                        key={template.id}
+                                        layout
+                                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.9, y: -10, transition: { duration: 0.2 } }}
+                                        transition={{ duration: 0.3 }}
+                                    >
+                                        <PromptTemplateCard
+                                            template={template}
+                                            isSelected={selectedId === template.id}
+                                            onSelect={() => onSelect(template)}
+                                            onCopy={() => handleCopy(template)}
+                                            onDelete={() => onDelete(template)}
+                                            onToggleEnabled={(enabled) => handleToggleEnabled(template, enabled)}
+                                            onImport={handleImport}
+                                            onResetToDefault={(resetTemplate) => onUpdate(resetTemplate)}
+                                        />
+                                    </motion.div>
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
+                    </motion.div>
                 ))}
 
                 {templates.length === 0 && (

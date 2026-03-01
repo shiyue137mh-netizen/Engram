@@ -8,7 +8,10 @@ import { PageTitle } from "@/ui/components/display/PageTitle";
 import { EmptyState } from '@/ui/components/feedback/EmptyState';
 import { Divider } from "@/ui/components/layout/Divider";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
+import { MasterDetailLayout } from "@/ui/components/layout/MasterDetailLayout";
+import { MobileFullscreenForm } from "@/ui/components/layout/MobileFullscreenForm";
 import { Tab } from "@/ui/components/layout/TabPills";
+import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDownUp, Brain, Database, FileText, Filter, List, RefreshCw, Save, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EntityCard } from './components/EntityCard'; // Import EntityCard
@@ -462,7 +465,7 @@ export const MemoryStream: React.FC = () => {
     const currentInfo = TAB_INFO[viewTab];
 
     return (
-        <div className="flex flex-col h-full animate-in fade-in overflow-hidden">
+        <div className="flex flex-col h-full animate-in fade-in overflow-hidden absolute inset-0">
             <PageTitle
                 breadcrumbs={['记忆编辑']}
                 title={currentInfo.title}
@@ -516,320 +519,387 @@ export const MemoryStream: React.FC = () => {
                             </button>
                         )}
 
-                        {/* Desktop Advanced Actions */}
-                        <div className="hidden md:flex items-center gap-2">
-                            {/* 导入外部/历史数据库按钮 */}
-                            <button
-                                onClick={handleOpenImportModal}
-                                className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors"
-                                title="导入历史分卷/外部库"
-                            >
-                                <Database size={12} />
-                                合并导入
-                            </button>
-
-                            {/* 重嵌按钮 (Events only) */}
-                            {viewTab === 'list' && (
+                        {/* Dynamic Actions Based on JS isMobile check */}
+                        {!isMobile ? (
+                            <div className="flex items-center gap-2 ml-1">
+                                {/* 导入外部/历史数据库按钮 */}
                                 <button
-                                    onClick={handleReembedAll}
-                                    disabled={isReembedding}
-                                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors disabled:opacity-50"
-                                    title="重新嵌入所有事件"
+                                    onClick={handleOpenImportModal}
+                                    className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors"
+                                    title="导入历史分卷/外部库"
                                 >
-                                    <Sparkles size={12} className={isReembedding ? 'animate-pulse' : ''} />
-                                    {isReembedding ? '嵌入中...' : '重嵌'}
+                                    <Database size={12} />
+                                    合并导入
                                 </button>
-                            )}
 
-                            {/* Divider */}
-                            <div className="w-[1px] h-4 bg-border mx-1" />
+                                {/* 重嵌按钮 (Events only) */}
+                                {viewTab === 'list' && (
+                                    <button
+                                        onClick={handleReembedAll}
+                                        disabled={isReembedding}
+                                        className="inline-flex items-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded transition-colors disabled:opacity-50"
+                                        title="重新嵌入所有事件"
+                                    >
+                                        <Sparkles size={12} className={isReembedding ? 'animate-pulse' : ''} />
+                                        {isReembedding ? '嵌入中...' : '重嵌'}
+                                    </button>
+                                )}
 
-                            {/* 排序切换 */}
-                            {viewTab === 'list' && (
+                                {/* Divider */}
+                                <div className="w-[1px] h-4 bg-border mx-1" />
+
+                                {/* 排序切换 */}
+                                {viewTab === 'list' && (
+                                    <button
+                                        onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
+                                        title={sortOrder === 'asc' ? '当前: 旧 -> 新' : '当前: 新 -> 旧'}
+                                    >
+                                        <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+                                    </button>
+                                )}
+
+                                {/* 激活筛选 */}
+                                {viewTab === 'list' && (
+                                    <button
+                                        onClick={() => setShowActiveOnly(prev => !prev)}
+                                        className={`p-1.5 rounded-md transition-colors ${showActiveOnly ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
+                                        title={showActiveOnly ? '显示全部' : '只看激活 (Recall)'}
+                                    >
+                                        <Filter size={14} />
+                                    </button>
+                                )}
+
+                                {/* 宏预览 */}
                                 <button
-                                    onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                                    onClick={() => {
+                                        const summaries = MacroService.getSummaries() || '(无剧情摘要)';
+                                        const entities = MacroService.getEntityStates() || '(无实体状态)';
+                                        setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
+                                        setShowPreview(true);
+                                    }}
                                     className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                                    title={sortOrder === 'asc' ? '当前: 旧 -> 新' : '当前: 新 -> 旧'}
+                                    title="查看当前注入内容"
                                 >
-                                    <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180' : ''} />
+                                    <FileText size={14} />
                                 </button>
-                            )}
-
-                            {/* 激活筛选 */}
-                            {viewTab === 'list' && (
+                            </div>
+                        ) : (
+                            <div className="relative">
                                 <button
-                                    onClick={() => setShowActiveOnly(prev => !prev)}
-                                    className={`p-1.5 rounded-md transition-colors ${showActiveOnly ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground'}`}
-                                    title={showActiveOnly ? '显示全部' : '只看激活 (Recall)'}
+                                    onClick={() => setShowMobileActions(!showMobileActions)}
+                                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    <Filter size={14} />
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
                                 </button>
-                            )}
 
-                            {/* 宏预览 */}
-                            <button
-                                onClick={() => {
-                                    const summaries = MacroService.getSummaries() || '(无剧情摘要)';
-                                    const entities = MacroService.getEntityStates() || '(无实体状态)';
-                                    setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
-                                    setShowPreview(true);
-                                }}
-                                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                                title="查看当前注入内容"
-                            >
-                                <FileText size={14} />
-                            </button>
-                        </div>
+                                {/* Mobile Actions Dropdown */}
+                                {showMobileActions && (
+                                    <>
+                                        <div className="fixed inset-0 z-40" onClick={closeMobileActions} />
+                                        <div className="absolute right-0 top-full mt-2 w-40 bg-background border border-border rounded-md shadow-lg py-1 z-50 flex flex-col">
+                                            <button
+                                                onClick={() => { handleOpenImportModal(); closeMobileActions(); }}
+                                                className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                            >
+                                                <Database size={14} className="text-muted-foreground" />
+                                                合并导入
+                                            </button>
 
-                        {/* Mobile More Actions Button */}
-                        <div className="md:hidden">
-                            <button
-                                onClick={() => setShowMobileActions(!showMobileActions)}
-                                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></svg>
-                            </button>
+                                            {viewTab === 'list' && (
+                                                <>
+                                                    <button
+                                                        onClick={() => { handleReembedAll(); closeMobileActions(); }}
+                                                        disabled={isReembedding}
+                                                        className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left disabled:opacity-50"
+                                                    >
+                                                        <Sparkles size={14} className={isReembedding ? 'text-primary animate-pulse' : 'text-muted-foreground'} />
+                                                        {isReembedding ? '嵌入中...' : '重嵌'}
+                                                    </button>
 
-                            {/* Mobile Actions Dropdown */}
-                            {showMobileActions && (
-                                <>
-                                    <div className="fixed inset-0 z-40" onClick={closeMobileActions} />
-                                    <div className="absolute right-0 top-full mt-2 w-40 bg-background border border-border rounded-md shadow-lg py-1 z-50 flex flex-col">
-                                        <button
-                                            onClick={() => { handleOpenImportModal(); closeMobileActions(); }}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
-                                        >
-                                            <Database size={14} className="text-muted-foreground" />
-                                            合并导入
-                                        </button>
+                                                    <button
+                                                        onClick={() => { setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); closeMobileActions(); }}
+                                                        className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                                    >
+                                                        <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180 text-primary' : 'text-muted-foreground'} />
+                                                        排序: {sortOrder === 'asc' ? '旧到新' : '新到旧'}
+                                                    </button>
 
-                                        {viewTab === 'list' && (
-                                            <>
-                                                <button
-                                                    onClick={() => { handleReembedAll(); closeMobileActions(); }}
-                                                    disabled={isReembedding}
-                                                    className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left disabled:opacity-50"
-                                                >
-                                                    <Sparkles size={14} className={isReembedding ? 'text-primary animate-pulse' : 'text-muted-foreground'} />
-                                                    {isReembedding ? '嵌入中...' : '重嵌'}
-                                                </button>
+                                                    <button
+                                                        onClick={() => { setShowActiveOnly(prev => !prev); closeMobileActions(); }}
+                                                        className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                                    >
+                                                        <Filter size={14} className={showActiveOnly ? 'text-primary' : 'text-muted-foreground'} />
+                                                        {showActiveOnly ? '显示全部' : '只看激活'}
+                                                    </button>
+                                                </>
+                                            )}
 
-                                                <button
-                                                    onClick={() => { setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc'); closeMobileActions(); }}
-                                                    className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
-                                                >
-                                                    <ArrowDownUp size={14} className={sortOrder === 'desc' ? 'rotate-180 text-primary' : 'text-muted-foreground'} />
-                                                    排序: {sortOrder === 'asc' ? '旧到新' : '新到旧'}
-                                                </button>
-
-                                                <button
-                                                    onClick={() => { setShowActiveOnly(prev => !prev); closeMobileActions(); }}
-                                                    className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
-                                                >
-                                                    <Filter size={14} className={showActiveOnly ? 'text-primary' : 'text-muted-foreground'} />
-                                                    {showActiveOnly ? '显示全部' : '只看激活'}
-                                                </button>
-                                            </>
-                                        )}
-
-                                        <button
-                                            onClick={() => {
-                                                const summaries = MacroService.getSummaries() || '(无剧情摘要)';
-                                                const entities = MacroService.getEntityStates() || '(无实体状态)';
-                                                setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
-                                                setShowPreview(true);
-                                                closeMobileActions();
-                                            }}
-                                            className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
-                                        >
-                                            <FileText size={14} className="text-muted-foreground" />
-                                            宏预览
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                            <button
+                                                onClick={() => {
+                                                    const summaries = MacroService.getSummaries() || '(无剧情摘要)';
+                                                    const entities = MacroService.getEntityStates() || '(无实体状态)';
+                                                    setPreviewContent(`--- [Engram Summaries] ---\n${summaries}\n\n--- [Engram Entity States] ---\n${entities}`);
+                                                    setShowPreview(true);
+                                                    closeMobileActions();
+                                                }}
+                                                className="flex items-center gap-2 px-3 py-2 text-xs text-foreground hover:bg-muted text-left"
+                                            >
+                                                <FileText size={14} className="text-muted-foreground" />
+                                                宏预览
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                 }
             />
 
             {/* View Area */}
-            <div
-                className="flex flex-col overflow-hidden relative"
-                style={{
-                    height: 'calc(100vh - 100px)',
-                    minHeight: '300px',
-                }}
-            >
-                {/* 搜索框 (Both Lists) */}
-                {viewMode === 'browse' && (
-                    <div className="relative mb-4 shrink-0 px-1">
-                        <Search size={14} className="absolute left-1 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={viewTab === 'list' ? "搜索事件..." : "搜索实体..."}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                borderBottom: '1px solid var(--border)',
-                                borderRadius: 0,
-                                outline: 'none',
-                                padding: '8px 0 8px 24px',
-                                fontSize: '14px',
-                                width: '100%',
-                                color: 'var(--foreground)',
-                            }}
-                            className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
-                        />
-                    </div>
-                )}
-
-                {/* List View */}
-                {viewTab === 'list' && viewMode === 'browse' && (
-                    <div className="flex-1 overflow-y-auto no-scrollbar" ref={listRef}>
-                        {isLoading ? (
-                            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-                                <RefreshCw size={24} className="animate-spin" />
-                                <p className="text-sm font-light">加载中...</p>
-                            </div>
-                        ) : filteredEvents.length === 0 ? (
-                            <EmptyState
-                                icon={Brain}
-                                title={searchQuery ? '没有找到匹配的事件' : '暂无记忆事件'}
-                                description={!searchQuery ? "开始聊天后将自动记录" : undefined}
-                            />
-                        ) : (
-                            <div className="space-y-6 pb-4 px-2">
-                                {groupedEvents.map(group => {
-                                    // 检查组内是否全部被选中
-                                    const allChecked = group.events.length > 0 && group.events.every(e => checkedIds.has(e.id));
-                                    const someChecked = group.events.some(e => checkedIds.has(e.id));
-
-                                    return (
-                                        <div key={group.key} className="relative">
-                                            {/* 分组头部：使用半透明背景标识 */}
-                                            <div className="flex items-center gap-3 mb-4 sticky top-0 z-10 bg-background/95 backdrop-blur py-2">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={allChecked}
-                                                    ref={input => {
-                                                        if (input) {
-                                                            input.indeterminate = !allChecked && someChecked;
-                                                        }
-                                                    }}
-                                                    onChange={(e) => {
-                                                        const checked = e.target.checked;
-                                                        const newSet = new Set(checkedIds);
-                                                        group.events.forEach(ev => {
-                                                            if (checked) newSet.add(ev.id);
-                                                            else newSet.delete(ev.id);
-                                                        });
-                                                        setCheckedIds(newSet);
-                                                    }}
-                                                    className="w-4 h-4 rounded border-border accent-primary shrink-0"
-                                                />
-                                                <div className="text-xs font-medium text-foreground bg-muted/50 px-3 py-1.5 rounded-full border border-border/50 shadow-sm">
-                                                    {group.title}
-                                                </div>
-                                                <div className="h-[1px] flex-1 bg-border/50" />
-                                                <span className="text-[10px] text-muted-foreground mr-2">{group.events.length} 项</span>
-                                            </div>
-
-                                            {/* 组内容树状结构 */}
-                                            <div className="relative pl-6 space-y-3">
-                                                {/* 垂直主干线 */}
-                                                <div className="absolute left-[11px] top-4 bottom-6 w-[1px] bg-border transition-colors group-hover:bg-primary/30" />
-
-                                                {group.events.map((event, index) => (
-                                                    <div key={event.id} className="relative group/card">
-                                                        {/* 横向分支线 */}
-                                                        <div className="absolute -left-6 top-1/2 w-[20px] h-[1px] bg-border transition-colors group-hover/card:bg-primary/50" />
-
-                                                        {/* 分支节点小圆点 */}
-                                                        <div className="absolute -left-6 top-1/2 -translate-y-1/2 -translate-x-[2px] w-1.5 h-1.5 rounded-full bg-border transition-colors group-hover/card:bg-primary/50" />
-
-                                                        <EventCard
-                                                            event={event}
-                                                            isSelected={false} // list only
-                                                            isCompact={false} // Use full card view
-                                                            isActive={activeIds.has(event.id)}
-                                                            checked={checkedIds.has(event.id)}
-                                                            hasChanges={pendingChanges.has(event.id)}
-                                                            onSelect={() => handleSelect(event.id)}
-                                                            onCheck={(checked) => handleCheck(event.id, checked)}
-                                                            className={event.level > 0 ? 'bg-primary/5 border-primary/20 shadow-sm' : ''} // 重点高亮总结
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Entities View */}
-                {viewTab === 'entities' && viewMode === 'browse' && (
-                    <div className="flex-1 overflow-y-auto no-scrollbar">
-                        {isLoading ? (
-                            <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
-                                <RefreshCw size={24} className="animate-spin" />
-                                <p className="text-sm font-light">加载中...</p>
-                            </div>
-                        ) : filteredEntities.length === 0 ? (
-                            <EmptyState
-                                icon={Users}
-                                title={searchQuery ? '没有找到匹配的实体' : '暂无实体'}
-                                description={!searchQuery ? "请先执行实体提取" : undefined}
-                            />
-                        ) : (
-                            <div className="space-y-4 pb-4">
-                                {filteredEntities.map(entity => (
-                                    <EntityCard
-                                        key={entity.id}
-                                        entity={entity}
-                                        isSelected={false}
-                                        isCompact={false}
-                                        checked={checkedIds.has(entity.id)}
-                                        onSelect={() => handleSelect(entity.id)}
-                                        onCheck={(checked) => handleCheck(entity.id, checked)}
+            <div className="flex-1 min-h-0 overflow-hidden relative">
+                <MasterDetailLayout
+                    listWidth={viewMode === 'edit' ? '320px' : '100%'}
+                    mobileDetailOpen={false} // 我们手动在同级外挂移动端全屏表单
+                    list={
+                        <div className="flex flex-col min-h-0 h-full w-full">
+                            {/* 搜索框 (Both Lists) */}
+                            {viewMode === 'browse' && (
+                                <div className="relative mb-4 shrink-0 px-1">
+                                    <Search size={14} className="absolute left-1 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                    <input
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        placeholder={viewTab === 'list' ? "搜索事件..." : "搜索实体..."}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            borderBottom: '1px solid var(--border)',
+                                            borderRadius: 0,
+                                            outline: 'none',
+                                            padding: '8px 0 8px 24px',
+                                            fontSize: '14px',
+                                            width: '100%',
+                                            color: 'var(--foreground)',
+                                        }}
+                                        className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
                                     />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                                </div>
+                            )}
 
-                {/* Editor Overlays in Edit Mode (in place, taking full height of container) */}
-                {viewMode === 'edit' && viewTab === 'list' && selectedEvent && (
-                    <div className="absolute inset-0 bg-background z-10 flex flex-col">
+                            {/* List View */}
+                            {viewTab === 'list' && (
+                                <div className="flex-1 overflow-y-auto no-scrollbar pb-4 pr-1">
+                                    {isLoading ? (
+                                        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
+                                            <RefreshCw size={24} className="animate-spin" />
+                                            <p className="text-sm font-light">加载中...</p>
+                                        </div>
+                                    ) : filteredEvents.length === 0 ? (
+                                        <EmptyState
+                                            icon={Brain}
+                                            title={searchQuery ? '没有找到匹配的事件' : '暂无记忆事件'}
+                                            description={!searchQuery ? "开始聊天后将自动记录" : undefined}
+                                        />
+                                    ) : (
+                                        <div className="space-y-6">
+                                            {groupedEvents.map(group => {
+                                                const allChecked = group.events.length > 0 && group.events.every(e => checkedIds.has(e.id));
+                                                const someChecked = group.events.some(e => checkedIds.has(e.id));
+
+                                                return (
+                                                    <div key={group.key} className="relative">
+                                                        {/* 分组头部：使用半透明背景标识 */}
+                                                        <div
+                                                            className="flex items-center gap-3 mb-4 sticky top-0 z-10 py-2"
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={allChecked}
+                                                                ref={input => {
+                                                                    if (input) {
+                                                                        input.indeterminate = !allChecked && someChecked;
+                                                                    }
+                                                                }}
+                                                                onChange={(e) => {
+                                                                    const checked = e.target.checked;
+                                                                    const newSet = new Set(checkedIds);
+                                                                    group.events.forEach(ev => {
+                                                                        if (checked) newSet.add(ev.id);
+                                                                        else newSet.delete(ev.id);
+                                                                    });
+                                                                    setCheckedIds(newSet);
+                                                                }}
+                                                                className="w-4 h-4 rounded border-border accent-primary shrink-0"
+                                                            />
+                                                            <div
+                                                                className="text-xs font-medium text-foreground px-3 py-1.5 rounded-full border border-border/50 shadow-sm backdrop-blur-md"
+                                                                style={{ backgroundColor: 'var(--SmartThemeChatColor, var(--bg-color, var(--background, #1e1e1e)))' }}
+                                                            >
+                                                                {group.title}
+                                                            </div>
+                                                            <div className="h-[1px] flex-1 bg-border/50" />
+                                                            <span className="text-[10px] text-muted-foreground mr-2">{group.events.length} 项</span>
+                                                        </div>
+
+                                                        {/* 组内容树状结构 - 经典目录树风格 */}
+                                                        <motion.div layout className="relative pl-6 mt-2 pt-1">
+                                                            <AnimatePresence mode='popLayout'>
+                                                                {group.events.map((event, index) => {
+                                                                    const isLast = index === group.events.length - 1;
+                                                                    return (
+                                                                        <motion.div
+                                                                            layout
+                                                                            key={event.id}
+                                                                            initial={{ opacity: 0, x: -10 }}
+                                                                            animate={{ opacity: 1, x: 0 }}
+                                                                            exit={{ opacity: 0, x: -10 }}
+                                                                            transition={{ duration: 0.2 }}
+                                                                            className="relative group/card pb-3"
+                                                                        >
+                                                                            {/* 垂直主干线 */}
+                                                                            <div
+                                                                                className="absolute -left-3 top-[-10px] w-[2px] bg-foreground transition-colors opacity-20 group-hover/card:bg-primary group-hover/card:opacity-50 z-0"
+                                                                                style={{ height: isLast ? 'calc(50% + 10px - 6px)' : 'calc(100% + 10px)' }}
+                                                                            />
+                                                                            {/* 横向分支线 */}
+                                                                            <div className="absolute -left-3 top-[calc(50%-6px)] w-3 h-[2px] bg-foreground transition-colors opacity-20 group-hover/card:bg-primary group-hover/card:opacity-50 z-0" />
+
+                                                                            {/* 圆点指示器 */}
+                                                                            <div className="absolute -left-[15px] top-[calc(50%-8px)] w-[6px] h-[6px] rounded-full bg-foreground opacity-30 transition-colors group-hover/card:bg-primary z-10" />
+
+                                                                            <div className="relative z-10 w-full">
+                                                                                <EventCard
+                                                                                    event={event}
+                                                                                    isSelected={viewMode === 'edit' && selectedId === event.id}
+                                                                                    isCompact={viewMode === 'edit'} // 在分栏时使用紧凑模式
+                                                                                    isActive={activeIds.has(event.id)}
+                                                                                    checked={checkedIds.has(event.id)}
+                                                                                    hasChanges={pendingChanges.has(event.id)}
+                                                                                    onSelect={() => handleSelect(event.id)}
+                                                                                    onCheck={(checked) => handleCheck(event.id, checked)}
+                                                                                    className={event.level > 0 ? 'bg-primary/5 border-primary/20 shadow-sm' : ''} // 重点高亮总结
+                                                                                />
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    );
+                                                                })}
+                                                            </AnimatePresence>
+                                                        </motion.div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )
+                                    }
+                                </div>
+                            )}
+
+                            {/* Entities View */}
+                            {viewTab === 'entities' && (
+                                <div className="flex-1 overflow-y-auto no-scrollbar pb-4 pr-1">
+                                    {isLoading ? (
+                                        <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-2">
+                                            <RefreshCw size={24} className="animate-spin" />
+                                            <p className="text-sm font-light">加载中...</p>
+                                        </div>
+                                    ) : filteredEntities.length === 0 ? (
+                                        <EmptyState
+                                            icon={Users}
+                                            title={searchQuery ? '没有找到匹配的实体' : '暂无实体'}
+                                            description={!searchQuery ? "请先执行实体提取" : undefined}
+                                        />
+                                    ) : (
+                                        <motion.div layout className={viewMode === 'browse' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
+                                            <AnimatePresence mode='popLayout'>
+                                                {filteredEntities.map(entity => (
+                                                    <motion.div
+                                                        layout
+                                                        key={entity.id}
+                                                        initial={{ opacity: 0, scale: 0.9 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0.9 }}
+                                                        transition={{ duration: 0.2 }}
+                                                    >
+                                                        <EntityCard
+                                                            entity={entity}
+                                                            isSelected={viewMode === 'edit' && selectedId === entity.id}
+                                                            isCompact={viewMode === 'edit'} // 编辑模式下紧凑，浏览模式下完整(网格)
+                                                            checked={checkedIds.has(entity.id)}
+                                                            onSelect={() => handleSelect(entity.id)}
+                                                            onCheck={(checked) => handleCheck(entity.id, checked)}
+                                                        />
+                                                    </motion.div>
+                                                ))}
+                                            </AnimatePresence>
+                                        </motion.div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    }
+                    detail={
+                        viewMode === 'edit' && !isMobile ? (
+                            <div className="h-full overflow-hidden bg-transparent">
+                                {viewTab === 'list' && selectedEvent && (
+                                    <EventEditor
+                                        ref={editorRef}
+                                        event={selectedEvent}
+                                        isFullScreen={false} // PC 侧边栏模式
+                                        onSave={handleEventChange}
+                                        onDelete={handleDelete}
+                                        onClose={handleCloseEditor}
+                                    />
+                                )}
+                                {viewTab === 'entities' && selectedEntity && (
+                                    <EntityEditor
+                                        entity={selectedEntity}
+                                        isFullScreen={false}
+                                        onSave={handleEntityChange}
+                                        onDelete={handleDelete}
+                                        onClose={handleCloseEditor}
+                                    />
+                                )}
+                            </div>
+                        ) : null
+                    }
+                />
+            </div>
+
+            {/* Mobile Edit Modal */}
+            {isMobile && viewMode === 'edit' && (
+                <MobileFullscreenForm
+                    title={viewTab === 'list' ? '编辑事件' : '编辑实体'}
+                    onClose={handleCloseEditor}
+                    actions={
+                        <button onClick={() => selectedId && handleDelete(selectedId)} className="p-1.5 hover:bg-destructive/10 rounded text-destructive mr-1 transition-colors">
+                            <Trash2 size={16} />
+                        </button>
+                    }
+                >
+                    {viewTab === 'list' && selectedEvent && (
                         <EventEditor
                             ref={editorRef}
                             event={selectedEvent}
-                            isFullScreen={true}
+                            isFullScreen={false}
                             onSave={handleEventChange}
                             onDelete={handleDelete}
                             onClose={handleCloseEditor}
                         />
-                    </div>
-                )}
-
-                {viewMode === 'edit' && viewTab === 'entities' && selectedEntity && (
-                    <div className="absolute inset-0 bg-background z-10 flex flex-col">
+                    )}
+                    {viewTab === 'entities' && selectedEntity && (
                         <EntityEditor
                             entity={selectedEntity}
-                            isFullScreen={true}
+                            isFullScreen={false}
                             onSave={handleEntityChange}
                             onDelete={handleDelete}
                             onClose={handleCloseEditor}
                         />
-                    </div>
-                )}
-            </div>
+                    )}
+                </MobileFullscreenForm>
+            )}
 
             {/* Preview Modal */}
             {showPreview && (

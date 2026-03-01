@@ -8,6 +8,7 @@
 import type { EventNode } from '@/data/types/graph';
 import { TextField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
+import { useResponsive } from '@/ui/hooks/useResponsive';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
@@ -105,6 +106,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     onDelete,
     onClose,
 }, ref) => {
+    const { isMobile } = useResponsive();
     // 编辑状态
     const [summary, setSummary] = useState('');
     const [eventType, setEventType] = useState('');
@@ -421,9 +423,9 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     // 全屏模式（移动端）
     if (isFullScreen) {
         return (
-            <div className="h-full flex flex-col bg-background">
+            <div className="h-full flex flex-col bg-transparent">
                 {/* 头部 */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 shrink-0">
                     <button
                         onClick={onClose}
                         className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors"
@@ -459,18 +461,26 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
 
     // 侧边栏模式（桌面端）
     return (
-        <div className="h-full flex flex-col">
-            {/* 头部 */}
-            <div className="flex items-center gap-2 pb-4 border-b border-border shrink-0">
-                <h3 className="text-sm font-medium text-primary flex-1">编辑事件</h3>
-                <button
-                    onClick={handleDelete}
-                    className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
-                    title="删除"
-                >
-                    <Trash2 size={16} />
-                </button>
-            </div>
+        <div className="h-full flex flex-col min-h-0">
+            {/* 头部 (桌面端显示，移动端由外部 Layout 处理) */}
+            {!isMobile && (
+                <div className="flex items-center gap-2 pb-4 border-b border-border shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors"
+                    >
+                        <ArrowLeft size={18} />
+                    </button>
+                    <h3 className="text-sm font-medium text-primary flex-1">编辑事件</h3>
+                    <button
+                        onClick={handleDelete}
+                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
+                        title="删除"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+            )}
 
             {/* 表单内容 - 独立滚动 */}
             <div className="flex-1 overflow-y-auto py-4 space-y-4 no-scrollbar">

@@ -3,10 +3,11 @@
  *
  * 支持 PC 端和移动端两种模式，复用导航配置和底部功能区
  */
-import React from 'react';
-import { X, Bell, Github } from 'lucide-react';
 import { NAV_ITEMS } from '@/constants/navigation';
 import { EngramTextLogo } from '@/ui/assets/icons/EngramTextLogo';
+import { motion } from 'framer-motion';
+import { Bell, Github, X } from 'lucide-react';
+import React from 'react';
 import manifest from '../../../../manifest.json';
 
 interface SidebarProps {
@@ -95,13 +96,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
     // PC 端侧边栏
     if (!isMobile) {
         return (
-            <aside className="[display:none] md:flex w-36 flex-shrink-0 bg-sidebar flex-col z-40 pt-4 px-2 border-r border-border/50 animate-in slide-in-from-left-4 fade-in duration-500 fill-mode-both" style={{ animationDelay: '100ms', animationFillMode: 'both' }}>
-                <nav className="flex-1 w-full flex flex-col gap-1 overflow-y-auto no-scrollbar">
+            <motion.aside
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="[display:none] md:flex w-36 flex-shrink-0 bg-sidebar flex-col z-40 pt-4 px-2 border-r border-border/50"
+            >
+                <motion.nav
+                    className="flex-1 w-full flex flex-col gap-1 overflow-y-auto no-scrollbar"
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                        hidden: { opacity: 0 },
+                        show: {
+                            opacity: 1,
+                            transition: { staggerChildren: 0.05 }
+                        }
+                    }}
+                >
                     {NAV_ITEMS.map((item) => {
                         const Icon = item.icon;
                         const isActive = activeTab === item.id;
                         return (
-                            <button
+                            <motion.button
+                                variants={{
+                                    hidden: { opacity: 0, x: -10 },
+                                    show: { opacity: 1, x: 0 }
+                                }}
                                 key={item.id}
                                 onClick={() => handleNavClick(item.id)}
                                 className={`
@@ -118,16 +139,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     className="flex-shrink-0 transition-transform duration-[var(--duration-fast)] group-hover:scale-110"
                                 />
                                 <span className={`text-xs ${isActive ? 'font-medium' : 'font-normal'}`}>{item.label}</span>
-                            </button>
+                            </motion.button>
                         );
                     })}
-                </nav>
+                </motion.nav>
 
                 {/* 底部区域 */}
-                <div className="pb-3">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                    className="pb-3"
+                >
                     <BottomArea />
-                </div>
-            </aside>
+                </motion.div>
+            </motion.aside>
         );
     }
 
@@ -144,9 +170,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             />
 
             {/* Drawer Content */}
-            <div
+            <motion.div
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 id="mobile-menu-drawer"
-                className="relative w-64 max-w-[80vw] h-full bg-sidebar border-r border-border shadow-2xl flex flex-col p-6 animate-in slide-in-from-left duration-300"
+                className="relative w-64 max-w-[80vw] h-full bg-sidebar border-r border-border shadow-2xl flex flex-col p-6"
                 style={{ height: '100dvh' }}
             >
                 <div className="flex justify-between items-center mb-8">
@@ -159,12 +189,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </button>
                 </div>
 
-                <nav className="space-y-2 flex-1 overflow-y-auto">
+                <motion.nav
+                    className="space-y-2 flex-1 overflow-y-auto"
+                    initial="hidden"
+                    animate="show"
+                    variants={{
+                        hidden: { opacity: 0 },
+                        show: {
+                            opacity: 1,
+                            transition: { staggerChildren: 0.05, delayChildren: 0.1 }
+                        }
+                    }}
+                >
                     {NAV_ITEMS.map((item) => {
                         const Icon = item.icon;
                         const isActive = activeTab === item.id;
                         return (
-                            <button
+                            <motion.button
+                                variants={{
+                                    hidden: { opacity: 0, x: -20 },
+                                    show: { opacity: 1, x: 0 }
+                                }}
                                 key={item.id}
                                 onClick={() => handleNavClick(item.id)}
                                 className={`
@@ -181,16 +226,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                     className={`transition-transform duration-[var(--duration-fast)] group-hover:scale-110 ${isActive ? 'text-primary' : 'text-muted-foreground/70'}`}
                                 />
                                 <span>{item.label}</span>
-                            </button>
+                            </motion.button>
                         );
                     })}
-                </nav>
+                </motion.nav>
 
                 {/* 底部区域 - 复用统一组件 */}
-                <div className="mt-auto">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="mt-auto"
+                >
                     <BottomArea />
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
         </div>
     );
 };

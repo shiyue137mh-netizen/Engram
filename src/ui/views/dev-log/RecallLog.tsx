@@ -7,21 +7,21 @@
  * - 移动端：全屏详情
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-    Target,
-    Clock,
-    Trash2,
-    Search,
-    Zap,
-    Database,
-    RefreshCw,
-    ArrowLeft,
-    Filter,
-    ChevronRight,
-} from 'lucide-react';
-import type { RecallLogEntry, RecallResultItem } from './types';
 import { RecallLogService } from '@/core/logger/RecallLogger';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+    ArrowLeft,
+    ChevronRight,
+    Clock,
+    Database,
+    Filter,
+    Search,
+    Target,
+    Trash2,
+    Zap
+} from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import type { RecallLogEntry, RecallResultItem } from './types';
 
 // 响应式断点
 const DESKTOP_BREAKPOINT = 768;
@@ -53,7 +53,12 @@ interface LogListItemProps {
 
 const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }) => {
     return (
-        <div
+        <motion.div
+            layout
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+            transition={{ duration: 0.3 }}
             className={`
                 px-3 py-2 cursor-pointer border-b border-border/30 transition-colors
                 ${isSelected ? 'bg-primary/10 border-l-2 border-l-primary' : 'hover:bg-muted/30'}
@@ -87,7 +92,7 @@ const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }
                 <Zap size={10} />
                 {formatDuration(entry.stats.latencyMs)}
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -494,14 +499,18 @@ export const RecallLog: React.FC = () => {
                             <p className="text-xs opacity-70">触发 RAG 召回后显示</p>
                         </div>
                     ) : (
-                        logs.map((entry) => (
-                            <LogListItem
-                                key={entry.id}
-                                entry={entry}
-                                isSelected={entry.id === selectedId}
-                                onSelect={() => handleSelect(entry.id)}
-                            />
-                        ))
+                        <motion.div layout className="flex flex-col">
+                            <AnimatePresence initial={false}>
+                                {logs.map((entry) => (
+                                    <LogListItem
+                                        key={entry.id}
+                                        entry={entry}
+                                        isSelected={entry.id === selectedId}
+                                        onSelect={() => handleSelect(entry.id)}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </motion.div>
                     )}
                 </div>
 

@@ -3,8 +3,8 @@
  *
  * 用于 Master-Detail 布局的移动端全屏编辑模式
  */
-import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import React from 'react';
 
 interface MobileFullscreenFormProps {
     title: string;
@@ -21,8 +21,8 @@ export const MobileFullscreenForm: React.FC<MobileFullscreenFormProps> = ({
 }) => {
     return (
         <div
-            className="fixed inset-0 bg-background z-[200] flex flex-col animate-in slide-in-from-right-4 duration-200"
-            style={{ height: '100dvh', width: '100vw' }}
+            className="absolute inset-0 z-[200] flex flex-col animate-in slide-in-from-right-4 duration-200 bg-background"
+            style={{ width: '100%', height: '100%' }}
         >
             {/* 头部 */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">

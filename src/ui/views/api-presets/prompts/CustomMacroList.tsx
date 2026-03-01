@@ -3,9 +3,10 @@
  * V0.9.2: 简化为卡片列表，点击后右侧编辑
  */
 
-import React from 'react';
-import { Braces, Trash2, Power, Plus } from 'lucide-react';
 import type { CustomMacro } from '@/config/types/prompt';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Braces, Plus, Power, Trash2 } from 'lucide-react';
+import React from 'react';
 
 interface CustomMacroListProps {
     macros: CustomMacro[];
@@ -44,62 +45,69 @@ export const CustomMacroList: React.FC<CustomMacroListProps> = ({
             </div>
 
             {/* 宏列表 */}
-            <div className="flex flex-col gap-1 overflow-y-auto flex-1 no-scrollbar">
-                {macros.map((macro) => (
-                    <div
-                        key={macro.id}
-                        className={`
-                            group p-3 rounded-lg transition-all duration-200 cursor-pointer border flex items-center gap-3
-                            ${selectedId === macro.id
-                                ? 'bg-accent/50 border-input'
-                                : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
-                            }
-                            ${!macro.enabled && 'opacity-50'}
-                        `}
-                        onClick={() => onSelect(macro)}
-                    >
-                        {/* 状态图标 */}
-                        <button
+            <motion.div layout className="flex flex-col gap-1 overflow-y-auto flex-1 no-scrollbar">
+                <AnimatePresence initial={false}>
+                    {macros.map((macro) => (
+                        <motion.div
+                            layout
+                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: -10, transition: { duration: 0.2 } }}
+                            transition={{ duration: 0.3 }}
+                            key={macro.id}
                             className={`
-                                w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0
-                                ${macro.enabled
-                                    ? selectedId === macro.id ? 'bg-primary/20 text-primary' : 'bg-muted text-primary'
-                                    : 'bg-muted text-muted-foreground'
+                                group p-3 rounded-lg transition-all duration-200 cursor-pointer border flex items-center gap-3
+                                ${selectedId === macro.id
+                                    ? 'bg-accent/50 border-input'
+                                    : 'bg-transparent border-transparent hover:bg-muted/50 hover:border-border'
                                 }
+                                ${!macro.enabled && 'opacity-50'}
                             `}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onToggle(macro.id);
-                            }}
-                            title={macro.enabled ? '点击禁用' : '点击启用'}
+                            onClick={() => onSelect(macro)}
                         >
-                            <Power size={14} />
-                        </button>
+                            {/* 状态图标 */}
+                            <button
+                                className={`
+                                    w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0
+                                    ${macro.enabled
+                                        ? selectedId === macro.id ? 'bg-primary/20 text-primary' : 'bg-muted text-primary'
+                                        : 'bg-muted text-muted-foreground'
+                                    }
+                                `}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggle(macro.id);
+                                }}
+                                title={macro.enabled ? '点击禁用' : '点击启用'}
+                            >
+                                <Power size={14} />
+                            </button>
 
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                                <code className={`text-sm font-medium truncate ${selectedId === macro.id ? 'text-primary' : 'text-foreground'}`}>
-                                    {`{{${macro.name}}}`}
-                                </code>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <code className={`text-sm font-medium truncate ${selectedId === macro.id ? 'text-primary' : 'text-foreground'}`}>
+                                        {`{{${macro.name}}}`}
+                                    </code>
+                                </div>
+                                <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
+                                    {macro.content ? macro.content.slice(0, 50) + (macro.content.length > 50 ? '...' : '') : '(空内容)'}
+                                </p>
                             </div>
-                            <p className="mt-0.5 text-[10px] text-muted-foreground truncate">
-                                {macro.content ? macro.content.slice(0, 50) + (macro.content.length > 50 ? '...' : '') : '(空内容)'}
-                            </p>
-                        </div>
 
-                        {/* 删除按钮 */}
-                        <button
-                            className={`p-1.5 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-colors ${selectedId === macro.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onDelete(macro.id);
-                            }}
-                            title="删除"
-                        >
-                            <Trash2 size={12} />
-                        </button>
-                    </div>
-                ))}
+                            {/* 删除按钮 */}
+                            <button
+                                className={`p-1.5 hover:bg-destructive/10 rounded text-muted-foreground hover:text-destructive transition-colors ${selectedId === macro.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onDelete(macro.id);
+                                }}
+                                title="删除"
+                            >
+                                <Trash2 size={12} />
+                            </button>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
 
                 {macros.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2 border border-dashed border-border rounded-lg">
@@ -113,7 +121,7 @@ export const CustomMacroList: React.FC<CustomMacroListProps> = ({
                         </button>
                     </div>
                 )}
-            </div>
+            </motion.div>
         </div>
     );
 };

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { GlobalStyles } from '@/ui/styles/GlobalStyles';
-import Header from '@/ui/components/layout/Header';
-import { Sidebar } from '@/ui/components/layout/Sidebar';
 import { UpdateService } from '@/core/updater/Updater';
 import { UpdateNotice } from "@/ui/components/feedback/UpdateNotice";
+import Header from '@/ui/components/layout/Header';
+import { Sidebar } from '@/ui/components/layout/Sidebar';
+import { GlobalStyles } from '@/ui/styles/GlobalStyles';
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -86,14 +87,20 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
 
                 {/* Main Content Area - Page Transition on Tab Change */}
                 <main className="flex-1 flex flex-col relative w-full overflow-hidden bg-background">
-                    <div
-                        key={activeTab}
-                        className="flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth engram-page-enter"
-                    >
-                        <div className="max-w-6xl mx-auto min-h-full pb-20">
-                            {children}
-                        </div>
-                    </div>
+                    <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -15, scale: 0.98 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 pb-4 md:px-8 md:pb-8 lg:px-12 lg:pb-12 scroll-smooth w-full h-full"
+                        >
+                            <div className="max-w-6xl mx-auto min-h-full pb-20">
+                                {children}
+                            </div>
+                        </motion.div>
+                    </AnimatePresence>
                 </main>
             </div>  {/* End Right Content Area */}
         </div>

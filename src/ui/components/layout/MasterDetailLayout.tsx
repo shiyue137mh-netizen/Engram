@@ -1,4 +1,5 @@
 import { useResponsive } from '@/ui/hooks/useResponsive';
+import { AnimatePresence, motion } from 'framer-motion';
 import React from 'react';
 import { MobileFullscreenForm } from './MobileFullscreenForm';
 
@@ -77,29 +78,43 @@ export const MasterDetailLayout: React.FC<MasterDetailLayoutProps> = ({
             )}
 
             {/* 主内容区 - 双栏布局 */}
-            <div className="flex-1 flex gap-6 min-h-0 overflow-hidden">
-                {/* 左侧：列表区域 - 独立滚动 */}
-                <div
-                    className={`
-                        flex flex-col overflow-y-auto no-scrollbar
-                        ${isMobile ? 'w-full' : 'border-r border-border/50 pr-4'}
-                    `}
-                    style={{
+            <div className="flex-1 flex gap-6 min-h-0 overflow-hidden relative">
+                {/* 左侧：列表区域 - 使用 framer-motion layout 平滑改变宽度 */}
+                <motion.div
+                    layout
+                    initial={false}
+                    animate={{
                         width: isMobile ? '100%' : listWidth,
                         minWidth: isMobile ? 'auto' : '240px'
                     }}
+                    transition={{ type: "spring", bounce: 0.1, duration: 0.4 }}
+                    className={`
+                        flex flex-col min-h-0 shrink-0
+                        ${isMobile ? 'w-full' : 'border-r border-border/50 pr-4'}
+                    `}
                     ref={listRef}
                 >
                     {list}
-                </div>
+                </motion.div>
 
-                {/* 右侧：详情区域 - 独立滚动 (仅 PC) */}
+                {/* 右侧：详情区域 - 优雅滑入进场 */}
                 {!isMobile && (
-                    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar">
-                        {detail}
-                    </div>
+                    <AnimatePresence>
+                        {detail && (
+                            <motion.div
+                                key="detail-pane"
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 20, position: 'absolute', right: 0 }}
+                                transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                                className="flex-1 flex flex-col min-h-0"
+                            >
+                                {detail}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 )}
             </div>
-        </div >
+        </div>
     );
 };

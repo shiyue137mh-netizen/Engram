@@ -8,6 +8,7 @@
  */
 import type { EntityNode, EntityType } from '@/data/types/graph';
 import { Divider } from '@/ui/components/layout/Divider';
+import { useResponsive } from '@/ui/hooks/useResponsive';
 import yaml from 'js-yaml'; // 需要确认项目是否已安装 js-yaml，如果没有则需要简单实现或引入
 import { AlertTriangle, ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
@@ -53,6 +54,7 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     onDelete,
     onClose,
 }, ref) => {
+    const { isMobile } = useResponsive();
     // Local State
     const [name, setName] = useState('');
     const [type, setType] = useState<EntityType | string>('unknown');
@@ -314,8 +316,8 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     // Render logic matches EventEditor (Mobile/Desktop modes)
     if (isFullScreen) {
         return (
-            <div className="h-full flex flex-col bg-background">
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+            <div className="h-full flex flex-col bg-transparent">
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50 shrink-0">
                     <button onClick={onClose} className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors">
                         <ArrowLeft size={18} />
                     </button>
@@ -332,16 +334,26 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     }
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="flex items-center gap-2 pb-4 border-b border-border shrink-0">
-                <h3 className="text-sm font-medium text-primary flex-1">编辑实体</h3>
-                <button
-                    onClick={() => onDelete?.(entity.id)}
-                    className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
-                >
-                    <Trash2 size={16} />
-                </button>
-            </div>
+        <div className="h-full flex flex-col min-h-0">
+            {/* 桌面端内部 Header，移动端使用外部 MobileFullscreenForm Header */}
+            {!isMobile && (
+                <div className="flex items-center gap-2 pb-4 border-b border-border shrink-0">
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded transition-colors"
+                        title="返回"
+                    >
+                        <ArrowLeft size={18} />
+                    </button>
+                    <h3 className="text-sm font-medium text-primary flex-1">编辑实体</h3>
+                    <button
+                        onClick={() => onDelete?.(entity.id)}
+                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+            )}
             <div className="flex-1 overflow-y-auto py-4 space-y-4 no-scrollbar">
                 {formContent}
             </div>

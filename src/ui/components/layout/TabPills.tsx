@@ -3,6 +3,7 @@
  * 支持 sticky 固定在页面顶部
  * 支持右侧 actions 插槽
  */
+import { motion } from 'framer-motion';
 import React from 'react';
 
 
@@ -55,11 +56,10 @@ export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onChange, s
                     )}
                     {tab.label}
                     {activeTab === tab.id && (
-                        <div
+                        <motion.div
+                            layoutId="active-tab-indicator"
                             className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_var(--primary)] z-10"
-                            style={{
-                                animation: 'scale-in var(--duration-fast, 150ms) var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1))'
-                            }}
+                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
                         />
                     )}
                 </button>
