@@ -17,6 +17,7 @@ export async function getEntries(worldbookName: string): Promise<WorldInfoEntry[
 
     try {
         const entries = await helper.getWorldbook(worldbookName);
+        if (!Array.isArray(entries)) return [];
         // 转换 TavernHelper 的 WorldbookEntry 结构
         return (entries as unknown[]).map((e: unknown) => {
             const entry = e as Record<string, unknown>;

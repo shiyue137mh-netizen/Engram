@@ -384,8 +384,10 @@ export const SearchableSelectField: React.FC<SearchableSelectFieldProps> = ({
     // 当前选中的 label
     const selectedLabel = options.find(opt => opt.value === value)?.label || value || placeholder;
 
-    // 点击外部关闭
+    // 点击外部关闭（仅在 isOpen 时绑定，避免多实例事件泄漏）
     useEffect(() => {
+        if (!isOpen) return;
+
         const handleClickOutside = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 setIsOpen(false);
@@ -394,7 +396,7 @@ export const SearchableSelectField: React.FC<SearchableSelectFieldProps> = ({
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
     // 打开时聚焦搜索框
     useEffect(() => {

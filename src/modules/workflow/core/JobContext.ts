@@ -69,6 +69,14 @@ export interface JobContext {
     };
 
     /**
+     * 取消信号（引用类型，外部可随时设置 cancelled = true）
+     * WorkflowEngine 在每个 Step 执行前检查此信号
+     */
+    signal?: {
+        cancelled: boolean;
+    };
+
+    /**
      * 最终输出数据 (用于 Workflow 结束时返回给调用方)
      */
     output?: any;

@@ -1,5 +1,5 @@
-import { Logger } from '@/core/logger';
 import { EventBus } from '@/core/events/types';
+import { Logger } from '@/core/logger';
 
 /**
  * Toastr 类型定义 (部分)
@@ -202,9 +202,11 @@ class NotificationService {
                 extendedTimeOut: 0,   // 悬停时不延长
                 closeButton: false,   // 不显示关闭按钮
                 progressBar: true,    // 显示进度条（表示倒计时）
-                tapToDismiss: !!onCancel, // 有取消回调时点击可关闭
+                tapToDismiss: false,  // 禁止点击自动关闭，由 onclick 手动控制
                 onclick: onCancel ? () => {
                     Logger.info('Notification', '用户取消操作');
+                    // 先手动关闭 toast，再执行取消回调
+                    this.remove(toast);
                     onCancel();
                 } : undefined,
                 escapeHtml: false,    // 允许 HTML

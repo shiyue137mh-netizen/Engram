@@ -1,7 +1,7 @@
-import { IStep } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
-import { RobustJsonParser } from '@/core/utils/JsonParser';
 import { Logger } from '@/core/logger';
+import { RobustJsonParser } from '@/core/utils/JsonParser';
+import { JobContext } from '../../core/JobContext';
+import { IStep } from '../../core/Step';
 
 export class ParseJson implements IStep {
     name = 'ParseJson';
@@ -20,6 +20,12 @@ export class ParseJson implements IStep {
 
         if (!parsed) {
             throw new Error('ParseJson: JSON 解析失败');
+        }
+
+        // 防御性校验：如果解析出的对象包含 events 字段，确保它是数组
+        if (parsed.events !== undefined && !Array.isArray(parsed.events)) {
+            Logger.warn('ParseJson', 'events 字段不是数组，尝试修正', { type: typeof parsed.events });
+            parsed.events = [];
         }
 
         context.parsedData = parsed;

@@ -408,6 +408,12 @@ class BatchProcessor {
     // ==================== 外部 txt 导入 ====================
 
     chunkText(text: string, chunkSize: number, overlapSize: number): string[] {
+        // 防御性校验：overlapSize >= chunkSize 会导致 start 指针无法前进（死循环）
+        if (overlapSize >= chunkSize) {
+            Logger.warn(LogModule.BATCH, `overlapSize(${overlapSize}) >= chunkSize(${chunkSize})，强制修正`, {});
+            overlapSize = Math.max(0, chunkSize - 1);
+        }
+
         const chunks: string[] = [];
         let start = 0;
         while (start < text.length) {

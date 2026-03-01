@@ -94,7 +94,7 @@ export class ModelService {
             }
 
             const data = await response.json();
-            const models: ModelInfo[] = (data.data || data || []).map((m: any) => ({
+            const models: ModelInfo[] = (data?.data || data || []).map((m: any) => ({
                 id: m.id || m.model,
                 name: m.name || m.id || m.model,
                 owned_by: m.owned_by,

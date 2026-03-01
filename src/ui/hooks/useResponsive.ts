@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const DESKTOP_BREAKPOINT = 768;
 
@@ -35,13 +35,23 @@ export function useResponsive(): ResponsiveState {
             });
         };
 
-        // 监听 resize
-        window.addEventListener('resize', handleResize);
+        // 防抖包装，避免高频 resize 导致不必要的重绘
+        let debounceTimer: ReturnType<typeof setTimeout>;
+        const debouncedResize = () => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(handleResize, 150);
+        };
 
-        // 初始检测
+        // 监听 resize
+        window.addEventListener('resize', debouncedResize);
+
+        // 初始检测（立即执行，不走防抖）
         handleResize();
 
-        return () => window.removeEventListener('resize', handleResize);
+        return () => {
+            window.removeEventListener('resize', debouncedResize);
+            clearTimeout(debounceTimer);
+        };
     }, []);
 
     return state;

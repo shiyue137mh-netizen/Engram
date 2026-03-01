@@ -66,31 +66,7 @@ function getTavernHelper(): {
     }
 }
 
-/**
- * 获取酒馆 Connection Profiles
- */
-function getTavernProfiles(): any[] {
-    try {
-        // @ts-ignore - 访问酒馆的 extension_settings
-        const context = window.SillyTavern?.getContext?.();
-        return context?.extensionSettings?.connectionManager?.profiles || [];
-    } catch {
-        return [];
-    }
-}
 
-/**
- * 获取当前 Profile ID
- */
-function getCurrentProfileId(): string | null {
-    try {
-        // @ts-ignore
-        const context = window.SillyTavern?.getContext?.();
-        return context?.extensionSettings?.connectionManager?.selectedProfile || null;
-    } catch {
-        return null;
-    }
-}
 
 /**
  * LLMAdapter 类
@@ -102,12 +78,6 @@ class LLMAdapter {
 
     /** 请求队列 */
     private requestQueue: QueuedRequest[] = [];
-
-    /** 切换前的原始 Profile ID */
-    private originalProfileId: string | null = null;
-
-    /** 防抖延迟 (ms) */
-    private static readonly PROFILE_SWITCH_DELAY = 150;
 
     /**
      * 调用 LLM 生成 (队列模式)
@@ -171,9 +141,7 @@ class LLMAdapter {
             }
 
             // 根据预设类型选择执行路径
-            if (preset?.source === 'tavern_profile' && preset.tavernProfileId) {
-                return await this.executeWithProfileSwitch(request, preset, helper);
-            } else if (preset?.source === 'custom' && preset.custom) {
+            if (preset?.source === 'custom' && preset.custom) {
                 return await this.executeWithCustomApi(request, preset, helper);
             } else {
                 return await this.executeWithTavern(request, helper, preset);
@@ -191,79 +159,7 @@ class LLMAdapter {
         }
     }
 
-    // =========================================================================
-    // 执行路径：tavern_profile (临时切换)
-    // =========================================================================
 
-    private async executeWithProfileSwitch(
-        request: LLMRequest,
-        preset: LLMPreset,
-        helper: NonNullable<ReturnType<typeof getTavernHelper>>
-    ): Promise<LLMResponse> {
-        // 检查 Profile 是否存在
-        const profiles = getTavernProfiles();
-        const targetProfile = profiles.find(p => p.id === preset.tavernProfileId);
-
-        if (!targetProfile) {
-            Logger.warn(MODULE, `未找到 Profile: ${preset.tavernProfileId}，回退到默认`);
-            return await this.executeWithTavern(request, helper, preset);
-        }
-
-        // 记录当前 Profile
-        this.originalProfileId = getCurrentProfileId();
-        Logger.info(MODULE, `临时切换 Profile: ${this.originalProfileId} -> ${preset.tavernProfileId}`);
-
-        try {
-            // 切换到目标 Profile
-            await this.switchProfile(preset.tavernProfileId!);
-            await this.waitForProfileReady();
-
-            // 使用酒馆当前设置执行 (因为已经切换了)
-            return await this.executeWithTavern(request, helper, preset);
-
-        } finally {
-            // 切回原 Profile
-            if (this.originalProfileId && this.originalProfileId !== preset.tavernProfileId) {
-                Logger.info(MODULE, `切回原 Profile: ${this.originalProfileId}`);
-                await this.switchProfile(this.originalProfileId);
-                await this.waitForProfileReady();
-            }
-            this.originalProfileId = null;
-        }
-    }
-
-    /**
-     * 切换 Profile
-     */
-    private async switchProfile(profileId: string): Promise<void> {
-        try {
-            // @ts-ignore - 从酒馆全局获取 SlashCommandParser
-            const SlashCommandParser = window.SillyTavern?.getContext?.()?.SlashCommandParser;
-
-            // 使用酒馆的 /profile 命令切换
-            if (SlashCommandParser?.commands?.['profile']?.callback) {
-                await SlashCommandParser.commands['profile'].callback({ _scope: null }, profileId);
-            } else {
-                // 备用方案：直接设置
-                // @ts-ignore
-                const context = window.SillyTavern?.getContext?.();
-                if (context?.extensionSettings?.connectionManager) {
-                    context.extensionSettings.connectionManager.selectedProfile = profileId;
-                }
-            }
-        } catch (e) {
-            Logger.error(MODULE, `切换 Profile 失败: ${profileId}`, e);
-            throw e;
-        }
-    }
-
-
-    /**
-     * 等待 Profile 切换生效 (防抖)
-     */
-    private async waitForProfileReady(): Promise<void> {
-        await new Promise(resolve => setTimeout(resolve, LLMAdapter.PROFILE_SWITCH_DELAY));
-    }
 
     // =========================================================================
     // 执行路径：custom (自定义 API)
@@ -307,20 +203,8 @@ class LLMAdapter {
         helper: NonNullable<ReturnType<typeof getTavernHelper>>,
         preset?: LLMPreset
     ): Promise<LLMResponse> {
-        let customApiConfig: Record<string, any> | undefined;
-
-        if (preset && (preset.modelOverride || preset.parameters?.maxContext)) {
-            customApiConfig = {};
-            if (preset.modelOverride) {
-                Logger.info(MODULE, `Tavern 模式，局部覆盖模型名: ${preset.modelOverride}`);
-                customApiConfig.model = preset.modelOverride;
-            }
-            if (preset.parameters?.maxContext) {
-                customApiConfig.max_context = preset.parameters.maxContext;
-            }
-        }
-
-        return await this.callTavernHelper(request, helper, customApiConfig);
+        // 直接使用酒馆当前配置，不做覆盖
+        return await this.callTavernHelper(request, helper);
     }
 
     // =========================================================================

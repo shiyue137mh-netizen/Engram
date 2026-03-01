@@ -5,23 +5,13 @@ import type { APISource, LLMPreset } from '@/config/types/llm';
 import { ModelInfo, ModelService } from '@/integrations/llm/ModelDiscovery';
 import { FormSection, NumberField, SelectField, SwitchField, TextField } from '@/ui/components/form/FormComponents';
 import { Loader2, RefreshCw } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 
 interface LLMPresetFormProps {
     preset: LLMPreset;
     onChange: (preset: LLMPreset) => void;
     isNew?: boolean;
-}
-
-// 酒馆 connection_profile 类型
-interface TavernProfile {
-    id: string;
-    name: string;
-    mode: 'cc' | 'tc';
-    api?: string;
-    model?: string;
-    preset?: string;
 }
 
 // API 源选项
@@ -37,47 +27,18 @@ const API_SOURCE_OPTIONS: { value: APISource; label: string }[] = [
 // 配置源选项
 const SOURCE_OPTIONS = [
     { value: 'tavern', label: '使用酒馆当前配置' },
-    { value: 'tavern_profile', label: '使用酒馆配置文件' },
     { value: 'custom', label: '自定义 API 配置' },
 ];
-
-// 从酒馆获取 connection_profiles
-function getTavernProfiles(): TavernProfile[] {
-    try {
-        // @ts-ignore - 访问酒馆的 extension_settings
-        const extensionSettings = window.SillyTavern?.getContext?.()?.extensionSettings;
-        const profiles = extensionSettings?.connectionManager?.profiles || [];
-        return profiles;
-    } catch (e) {
-        console.warn('[Engram] 无法获取酒馆 connection_profiles:', e);
-        return [];
-    }
-}
 
 export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
     preset,
     onChange,
     isNew = false,
 }) => {
-    // 酒馆配置文件列表
-    const [tavernProfiles, setTavernProfiles] = useState<TavernProfile[]>([]);
-    const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
-
     // 模型列表状态 (自定义 API 用)
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isLoadingModels, setIsLoadingModels] = useState(false);
     const [modelError, setModelError] = useState<string | null>(null);
-
-    // 加载酒馆配置文件
-    const loadTavernProfiles = () => {
-        setIsLoadingProfiles(true);
-        try {
-            const profiles = getTavernProfiles();
-            setTavernProfiles(profiles);
-        } finally {
-            setIsLoadingProfiles(false);
-        }
-    };
 
     // 加载模型列表 (自定义 API)
     const fetchModelList = async () => {
@@ -111,10 +72,7 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
         }
     };
 
-    // 组件挂载时加载
-    useEffect(() => {
-        loadTavernProfiles();
-    }, []);
+
 
     // 更新预设字段
     const updatePreset = (updates: Partial<LLMPreset>) => {
@@ -150,25 +108,9 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
 
     // 处理配置源变更
     const handleSourceChange = (value: string) => {
-        const source = value as 'tavern' | 'tavern_profile' | 'custom';
-        updatePreset({
-            source,
-            tavernProfileId: source === 'tavern_profile' ? preset.tavernProfileId : undefined,
-        });
-
-        if (source === 'tavern_profile') {
-            loadTavernProfiles();
-        }
+        const source = value as 'tavern' | 'custom';
+        updatePreset({ source });
     };
-
-    // 构建配置文件选项
-    const profileOptions = tavernProfiles.map(p => ({
-        value: p.id,
-        label: `${p.name} (${p.api || 'Unknown'} - ${p.model || 'Unknown'})`,
-    }));
-
-    // 获取选中的配置文件信息
-    const selectedProfile = tavernProfiles.find(p => p.id === preset.tavernProfileId);
 
     return (
         <div className="">
@@ -198,67 +140,7 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                 />
             </FormSection>
 
-            {/* 酒馆配置文件选择 */}
-            {preset.source === 'tavern_profile' && (
-                <FormSection title="酒馆配置文件" description="选择一个已保存的酒馆连接配置">
-                    <div className="flex items-end gap-2">
-                        <SelectField
-                            className="flex-1 !mb-0"
-                            label="选择配置文件"
-                            value={preset.tavernProfileId || ''}
-                            onChange={(value) => updatePreset({ tavernProfileId: value })}
-                            options={profileOptions}
-                            placeholder={isLoadingProfiles ? '加载中...' : '请选择配置文件'}
-                            disabled={isLoadingProfiles || profileOptions.length === 0}
-                        />
-                        <button
-                            type="button"
-                            className="h-[42px] w-[42px] min-w-[42px] flex items-center justify-center border-none rounded-md bg-muted text-muted-foreground cursor-pointer transition-all hover:bg-accent hover:text-foreground"
-                            onClick={loadTavernProfiles}
-                            disabled={isLoadingProfiles}
-                            title="刷新配置列表"
-                        >
-                            <RefreshCw size={16} className={isLoadingProfiles ? "animate-spin" : ''} />
-                        </button>
-                    </div>
 
-                    {profileOptions.length === 0 && !isLoadingProfiles && (
-                        <div className="p-3 bg-muted/30 border border-dashed border-border rounded-lg text-muted-foreground text-sm text-center mt-3">
-                            未找到酒馆配置文件。请在酒馆中创建连接配置后刷新。
-                        </div>
-                    )}
-
-                    {selectedProfile && (
-                        <div className="mt-4 p-3 bg-card rounded-lg border border-border">
-                            <div className="flex items-center gap-2 py-1 text-sm border-b border-border last:border-0">
-                                <span className="text-muted-foreground min-w-[60px]">API:</span>
-                                <span className="text-foreground font-mono">{selectedProfile.api || '-'}</span>
-                            </div>
-                            <div className="flex items-center gap-2 py-1 text-sm border-b border-border last:border-0">
-                                <span className="text-muted-foreground min-w-[60px]">模型:</span>
-                                <span className="text-foreground font-mono">{selectedProfile.model || '-'}</span>
-                            </div>
-                            <div className="flex items-center gap-2 py-1 text-sm border-b border-border last:border-0">
-                                <span className="text-muted-foreground min-w-[60px]">预设:</span>
-                                <span className="text-foreground font-mono">{selectedProfile.preset || '-'}</span>
-                            </div>
-                        </div>
-                    )}
-                </FormSection>
-            )}
-
-            {/* 酒馆原生配置覆盖 */}
-            {preset.source === 'tavern' && (
-                <FormSection title="酒馆预设覆盖" description="在使用酒馆当前连接配置时，可临时覆盖部分配置">
-                    <TextField
-                        label="模型名称覆盖 (可选)"
-                        value={preset.modelOverride || ''}
-                        onChange={(value) => updatePreset({ modelOverride: value })}
-                        placeholder="例如 gpt-4o-mini，留空则使用酒馆默认模型"
-                        description="将会以 custom_api 对象包装后传给酒馆生成宏，并非所有后端支持"
-                    />
-                </FormSection>
-            )}
 
             {/* 自定义 API 配置 */}
             {preset.source === 'custom' && (

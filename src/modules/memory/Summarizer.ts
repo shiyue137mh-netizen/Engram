@@ -359,11 +359,14 @@ class SummarizerService {
         this.isSummarizing = true;
         this.cancelRequested = false; // 重置取消标志
 
+        // 创建取消信号（引用对象，传递给 WorkflowEngine）
+        const cancelSignal = { cancelled: false };
+
         // 显示运行中通知
         const runningToast = notificationService.running('总结运行中...', 'Engram', () => {
+            cancelSignal.cancelled = true;
             this.cancelRequested = true;
             this.log('info', '用户请求取消总结');
-            // TODO: Propagate cancel signal to Workflow
             notificationService.warning('正在取消总结...', 'Engram');
         });
 
@@ -397,6 +400,7 @@ class SummarizerService {
 
             const context = await WorkflowEngine.run(createSummaryWorkflow(), {
                 trigger: manual ? 'manual' : 'auto',
+                signal: cancelSignal,
                 config: {
                     previewEnabled: this.config.previewEnabled,
                     autoHide: this.config.autoHide,

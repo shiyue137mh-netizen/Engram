@@ -1,7 +1,7 @@
 import { Logger } from '@/core/logger';
+import { generateUUID } from '@/core/utils';
 import { JobContext } from './JobContext';
 import { IStep } from './Step';
-import { generateUUID } from '@/core/utils';
 
 export interface WorkflowDefinition {
     name: string;
@@ -31,6 +31,7 @@ export class WorkflowEngine {
             trigger: initialContext.trigger || 'manual',
             config: initialContext.config || {},
             input: initialContext.input || {},
+            signal: initialContext.signal,
             metadata: {
                 startTime,
                 stepsExecuted: [],
@@ -53,6 +54,12 @@ export class WorkflowEngine {
 
             // 2. 顺序执行 Steps (支持跳转)
             for (let i = 0; i < workflow.steps.length; i++) {
+                // 取消检查点：每个 Step 执行前检查信号
+                if (context.signal?.cancelled) {
+                    Logger.info('Workflow', `工作流已被用户取消: ${workflow.name}`, { jobId: context.id });
+                    throw new Error('UserCancelled');
+                }
+
                 const step = workflow.steps[i];
                 Logger.debug('Workflow', `执行步骤: ${step.name}`, { jobId: context.id });
 
