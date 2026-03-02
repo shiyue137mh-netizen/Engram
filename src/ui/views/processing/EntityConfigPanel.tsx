@@ -125,13 +125,13 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <span className="text-xs text-muted-foreground block mb-1">功能状态</span>
-                                    <div className={`text-lg font-medium ${config.enabled ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                    <div className={`text-lg font-medium ${config.enabled ? 'text-value' : 'text-muted-foreground'}`}>
                                         {config.enabled ? '已启用' : '已禁用'}
                                     </div>
                                 </div>
                                 <div>
                                     <span className="text-xs text-muted-foreground block mb-1">实体总数</span>
-                                    <div className="text-3xl font-light text-primary font-mono">{status.entityCount}</div>
+                                    <div className="text-3xl font-light text-value font-mono">{status.entityCount}</div>
                                 </div>
                             </div>
 

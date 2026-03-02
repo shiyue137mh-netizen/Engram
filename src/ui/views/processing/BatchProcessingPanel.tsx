@@ -5,21 +5,21 @@
  * - 历史消息批处理
  * - 外部 txt 导入
  */
-import React, { useState, useCallback, useRef } from 'react';
-import { Play, Pause, RotateCcw, Upload, FileText, RefreshCw, CheckCircle2, XCircle, Clock, Square } from 'lucide-react';
-import { Divider } from '@/ui/components/layout/Divider';
-import { FormSection, NumberField } from '@/ui/components/form/FormComponents';
 import { batchProcessor, type HistoryAnalysis, type ImportMode } from '@/modules/batch';
 import { summarizerService } from '@/modules/memory';
+import { NumberField } from '@/ui/components/form/FormComponents';
+import { Divider } from '@/ui/components/layout/Divider';
 import { useWorkflow } from '@/ui/hooks/useWorkflow';
+import { CheckCircle2, Clock, FileText, Pause, Play, RefreshCw, RotateCcw, Square, Upload, XCircle } from 'lucide-react';
+import React, { useCallback, useRef, useState } from 'react';
 
 // 任务状态图标
 const TaskStatusIcon: React.FC<{ status: string }> = ({ status }) => {
     switch (status) {
         case 'done':
-            return <CheckCircle2 size={14} className="text-green-500" />;
+            return <CheckCircle2 size={14} className="text-value" />;
         case 'error':
-            return <XCircle size={14} className="text-red-500" />;
+            return <XCircle size={14} className="text-destructive" />;
         case 'running':
             return <RefreshCw size={14} className="text-primary animate-spin" />;
         case 'skipped':
@@ -171,8 +171,8 @@ export const BatchProcessingPanel: React.FC = () => {
             {/* ========== 左栏：历史消息批处理 ========== */}
             <section className="space-y-6">
                 <div>
-                    <h2 className="text-sm font-medium text-foreground mb-1">历史消息批处理</h2>
-                    <p className="text-xs text-muted-foreground">根据当前配置处理历史聊天记录</p>
+                    <h2 className="text-sm font-medium text-heading mb-1">历史消息批处理</h2>
+                    <p className="text-xs text-meta">根据当前配置处理历史聊天记录</p>
                 </div>
 
                 {/* 范围设置 */}
@@ -184,7 +184,6 @@ export const BatchProcessingPanel: React.FC = () => {
                         min={0}
                         max={endFloor}
                         step={1}
-                        showSlider={false}
                     />
                     <NumberField
                         label="结束楼层"
@@ -192,7 +191,6 @@ export const BatchProcessingPanel: React.FC = () => {
                         onChange={setEndFloor}
                         min={startFloor}
                         step={1}
-                        showSlider={false}
                     />
                 </div>
 
@@ -250,7 +248,7 @@ export const BatchProcessingPanel: React.FC = () => {
                                 <Divider length={30} spacing="sm" />
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">预计 Token</span>
-                                    <span className="font-mono text-primary">~{(analysis.estimatedTokens / 1000).toFixed(0)}k</span>
+                                    <span className="font-mono text-value">~{(analysis.estimatedTokens / 1000).toFixed(0)}k</span>
                                 </div>
                             </div>
                         </div>
@@ -275,7 +273,7 @@ export const BatchProcessingPanel: React.FC = () => {
                                         {queue.isPaused ? '继续' : '暂停'}
                                     </button>
                                     <button
-                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm text-red-400 hover:text-red-300 border border-red-500/30 rounded-lg transition-colors"
+                                        className="inline-flex items-center gap-2 px-4 py-2 text-sm text-destructive hover:text-destructive/80 border border-destructive/30 rounded-lg transition-colors"
                                         onClick={handleStop}
                                     >
                                         <Square size={14} />
@@ -339,8 +337,8 @@ export const BatchProcessingPanel: React.FC = () => {
                 <Divider responsive length={30} />
 
                 <div>
-                    <h2 className="text-sm font-medium text-foreground mb-1">外部文本导入</h2>
-                    <p className="text-xs text-muted-foreground">导入小说、电子书等外部文本</p>
+                    <h2 className="text-sm font-medium text-heading mb-1">外部文本导入</h2>
+                    <p className="text-xs text-meta">导入小说、电子书等外部文本</p>
                 </div>
 
                 {/* 文件选择 - 隐藏的 input + 按钮触发 */}
@@ -400,7 +398,6 @@ export const BatchProcessingPanel: React.FC = () => {
                         min={100}
                         max={10000}
                         step={100}
-                        showSlider={false}
                     />
                     <NumberField
                         label="重叠（字）"
@@ -409,7 +406,6 @@ export const BatchProcessingPanel: React.FC = () => {
                         min={0}
                         max={chunkSize / 2}
                         step={50}
-                        showSlider={false}
                     />
                 </div>
 

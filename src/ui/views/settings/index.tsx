@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { PageTitle } from "@/ui/components/display/PageTitle";
-import { Settings as SettingsIcon, Eye, Trash2, RefreshCw } from 'lucide-react';
-import { ThemeSelector } from './components/ThemeSelector';
-import { Switch } from "@/ui/components/core/Switch";
-import { SwitchField, SelectField, NumberField, FormSection } from '@/ui/components/form/FormComponents';
+import { SettingsManager } from "@/config/settings";
+import { Logger, LogModule } from "@/core/logger";
+import { getCurrentChatId } from "@/integrations/tavern";
 import { summarizerService } from "@/modules/memory";
 import { preprocessor } from "@/modules/preprocessing";
-import { SettingsManager } from "@/config/settings";
 import { DEFAULT_PREPROCESSING_CONFIG } from "@/modules/preprocessing/types";
 import { useMemoryStore } from "@/state/memoryStore";
-import { getCurrentChatId } from "@/integrations/tavern";
-import { Logger, LogModule } from "@/core/logger";
+import { Switch } from "@/ui/components/core/Switch";
+import { PageTitle } from "@/ui/components/display/PageTitle";
+import { NumberField } from '@/ui/components/form/FormComponents';
+import { Eye, RefreshCw, Settings as SettingsIcon, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ThemeSelector } from './components/ThemeSelector';
 
 export const Settings: React.FC = () => {
     const [previewEnabled, setPreviewEnabled] = useState(SettingsManager.getSettings().summarizerConfig?.previewEnabled ?? true);
@@ -102,7 +102,6 @@ export const Settings: React.FC = () => {
                                     min={0}
                                     max={1}
                                     step={0.05}
-                                    showSlider={true}
                                 />
                                 <NumberField
                                     label="背景磨砂 (Blur)"
@@ -123,7 +122,6 @@ export const Settings: React.FC = () => {
                                     min={0}
                                     max={50}
                                     step={1}
-                                    showSlider={true}
                                 />
                             </>
                         )}
@@ -141,8 +139,8 @@ export const Settings: React.FC = () => {
                                     <Eye size={20} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h4 className="font-medium text-foreground truncate">启用修订模式</h4>
-                                    <p className="text-sm text-muted-foreground line-clamp-2">在写入长期记忆前，弹出预览窗口</p>
+                                    <h4 className="font-medium text-heading truncate">启用修订模式</h4>
+                                    <p className="text-sm text-meta line-clamp-2">在写入长期记忆前，弹出预览窗口</p>
                                 </div>
                             </div>
                             <Switch
@@ -166,8 +164,8 @@ export const Settings: React.FC = () => {
                                     <Eye size={20} />
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h4 className="font-medium text-foreground truncate">预处理修订模式</h4>
-                                    <p className="text-sm text-muted-foreground line-clamp-2">在注入用户输入前，弹出预览窗口</p>
+                                    <h4 className="font-medium text-heading truncate">预处理修订模式</h4>
+                                    <p className="text-sm text-meta line-clamp-2">在注入用户输入前，弹出预览窗口</p>
                                 </div>
                             </div>
                             <Switch
@@ -340,7 +338,7 @@ const SyncSection: React.FC = () => {
         <div className="bg-muted/30 border border-border rounded-lg p-4 mt-4">
             <div className="flex items-center justify-between gap-3 mb-4">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 flex-shrink-0">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary flex-shrink-0">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                             <path d="M3 3v5h5" />
@@ -350,7 +348,7 @@ const SyncSection: React.FC = () => {
                     </div>
                     <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                            <h4 className="font-medium text-foreground truncate">多端数据同步 (Beta)</h4>
+                            <h4 className="font-medium text-heading truncate">多端数据同步 (Beta)</h4>
                             {syncStatus !== 'idle' && (
                                 <span className={`text-xs ${syncStatus === 'error' ? 'text-red-500' :
                                     syncStatus === 'success' ? 'text-green-500' : 'text-blue-500 animate-pulse'
@@ -524,12 +522,12 @@ const DatabaseOperations: React.FC = () => {
         <div className="bg-muted/30 border border-border rounded-lg p-4 mt-4 space-y-4">
             <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500 flex-shrink-0">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary flex-shrink-0">
                         <RefreshCw size={20} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <h4 className="font-medium text-foreground truncate">手动维护</h4>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
+                        <h4 className="font-medium text-heading truncate">手动维护</h4>
+                        <p className="text-sm text-meta line-clamp-2">
                             手动清空或删除当前聊天的数据库
                         </p>
                     </div>

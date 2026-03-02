@@ -63,7 +63,7 @@ const MacroItem = ({ macro }: { macro: MacroDef }) => {
                 className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-muted rounded text-muted-foreground hover:text-foreground"
                 title="复制宏"
             >
-                {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                {copied ? <Check size={12} className="text-value" /> : <Copy size={12} />}
             </button>
         </div>
     );

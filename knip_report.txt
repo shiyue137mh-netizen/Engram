@@ -1,0 +1,31 @@
+Unused files (16)
+src/core/utils/cn.ts                                   
+src/data/types/events.ts                               
+src/integrations/llm/index.ts                          
+src/state/commandStore.ts                              
+src/state/devLogStore.ts                               
+src/state/index.ts                                     
+src/ui/components/display/ItemList.tsx                 
+src/ui/components/feedback/index.ts                    
+src/ui/components/index.ts                             
+src/ui/hooks/index.ts                                  
+src/ui/hooks/useApiPresets.ts                          
+src/ui/hooks/useDevLog.ts                              
+src/ui/hooks/useRag.ts                                 
+src/ui/views/dashboard/components/FeatureToggles.tsx   
+src/ui/views/dashboard/components/MemoryStatsCard.tsx  
+src/ui/views/dashboard/components/StatsCard.tsx        
+Unused dependencies (1)
+uuid  package.json:52:10
+Unused devDependencies (1)
+ts-morph  package.json:36:10
+Unused exports (5)
+PLUGIN_NAME            src/constants/index.ts:5:14                                  
+STORAGE                src/constants/index.ts:13:14                                 
+EVENTS                 src/constants/index.ts:19:14                                 
+UI                     src/constants/index.ts:27:14                                 
+default      variable  src/modules/workflow/steps/processing/TextProcessor.ts:120:16
+Unused exported types (2)
+PromptTemplateSingleExport  type       src/config/types/prompt.ts:54:13
+EntityRelation              interface  src/data/types/graph.ts:99:18   
+Configuration hints (4)

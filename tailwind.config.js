@@ -67,6 +67,13 @@ export default {
                     border: 'var(--sidebar-border)',
                     ring: 'var(--sidebar-ring)',
                 },
+                // 文本层级色彩系统 (Text Hierarchy)
+                heading: "var(--heading)",     // 标题/名称
+                label: "var(--label)",         // 标签/分类
+                meta: "var(--meta)",           // 元数据
+                link: "var(--link)",           // 可交互文本
+                value: "var(--value)",         // 数据值/量化
+                emphasis: "var(--emphasis)",   // 强调/重要标记
                 // 状态色
                 success: "var(--engram-success)",
                 warning: "var(--engram-warning)",

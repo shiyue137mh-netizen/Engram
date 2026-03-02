@@ -3,6 +3,7 @@
  *
  * 显示单个 EntityNode 的摘要信息
  * 遵循「无框流体」设计
+ * 文本层级：heading(名称) → label(类型) → foreground(描述) → meta(别名)
  */
 import type { EntityNode } from '@/data/types/graph';
 import { ChevronRight } from 'lucide-react';
@@ -51,10 +52,10 @@ export const EntityCard: React.FC<EntityCardProps> = ({
                 {/* 主内容 */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-foreground">
+                        <span className="text-xs font-medium text-heading">
                             {entity.name}
                         </span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-label border border-primary/20 uppercase">
                             {entity.type}
                         </span>
                     </div>
@@ -93,10 +94,10 @@ export const EntityCard: React.FC<EntityCardProps> = ({
                     }}
                     className="w-4 h-4 rounded border-border accent-primary"
                 />
-                <span className="text-sm font-medium text-foreground">
+                <span className="text-sm font-medium text-heading">
                     {entity.name}
                 </span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 uppercase">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-label border border-primary/20 uppercase">
                     {entity.type}
                 </span>
             </div>
@@ -108,7 +109,7 @@ export const EntityCard: React.FC<EntityCardProps> = ({
 
             {/* 别名 (如果有) */}
             {entity.aliases && entity.aliases.length > 0 && (
-                <div className="mt-2 text-[10px] text-muted-foreground/60 truncate">
+                <div className="mt-2 text-[10px] text-meta truncate">
                     别名: {entity.aliases.join(', ')}
                 </div>
             )}

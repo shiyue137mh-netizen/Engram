@@ -1,9 +1,9 @@
 /**
  * RegexRuleForm - 正则规则编辑表单
  */
-import React, { useState, useEffect } from 'react';
-import { AlertCircle, CheckCircle, Play, Info } from 'lucide-react';
-import { RegexProcessor, REGEX_SCOPE_OPTIONS, type RegexRule, type RegexScope } from "@/modules/workflow/steps";
+import { REGEX_SCOPE_OPTIONS, RegexProcessor, type RegexRule } from "@/modules/workflow/steps";
+import { AlertCircle, CheckCircle, Info, Play } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface RegexRuleFormProps {
     rule: RegexRule;
@@ -107,21 +107,21 @@ export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) 
                     <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-foreground">正则表达式</label>
                         {validation.valid ? (
-                            <CheckCircle size={14} className="text-green-500" />
+                            <CheckCircle size={14} className="text-value" />
                         ) : (
-                            <AlertCircle size={14} className="text-red-500" />
+                            <AlertCircle size={14} className="text-destructive" />
                         )}
                     </div>
                     <input
                         type="text"
-                        className={`w-full px-3 py-2 rounded-md border bg-background text-foreground font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 ${validation.valid ? 'border-input focus:ring-ring' : 'border-red-500 focus:ring-red-500'
+                        className={`w-full px-3 py-2 rounded-md border bg-background text-foreground font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 ${validation.valid ? 'border-input focus:ring-ring' : 'border-destructive focus:ring-destructive'
                             }`}
                         value={rule.pattern}
                         onChange={(e) => onChange({ pattern: e.target.value })}
                         placeholder="例如：<think>[\s\S]*?</think>"
                     />
                     {!validation.valid && validation.error && (
-                        <p className="text-xs text-red-500">{validation.error}</p>
+                        <p className="text-xs text-destructive">{validation.error}</p>
                     )}
                 </div>
 
@@ -185,11 +185,11 @@ export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) 
             </div>
 
             {/* 提示 */}
-            <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-sm text-blue-400">
+            <div className="flex items-start gap-2 p-3 bg-label/10 border border-label/20 rounded-lg text-sm text-label">
                 <Info size={16} className="shrink-0 mt-0.5" />
                 <div>
                     <strong>输入</strong>：清洗发给 LLM 的聊天内容。
-                    <strong>输出</strong>：清洗 LLM 返回的内容（如移除 <code className="bg-blue-500/20 px-1 rounded">&lt;think&gt;</code>）。
+                    <strong>输出</strong>：清洗 LLM 返回的内容（如移除 <code className="bg-label/20 px-1 rounded">&lt;think&gt;</code>）。
                 </div>
             </div>
         </div>

@@ -1,6 +1,6 @@
-import { ThemeName, themes } from '../styles/themes';
-import { Logger } from '@/core/logger';
 import { SettingsManager } from '@/config/settings';
+import { Logger } from '@/core/logger';
+import { ThemeName, themes } from '../styles/themes';
 
 /**
  * ThemeManager - 全局主题管理器
@@ -107,7 +107,7 @@ export class ThemeManager {
         // Calculate transparency percentage for color-mix (e.g., opacity 0.8 -> 20% transparent)
         const transparencyPercent = Math.round((1 - opacity) * 100);
 
-        // Keys that should be transparentized
+        // Keys that should be transparentized (backgrounds/borders only, NOT text colors)
         const transparentKeys = [
             'background', 'card', 'popover', 'sidebar',
             'secondary', 'muted', 'input', 'border', 'sidebarBorder'
@@ -145,7 +145,7 @@ export class ThemeManager {
         });
 
         // 3. Toggle dark mode class
-        const isDark = themeName !== 'paperLight';
+        const isDark = !['tokyoLight', 'catppuccinLatte'].includes(themeName);
         if (isDark) {
             root.classList.add('dark');
         } else {

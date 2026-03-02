@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.3.3] - 2026-03-02
+
+### ✨ 新特性与改进 (Features & Improvements)
+
+- **文本层级色彩体系 (Text Hierarchy Coloring)**:
+  - 引入了全新的 6 色语义文本色彩系统（`heading`, `label`, `meta`, `link`, `value`, `emphasis`）。
+  - 替代了原有的 `text-green-500` 等硬编码颜色，大幅提升了浅色/深色主题的切换体验与视觉一致性。
+  - 为内置的 10 套主题（Catppuccin、Nord、Everforest 等）全量适配了对应的色板色彩，确保不受毛玻璃背景降低亮度的影响。
+  - Dashboard、事件卡片、实体编辑器、表单页面等核心组件已全面应用该规范。
+
 ## [1.3.2] - 2026-03-02
 
 ### 🔧 重构 (Refactoring)

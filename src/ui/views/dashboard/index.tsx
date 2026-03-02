@@ -6,18 +6,24 @@
  * - 状态项按重要性分层
  * - 双栏布局：左侧系统状态，右侧功能开关
  */
-import React, { useState, useEffect } from 'react';
-import {
-    Loader2, CheckCircle2, AlertCircle,
-    Brain, Sparkles, Search, Wand2, ChevronRight
-} from 'lucide-react';
-import { PageTitle } from "@/ui/components/display/PageTitle";
-import { Switch } from '@/ui/components/core/Switch';
-import { Divider } from '@/ui/components/layout/Divider';
+import { NAV_ITEMS } from '@/constants/navigation';
 import { Logger } from "@/core/logger";
 import type { LogEntry } from "@/core/logger/types";
+import { Switch } from '@/ui/components/core/Switch';
+import { PageTitle } from "@/ui/components/display/PageTitle";
+import { Divider } from '@/ui/components/layout/Divider';
 import { useDashboardData } from '@/ui/hooks/useDashboardData';
-import { NAV_ITEMS } from '@/constants/navigation';
+import {
+    AlertCircle,
+    Brain,
+    CheckCircle2,
+    ChevronRight,
+    Loader2,
+    Search,
+    Sparkles,
+    Wand2
+} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 
 interface DashboardProps {
     onNavigate?: (path: string) => void;
@@ -91,7 +97,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <span className="text-xs text-muted-foreground block mb-1">连接状态</span>
-                                    <div className={`flex items-center gap-2 text-lg font-medium ${system.isConnected ? 'text-green-500' : 'text-muted-foreground'}`}>
+                                    <div className={`flex items-center gap-2 text-lg font-medium ${system.isConnected ? 'text-emphasis' : 'text-muted-foreground'}`}>
                                         {system.isConnected ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                                         {system.isConnected ? system.characterName : '未连接'}
                                     </div>
@@ -99,11 +105,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                 <div>
                                     <span className="text-xs text-muted-foreground block mb-1">待处理楼层</span>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-3xl font-light text-amber-500 font-mono">{system.pendingFloors}</span>
+                                        <span className="text-3xl font-light text-emphasis font-mono">{system.pendingFloors}</span>
                                         <span className="text-muted-foreground">/ {system.floorInterval}</span>
                                         {system.isSummarizing && <Loader2 size={14} className="animate-spin text-primary ml-1" />}
                                     </div>
-                                    {/* 进度条 */}
                                     <div className="mt-2 h-1 bg-border rounded-full overflow-hidden">
                                         <div
                                             className={`h-full transition-all duration-300 ${progressPercent >= 80 ? 'bg-amber-500' : 'bg-primary'}`}
@@ -123,10 +128,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                 <div>
                                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">事件</span>
                                     <div className="flex items-baseline gap-2">
-                                        <span className="text-xl font-mono text-foreground/80">{memory.eventCount}</span>
-                                        <span className="text-xs text-muted-foreground">~{memory.estimatedTokens.toLocaleString()} tok</span>
+                                        <span className="text-xl font-mono text-value">{memory.eventCount}</span>
+                                        <span className="text-xs text-meta">~{memory.estimatedTokens.toLocaleString()} tok</span>
                                     </div>
-                                    {/* 归档比例条 */}
                                     <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
                                         <span>活跃 {memory.activeCount}</span>
                                         <div className="flex-1 h-1 bg-border rounded-full overflow-hidden">
@@ -137,7 +141,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                 </div>
                                 <div>
                                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">实体</span>
-                                    <div className="text-xl font-mono text-foreground/80">{memory.entityCount}</div>
+                                    <div className="text-xl font-mono text-value">{memory.entityCount}</div>
                                     {/* 类型分布 */}
                                     {memory.entityCount > 0 && (
                                         <div className="flex gap-2 mt-2">
@@ -182,18 +186,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                 <div>
                                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">工作记忆</span>
                                     <div className="flex items-baseline gap-2">
-                                        <span className={`text-xl font-mono ${brainStats.workingCount >= brainStats.workingLimit ? 'text-amber-500' : 'text-foreground/80'}`}>
+                                        <span className={`text-xl font-mono ${brainStats.workingCount >= brainStats.workingLimit ? 'text-emphasis' : 'text-value'}`}>
                                             {brainStats.workingCount}
                                         </span>
-                                        <span className="text-xs text-muted-foreground">/ {brainStats.workingLimit}</span>
+                                        <span className="text-xs text-meta">/ {brainStats.workingLimit}</span>
                                     </div>
 
                                     <Divider length={80} className="my-3 opacity-50" />
 
                                     <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider block mb-1">上下文注入</span>
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-sm font-mono text-foreground/80">{contextStats.estimatedTokens.toLocaleString()} Tok</span>
-                                        <span className="text-[10px] text-muted-foreground">{contextStats.injectedLength.toLocaleString()} chars</span>
+                                        <span className="text-sm font-mono text-value">{contextStats.estimatedTokens.toLocaleString()} Tok</span>
+                                        <span className="text-[10px] text-meta">{contextStats.injectedLength.toLocaleString()} chars</span>
                                     </div>
                                 </div>
                             </div>
@@ -236,8 +240,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                                     <Icon size={14} />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
-                                                    <span className={`text-sm ${isEnabled ? 'text-foreground' : 'text-muted-foreground'}`}>{label}</span>
-                                                    <p className="text-[10px] text-muted-foreground truncate">{desc}</p>
+                                                    <span className={`text-sm ${isEnabled ? 'text-heading' : 'text-muted-foreground'}`}>{label}</span>
+                                                    <p className="text-[10px] text-meta truncate">{desc}</p>
                                                 </div>
                                             </div>
                                             <Switch checked={isEnabled} onChange={() => toggleFeature(key)} />
@@ -255,7 +259,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                                 <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">活动日志</h2>
                                 <button
                                     onClick={() => handleNavigate('devlog')}
-                                    className="text-[10px] text-primary hover:underline flex items-center gap-0.5"
+                                    className="text-[10px] text-link hover:underline flex items-center gap-0.5"
                                 >
                                     查看全部 <ChevronRight size={12} />
                                 </button>

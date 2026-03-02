@@ -3,10 +3,11 @@
  *
  * 显示单个 EventNode 的摘要信息
  * 遵循「无框流体」设计：边框高亮而非填充背景
+ * 文本层级：heading(标题) → foreground(正文) → meta(元数据)
  */
-import React from 'react';
 import type { EventNode } from '@/data/types/graph';
 import { ChevronRight, Zap } from 'lucide-react';
+import React from 'react';
 
 interface EventCardProps {
     event: EventNode;
@@ -19,7 +20,7 @@ interface EventCardProps {
     hasChanges?: boolean;
     /** 是否处于召回激活状态 */
     isActive?: boolean;
-    className?: string; // Add className prop
+    className?: string;
 }
 
 /**
@@ -48,7 +49,7 @@ function EmbeddingBadge({ isEmbedded }: { isEmbedded: boolean }) {
 
     return (
         <span
-            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[10px] font-medium"
+            className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-primary/10 text-label rounded text-[10px] font-medium"
             title="已向量化"
         >
             <Zap size={10} />
@@ -75,7 +76,7 @@ function MetaLine({ event }: { event: EventNode }) {
     if (parts.length === 0) return null;
 
     return (
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="text-xs text-meta truncate">
             ({parts.join(' | ')})
         </p>
     );
@@ -84,7 +85,7 @@ function MetaLine({ event }: { event: EventNode }) {
 export const EventCard: React.FC<EventCardProps> = ({
     event,
     isSelected = false,
-    isActive = false, // Default false
+    isActive = false,
     isCompact = false,
     onSelect,
     onCheck,
@@ -94,7 +95,7 @@ export const EventCard: React.FC<EventCardProps> = ({
 }) => {
     const kv = event.structured_kv;
 
-    // 从 summary 中提取纯文本（去掉标题行）
+    // 提取纯文本（去掉标题行）
     const summaryLines = event.summary.split('\n');
     const eventTitle = kv.event || summaryLines[0]?.replace(/:\s*$/, '') || '未知事件';
     const summaryText = summaryLines.length > 1
@@ -110,7 +111,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                     border-b border-border
                     transition-colors duration-150
                     ${isSelected ? 'border-l-4 border-l-primary bg-transparent' : ''}
-                    ${isActive ? 'border-l-4 border-l-green-500 bg-green-500/5' : ''}
+                    ${isActive ? 'border-l-4 border-l-value bg-value/5' : ''}
                     ${!isSelected && !isActive ? 'hover:border-border' : ''}
                     ${className}
                 `}
@@ -130,13 +131,13 @@ export const EventCard: React.FC<EventCardProps> = ({
                 {/* 主内容 */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-primary">
+                        <span className="text-xs font-medium text-heading">
                             {eventTitle}
                         </span>
                         {event.is_embedded && (
-                            <Zap size={10} className="text-primary" />
+                            <Zap size={10} className="text-label" />
                         )}
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-meta">
                             {event.significance_score.toFixed(1)}
                         </span>
                     </div>
@@ -160,7 +161,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                 ${isSelected
                     ? 'border border-primary bg-transparent'
                     : isActive
-                        ? 'border border-green-500/50 bg-green-500/5 hover:border-green-500' // Active Style
+                        ? 'border border-value/50 bg-value/5 hover:border-value'
                         : 'border border-transparent hover:border-border/50'
                 }
                 ${className}
@@ -169,7 +170,7 @@ export const EventCard: React.FC<EventCardProps> = ({
         >
             {/* Active Label */}
             {isActive && (
-                <div className="absolute top-2 right-2 text-[10px] text-green-500 font-medium px-1.5 py-0.5 bg-green-500/10 rounded">
+                <div className="absolute top-2 right-2 text-[10px] text-value font-medium px-1.5 py-0.5 bg-value/10 rounded">
                     Active
                 </div>
             )}
@@ -185,7 +186,7 @@ export const EventCard: React.FC<EventCardProps> = ({
                     }}
                     className="w-4 h-4 rounded border-border accent-primary"
                 />
-                <span className="text-xs font-medium text-primary">
+                <span className="text-xs font-medium text-heading">
                     {eventTitle}
                 </span>
                 <EmbeddingBadge isEmbedded={event.is_embedded} />
@@ -205,7 +206,7 @@ export const EventCard: React.FC<EventCardProps> = ({
             </p>
 
             {/* 底部信息 */}
-            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 mt-2 text-xs text-meta">
                 <span>Level {event.level}</span>
                 {event.source_range && (
                     <>

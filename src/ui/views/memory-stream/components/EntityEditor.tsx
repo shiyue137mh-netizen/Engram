@@ -276,7 +276,7 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
                         元数据 Profile (JSON)
                     </label>
                     {jsonError && (
-                        <span className="text-xs text-red-500 flex items-center gap-1">
+                        <span className="text-xs text-destructive flex items-center gap-1">
                             <AlertTriangle size={12} />
                             格式错误
                         </span>
@@ -290,7 +290,7 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
                         flex-1 w-full p-4 font-mono text-xs leading-relaxed
                         bg-muted/50 border rounded-md resize-none outline-none
                         transition-colors
-                        ${jsonError ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-primary'}
+                        ${jsonError ? 'border-destructive focus:border-destructive' : 'border-border focus:border-primary'}
                     `}
                     spellCheck={false}
                 />

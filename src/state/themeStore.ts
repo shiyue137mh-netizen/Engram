@@ -1,12 +1,12 @@
 /**
  * Theme Store - 使用 Zustand 管理主题状态
- * 
+ *
  * 替换原有的 ThemeContext，提供更简洁的状态管理
  */
 
-import { create } from 'zustand';
-import { ThemeName } from '@/ui/styles/themes';
 import { ThemeManager } from '@/ui/services/ThemeManager';
+import { ThemeName } from '@/ui/styles/themes';
+import { create } from 'zustand';
 
 interface ThemeState {
     /** 当前主题名称 */
@@ -19,11 +19,11 @@ interface ThemeState {
 
 /**
  * 主题状态 Store
- * 
+ *
  * 用法：
  * ```tsx
  * import { useThemeStore } from '@/stores/themeStore';
- * 
+ *
  * function Component() {
  *     const { theme, setTheme, isDarkMode } = useThemeStore();
  *     // 或者选择性订阅
@@ -33,13 +33,13 @@ interface ThemeState {
  */
 export const useThemeStore = create<ThemeState>((set) => ({
     theme: ThemeManager.getTheme(),
-    isDarkMode: ThemeManager.getTheme() !== 'paperLight',
+    isDarkMode: !['tokyoLight', 'catppuccinLatte'].includes(ThemeManager.getTheme()),
 
     setTheme: (theme) => {
         ThemeManager.setTheme(theme);
         set({
             theme,
-            isDarkMode: theme !== 'paperLight'
+            isDarkMode: !['tokyoLight', 'catppuccinLatte'].includes(theme)
         });
     },
 }));

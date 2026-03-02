@@ -18,7 +18,7 @@
 > [!IMPORTANT]
 > **禁止使用硬编码颜色**（如 `bg-black`、`text-zinc-*`）！所有颜色必须使用 Tailwind 主题类。
 
-### 2.1 语义化颜色映射
+### 2.1 语义化颜色映射 (背景/边框/基础)
 
 | 用途 | Tailwind 类名 | 说明 |
 |------|--------------|------|
@@ -27,11 +27,53 @@
 | **悬浮层** | `bg-popover` | 下拉菜单、弹窗等 |
 | **静音区域** | `bg-muted` | 禁用状态、次要区域 |
 | **边框** | `border-border` | 所有分割线 |
-| **主文字** | `text-foreground` | 标题、正文 |
-| **次要文字** | `text-muted-foreground` | 描述、标签 |
-| **强调色** | `text-primary`, `bg-primary` | CTA、链接、高亮 |
+| **主色调** | `bg-primary`, `text-primary` | CTA 按钮、进度条、图标高亮 |
 
-### 2.2 Sidebar 专用
+### 2.2 文本层级色彩系统 (Text Hierarchy)
+
+> [!IMPORTANT]
+> 这是 Engram 的核心设计范式。灵感来自 **VSCode / 终端的语法高亮**：不同语义层级的文字用不同颜色区分，而非给图标或按钮背景上色。
+
+#### 设计原则
+
+1. **颜色属于文本，不属于装饰**：`heading` / `label` 等色阶用于文字着色（`text-*`），图标和按钮统一使用 `text-primary`
+2. **由主题层统一管理**：颜色值定义在 `themes.ts` 中，组件层只使用 `text-heading` 等类名，不做任何颜色映射逻辑
+3. **6 色覆盖完整色族**：每个主题的 6 色分别取自其调色板的 6 大色族，确保视觉丰富且协调
+
+#### 6 色语义表
+
+| Token | 代码高亮类比 | UI 用途 | 示例 | Catppuccin Mocha |
+|---|---|---|---|---|
+| `text-heading` | 关键字 `const`, `import` | 标题、功能名称 | "自动总结"、"异界降临" | Mauve `#cba6f7` |
+| `text-label` | 类型 `EntityNode` | 标签、分类 | "character"、"已嵌入" | Blue `#89b4fa` |
+| `text-meta` | 注释 `// ...` | 时间戳、弱信息 | "(复兴纪元488年)"、"Level 0" | Overlay0 `#6c7086` |
+| `text-link` | 装饰器 `@Route` | 可交互文本 | "查看全部"、跳转按钮 | Yellow `#f9e2af` |
+| `text-value` | 字符串 `'hello'` | 数据值、量化数字 | "47"、"2,346 Tok" | Green `#a6e3a1` |
+| `text-emphasis` | 数字常量 `42` | 强调、重要标记 | 连接角色名、待处理数 | Peach `#fab387` |
+
+加上已有的 `text-foreground`（正文）和 `text-muted-foreground`（弱化），共计 **8 级文本色阶**。
+
+#### 正确与错误示例
+
+```tsx
+// ✅ 正确：使用文本层级色
+<span className="text-heading">{eventTitle}</span>
+<span className="text-value font-mono">{eventCount}</span>
+<p className="text-meta">({time} | {location})</p>
+<button className="text-link hover:underline">查看全部</button>
+
+// ❌ 错误：在组件中做颜色映射
+const getEntityColor = (type) => { /* switch case... */ };
+<span className={`text-${color}`}>{name}</span>
+
+// ❌ 错误：给图标/按钮背景上 heading/label 色
+<div className="bg-heading/10 text-heading"><Icon /></div>
+
+// ✅ 正确：图标/按钮统一使用 primary
+<div className="bg-primary/10 text-primary"><Icon /></div>
+```
+
+### 2.3 Sidebar 专用
 
 | 用途 | Tailwind 类名 |
 |------|--------------|

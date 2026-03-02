@@ -24,11 +24,11 @@ interface PromptTemplateCardProps {
 function getCategoryColorClass(category: PromptCategory): string {
     switch (category) {
         case 'summary':
-            return 'text-blue-500 bg-blue-500/10 border border-blue-500/20';
+            return 'text-label bg-label/10 border border-label/20';
         case 'trim':
-            return 'text-orange-500 bg-orange-500/10 border border-orange-500/20';
+            return 'text-emphasis bg-emphasis/10 border border-emphasis/20';
         case 'preprocessing':
-            return 'text-emerald-500 bg-emerald-500/10 border border-emerald-500/20';
+            return 'text-value bg-value/10 border border-value/20';
         default:
             return 'text-muted-foreground bg-muted border border-border';
     }
@@ -168,7 +168,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                 ) : (
                     // 预处理模板始终显示为"就绪"状态
                     <div
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500 flex-shrink-0"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-value/10 text-value flex-shrink-0"
                         title="预处理模板 (在快捷面板中激活)"
                     >
                         <Check size={16} />
@@ -177,7 +177,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
 
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                        <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'} ${(!template.enabled && !isPreprocessing) && 'line-through'}`}>
+                        <h4 className={`text-sm font-medium truncate ${isSelected ? 'text-heading' : 'text-muted-foreground group-hover:text-heading'} ${(!template.enabled && !isPreprocessing) && 'line-through'}`}>
                             {template.name}
                         </h4>
 
@@ -209,7 +209,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                 <button className="p-1.5 rounded text-muted-foreground hover:text-foreground transition-colors" onClick={(e) => { e.stopPropagation(); onCopy?.(); }} title="Copy"><Copy size={12} /></button>
                 {template.isBuiltIn && (
                     <button
-                        className="p-1.5 hover:bg-amber-500/10 rounded text-muted-foreground hover:text-amber-500 transition-colors"
+                        className="p-1.5 hover:bg-emphasis/10 rounded text-muted-foreground hover:text-emphasis transition-colors"
                         onClick={(e) => {
                             e.stopPropagation();
                             // 优先尝试通过 ID 精确匹配 (V0.8.6 Fix)

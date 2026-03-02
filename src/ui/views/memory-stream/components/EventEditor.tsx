@@ -412,8 +412,8 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                 <p>创建时间: {new Date(event.timestamp).toLocaleString()}</p>
                 <p>
                     状态:
-                    {event.is_archived && <span className="ml-1 text-yellow-500">已归档</span>}
-                    {event.is_embedded && <span className="ml-1 text-green-500">已嵌入</span>}
+                    {event.is_archived && <span className="ml-1 text-emphasis">已归档</span>}
+                    {event.is_embedded && <span className="ml-1 text-value">已嵌入</span>}
                     {!event.is_archived && !event.is_embedded && <span className="ml-1">活跃</span>}
                 </p>
             </div>
