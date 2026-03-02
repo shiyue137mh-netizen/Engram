@@ -77,13 +77,13 @@
 - **样式**: `border-t border-border` (不使用透明度/30)。
 - **间距**: 配合 `PageTitle` 的 `mb-2` 使用，保持紧凑。
 
-### 4.3 按钮 (Buttons) (`src/ui/components/ui/Button.tsx`)
+### 4.3 按钮 (Buttons) (`src/ui/components/core/Button.tsx`)
 
 -   **Primary**: `bg-primary text-primary-foreground`
 -   **Secondary/Ghost**: `bg-transparent border-border text-muted-foreground hover:bg-accent`
 -   **Icon Button**: 无背景，hover 时 `bg-accent`
 
-### 4.3 输入框 (Inputs) (`src/ui/components/ui/Input.tsx`)
+### 4.4 输入框 (Inputs) (`src/ui/components/core/`)
 
 -   **边框**: `border-input` 或 `border-border`
 -   **背景**: `bg-background` 或透明
