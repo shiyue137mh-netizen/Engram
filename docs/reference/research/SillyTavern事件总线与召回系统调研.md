@@ -167,7 +167,7 @@ Engram Injector 跳过 ← 问题所在
 
 - 酒馆事件定义：[events.js](file:///Users/macbookair/SillyTavern/public/scripts/events.js)
 - Engram 事件封装：[TavernEvents.ts](file:///Users/macbookair/SillyTavern/public/scripts/extensions/Engram_project/src/tavern/TavernEvents.ts)
-- Injector 实现：[Injector.ts](file:///Users/macbookair/SillyTavern/public/scripts/extensions/Engram_project/src/services/rag/Injector.ts)
+- Injector 实现：[Injector.ts](../../../src/modules/rag/injection/Injector.ts)
 
 ---
 

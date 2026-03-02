@@ -318,5 +318,5 @@ export class UpdateService {
 
 ## 参考实现
 
-- [Engram UpdateNotice.tsx](../src/ui/components/common/UpdateNotice.tsx)
+- [Engram UpdateNotice.tsx](../src/ui/components/feedback/UpdateNotice.tsx)
 - [JS-Slash-Runner extension.ts](https://github.com/N0VI028/JS-Slash-Runner)
