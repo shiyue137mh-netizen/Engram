@@ -8,7 +8,7 @@
  */
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
-import { getSTContext } from '@/integrations/tavern/bridge';
+import { getSTContext } from '@/integrations/tavern';
 import { summarizerService } from '@/modules/memory';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
 import { useMemoryStore } from '@/state/memoryStore';
@@ -172,7 +172,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             // 4. Brain & Context Stats (Dynamic Import)
             try {
                 const { brainRecallCache } = await import('@/modules/rag/retrieval/BrainRecallCache');
-                const { MacroService } = await import('@/integrations/tavern/macros');
+                const { MacroService } = await import('@/integrations/tavern');
 
                 const snapshot = brainRecallCache.getShortTermSnapshot();
                 // FIX: 直接从 SettingsManager 读取最新的配置，而不是 Cache 里的旧副本

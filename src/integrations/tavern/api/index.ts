@@ -4,14 +4,7 @@
  * 提供 SillyTavern 事件、消息、世界书等功能的封装
  */
 
-export { EventBus, TavernEventType } from '@/integrations/tavern/events';
-;
-
-;
-;
-
 export { WorldInfoService } from '../worldbook';
-;
 
 /**
  * 检查酒馆接口对接状态
@@ -25,7 +18,7 @@ export async function checkTavernIntegration(): Promise<{
     floorCount: number | null;
     characterName: string | null;
 }> {
-    const { EventBus } = await import('@/integrations/tavern/events');
+    const { EventBus } = await import('@/integrations/tavern');
     const { MessageService } = await import('./Message');
     const { WorldInfoService } = await import('../worldbook');
 

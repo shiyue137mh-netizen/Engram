@@ -101,7 +101,7 @@ class Preprocessor {
                 Logger.info(LogModule.PREPROCESS, '检测到跳过标记，执行 AI 消息注入');
                 const contentToInject = context.output;
                 if (typeof contentToInject === 'string') {
-                    const { injectMessage } = await import('@/integrations/tavern/chat');
+                    const { injectMessage } = await import('@/integrations/tavern');
                     await injectMessage('char', contentToInject);
                     notificationService.success('已作为 AI 消息注入', 'Engram');
                 } else {

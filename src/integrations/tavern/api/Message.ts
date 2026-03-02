@@ -4,8 +4,8 @@
  * 提供聊天消息获取、楼层计数等功能
  */
 
-import { getSTContext, isSTAvailable } from '@/integrations/tavern/context';
-import type { STMessage } from '@/integrations/tavern/context';
+import { getSTContext, isSTAvailable } from '@/integrations/tavern';
+import type { STMessage } from '@/integrations/tavern';
 
 /** 消息角色类型 */
 type MessageRole = 'user' | 'assistant' | 'system';

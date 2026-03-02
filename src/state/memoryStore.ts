@@ -2,8 +2,7 @@ import { generateUUID } from '@/core/utils';
 import { chatManager } from '@/data/ChatManager';
 import { deleteDatabase, getDbForChat, tryGetDbForChat, type ChatDatabase } from '@/data/db';
 import type { EntityNode, EventNode } from '@/data/types/graph';
-import { WorldInfoService } from '@/integrations/tavern/api';
-import { getCurrentChatId } from '@/integrations/tavern/context';
+import { getCurrentChatId, WorldInfoService } from '@/integrations/tavern';
 import { create } from 'zustand';
 
 interface MemoryState {

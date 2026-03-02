@@ -11,7 +11,7 @@
  */
 
 import { tryGetDbForChat } from '@/data/db';
-import { getCurrentChatId } from '@/integrations/tavern/context';
+import { getCurrentChatId } from '@/integrations/tavern';
 import { SettingsManager } from '@/config/settings';
 import { embeddingService } from '../embedding/EmbeddingService';
 import { rerankService } from './Reranker';

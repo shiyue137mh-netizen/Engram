@@ -1,6 +1,5 @@
 import { ReviewAction, ReviewRequest } from '@/core/events/ReviewBridge';
-import { EventBus } from '@/integrations/tavern/api'; // EventBus is from events.ts, tavern/api exports it
-import { TavernEventType } from '@/integrations/tavern/events';
+import { EventBus, TavernEventType } from '@/integrations/tavern'; // EventBus is from events.ts
 import { ModernButton as Button } from '@/ui/components/core/Button';
 import { AlertTriangle, ArrowDownToLine, Check, Layers, Minus, RefreshCw, RotateCcw, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';

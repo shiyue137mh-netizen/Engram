@@ -1,4 +1,4 @@
-import { MacroService } from '@/integrations/tavern/macros';
+import { MacroService } from '@/integrations/tavern';
 import { ArrowDownUp, Database, FileText, Filter, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
 import React from 'react';
 import type { SortOrder, ViewTab } from '../hooks/useMemoryStream';

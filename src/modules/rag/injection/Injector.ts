@@ -10,15 +10,13 @@
  * - 酒馆会 await 事件处理器，确保预处理完成后再继续
  */
 
-import { EventBus, TavernEventType } from '@/integrations/tavern/api';
-import { getCurrentChatId, getSTContext } from '@/integrations/tavern/context';
-import { MacroService } from '@/integrations/tavern/macros';
-import { Logger, LogModule } from '@/core/logger';
-import { preprocessor } from '@/modules/preprocessing';
-import { regexProcessor } from "@/modules/workflow/steps";
-import { retriever } from '@/modules/rag/retrieval/Retriever';
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
+import { Logger, LogModule } from '@/core/logger';
+import { EventBus, getCurrentChatId, getSTContext, MacroService, TavernEventType } from '@/integrations/tavern';
+import { preprocessor } from '@/modules/preprocessing';
+import { retriever } from '@/modules/rag/retrieval/Retriever';
+import { regexProcessor } from "@/modules/workflow/steps";
 
 /**
  * GENERATION_AFTER_COMMANDS 事件参数类型

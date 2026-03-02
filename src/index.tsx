@@ -3,8 +3,8 @@
  * 入口文件
  */
 
-import { initializeEngram, setGlobalRenderer, setReactRenderer } from '@/integrations/tavern/bridge';
-import { setQuickPanelCallback } from '@/integrations/tavern/ui';
+import { initializeEngram, setGlobalRenderer, setReactRenderer } from '@/integrations/tavern';
+import { setQuickPanelCallback } from '@/integrations/tavern';
 import { QuickPanel } from '@/ui/views/quick-panel';
 import { ReviewContainer } from '@/ui/views/review/ReviewContainer';
 import React, { useEffect, useState } from 'react';

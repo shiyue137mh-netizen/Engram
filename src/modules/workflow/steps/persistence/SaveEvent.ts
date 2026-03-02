@@ -1,7 +1,7 @@
 import { Logger } from '@/core/logger';
 import { EventNode } from '@/data/types/graph';
-import { hideMessageRange } from '@/integrations/tavern/chat';
-import { MacroService } from '@/integrations/tavern/macros';
+import { hideMessageRange } from '@/integrations/tavern';
+import { MacroService } from '@/integrations/tavern';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
 import { JobContext } from '../../core/JobContext';

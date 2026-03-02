@@ -11,8 +11,16 @@
 - **去除冗余的 Virtuoso**:
   - `ModelLog` 和 `RecallLog` 由于展示量级属于中低频即插即用的日志等级（非持久化），彻底剥离了 `react-virtuoso` 虚拟列表。
   - 解决了由于原生 Flex 弹性布局的渲染时延导致虚拟列表偶然性计算出 0 高度所引发的页面“坍缩白屏”问题。
+- **状态同步监控降频**：为了降低过度激进的 UI 热更新引发的无效重绘和风扇狂转卡顿，将快速操作控制面板 `QuickPanel.tsx` 中向远端同步状态的 `setInterval` 频率从每秒钟一次放松至每 3 秒钟一次。
+
+### 🚀 架构优化 (Architecture Improvements)
+
+- **Embedding 多源对接层剥离**：彻底将过度增殖至将近七百行的 `EmbeddingService.ts` 解耦。建立专职对接口 `EmbeddingClient.ts` 进入 integrations 下管理所有的诸如 OpenAI/Ollama 等的请求格式和 fetch 交互操作，使其回归单纯批次分配控制器的本源角色。
+- **环境宏预载入基座拆分**：将负责向 Prompt 中填装环境背景的宏指令池 `macros.ts` 当中最消耗心智与篇幅的长篇代码抽离，分解为两项独立的职能服务：`chatHistory.ts` (历史管理、正则清理代理) 与 `ejsProcessor.ts` (接管底层 ST 内置的 EJS 渲染)，有效化解了上帝类陷阱。
 
 ### 🐛 修复 (Bug Fixes)
+
+- **并发实体入库流量管控**：修复了在提取巨量实体节点时触发 `Promise.all` 的无差别广播查询更新，引发瞬间并发撑爆 IndexedDB 导致堵塞白屏的隐患，引入了每 50 批次为一个限流循环的发送保护策略。
 
 - **空指针与防白错误隔离**:
   - 为 `EventEditor.tsx` 在处理记忆节点中部分历史数据异常残缺（例如缺少 `structured_kv`）造成的空指针增加可选链探测 (`?.`) 容错。

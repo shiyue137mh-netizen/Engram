@@ -1,5 +1,5 @@
 import { SearchAdapter, SearchResult } from '../SearchService';
-import { getCurrentChatId } from '@/integrations/tavern/context';
+import { getCurrentChatId } from '@/integrations/tavern';
 import { tryGetDbForChat } from '@/data/db';
 import { FileText, Calendar } from 'lucide-react';
 

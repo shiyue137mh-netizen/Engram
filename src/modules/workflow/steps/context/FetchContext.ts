@@ -1,6 +1,6 @@
 import { Logger } from '@/core/logger';
-import { getCurrentCharacter, getCurrentChat } from '@/integrations/tavern/context';
-import { MacroService } from '@/integrations/tavern/macros';
+import { getCurrentCharacter, getCurrentChat } from '@/integrations/tavern';
+import { MacroService } from '@/integrations/tavern';
 import { WorldInfoService } from '@/integrations/tavern/worldbook';
 import { JobContext } from '../../core/JobContext';
 import { IStep } from '../../core/Step';

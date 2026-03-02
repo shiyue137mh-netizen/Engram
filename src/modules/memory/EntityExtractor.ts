@@ -13,7 +13,7 @@ import { eventWatcher } from '@/core/events/EventWatcher';
 import { Logger, LogModule } from '@/core/logger';
 import { chatManager } from '@/data/ChatManager';
 import type { EntityNode } from '@/data/types/graph';
-import { MacroService } from '@/integrations/tavern/macros';
+import { MacroService } from '@/integrations/tavern';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
 
@@ -84,7 +84,7 @@ export class EntityBuilder {
     private async handleMessageReceived(): Promise<void> {
         // dynamic import to avoid circular dependency if needed, though chatManager is already imported
         const { chatManager } = await import('@/data/ChatManager');
-        const { MacroService } = await import('@/integrations/tavern/macros');
+        const { MacroService } = await import('@/integrations/tavern');
 
         const currentFloor = MacroService.getCurrentMessageCount();
         const state = await chatManager.getState();
@@ -325,18 +325,22 @@ export class EntityBuilder {
                 await store.saveEntities(entitiesToSave);
             }
 
-            // 批量保存更新实体 (并行)
+            // 批量保存更新实体 (并行，但引入分批处理以限制并发)
             if (updatedEntities.length > 0) {
-                await Promise.all(updatedEntities.map(entity => {
-                    Logger.debug(LogModule.MEMORY_ENTITY, 'Updating entity', { id: entity.id, name: entity.name });
-                    return store.updateEntity(entity.id, {
-                        profile: entity.profile,
-                        aliases: entity.aliases,
-                        description: entity.description,
-                        name: entity.name,
-                        type: entity.type
-                    });
-                }));
+                const chunkSize = 50; // 每批最大并发更新量
+                for (let i = 0; i < updatedEntities.length; i += chunkSize) {
+                    const chunk = updatedEntities.slice(i, i + chunkSize);
+                    await Promise.all(chunk.map(entity => {
+                        Logger.debug(LogModule.MEMORY_ENTITY, 'Updating entity', { id: entity.id, name: entity.name });
+                        return store.updateEntity(entity.id, {
+                            profile: entity.profile,
+                            aliases: entity.aliases,
+                            description: entity.description,
+                            name: entity.name,
+                            type: entity.type
+                        });
+                    }));
+                }
             }
 
             // 更新状态

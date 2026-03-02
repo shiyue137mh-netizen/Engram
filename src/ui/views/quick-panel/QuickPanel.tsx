@@ -79,7 +79,7 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         };
 
         syncData(); // 立即执行一次
-        const interval = setInterval(syncData, 1000);
+        const interval = setInterval(syncData, 3000); // 降频至 3 秒，缓解 UI 发热
         return () => clearInterval(interval);
     }, [isOpen, templates.length]);
 

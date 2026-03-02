@@ -19,20 +19,34 @@ async function updateImports() {
         for (const imp of imports) {
             const moduleSpecifier = imp.getModuleSpecifierValue();
 
-            // Refactoring WorldInfo: Map old paths to new module
-            if (moduleSpecifier.includes("integrations/tavern/api/WorldInfo") ||
-                moduleSpecifier.includes("integrations/tavern/WorldBookSlot") ||
-                moduleSpecifier.includes("integrations/tavern/WorldBookState")) {
-
-                // Replace with unified new module import
-                imp.setModuleSpecifier("@/integrations/tavern/worldbook");
-                modified = true;
-            }
-
             // Refactoring Review System: Rename RevisionBridge modules
             if (moduleSpecifier.includes("RevisionBridge")) {
                 const newSpecifier = moduleSpecifier.replace("RevisionBridge", "ReviewBridge");
                 imp.setModuleSpecifier(newSpecifier);
+                modified = true;
+                continue;
+            }
+
+            // New Classification Rules for tavern base modules
+            const baseMatches = [
+                "@/integrations/tavern/api/WorldInfo", // old worldbook path
+                "@/integrations/tavern/WorldBookSlot", // old worldbook path
+                "@/integrations/tavern/WorldBookState", // old worldbook path
+                "@/integrations/tavern/events", // old event path
+                "@/integrations/tavern/context", // old context path
+                "@/integrations/tavern/bridge", // old bridge path
+                "@/integrations/tavern/chat", // old chat path
+                "@/integrations/tavern/macros", // old macros path
+                "@/integrations/tavern/ui" // old ui path
+            ];
+
+            if (baseMatches.some(match => moduleSpecifier.includes(match))) {
+                // Determine destination
+                if (moduleSpecifier.includes("WorldInfo") || moduleSpecifier.includes("WorldBook")) {
+                    imp.setModuleSpecifier("@/integrations/tavern/worldbook");
+                } else {
+                    imp.setModuleSpecifier("@/integrations/tavern");
+                }
                 modified = true;
             }
         }
@@ -47,12 +61,25 @@ async function updateImports() {
                     const arg = args[0].asKindOrThrow(ts.SyntaxKind.StringLiteral);
                     const text = arg.getLiteralValue();
 
-                    if (text.includes("integrations/tavern/api/WorldInfo") ||
-                        text.includes("integrations/tavern/WorldBookSlot") ||
-                        text.includes("integrations/tavern/WorldBookState")) {
+                    const baseMatches = [
+                        "@/integrations/tavern/api/WorldInfo",
+                        "@/integrations/tavern/WorldBookSlot",
+                        "@/integrations/tavern/WorldBookState",
+                        "@/integrations/tavern/events",
+                        "@/integrations/tavern/context",
+                        "@/integrations/tavern/bridge",
+                        "@/integrations/tavern/chat",
+                        "@/integrations/tavern/macros",
+                        "@/integrations/tavern/ui"
+                    ];
 
+                    if (baseMatches.some(match => text.includes(match))) {
                         // Replace path
-                        arg.setLiteralValue("@/integrations/tavern/worldbook");
+                        if (text.includes("WorldInfo") || text.includes("WorldBook")) {
+                            arg.setLiteralValue("@/integrations/tavern/worldbook");
+                        } else {
+                            arg.setLiteralValue("@/integrations/tavern");
+                        }
                         modified = true;
                     }
                 }

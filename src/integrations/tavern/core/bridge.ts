@@ -5,12 +5,12 @@
  * 所有 window.SillyTavern、jQuery、eventSource 的调用都在这里统一管理。
  */
 // 使用统一的 STContext 模块
-export { getSTContext, type STMessage } from "@/integrations/tavern/context";
+export { getSTContext, type STMessage } from "./context";
 // 从专门化的 Adapter 中导出方法
-export { hideMessageRange, injectMessage } from "@/integrations/tavern/chat";
+export { hideMessageRange, injectMessage } from "../chat/chat";
 export {
     callPopup, createTopBarButton, mountGlobalOverlay, setGlobalRenderer, setReactRenderer, toggleMainPanel
-} from "@/integrations/tavern/ui";
+} from "../ui/ui";
 
 /**
  * 初始化 Engram 插件
@@ -64,7 +64,7 @@ export async function initializeEngram(): Promise<void> {
     }
 
     // 从 ui 提取加载顶部按钮指令
-    const { createTopBarButton } = await import('@/integrations/tavern/ui');
+    const { createTopBarButton } = await import('@/integrations/tavern');
     // 优先使用顶栏按钮，找不到则使用悬浮球
     createTopBarButton();
 
@@ -89,7 +89,7 @@ export async function initializeEngram(): Promise<void> {
         const { WorldBookSlotService } = await import('@/integrations/tavern/worldbook');
         await WorldBookSlotService.init();
 
-        const { MacroService } = await import('@/integrations/tavern/macros');
+        const { MacroService } = await import('@/integrations/tavern');
         await MacroService.init();
     } catch (e) {
         Logger.warn('MacroService', '宏服务/世界书初始化失败', { error: String(e) });
@@ -97,7 +97,7 @@ export async function initializeEngram(): Promise<void> {
 
     // V0.8: Initialize QR 栏快捷按钮
     try {
-        const { initQuickPanelButton } = await import('@/integrations/tavern/ui');
+        const { initQuickPanelButton } = await import('@/integrations/tavern');
         initQuickPanelButton();
         Logger.info('QuickPanelButton', 'QR 栏按钮初始化完成');
     } catch (e) {
@@ -105,7 +105,7 @@ export async function initializeEngram(): Promise<void> {
     }
 
     // 挂载全局悬浮层 (用于修订弹窗等)
-    const { mountGlobalOverlay } = await import('@/integrations/tavern/ui');
+    const { mountGlobalOverlay } = await import('@/integrations/tavern');
     mountGlobalOverlay();
 
     // 初始化角色删除联动服务
@@ -121,7 +121,7 @@ export async function initializeEngram(): Promise<void> {
     try {
         const { setupKeyboardShortcuts } = await import('@/core/KeyboardManager');
         const { toggleQuickPanel, openCommandPalette } = await import('@/index');
-        const { toggleMainPanel } = await import('@/integrations/tavern/ui');
+        const { toggleMainPanel } = await import('@/integrations/tavern');
 
         setupKeyboardShortcuts({
             toggleMainPanel: toggleMainPanel,

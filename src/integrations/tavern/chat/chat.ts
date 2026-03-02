@@ -1,5 +1,5 @@
 import { Logger } from '@/core/logger';
-import { getSTContext, STMessage } from './context';
+import { getSTContext, STMessage } from '../core/context';
 
 const MODULE = 'TavernChat';
 

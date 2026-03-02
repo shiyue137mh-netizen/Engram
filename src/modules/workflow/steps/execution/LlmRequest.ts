@@ -2,7 +2,7 @@ import { IStep } from '../../core/Step';
 import { JobContext } from '../../core/JobContext';
 import { llmAdapter } from '@/integrations/llm/Adapter';
 import { ModelLogger } from '@/core/logger/ModelLogger';
-import { getCurrentCharacter, getCurrentModel } from '@/integrations/tavern/context';
+import { getCurrentCharacter, getCurrentModel } from '@/integrations/tavern';
 import { Logger } from '@/core/logger';
 
 export class LlmRequest implements IStep {

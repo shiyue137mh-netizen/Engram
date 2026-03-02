@@ -9,7 +9,7 @@ import { preprocessor } from "@/modules/preprocessing";
 import { SettingsManager } from "@/config/settings";
 import { DEFAULT_PREPROCESSING_CONFIG } from "@/modules/preprocessing/types";
 import { useMemoryStore } from "@/state/memoryStore";
-import { getCurrentChatId } from "@/integrations/tavern/context";
+import { getCurrentChatId } from "@/integrations/tavern";
 import { Logger, LogModule } from "@/core/logger";
 
 export const Settings: React.FC = () => {
@@ -279,7 +279,7 @@ const SyncSection: React.FC = () => {
             setSyncStatus('check');
             setSyncMessage('检查中...');
 
-            const { getSTContext } = await import('@/integrations/tavern/context');
+            const { getSTContext } = await import('@/integrations/tavern');
             const context = getSTContext();
             if (!context?.chatId) {
                 alert('请先打开一个聊天以进行同步测试');
@@ -415,7 +415,7 @@ const SyncSection: React.FC = () => {
                         try {
                             setSyncStatus('syncing');
                             setSyncMessage('强制上传中...');
-                            const { getSTContext } = await import('@/integrations/tavern/context');
+                            const { getSTContext } = await import('@/integrations/tavern');
                             const chatId = getSTContext()?.chatId;
                             if (!chatId) throw new Error('未连接到聊天');
 
@@ -444,7 +444,7 @@ const SyncSection: React.FC = () => {
                         try {
                             setSyncStatus('syncing');
                             setSyncMessage('强制下载中...');
-                            const { getSTContext } = await import('@/integrations/tavern/context');
+                            const { getSTContext } = await import('@/integrations/tavern');
                             const chatId = getSTContext()?.chatId;
                             if (!chatId) throw new Error('未连接到聊天');
 

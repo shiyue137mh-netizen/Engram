@@ -1,5 +1,5 @@
 import { Logger, LogModule } from '@/core/logger';
-import { getSTContext, getRequestHeaders } from '@/integrations/tavern/context';
+import { getSTContext, getRequestHeaders } from '@/integrations/tavern';
 import { ChatDatabase, ChatDataDump, getDbForChat, exportChatData, importChatData } from '@/data/db';
 import { debounce } from 'lodash';
 import { SettingsManager } from '@/config/settings';
@@ -30,11 +30,11 @@ class SyncService {
         // 为确保安全，我们在第一次 getInstance 时不强依赖 Tavern 上下文，
         // 而是依靠外部调用 init 或在构造函数中尝试
         setTimeout(async () => {
-            const { EventBus, TavernEventType } = await import('@/integrations/tavern/events');
+            const { EventBus, TavernEventType } = await import('@/integrations/tavern');
 
             // 监听聊天切换事件
             EventBus.on(TavernEventType.CHAT_CHANGED, async () => {
-                const { getSTContext } = await import('@/integrations/tavern/context');
+                const { getSTContext } = await import('@/integrations/tavern');
                 const chatId = getSTContext()?.chatId;
                 if (chatId) {
                     Logger.info(MODULE, `Chat changed to ${chatId}, checking sync...`);
@@ -44,7 +44,7 @@ class SyncService {
             });
 
             // 首次加载也检查一次
-            const { getSTContext } = await import('@/integrations/tavern/context');
+            const { getSTContext } = await import('@/integrations/tavern');
             if (getSTContext()?.chatId) {
                 this.autoSyncDownload(getSTContext()?.chatId!);
             }

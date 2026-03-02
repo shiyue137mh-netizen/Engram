@@ -1,7 +1,7 @@
 import { SettingsManager } from '@/config/settings';
 import { Logger } from '@/core/logger';
 import { EventNode } from '@/data/types/graph';
-import { MacroService } from '@/integrations/tavern/macros';
+import { MacroService } from '@/integrations/tavern';
 import { embeddingService } from '@/modules/rag';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';

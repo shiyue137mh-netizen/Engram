@@ -9,7 +9,7 @@
  * 基于 tavern/TavernEvents.ts 的 EventBus 进行封装
  */
 
-import { EventBus, TavernEventType, type Unsubscribe } from '@/integrations/tavern/events';
+import { EventBus, TavernEventType, type Unsubscribe } from '@/integrations/tavern';
 
 /** 监听回调类型 */
 interface WatcherCallbacks {
