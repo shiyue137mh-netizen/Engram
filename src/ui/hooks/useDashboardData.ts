@@ -12,7 +12,7 @@ import { getSTContext } from '@/integrations/tavern/bridge';
 import { summarizerService } from '@/modules/memory';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
 import { useMemoryStore } from '@/state/memoryStore';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 // ==================== 类型定义 ====================
 
@@ -293,18 +293,18 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         refresh();
     }, [features, refresh]);
 
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
     // 初始加载 + 定时刷新 (Phase 3 Performance)
     useEffect(() => {
         refresh(); // 立即执行一次
-
-        let timer: NodeJS.Timeout | null = null;
         let isTabActive = document.visibilityState === 'visible';
 
         // 动态调整轮询帧率：活动时高频查询，放到后台时降低查询频率
         const scheduleTimer = () => {
-            if (timer) clearInterval(timer);
+            if (timerRef.current) clearInterval(timerRef.current);
             const currentInterval = isTabActive ? refreshInterval : refreshInterval * 5; // 后台延长 5 倍间隙
-            timer = setInterval(refresh, currentInterval);
+            timerRef.current = setInterval(refresh, currentInterval);
         };
 
         const handleVisibilityChange = () => {
@@ -319,7 +319,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
-            if (timer) clearInterval(timer);
+            if (timerRef.current) clearInterval(timerRef.current);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [refresh, refreshInterval]);

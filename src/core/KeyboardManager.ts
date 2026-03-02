@@ -277,3 +277,9 @@ export function setupKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks): vo
 
     Logger.info(MODULE, '快捷键已注册', keyboardManager.getRegisteredShortcuts());
 }
+
+if ((import.meta as any).hot) {
+    (import.meta as any).hot.dispose(() => {
+        keyboardManager.destroy();
+    });
+}

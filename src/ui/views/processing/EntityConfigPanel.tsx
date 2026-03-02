@@ -6,13 +6,13 @@
  * - 顶层开关 + 详细配置
  * - 去卡片化，使用细线分割
  */
+import type { EntityExtractConfig } from '@/config/types/memory';
 import { entityBuilder } from "@/modules/memory/EntityExtractor";
+import { SliderField } from '@/ui/components/core/SliderField';
 import { SwitchField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
 import { RefreshCw } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-// import { Divider } from '@/ui/components/layout/Divider'; // Already imported
-import type { EntityExtractConfig } from '@/config/types/memory';
 
 interface EntityStatus {
     enabled: boolean;
@@ -190,25 +190,13 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
                         <div className="text-xs text-muted-foreground">
                             每隔 <span className="text-base font-medium text-foreground mx-0.5">{config.floorInterval}</span> 楼触发一次提取
                         </div>
-                        <div className="relative h-4 flex items-center group cursor-pointer">
-                            {/* 极简滑块轨道 */}
-                            <div className="absolute inset-x-0 h-[1px]" style={{ backgroundColor: 'var(--border)' }} />
-                            {/* Thumb */}
-                            <div
-                                className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-muted-foreground/80 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 group-hover:bg-foreground"
-                                style={{ left: `${((config.floorInterval - 2) / (100 - 2)) * 100}%`, transform: 'translate(-50%, -50%)' }}
-                            />
-                            <input
-                                type="range"
-                                min={2}
-                                max={100}
-                                step={1}
-                                value={config.floorInterval}
-                                onChange={(e) => handleIntervalChange(parseInt(e.target.value))}
-                                className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
-                                style={{ appearance: 'none', WebkitAppearance: 'none' }}
-                            />
-                        </div>
+                        <SliderField
+                            min={2}
+                            max={100}
+                            step={1}
+                            value={config.floorInterval}
+                            onChange={(val) => handleIntervalChange(val)}
+                        />
                     </div>
 
                     {/* 说明 */}

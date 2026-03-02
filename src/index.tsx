@@ -90,8 +90,13 @@ setQuickPanelCallback(() => {
 });
 
 // 等待 DOM 加载完成后初始化
+const initEngramOnLoad = () => {
+    initializeEngram();
+    document.removeEventListener('DOMContentLoaded', initEngramOnLoad);
+};
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeEngram);
+    document.addEventListener('DOMContentLoaded', initEngramOnLoad);
 } else {
     initializeEngram();
 }

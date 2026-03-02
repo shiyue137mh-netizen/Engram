@@ -3,7 +3,8 @@
  */
 import type { APISource, LLMPreset } from '@/config/types/llm';
 import { ModelInfo, ModelService } from '@/integrations/llm/ModelDiscovery';
-import { FormSection, NumberField, SelectField, SwitchField, TextField } from '@/ui/components/form/FormComponents';
+import { SliderField } from '@/ui/components/core/SliderField';
+import { FormSection, SelectField, SwitchField, TextField } from '@/ui/components/form/FormComponents';
 import { Loader2, RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
 
@@ -217,77 +218,111 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
 
             {/* 采样参数 */}
             <FormSection title="采样参数" description="控制模型输出的随机性和多样性">
-                <NumberField
-                    label="温度 (Temperature)"
-                    value={preset.parameters.temperature}
-                    onChange={(value) => updateParameters('temperature', value)}
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    description="较高的值使输出更随机，较低的值使输出更确定"
-                />
+                <div className="space-y-8">
+                    {/* Temperature */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                            模型的温度为
+                            <input
+                                type="number" min={0} max={2} step={0.1}
+                                value={preset.parameters.temperature}
+                                onChange={(e) => updateParameters('temperature', Number(e.target.value))}
+                                className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-12 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
+                            />
+                        </div>
+                        <SliderField min={0} max={2} step={0.1} value={preset.parameters.temperature} onChange={(val) => updateParameters('temperature', val)} />
+                        <div className="text-xs text-muted-foreground/70">较高的值使输出更随机，较低的值使输出更确定。</div>
+                    </div>
 
-                <NumberField
-                    label="Top-P"
-                    value={preset.parameters.topP}
-                    onChange={(value) => updateParameters('topP', value)}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    description="核采样阈值，控制候选 token 的累积概率"
-                />
+                    {/* Top-P */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                            核采样阈值 (Top-P) 为
+                            <input
+                                type="number" min={0} max={1} step={0.05}
+                                value={preset.parameters.topP}
+                                onChange={(e) => updateParameters('topP', Number(e.target.value))}
+                                className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-12 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
+                            />
+                        </div>
+                        <SliderField min={0} max={1} step={0.05} value={preset.parameters.topP} onChange={(val) => updateParameters('topP', val)} />
+                        <div className="text-xs text-muted-foreground/70">控制候选 token 的累积概率截断。</div>
+                    </div>
 
-                <NumberField
-                    label="Top-K"
-                    value={preset.parameters.topK ?? 60}
-                    onChange={(value) => updateParameters('topK', value)}
-                    min={0}
-                    max={200}
-                    step={1}
-                    showSlider={false}
-                    description="候选词采样截断（可选）。控制只从前 K 个最可能的结果中进行概率抽取（建议保留 0 为关闭或 60 默认）"
-                />
+                    {/* Top-K */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                            候选词采样截断 (Top-K) 为
+                            <input
+                                type="number" min={0} max={200} step={1}
+                                value={preset.parameters.topK ?? 60}
+                                onChange={(e) => updateParameters('topK', Number(e.target.value))}
+                                className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-12 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
+                            />
+                        </div>
+                        <SliderField min={0} max={200} step={1} value={preset.parameters.topK ?? 60} onChange={(val) => updateParameters('topK', val)} />
+                        <div className="text-xs text-muted-foreground/70">只从前 K 个最可能的结果中进行概率抽取（建议保留 0 为关闭或 60 默认）。</div>
+                    </div>
 
-                <NumberField
-                    label="最大输出 Tokens"
-                    value={preset.parameters.maxTokens}
-                    onChange={(value) => updateParameters('maxTokens', value)}
-                    min={64}
-                    max={16384}
-                    step={64}
-                    showSlider={false}
-                />
+                    {/* Max Tokens */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                            最大输出 Token 为
+                            <input
+                                type="number" min={64} max={16384} step={64}
+                                value={preset.parameters.maxTokens}
+                                onChange={(e) => updateParameters('maxTokens', Number(e.target.value))}
+                                className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-16 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
+                            />
+                        </div>
+                        <SliderField min={64} max={16384} step={64} value={preset.parameters.maxTokens} onChange={(val) => updateParameters('maxTokens', val)} />
+                    </div>
 
-                <NumberField
-                    label="上下文 Token 上限 (Max Context)"
-                    value={preset.parameters.maxContext ?? 150000}
-                    onChange={(value) => updateParameters('maxContext', value)}
-                    min={0}
-                    max={2000000}
-                    step={1000}
-                    showSlider={false}
-                    description="建议值: 150000。限制传给大模型的最大上下文 Token 长度。"
-                />
+                    {/* Max Context */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                            上下文 Token 上限为
+                            <input
+                                type="number" min={0} max={2000000} step={1000}
+                                value={preset.parameters.maxContext ?? 150000}
+                                onChange={(e) => updateParameters('maxContext', Number(e.target.value))}
+                                className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-20 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
+                            />
+                        </div>
+                        <SliderField min={0} max={2000000} step={1000} value={preset.parameters.maxContext ?? 150000} onChange={(val) => updateParameters('maxContext', val)} />
+                        <div className="text-xs text-muted-foreground/70">建议值: 150000。限制传给大模型的最大上下文 Token 长度。</div>
+                    </div>
 
-                <NumberField
-                    label="频率惩罚"
-                    value={preset.parameters.frequencyPenalty}
-                    onChange={(value) => updateParameters('frequencyPenalty', value)}
-                    min={-2}
-                    max={2}
-                    step={0.1}
-                    description="降低重复 token 的概率"
-                />
+                    {/* Frequency Penalty */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                            频率惩罚为
+                            <input
+                                type="number" min={-2} max={2} step={0.1}
+                                value={preset.parameters.frequencyPenalty}
+                                onChange={(e) => updateParameters('frequencyPenalty', Number(e.target.value))}
+                                className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-12 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
+                            />
+                        </div>
+                        <SliderField min={-2} max={2} step={0.1} value={preset.parameters.frequencyPenalty} onChange={(val) => updateParameters('frequencyPenalty', val)} />
+                        <div className="text-xs text-muted-foreground/70">降低重复 token 的概率。</div>
+                    </div>
 
-                <NumberField
-                    label="存在惩罚"
-                    value={preset.parameters.presencePenalty}
-                    onChange={(value) => updateParameters('presencePenalty', value)}
-                    min={-2}
-                    max={2}
-                    step={0.1}
-                    description="鼓励模型讨论新主题"
-                />
+                    {/* Presence Penalty */}
+                    <div className="space-y-3">
+                        <div className="text-xs text-muted-foreground flex items-center">
+                            存在惩罚为
+                            <input
+                                type="number" min={-2} max={2} step={0.1}
+                                value={preset.parameters.presencePenalty}
+                                onChange={(e) => updateParameters('presencePenalty', Number(e.target.value))}
+                                className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-12 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
+                            />
+                        </div>
+                        <SliderField min={-2} max={2} step={0.1} value={preset.parameters.presencePenalty} onChange={(val) => updateParameters('presencePenalty', val)} />
+                        <div className="text-xs text-muted-foreground/70">鼓励模型讨论新主题。</div>
+                    </div>
+                </div>
             </FormSection>
         </div>
     );

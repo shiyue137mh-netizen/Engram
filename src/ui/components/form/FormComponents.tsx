@@ -1,4 +1,3 @@
-import { SliderField } from '@/ui/components/core/SliderField';
 import { Switch } from '@/ui/components/core/Switch';
 import { ChevronDown, Search, X } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -142,7 +141,6 @@ interface NumberFieldProps extends BaseFieldProps {
     min?: number;
     max?: number;
     step?: number;
-    showSlider?: boolean;
     suffix?: string;
 }
 
@@ -162,26 +160,8 @@ export const NumberField: React.FC<NumberFieldProps> = ({
     min,
     max,
     step = 1,
-    showSlider = true,
     suffix,
 }) => {
-    // 内联样式强制覆盖
-    const numberInputStyle: React.CSSProperties = {
-        background: 'transparent',
-        backgroundColor: 'transparent',
-        border: 'none',
-        borderRadius: 0,
-        boxShadow: 'none',
-        outline: 'none',
-        padding: '0',
-        fontSize: '12px',
-        width: 'auto',
-        minWidth: '40px',
-        textAlign: 'right' as const,
-        fontFamily: 'monospace',
-        color: 'var(--foreground, inherit)',
-    };
-
     return (
         <div className={`flex flex-col gap-2 ${className}`}>
             <div className="flex justify-between items-center">
@@ -197,25 +177,12 @@ export const NumberField: React.FC<NumberFieldProps> = ({
                         step={step}
                         value={value}
                         onChange={(e) => onChange(Number(e.target.value))}
-                        style={numberInputStyle}
-                        className="focus:text-primary transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        className="bg-transparent border-0 border-b border-transparent focus:border-border outline-none transition-colors text-base font-medium text-foreground mx-0.5 text-right w-16 px-0 py-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:text-primary"
                     />
-                    {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
+                    {suffix && <span className="text-sm font-medium text-muted-foreground">{suffix}</span>}
                 </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-1">
-                {showSlider && min !== undefined && max !== undefined && (
-                    <SliderField
-                        className="flex-1"
-                        min={min}
-                        max={max}
-                        step={step}
-                        value={value}
-                        onChange={onChange}
-                    />
-                )}
-            </div>
             {description && <p className="text-[10px] text-muted-foreground/70 break-words">{description}</p>}
             {error && <p className="text-[10px] text-destructive">{error}</p>}
         </div>

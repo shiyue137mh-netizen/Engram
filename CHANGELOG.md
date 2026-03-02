@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.3.2] - 2026-03-02
+
+### 🔧 重构 (Refactoring)
+
+- **表单布局重写与统一**:
+  - 全面彻底移除 `NumberField` 内部自带滑块的耦合组件设计，现在它仅负责纯展示强数字输入职能。
+  - 在 `LLMPresetForm` (API预设) 页面中使用了类似 `SummaryPanel` 的 **自然语言指引式表单样式**（例如 "模型的温度为 (输入框)"），结合独立的 `SliderField` 组合，大大增强了参数阅读引导感。
+  - 移除了包含在 `EntityConfigPanel` 等页面中手工模拟的纯背景滑槽，一律换用官方的独立 `SliderField`。
+- **去除冗余的 Virtuoso**:
+  - `ModelLog` 和 `RecallLog` 由于展示量级属于中低频即插即用的日志等级（非持久化），彻底剥离了 `react-virtuoso` 虚拟列表。
+  - 解决了由于原生 Flex 弹性布局的渲染时延导致虚拟列表偶然性计算出 0 高度所引发的页面“坍缩白屏”问题。
+
+### 🐛 修复 (Bug Fixes)
+
+- **空指针与防白错误隔离**:
+  - 为 `EventEditor.tsx` 在处理记忆节点中部分历史数据异常残缺（例如缺少 `structured_kv`）造成的空指针增加可选链探测 (`?.`) 容错。
+- **定时器与事件闭包泄露**:
+  - 重构 `useDashboardData.ts` 引入 `useRef`，以避免长期挂机的酒馆环境在可见性 (`visibilitychange`) 多次切换时导致轮询 Timer 的旧实例驻留在内存闭包中。
+- **Vite 机制重合修补**:
+  - 给 `KeyboardManager.ts` 等全局实例在触发 HMR 热重载时补偿了注销流程 (`import.meta.hot.dispose`)。
+  - 优化了由于连续触发载入导致的重复 DOM 事件侦听累加，彻底转正了在 `index.tsx` 和 UI 接口层中针对快速切换角色的挂载回收容错能力。
+
 ## [1.3.1] - 2026-03-01
 
 ### 🔧 重构 (Refactoring)

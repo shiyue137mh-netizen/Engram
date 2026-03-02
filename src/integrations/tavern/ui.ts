@@ -15,6 +15,18 @@ let isInjected = false;
 /** 全局回调：打开快捷面板 */
 let onOpenQuickPanel: (() => void) | null = null;
 
+/** 处理快捷面板点击事件 */
+const handleQuickPanelClick = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    Logger.debug(MODULE, '点击打开快捷面板');
+    if (onOpenQuickPanel) {
+        onOpenQuickPanel();
+    } else {
+        Logger.warn(MODULE, '未设置面板回调');
+    }
+};
+
 /**
  * 设置打开面板的回调
  */
@@ -48,16 +60,7 @@ function injectQuickPanelButton(): boolean {
     button.setAttribute('data-i18n', '[title]Engram Quick Panel');
 
     // 点击打开快捷面板
-    button.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        Logger.debug(MODULE, '点击打开快捷面板');
-        if (onOpenQuickPanel) {
-            onOpenQuickPanel();
-        } else {
-            Logger.warn(MODULE, '未设置面板回调');
-        }
-    });
+    button.addEventListener('click', handleQuickPanelClick);
 
     // 修正样式：
     // 1. 设置 order > 4 (magic wand 是 4)，确保显示在最右侧
@@ -86,6 +89,7 @@ function injectQuickPanelButton(): boolean {
 function removeQuickPanelButton(): void {
     const button = document.querySelector(`#${DOM_IDS.QUICK_PANEL_TRIGGER}`);
     if (button) {
+        button.removeEventListener('click', handleQuickPanelClick as EventListener);
         button.remove();
         isInjected = false;
         Logger.debug(MODULE, '按钮已移除');
@@ -118,10 +122,12 @@ export function initQuickPanelButton(): void {
         }
     };
 
-    // 使用 MutationObserver 监听 DOM 变化
-    const observer = new MutationObserver((mutations, obs) => {
-        if (injectQuickPanelButton()) {
-            obs.disconnect();
+    // 使用 MutationObserver 监听 DOM 变化，对抗酒馆的不定向重绘
+    const observer = new MutationObserver(() => {
+        const leftSendForm = document.querySelector(DOM_IDS.LEFT_SEND_FORM);
+        if (leftSendForm && !document.getElementById(DOM_IDS.QUICK_PANEL_TRIGGER)) {
+            isInjected = false; // 重置允许注入
+            injectQuickPanelButton();
         }
     });
 
@@ -132,11 +138,6 @@ export function initQuickPanelButton(): void {
 
     // 同时启动定时重试
     setTimeout(retryInjection, retryInterval);
-
-    // 超时保护
-    setTimeout(() => {
-        observer.disconnect();
-    }, 15000);
 }
 
 // ==================== 以下为从 bridge.ts 拆分过来的 UI 管理部分 ====================

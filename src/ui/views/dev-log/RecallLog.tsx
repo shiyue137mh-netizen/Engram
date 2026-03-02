@@ -21,7 +21,6 @@ import {
     Zap
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Virtuoso } from 'react-virtuoso';
 import type { RecallLogEntry, RecallResultItem } from './types';
 
 // 响应式断点
@@ -396,13 +395,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                         无匹配结果
                     </div>
                 ) : (
-                    <Virtuoso
-                        data={displayedResults}
-                        style={{ height: '100%' }}
-                        itemContent={(index, item) => (
-                            <ResultItem item={item} />
-                        )}
-                    />
+                    <div className="flex flex-col">
+                        {displayedResults.map((item, index) => (
+                            <ResultItem key={index} item={item} />
+                        ))}
+                    </div>
                 )}
             </div>
 
@@ -504,18 +501,15 @@ export const RecallLog: React.FC = () => {
                             <p className="text-xs opacity-70">触发 RAG 召回后显示</p>
                         </div>
                     ) : (
-                        <div className="h-full">
-                            <Virtuoso
-                                data={logs}
-                                style={{ height: '100%' }}
-                                itemContent={(index, entry) => (
-                                    <LogListItem
-                                        entry={entry}
-                                        isSelected={entry.id === selectedId}
-                                        onSelect={() => handleSelect(entry.id)}
-                                    />
-                                )}
-                            />
+                        <div className="flex flex-col pb-4">
+                            {logs.map((entry) => (
+                                <LogListItem
+                                    key={entry.id}
+                                    entry={entry}
+                                    isSelected={entry.id === selectedId}
+                                    onSelect={() => handleSelect(entry.id)}
+                                />
+                            ))}
                         </div>
                     )}
                 </div>

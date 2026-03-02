@@ -133,13 +133,13 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     useEffect(() => {
         if (event && event.id !== lastEventId) {
             setSummary(event.summary);
-            setEventType(event.structured_kv.event || '');
-            setTimeAnchor(event.structured_kv.time_anchor || '');
+            setEventType(event.structured_kv?.event || '');
+            setTimeAnchor(event.structured_kv?.time_anchor || '');
             // V1.0.2: location 现在是数组，显示为逗号分隔
-            const locArray = event.structured_kv.location || [];
+            const locArray = event.structured_kv?.location || [];
             setLocation(Array.isArray(locArray) ? locArray.join(', ') : String(locArray || ''));
-            setRoleText(event.structured_kv.role?.join(', ') || '');
-            setLogicText(event.structured_kv.logic?.join(', ') || '');
+            setRoleText(event.structured_kv?.role?.join(', ') || '');
+            setLogicText(event.structured_kv?.logic?.join(', ') || '');
             setScore(event.significance_score);
             setIsDirty(false);
             setLastEventId(event.id);
