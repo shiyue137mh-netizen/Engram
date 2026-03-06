@@ -259,7 +259,7 @@ HybridScore = (1 - α) * EmbeddingScore + α * RerankScore
 | `boredomPenalty` | `0.1` | 厌倦时的额外扣分 |
 | `newcomerBoost` | `0.2` | 新记忆的初始加成 |
 
-> ℹ️ **V1.4 简化**: 移除了 `evictionThreshold` 和 `mmrThreshold`，改为基于容量的优胜劣汰。
+> ℹ️ **V1.4 简化**: 移除了 `evictionThreshold` 和 `mmrThreshold`，改为基于容量的优胜劣汰。去除了无效的历史包裹体 `evict()` 函数，将超限淘汰逻辑与 `enforceShortTermLimit()` 合二为一，消除功能层叠。
 
 ## 6. 开发接口 (Developer API)
 
@@ -281,7 +281,7 @@ HybridScore = (1 - α) * EmbeddingScore + α * RerankScore
 
 | 版本 | 变更 |
 |------|------|
-| **V1.4** | 类脑召回算法重构：填满优先、基于容量淘汰、移除 MMR |
+| **V1.4** | 类脑召回算法重构：填满优先、基于容量淘汰、移除 MMR，与 `enforceShortTermLimit` 合并移除 `evict` |
 | V1.2 | 双轨存储机制、门控强化、Sigmoid 激活 |
 | V0.9.5 | 新增 BrainRecallCache，替代 StickyCache |
 | V0.8.5 | 引入混合检索架构 (Embed + Rerank) |
