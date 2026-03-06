@@ -7,25 +7,19 @@
  * - 批量嵌入控制
  * - 进度显示
  */
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-    Database,
-    Play,
-    Square,
-    RefreshCw,
-    CheckCircle2,
-    AlertCircle,
-    Loader2,
-    Cpu,
-    Hash,
-    Zap
-} from 'lucide-react';
+import type { EmbeddingConfig, VectorConfig } from '@/config/types/rag';
 import { embeddingService } from '@/modules/rag';
-import type { VectorConfig, EmbeddingConfig } from '@/config/types/rag';
-import { DEFAULT_EMBEDDING_CONFIG } from '@/config/types/defaults';
-import { SettingsManager } from '@/config/settings';
-import { FormSection, SelectField, NumberField, SwitchField, SearchableSelectField, TextField } from '@/ui/components/form/FormComponents';
+import { NumberField, SelectField, SwitchField, TextField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
+import {
+    AlertCircle,
+    CheckCircle2,
+    Loader2,
+    Play,
+    RefreshCw,
+    Square
+} from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 // ==================== 类型 ====================
 
@@ -63,6 +57,8 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [lastResult, setLastResult] = useState<{ success: number; failed: number } | null>(null);
+    const [rangeStart, setRangeStart] = useState<string>('');
+    const [rangeEnd, setRangeEnd] = useState<string>('');
 
     // 加载初始数据
     useEffect(() => {
@@ -105,9 +101,14 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
             embeddingService.setConfig(vectorConfig);
             embeddingService.setConcurrency(config.concurrency);
 
+            const range = {
+                start: rangeStart ? parseInt(rangeStart, 10) : undefined,
+                end: rangeEnd ? parseInt(rangeEnd, 10) : undefined,
+            };
+
             const result = await embeddingService.embedUnprocessedEvents((current, total, errors) => {
                 setProgress({ current, total, errors });
-            });
+            }, range);
 
             setLastResult(result);
             await refreshStats();
@@ -144,9 +145,14 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
             embeddingService.setConfig(vectorConfig);
             embeddingService.setConcurrency(config.concurrency);
 
+            const range = {
+                start: rangeStart ? parseInt(rangeStart, 10) : undefined,
+                end: rangeEnd ? parseInt(rangeEnd, 10) : undefined,
+            };
+
             const result = await embeddingService.reembedAllEvents((current, total, errors) => {
                 setProgress({ current, total, errors });
-            });
+            }, range);
 
             setLastResult(result);
             await refreshStats();
@@ -253,6 +259,26 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
                     </p>
                 </div>
             )}
+
+            {/* 范围选择 */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+                <TextField
+                    label="起始消息序号"
+                    value={rangeStart}
+                    onChange={setRangeStart}
+                    placeholder="可选..."
+                    type="number"
+                    description="仅供单独/重新嵌入时过滤范围使用，留空表示不限制"
+                />
+                <TextField
+                    label="结束消息序号"
+                    value={rangeEnd}
+                    onChange={setRangeEnd}
+                    placeholder="可选..."
+                    type="number"
+                    description="仅供单独/重新嵌入时过滤范围使用，留空表示不限制"
+                />
+            </div>
 
             {/* 操作按钮 */}
             <div className="flex flex-wrap gap-3 mb-6">

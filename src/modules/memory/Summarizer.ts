@@ -421,7 +421,7 @@ class SummarizerService {
             // Let's verify `SummaryResult` type in `types.d.ts` or similar.
             // It seems SummaryResult expects `content` string.
 
-            // If we have parsed multiple events, the "content" might be the raw cleaned content
+            // If we have parsed multiple events, the "content" might            // The raw text
             const result: SummaryResult = {
                 id: Date.now().toString(),
                 content: context.cleanedContent || '', // The raw text
@@ -430,6 +430,10 @@ class SummarizerService {
                 tokenCount: 0, // TODO: Get from context or re-measure
                 writtenToWorldbook: true
             };
+
+            if (Array.isArray(savedEvents) && savedEvents.length > 0) {
+                SettingsManager.incrementStatistic('totalEvents', savedEvents.length);
+            }
 
             // Update local state (redundant if SaveEvent updated store, but safe)
             this._lastSummarizedFloor = endFloor;

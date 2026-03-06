@@ -32,6 +32,15 @@ export interface EngramSettings {
         enabled: boolean;  // 总开关：是否启用同步功能
         autoSync: boolean; // 是否在数据变动时自动上传
     };
+    statistics: {
+        firstUseAt: number | null; // 首次使用时间戳
+        activeDays: string[];      // 活跃日期集合 (如 ['2026-03-05', ...])
+        totalTokens: number;       // 总 Token 消耗
+        totalLlmCalls: number;     // 总 LLM 调用次数
+        totalEvents: number;       // 累计生成的节点数
+        totalEntities: number;     // 累计提取的实体数
+        totalRagInjections: number;// 总召回注入次数
+    };
 }
 
 /** 默认设置 */
@@ -62,6 +71,15 @@ const defaultSettings: EngramSettings = Object.freeze({
     syncConfig: {
         enabled: false, // 默认关闭（Beta功能）
         autoSync: true, // 启用后默认开启自动同步
+    },
+    statistics: {
+        firstUseAt: null,
+        activeDays: [],
+        totalTokens: 0,
+        totalLlmCalls: 0,
+        totalEvents: 0,
+        totalEntities: 0,
+        totalRagInjections: 0,
     },
 });
 
@@ -293,5 +311,39 @@ export class SettingsManager {
      */
     public static setRegexRules(rules: RegexRule[]): void {
         this.set('regexRules', rules);
+    }
+
+    // ==================== 统计与遥测 (Telemetry) ====================
+
+    /**
+     * 累加全局统计数据
+     * @param key 要累加的统计字段名
+     * @param value 累加值 (默认为 1)
+     */
+    public static incrementStatistic(key: keyof EngramSettings['statistics'], value: number = 1): void {
+        const stats = { ...this.get('statistics') };
+
+        // 初始化首次使用时间
+        if (!stats.firstUseAt) {
+            stats.firstUseAt = Date.now();
+        }
+
+        // 记录活跃天数 (基于本地时区的 YYYY-MM-DD)
+        const today = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
+        if (!stats.activeDays) stats.activeDays = [];
+        if (!stats.activeDays.includes(today)) {
+            stats.activeDays.push(today);
+            // 保持数组不过大，比如保留最近一年 365 天
+            if (stats.activeDays.length > 365) {
+                stats.activeDays.shift();
+            }
+        }
+
+        // 累加数值 (不处理数组或非数值类型)
+        if (typeof stats[key] === 'number') {
+            (stats[key] as number) += value;
+        }
+
+        this.set('statistics', stats);
     }
 }

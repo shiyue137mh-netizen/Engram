@@ -159,7 +159,8 @@ export class EmbeddingService {
      * @returns 成功嵌入的数量
      */
     public async embedUnprocessedEvents(
-        onProgress?: EmbedProgressCallback
+        onProgress?: EmbedProgressCallback,
+        range?: { start?: number; end?: number }
     ): Promise<{ success: number; failed: number }> {
         const chatId = getCurrentChatId();
         if (!chatId) {
@@ -169,9 +170,19 @@ export class EmbeddingService {
         const db = getDbForChat(chatId);
 
         // 获取未嵌入的事件 (V1.2.2: 仅处理 Level 0 事件，大纲节点不进行向量化)
-        const events = await db.events
+        let events = await db.events
             .filter(e => e.level === 0 && !e.is_embedded && !e.embedding)
             .toArray();
+
+        // 应用范围过滤
+        if (range) {
+            events = events.filter(e => {
+                const { start_index, end_index } = e.source_range;
+                if (range.start !== undefined && start_index < range.start) return false;
+                if (range.end !== undefined && end_index > range.end) return false;
+                return true;
+            });
+        }
 
         if (events.length === 0) {
             return { success: 0, failed: 0 };
@@ -278,7 +289,8 @@ export class EmbeddingService {
      * 重新嵌入所有事件 (模型切换后使用)
      */
     public async reembedAllEvents(
-        onProgress?: EmbedProgressCallback
+        onProgress?: EmbedProgressCallback,
+        range?: { start?: number; end?: number }
     ): Promise<{ success: number; failed: number }> {
         const chatId = getCurrentChatId();
         if (!chatId) {
@@ -287,8 +299,20 @@ export class EmbeddingService {
 
         const db = getDbForChat(chatId);
 
-        // 获取所有事件
-        const events = await db.events.toArray();
+        // 获取所有事件 (V1.2.2: 仅处理 Level 0 事件)
+        let events = await db.events
+            .filter(e => e.level === 0)
+            .toArray();
+
+        // 应用范围过滤
+        if (range) {
+            events = events.filter(e => {
+                const { start_index, end_index } = e.source_range;
+                if (range.start !== undefined && start_index < range.start) return false;
+                if (range.end !== undefined && end_index > range.end) return false;
+                return true;
+            });
+        }
 
         if (events.length === 0) {
             return { success: 0, failed: 0 };
@@ -296,7 +320,7 @@ export class EmbeddingService {
 
         Logger.info(LogModule.RAG_EMBED, `重新嵌入 ${events.length} 个事件`);
 
-        // 清空现有嵌入标记
+        // 清空选定范围内现有嵌入标记
         for (const event of events) {
             await db.events.update(event.id, {
                 embedding: undefined,
@@ -305,7 +329,7 @@ export class EmbeddingService {
         }
 
         // 重新嵌入
-        return this.embedUnprocessedEvents(onProgress);
+        return this.embedEvents(events, onProgress);
     }
 
     // ==================== 工具方法 ====================

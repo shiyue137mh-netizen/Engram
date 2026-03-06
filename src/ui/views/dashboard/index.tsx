@@ -13,6 +13,7 @@ import { Switch } from '@/ui/components/core/Switch';
 import { PageTitle } from "@/ui/components/display/PageTitle";
 import { Divider } from '@/ui/components/layout/Divider';
 import { useDashboardData } from '@/ui/hooks/useDashboardData';
+import { AchievementsPanel } from '@/ui/views/dashboard/components/AchievementsPanel';
 import {
     AlertCircle,
     Brain,
@@ -54,7 +55,7 @@ const QUICK_ACTIONS = NAV_ITEMS.filter(item => item.id !== 'dashboard');
 
 export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     const [logs, setLogs] = useState<LogEntry[]>([]);
-    const { system, memory, features, brainStats, contextStats, toggleFeature } = useDashboardData(2000);
+    const { system, memory, features, brainStats, contextStats, globalStats, toggleFeature } = useDashboardData(2000);
 
     useEffect(() => {
         setLogs(Logger.getLogs().slice(0, 4));
@@ -83,6 +84,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 subtitle="系统状态概览与快速操作"
                 className="mb-6"
             />
+
+            {/* 新加入的成就展板 */}
+            <div className="mb-6">
+                <AchievementsPanel stats={globalStats} />
+            </div>
+
             <Divider className="mb-6" />
 
             {/* 主内容区 - 双栏 + 阶梯动画 */}

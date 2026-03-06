@@ -6,7 +6,7 @@
  * - Memory Stats: 事件/实体统计
  * - Feature Status: 功能开关状态
  */
-import { SettingsManager } from '@/config/settings';
+import { SettingsManager, type EngramSettings } from '@/config/settings';
 import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
 import { getSTContext } from '@/integrations/tavern';
 import { summarizerService } from '@/modules/memory';
@@ -62,6 +62,7 @@ export interface DashboardData {
     features: FeatureStatus;
     brainStats: BrainStats;
     contextStats: ContextStats;
+    globalStats: EngramSettings['statistics'];
     isLoading: boolean;
 }
 
@@ -107,6 +108,15 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         injectedLength: 0,
         estimatedTokens: 0
     });
+    const [globalStats, setGlobalStats] = useState<EngramSettings['statistics']>({
+        firstUseAt: null,
+        activeDays: [],
+        totalTokens: 0,
+        totalLlmCalls: 0,
+        totalEvents: 0,
+        totalEntities: 0,
+        totalRagInjections: 0,
+    });
 
     // 获取 memoryStore 方法
     const getAllEvents = useMemoryStore(state => state.getAllEvents);
@@ -129,6 +139,13 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 floorInterval: summarizerConfig.floorInterval || 10,
                 isSummarizing: summarizerStatus.isSummarizing,
             });
+
+            // 1.5 Global Statistics
+            // Use fallback if not found
+            const currentStats = SettingsManager.get('statistics') || {
+                firstUseAt: null, activeDays: [], totalTokens: 0, totalLlmCalls: 0, totalEvents: 0, totalEntities: 0, totalRagInjections: 0
+            };
+            setGlobalStats(currentStats as EngramSettings['statistics']);
 
             // 2. Memory Stats
             const events = await getAllEvents();
@@ -330,6 +347,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         features,
         brainStats,
         contextStats,
+        globalStats,
         isLoading,
         toggleFeature,
         refresh,

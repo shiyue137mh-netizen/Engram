@@ -345,6 +345,7 @@ export class EntityBuilder {
                     profile: (entity.profile || {}) as Record<string, unknown>,
                 }));
                 await store.saveEntities(entitiesToSave);
+                SettingsManager.incrementStatistic('totalEntities', newEntities.length);
             }
 
             // 批量保存更新实体 (并行，但引入分批处理以限制并发)

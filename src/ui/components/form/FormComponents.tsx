@@ -59,7 +59,7 @@ interface TextFieldProps extends BaseFieldProps {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
-    type?: 'text' | 'password' | 'email' | 'url';
+    type?: 'text' | 'password' | 'email' | 'url' | 'number';
     disabled?: boolean;
     readOnly?: boolean;
     multiline?: boolean;

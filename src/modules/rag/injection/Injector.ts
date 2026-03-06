@@ -295,6 +295,7 @@ class Injector {
                                         nodeCount: agenticResult.nodes.length,
                                     });
                                     await MacroService.refreshCacheWithNodes(agenticResult.nodes);
+                                    SettingsManager.incrementStatistic('totalRagInjections', 1);
                                     ragHandled = true;
                                 } else {
                                     Logger.warn(LogModule.RAG_INJECT, 'Agentic RAG 无有效结果，尝试降级');
@@ -322,6 +323,7 @@ class Injector {
                                         nodeCount: recallResult.nodes.length,
                                     });
                                     await MacroService.refreshCacheWithNodes(recallResult.nodes);
+                                    SettingsManager.incrementStatistic('totalRagInjections', 1);
                                 } else {
                                     Logger.debug(LogModule.RAG_INJECT, 'RAG 无匹配结果');
                                 }
