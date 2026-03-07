@@ -124,19 +124,19 @@ export class HistoryTask implements IBatchTaskHandler {
             try {
                 switch (task.type) {
                     case 'summary':
-                        await this.executeSummary(task, taskIndex, checkStopSignal, updateContext);
+                        yield* this.executeSummary(task, taskIndex, checkStopSignal, updateContext);
                         break;
                     case 'entity':
-                        await this.executeEntity(task, taskIndex, checkStopSignal, updateContext);
+                        yield* this.executeEntity(task, taskIndex, checkStopSignal, updateContext);
                         break;
                     case 'archive':
-                        await this.executeArchive(task, taskIndex, checkStopSignal, updateContext);
+                        yield* this.executeArchive(task, taskIndex, checkStopSignal, updateContext);
                         break;
                     case 'trim':
-                        await this.executeTrim(task, taskIndex, checkStopSignal, updateContext);
+                        yield* this.executeTrim(task, taskIndex, checkStopSignal, updateContext);
                         break;
                     case 'embed':
-                        await this.executeEmbed(task, taskIndex, checkStopSignal, updateContext);
+                        yield* this.executeEmbed(task, taskIndex, checkStopSignal, updateContext);
                         break;
                     default:
                         Logger.warn(LogModule.BATCH, `未知的任务类型: ${task.type}`);
@@ -150,7 +150,7 @@ export class HistoryTask implements IBatchTaskHandler {
 
     // ==================== 子模块包装执行器 ====================
 
-    private async executeSummary(
+    private async *executeSummary(
         task: BatchTask,
         taskIndex: number,
         checkStopSignal: () => boolean,
@@ -171,18 +171,29 @@ export class HistoryTask implements IBatchTaskHandler {
             const nextBatchEnd = Math.min(task.floorRange.end, state.last_summarized_floor! + summaryInterval);
 
             // This is a coarse simulation of the loop, since summarizer internal handles ranges itself
-            const res = await summarizerService.triggerSummary(true);
-            if (!res) {
-                // Return null means skipped or errored, we throw to abort this micro-task
-                throw new Error('Summary Failed or Skipped');
+            try {
+                const res = await summarizerService.triggerSummary(true);
+                const newState = await chatManager.getState();
+                const actualJump = newState.last_summarized_floor! - state.last_summarized_floor!;
+
+                if (actualJump > 0) {
+                    processedFloors += actualJump;
+                } else {
+                    // Fallback to avoid infinite loop
+                    processedFloors += summaryInterval;
+                }
+            } catch (err: any) {
+                Logger.error(LogModule.BATCH, `Summary Failed at floor ${state.last_summarized_floor}`, { error: err.message });
+                processedFloors += summaryInterval; // Skip problematic floor chunk
             }
 
-            processedFloors += summaryInterval;
+            yield; // 释放控制权给 Engine 处理 Event loop
+
             updateProgress(taskIndex, Math.min(task.progress.total, Math.ceil(processedFloors / summaryInterval)));
         }
     }
 
-    private async executeEntity(
+    private async *executeEntity(
         task: BatchTask,
         taskIndex: number,
         checkStopSignal: () => boolean,
@@ -201,17 +212,22 @@ export class HistoryTask implements IBatchTaskHandler {
             // @ts-ignore - 规避旧有类型定义遗漏
             const currentFloor = state.current_floor || 0;
 
-            const res = await entityBuilder.extractFromChat('', currentFloor, true);
-            if (res && !res.success) {
-                throw new Error(res.error || 'Entity Failed');
+            try {
+                const res = await entityBuilder.extractFromChat('', currentFloor, true);
+                if (res && !res.success) {
+                    Logger.warn(LogModule.BATCH, `Entity extract failed`, { error: res.error });
+                }
+            } catch (err: any) {
+                Logger.error(LogModule.BATCH, `Entity extract exception`, { error: err.message });
             }
 
             processedFloors += entityInterval;
+            yield; // 释放控制权
             updateProgress(taskIndex, Math.min(task.progress.total, Math.ceil(processedFloors / entityInterval)));
         }
     }
 
-    private async executeTrim(
+    private async *executeTrim(
         task: BatchTask,
         taskIndex: number,
         checkStopSignal: () => boolean,
@@ -219,16 +235,20 @@ export class HistoryTask implements IBatchTaskHandler {
     ) {
         for (let i = 0; i < task.progress.total; i++) {
             if (checkStopSignal()) return;
-            const res = await eventTrimmer.trim(true);
-
-            if (res === null) {
-                throw new Error('Trim Failed or Skipped');
+            try {
+                const res = await eventTrimmer.trim(true);
+                if (res === null) {
+                    Logger.warn(LogModule.BATCH, 'Trim skipped or returned null');
+                }
+            } catch (err: any) {
+                Logger.error(LogModule.BATCH, 'Trim failed', { error: err.message });
             }
+            yield; // 释放控制权
             updateProgress(taskIndex, i + 1);
         }
     }
 
-    private async executeEmbed(
+    private async *executeEmbed(
         task: BatchTask,
         taskIndex: number,
         checkStopSignal: () => boolean,
@@ -243,10 +263,11 @@ export class HistoryTask implements IBatchTaskHandler {
         if (res.failed > 0) {
             notificationService.warning(`有 ${res.failed} 个节点嵌入失败`, 'Engram');
         }
+        yield;
         updateProgress(taskIndex, task.progress.total);
     }
 
-    private async executeArchive(
+    private async *executeArchive(
         task: BatchTask,
         taskIndex: number,
         checkStopSignal: () => boolean,
@@ -255,9 +276,10 @@ export class HistoryTask implements IBatchTaskHandler {
         if (checkStopSignal()) return;
 
         // V1.0 架构中 LevelManager 可能不再以类存在或需要更换方案
-        // 目前暂不实现后台自动按 Level 层级归档，预留至检索器 Workflow 升级阶段
+        // 目前暂不实现后台自动按 Level 层级归档，预留至检索张 Workflow 升级阶段
         Logger.info(LogModule.BATCH, `自动归档占位触发，当前阶段架构待实现...`);
 
+        yield;
         updateProgress(taskIndex, task.progress.total);
     }
 }

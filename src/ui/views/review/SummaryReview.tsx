@@ -9,7 +9,7 @@ interface SummaryReviewProps {
 
 export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onChange }) => {
     // Parse input data to list of events
-    const parseEvents = (): string[] => {
+    const parseEvents = (): any[] => {
         // 1. Try from parsed data object
         if (Array.isArray(data)) return data;
         if (data && typeof data === 'object' && Array.isArray(data.events)) {
@@ -38,11 +38,11 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
         return [];
     };
 
-    const [events, setEvents] = useState<string[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
 
     // Notify parent of changes
-    const notifyChange = (newEvents: string[]) => {
-        const newContent = newEvents.join('\n');
+    const notifyChange = (newEvents: any[]) => {
+        const newContent = JSON.stringify({ events: newEvents }, null, 2);
         onChange(newContent, { events: newEvents });
     };
 
@@ -58,7 +58,11 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
 
     const handleChangeEvent = (index: number, val: string) => {
         const next = [...events];
-        next[index] = val;
+        if (typeof next[index] === 'object' && next[index] !== null) {
+            next[index] = { ...next[index], summary: val };
+        } else {
+            next[index] = val;
+        }
         setEvents(next);
         notifyChange(next);
     };
@@ -70,7 +74,9 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
     };
 
     const handleAddEvent = () => {
-        const next = [...events, ''];
+        const isObjectFormat = events.length > 0 && typeof events[0] === 'object';
+        const newItem = isObjectFormat ? { summary: '', meta: {}, significance_score: 0.5 } : '';
+        const next = [...events, newItem];
         setEvents(next);
         notifyChange(next);
     };
@@ -98,10 +104,10 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
                             </button>
                         </div>
                         <textarea
-                            value={evt}
+                            value={typeof evt === 'object' ? (evt.summary || '') : evt}
                             onChange={(e) => handleChangeEvent(idx, e.target.value)}
                             className="w-full min-h-[60px] p-2 bg-muted/20 border border-transparent hover:border-border focus:border-primary focus:bg-background rounded-md text-sm resize-none focus:outline-none transition-colors"
-                            rows={Math.max(2, Math.ceil(evt.length / 40))}
+                            rows={Math.max(2, Math.ceil((typeof evt === 'object' ? (evt.summary || '').length : evt.length) / 40))}
                         />
                     </div>
                 ))}

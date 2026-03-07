@@ -137,6 +137,11 @@ export class BatchEngine {
 
             // 消费每一个循环
             for await (const _ of generator) {
+                // 等待取消暂停 (软暂停模式：挂起事件循环)
+                while (this.queue.isPaused && !this.stopSignal) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
                 if (this.stopSignal) {
                     console.info('[BatchEngine] 收到中止信号，正在结束迭代');
                     break;
@@ -167,7 +172,17 @@ export class BatchEngine {
      * 暂停任务
      */
     pause(): void {
+        if (!this.queue.isRunning || this.queue.isPaused) return;
         this.queue.isPaused = true;
+        this.notifyProgress(true);
+    }
+
+    /**
+     * 恢复/继续任务
+     */
+    resume(): void {
+        if (!this.queue.isRunning || !this.queue.isPaused) return;
+        this.queue.isPaused = false;
         this.notifyProgress(true);
     }
 

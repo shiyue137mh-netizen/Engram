@@ -29,7 +29,7 @@ class ReviewService {
         description: string,
         content: string,
         actions: ReviewAction[] = ['confirm'],
-        type: 'text' | 'json' | 'entity' = 'text',
+        type: 'text' | 'json' | 'entity' | 'summary' = 'text',
         data?: any
     ): Promise<{ action: ReviewAction; content: string; feedback?: string; data?: any }> {
         return new Promise((resolve) => {

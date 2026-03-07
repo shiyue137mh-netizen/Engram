@@ -32,7 +32,15 @@
   - 修复了在全局设置界面点击“删除数据库 (删库)”按钮时静默失败的问题。先前由于 `memoryStore` 未在当前视图挂载聊天 ID，导致删除操作直接 `return` 而未抛出错误。现已补全 ID 兜底获取逻辑（回落到底层 `getCurrentChatId()`），确保能彻底清除 IndexedDB 持久化文件。
 - **自定义 API 配置面板布局修复 (API Presets Layout Fix)**:
   - 修复了因为过长的解释文本导致“流式传输 (Streaming)”等具有大量说明的开关按钮（SwitchField）被挤出可见区域的 UI 排版错误。由于父级 `MasterDetailLayout` 缺少 `min-w-0` 限制，过长的子级文本会撑破 `flex-1` 容器，现已修正 flex 收缩逻辑。
-
+- **剧情摘要修订面板 UI 修复 (Summary Review UI Fix)**:
+  - 修复了生成剧情摘要后，预览弹窗中直接显示底层原始 JSON（包括 `time_anchor`, `role`, `events` 等字段）而不是卡片化事件列表的问题。先前 `SummaryWorkflow` 传递给评审模块的类型被错误地降级为默认的 `text`（文本编辑器视图），现已明确指定为 `summary` 类型，从而正确唤起 `SummaryReview` 卡片视图，支持逐条对事件进行修改或增删。
+- **Dashboard 看板定时器修复 (Dashboard Data Sync Fix)**:
+  - 修复了 `useDashboardData` 因闭包导致无法获取最新刷新回调，以及在组件卸载后仍然执行异步更新导致 React 内存泄漏警告的问题。现已引入 `useRef` 隔离与 `isMounted` 拦截，并消除了循环内的高频动态导入。
+- **Batch 长程引擎调度修复 (Batch Engine Execution Fix)**:
+  - 在底层引擎中实现了对生成器（Generator）的非阻塞状态交接，正式引入无损事件循环“挂起 (Soft Pause)”与“继续 (Resume)”机制。修复了原先暂停时历史作业无法保留运行点的问题。
+  - 在 `HistoryTask` 历史总结作业中，修复了基于固定间隔死板推算进而导致进度条造假的逻辑断层，现在能够通过实时感知底部数据变化精准推导进度并隔离处理异常。
+- **核心配置数据不同步问题重构 (Configuration Store Refactoring)**:
+  - 彻底解决了多处挂载界面因为独立状态副本导致配置修改丢失的异常（“A面板修改了配置，但背景主页面未生效”）。使用 Zustand 仓库（`configStore.ts`）抽离并重构了所有的功能级 Config 配置，同时重写了 `useConfig.ts` 让其单纯代理状态库，完美复用兼容原本数百处陈列接口。
 
 
 ## [1.4.1] - 2026-03-06

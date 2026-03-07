@@ -8,6 +8,7 @@ import { IStep, StepResult } from '../../core/Step';
 interface UserReviewConfig {
     title: string;
     description?: string;
+    type?: 'text' | 'json' | 'entity' | 'summary';
 }
 
 export class UserReview implements IStep {
@@ -49,7 +50,7 @@ export class UserReview implements IStep {
             // 预处理特有动作：跳过 (作为 AI 消息)，打回 (重生成)
             // 根据 context 类型判断可用动作? 暂时全部提供扩展动作
             // 准备数据
-            let reviewType: 'text' | 'json' | 'entity' = 'text';
+            let reviewType: 'text' | 'json' | 'entity' | 'summary' = this.config.type || 'text';
             let reviewData = undefined;
 
             // V1.2.7: 优先使用 context.output（来自 SaveEntity dryRun 步骤的 newEntities/updatedEntities）

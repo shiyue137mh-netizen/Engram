@@ -8,9 +8,10 @@
  */
 import { SettingsManager, type EngramSettings } from '@/config/settings';
 import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
-import { getSTContext } from '@/integrations/tavern';
+import { getSTContext, MacroService } from '@/integrations/tavern';
 import { summarizerService } from '@/modules/memory';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
+import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
 import { useMemoryStore } from '@/state/memoryStore';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -118,6 +119,8 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         totalRagInjections: 0,
     });
 
+    const isMounted = useRef(true);
+
     // 获取 memoryStore 方法
     const getAllEvents = useMemoryStore(state => state.getAllEvents);
     const getAllEntities = useMemoryStore(state => state.getAllEntities);
@@ -125,11 +128,14 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
     // 刷新数据
     const refresh = useCallback(async () => {
         try {
+            if (!isMounted.current) return;
+
             // 1. System Health
             const stContext = getSTContext();
             const summarizerStatus = summarizerService.getStatus();
             const summarizerConfig = SettingsManager.get('summarizerConfig') || {};
 
+            if (!isMounted.current) return;
             setSystem({
                 isConnected: !!stContext,
                 characterName: stContext?.name2 || 'Unknown',
@@ -145,6 +151,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             const currentStats = SettingsManager.get('statistics') || {
                 firstUseAt: null, activeDays: [], totalTokens: 0, totalLlmCalls: 0, totalEvents: 0, totalEntities: 0, totalRagInjections: 0
             };
+            if (!isMounted.current) return;
             setGlobalStats(currentStats as EngramSettings['statistics']);
 
             // 2. Memory Stats
@@ -162,6 +169,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 return sum + Math.ceil((e.summary?.length || 0) / 4);
             }, 0);
 
+            if (!isMounted.current) return;
             setMemory({
                 eventCount: events.length,
                 entityCount: entities.length,
@@ -178,6 +186,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             const recallConfig = apiSettings?.recallConfig;
             const preprocessingConfig = SettingsManager.get('preprocessingConfig') as { enabled?: boolean } | undefined;
 
+            if (!isMounted.current) return;
             setFeatures({
                 summarizer: summarizerConfig.enabled !== false,
                 entity: entityConfig?.enabled || false,
@@ -186,11 +195,8 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 preprocessing: preprocessingConfig?.enabled || false,
             });
 
-            // 4. Brain & Context Stats (Dynamic Import)
+            // 4. Brain & Context Stats
             try {
-                const { brainRecallCache } = await import('@/modules/rag/retrieval/BrainRecallCache');
-                const { MacroService } = await import('@/integrations/tavern');
-
                 const snapshot = brainRecallCache.getShortTermSnapshot();
                 // FIX: 直接从 SettingsManager 读取最新的配置，而不是 Cache 里的旧副本
                 const apiSettings = SettingsManager.get('apiSettings');
@@ -206,6 +212,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 
                 const contextText = MacroService.getSummaries();
 
+                if (!isMounted.current) return;
                 setBrainStats({
                     shortTermCount: snapshot.length,
                     shortTermLimit: brainConfig.shortTermLimit,
@@ -223,10 +230,10 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 console.warn('[useDashboardData] Failed to load brain stats', e);
             }
 
-            setIsLoading(false);
+            if (isMounted.current) setIsLoading(false);
         } catch (error) {
             console.error('[useDashboardData] Error refreshing data:', error);
-            setIsLoading(false);
+            if (isMounted.current) setIsLoading(false);
         }
     }, [getAllEvents, getAllEntities]);
 
@@ -311,17 +318,26 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
     }, [features, refresh]);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const refreshRef = useRef(refresh);
+
+    // 保持 ref 中的 refresh 永远是最新版本，避免定时器闭包拿到旧回调
+    useEffect(() => {
+        refreshRef.current = refresh;
+    }, [refresh]);
 
     // 初始加载 + 定时刷新 (Phase 3 Performance)
     useEffect(() => {
-        refresh(); // 立即执行一次
+        isMounted.current = true;
+        refreshRef.current(); // 立即执行一次
         let isTabActive = document.visibilityState === 'visible';
 
         // 动态调整轮询帧率：活动时高频查询，放到后台时降低查询频率
         const scheduleTimer = () => {
             if (timerRef.current) clearInterval(timerRef.current);
             const currentInterval = isTabActive ? refreshInterval : refreshInterval * 5; // 后台延长 5 倍间隙
-            timerRef.current = setInterval(refresh, currentInterval);
+            timerRef.current = setInterval(() => {
+                if (isMounted.current) refreshRef.current();
+            }, currentInterval);
         };
 
         const handleVisibilityChange = () => {
@@ -336,10 +352,11 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
+            isMounted.current = false;
             if (timerRef.current) clearInterval(timerRef.current);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
-    }, [refreshInterval]); // 移除了对 refresh 闭包在 useEffect 中的直接依赖，改为 useRef 或确保 refresh 是稳定回调
+    }, [refreshInterval]);
 
     return {
         system,
