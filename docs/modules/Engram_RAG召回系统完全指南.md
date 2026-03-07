@@ -216,14 +216,13 @@ HybridScore = (1 - α) * EmbeddingScore + α * RerankScore
 
 ### 5.1 启用 RAG
 
-前往 `API 配置` -> `Engram RAG` 面板：
+前往 `API 配置 (API Presets)` -> `召回配置` 面板：
 
-1. **启用开关**: 打开 "启用 RAG 召回系统"
-2. **选择模式**: 推荐从 "Standard" 开始
+1. **启用开关**: 打开相关策略（使用 Embedding 语义检索 等）
 
 ### 5.2 向量模型设置
 
-在 `API 配置` -> `向量化` 面板：
+在 `API 配置 (API Presets)` -> `模型配置` -> `向量化` 面板：
 
 | 配置项 | 说明 |
 |--------|------|
@@ -234,7 +233,7 @@ HybridScore = (1 - α) * EmbeddingScore + α * RerankScore
 
 ### 5.3 Rerank 设置
 
-在 `API 配置` -> `Rerank` 面板：
+在 `API 配置 (API Presets)` -> `模型配置` -> `Rerank` 面板：
 
 | 配置项 | 说明 |
 |--------|------|
@@ -270,13 +269,15 @@ HybridScore = (1 - α) * EmbeddingScore + α * RerankScore
 |------|------|
 | `retriever` | 单例对象，通过 `retriever.search()` 执行召回 |
 | `brainRecallCache` | 类脑缓存单例，管理记忆强化/衰减/淘汰 |
-| `MacroService` | 负责将召回结果注入到 `{{engramSummaries}}` |
+| `MacroService` | 负责将召回结果或纯净活跃事件注入到相关宏变量中 |
 
 ### 宏接口
 
 剧情 AI 的 Prompt Template 中可以使用以下宏接收召回内容：
 
-- `{{engramSummaries}}`: 包含当前轮次召回并格式化好的记忆片段
+- `{{engramSummaries}}`: 包含当前轮次召回并格式化好的记忆片段（包含蓝灯与被召回的绿灯片段）。
+- `{{engramActiveEvents}}`: **Agentic RAG 新增**，纯净的活跃记忆（纯蓝灯阵列），不包含任何被 RAG 系统历史捞出的绿灯事件，确保用作裁判判决的客观基准。
+- `{{engramIndex}}`: **Agentic RAG 新增**，全量结构化记忆索引简要（XML 格式），供给判断工具模型使用。
 
 ## 7. 版本历史
 
