@@ -6,7 +6,7 @@
  * 文本层级：heading(标题) → foreground(正文) → meta(元数据)
  */
 import type { EventNode } from '@/data/types/graph';
-import { ChevronRight, Zap } from 'lucide-react';
+import { ChevronRight, Lock, LockOpen, Zap } from 'lucide-react';
 import React from 'react';
 
 interface EventCardProps {
@@ -20,6 +20,7 @@ interface EventCardProps {
     hasChanges?: boolean;
     /** 是否处于召回激活状态 */
     isActive?: boolean;
+    onToggleLock?: (isLocked: boolean) => void;
     className?: string;
 }
 
@@ -96,10 +97,12 @@ export const EventCard: React.FC<EventCardProps> = ({
     isCompact = false,
     onSelect,
     onCheck,
+    onToggleLock,
     checked = false,
     hasChanges = false,
     className = '',
 }) => {
+    const isLocked = event.is_locked;
     const kv = event.structured_kv;
 
     // 提取纯文本（去掉标题行）
@@ -153,6 +156,18 @@ export const EventCard: React.FC<EventCardProps> = ({
                     </p>
                 </div>
 
+                {/* 锁定按钮 (紧凑模式) */}
+                <button
+                    className={`p-1 transition-colors ${isLocked ? 'text-emphasis' : 'text-meta opacity-40 hover:opacity-100'}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleLock?.(!isLocked);
+                    }}
+                    title={isLocked ? '解锁' : '锁定以防止被精简或归档'}
+                >
+                    {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
+                </button>
+
                 {/* 箭头 */}
                 <ChevronRight size={16} className="text-meta" />
             </div>
@@ -202,6 +217,24 @@ export const EventCard: React.FC<EventCardProps> = ({
                 )}
                 <div className="flex-1" />
                 <ScoreDots score={event.significance_score} />
+
+                {/* 锁定按钮 (桌面模式) */}
+                <button
+                    className={`
+                        ml-2 p-1.5 rounded-md transition-all
+                        ${isLocked
+                            ? 'text-emphasis bg-emphasis/10 hover:bg-emphasis/20'
+                            : 'text-muted-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100'
+                        }
+                    `}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleLock?.(!isLocked);
+                    }}
+                    title={isLocked ? '点击解锁' : '通过锁定记忆，可防止其在精简或清理时被自动处理'}
+                >
+                    {isLocked ? <Lock size={14} /> : <LockOpen size={14} />}
+                </button>
             </div>
 
             {/* 元数据行 */}

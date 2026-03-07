@@ -6,7 +6,7 @@
  * 文本层级：heading(名称) → label(类型) → foreground(描述) → meta(别名)
  */
 import type { EntityNode } from '@/data/types/graph';
-import { ChevronRight } from 'lucide-react';
+import { Archive, ArchiveRestore, ChevronRight, Lock, LockOpen } from 'lucide-react';
 import React from 'react';
 
 /**
@@ -35,6 +35,8 @@ interface EntityCardProps {
     isCompact?: boolean;
     onSelect?: () => void;
     onCheck?: (checked: boolean) => void;
+    onArchive?: (isArchived: boolean) => void;
+    onToggleLock?: (isLocked: boolean) => void;
     checked?: boolean;
 }
 
@@ -44,8 +46,12 @@ export const EntityCard: React.FC<EntityCardProps> = ({
     isCompact = false,
     onSelect,
     onCheck,
+    onArchive,
+    onToggleLock,
     checked = false,
 }) => {
+    const isArchived = entity.is_archived;
+    const isLocked = entity.is_locked;
     // 紧凑模式（移动端）
     if (isCompact) {
         return (
@@ -55,6 +61,7 @@ export const EntityCard: React.FC<EntityCardProps> = ({
                     border-b border-border
                     transition-colors duration-150
                     ${isSelected ? 'border-l-2 border-l-primary bg-transparent' : 'hover:border-border'}
+                    ${isArchived ? 'opacity-50 grayscale-[0.5]' : ''}
                 `}
                 onClick={onSelect}
             >
@@ -84,6 +91,30 @@ export const EntityCard: React.FC<EntityCardProps> = ({
                     </p>
                 </div>
 
+                {/* 锁定按钮 (紧凑模式) */}
+                <button
+                    className={`p-1 transition-colors ${isLocked ? 'text-emphasis' : 'text-meta opacity-40 hover:opacity-100'}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleLock?.(!isLocked);
+                    }}
+                    title={isLocked ? '解锁' : '锁定以防止自动归档'}
+                >
+                    {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
+                </button>
+
+                {/* 归档按钮 (紧凑模式) */}
+                <button
+                    className="p-1 px-2 hover:bg-muted/50 rounded transition-colors"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onArchive?.(!isArchived);
+                    }}
+                    title={isArchived ? '取消归档' : '归档实体'}
+                >
+                    {isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} className="opacity-40 hover:opacity-100" />}
+                </button>
+
                 {/* 箭头 */}
                 <ChevronRight size={16} className="text-meta" />
             </div>
@@ -94,12 +125,13 @@ export const EntityCard: React.FC<EntityCardProps> = ({
     return (
         <div
             className={`
-                p-4 cursor-pointer rounded-lg h-full flex flex-col
+                group p-4 cursor-pointer rounded-lg h-full flex flex-col
                 transition-all duration-150
                 ${isSelected
-                    ? 'border border-primary bg-transparent'
-                    : 'border border-transparent hover:border-border/50'
+                    ? 'border border-primary bg-transparent shadow-sm'
+                    : 'border border-transparent hover:border-border/50 bg-secondary/5'
                 }
+                ${isArchived ? 'opacity-60 grayscale-[0.3]' : ''}
             `}
             onClick={onSelect}
         >
@@ -120,6 +152,42 @@ export const EntityCard: React.FC<EntityCardProps> = ({
                 <span className={`text-[10px] px-1.5 py-0.5 rounded-full border uppercase ${getEntityTypeColor(entity.type)}`}>
                     {entity.type}
                 </span>
+
+                {/* 锁定按钮 (桌面模式) */}
+                <button
+                    className={`
+                        ml-auto p-1.5 rounded-md transition-all
+                        ${isLocked
+                            ? 'text-emphasis bg-emphasis/10 hover:bg-emphasis/20'
+                            : 'text-muted-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100'
+                        }
+                    `}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onToggleLock?.(!isLocked);
+                    }}
+                    title={isLocked ? '点击解锁' : '通过锁定记忆，可防止其在清理旧记忆时被自动归档'}
+                >
+                    {isLocked ? <Lock size={14} /> : <LockOpen size={14} />}
+                </button>
+
+                {/* 归档按钮 (桌面模式) */}
+                <button
+                    className={`
+                        p-1.5 rounded-md transition-all
+                        ${isArchived
+                            ? 'text-primary bg-primary/10 hover:bg-primary/20'
+                            : 'text-muted-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100'
+                        }
+                    `}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onArchive?.(!isArchived);
+                    }}
+                    title={isArchived ? '取消归档' : '将实体归档 (不再参与扫描召回)'}
+                >
+                    {isArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                </button>
             </div>
 
             {/* 描述文本 */}
@@ -127,10 +195,11 @@ export const EntityCard: React.FC<EntityCardProps> = ({
                 {entity.description}
             </p>
 
-            {/* 别名 (如果有) */}
+            {/* 触发关键词 (原别名) */}
             {entity.aliases && entity.aliases.length > 0 && (
-                <div className="mt-2 text-[10px] text-meta truncate">
-                    别名: {entity.aliases.join(', ')}
+                <div className="mt-auto pt-3 text-[10px] text-meta italic flex items-center gap-1 opacity-80">
+                    <span className="shrink-0 font-medium">触发关键词:</span>
+                    <span className="truncate">{entity.aliases.join(', ')}</span>
                 </div>
             )}
         </div>

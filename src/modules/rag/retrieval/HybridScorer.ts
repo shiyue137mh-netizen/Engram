@@ -20,6 +20,8 @@ export interface ScoredEvent {
     summary: string;
     /** Embedding 余弦相似度分数 (0-1) */
     embeddingScore?: number;
+    /** 关键词硬匹配分数 (0-1) */
+    keywordScore?: number;
     /** Rerank 相关性分数 (0-1) */
     rerankScore?: number;
     /** 混合分数 */
@@ -54,21 +56,26 @@ export interface RecallResult {
  *
  * @param embeddingScore Embedding 相似度分数 (0-1)
  * @param rerankScore Rerank 相关性分数 (0-1)
- * @param alpha 混合权重 (0=纯Embedding, 1=纯Rerank)
+ * @param keywordScore 关键词硬匹配分数 (0-1)
+ * @param alpha 混合权重 (0=纯基础分, 1=纯Rerank)
  * @returns 混合分数
  */
 function calculateHybridScore(
     embeddingScore: number | null | undefined,
     rerankScore: number | null | undefined,
+    keywordScore: number | null | undefined,
     alpha: number
 ): number {
-    // 如果只有一个分数，直接返回
-    if (embeddingScore == null && rerankScore == null) return 0;
-    if (embeddingScore == null) return rerankScore ?? 0;
-    if (rerankScore == null) return embeddingScore;
+    // 基础分：如果同时有 keyword 和 embedding，取最高者
+    const baseScore = Math.max(embeddingScore ?? 0, keywordScore ?? 0);
 
-    // 加权平均: hybrid = (1-α) * embedding + α * rerank
-    return (1 - alpha) * embeddingScore + alpha * rerankScore;
+    // 如果只有一个分数，直接返回
+    if (baseScore === 0 && rerankScore == null) return 0;
+    if (baseScore === 0) return rerankScore ?? 0;
+    if (rerankScore == null) return baseScore;
+
+    // 加权平均: hybrid = (1-α) * baseScore + α * rerank
+    return (1 - alpha) * baseScore + alpha * rerankScore;
 }
 
 /**
@@ -108,6 +115,7 @@ export function scoreAndSort(
         hybridScore: calculateHybridScore(
             event.embeddingScore,
             event.rerankScore,
+            event.keywordScore,
             alpha
         ),
     }));
@@ -115,7 +123,7 @@ export function scoreAndSort(
     // 按混合分数降序排列
     scored.sort((a, b) => (b.hybridScore ?? 0) - (a.hybridScore ?? 0));
 
-    Logger.debug(LogModule.RAG_RETRIEVE, '混合打分完成', {
+    Logger.debug(LogModule.RAG_INJECT, '混合打分完成', {
         candidateCount: scored.length,
         topScore: scored[0]?.hybridScore,
         alpha,

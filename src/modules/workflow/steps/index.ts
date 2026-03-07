@@ -15,3 +15,9 @@ export * from './processing/ParseJson';
 // Processors moved to steps/processing
 export * from './processing/RegexProcessor';
 export * from './processing/TextProcessor';
+export * from './rag/BrainRecallStep';
+export * from './rag/KeywordRetrieveStep';
+export * from './rag/RecordRecallLogStep';
+export * from './rag/RerankMergeStep';
+export * from './rag/VectorRetrieveStep';
+

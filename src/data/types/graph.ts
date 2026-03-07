@@ -76,6 +76,12 @@ export interface EventNode {
         end_index: number;
     };
 
+
+    /**
+     * 是否锁定 (阻止自动归档/精简)
+     */
+    is_locked?: boolean;
+
     timestamp: number;
 }
 
@@ -143,6 +149,13 @@ export interface EntityNode {
      */
     profile: Record<string, unknown>;
 
+    /**
+     * 是否已归档 (隐藏)
+     * true: 不参与关键词扫描与 RAG 召回
+     * false: 活跃状态
+     */
+    is_archived?: boolean;
+
     /** 最后更新时间 */
     last_updated_at: number;
 
@@ -161,6 +174,12 @@ export interface EntityNode {
      * Whether this entity is vectorized
      */
     is_embedded?: boolean;
+
+
+    /**
+     * 是否锁定 (阻止自动归档)
+     */
+    is_locked?: boolean;
 
     /** 布局 Y 坐标 */
     layout_y?: number;

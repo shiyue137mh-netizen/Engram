@@ -1,4 +1,4 @@
-import { Logger } from '@/core/logger';
+import { Logger, LogModule } from '@/core/logger';
 import { generateShortUUID } from '@/core/utils';
 import { JobContext } from './JobContext';
 import { IStep } from './Step';
@@ -39,7 +39,7 @@ export class WorkflowEngine {
             }
         };
 
-        Logger.info('Workflow', `开始执行工作流: ${workflow.name}`, {
+        Logger.info(LogModule.RAG_INJECT, `开始执行工作流: ${workflow.name}`, {
             jobId: context.id,
             trigger: context.trigger
         });
@@ -55,54 +55,61 @@ export class WorkflowEngine {
             // 2. 顺序执行 Steps (支持跳转)
             for (let i = 0; i < workflow.steps.length; i++) {
                 // 取消检查点：每个 Step 执行前检查信号
-                if (context.signal?.cancelled) {
-                    Logger.info('Workflow', `工作流已被用户取消: ${workflow.name}`, { jobId: context.id });
-                    throw new Error('UserCancelled');
+                if (context.signal && context.signal.cancelled) {
+                    Logger.warn(LogModule.RAG_INJECT, '工作流被中途取消', { jobId: context.id });
+                    break;
                 }
 
                 const step = workflow.steps[i];
-                Logger.debug('Workflow', `执行步骤: ${step.name}`, { jobId: context.id });
+                Logger.debug(LogModule.RAG_INJECT, `执行步骤: ${step.name}`, { jobId: context.id });
 
                 const stepStart = Date.now();
-                const result = await step.execute(context);
-                const duration = Date.now() - stepStart;
+                try {
+                    const result = await step.execute(context);
+                    const duration = Date.now() - stepStart;
 
-                context.metadata.stepsExecuted.push(step.name);
+                    context.metadata.stepsExecuted.push(step.name);
+                    Logger.debug(LogModule.RAG_INJECT, `步骤完成: ${step.name}`, { duration });
 
-                Logger.debug('Workflow', `步骤完成: ${step.name}`, { duration });
-
-                // 处理控制流
-                if (result) {
-                    if (result.action === 'finish') {
-                        Logger.info('Workflow', `工作流提前结束: ${step.name}`, { reason: 'Step requested finish' });
-                        break;
-                    }
-
-                    if (result.action === 'abort') {
-                        throw new Error(result.reason || 'Step requested abort');
-                    }
-
-                    if (result.action === 'jump') {
-                        const targetIndex = stepIndexMap.get(result.targetStep);
-                        if (targetIndex === undefined) {
-                            throw new Error(`Jump target not found: ${result.targetStep}`);
+                    // 处理控制流
+                    if (result) {
+                        if (result.action === 'finish') {
+                            Logger.debug(LogModule.RAG_INJECT, `工作流提前结束: ${step.name}`, { reason: 'Step requested finish' });
+                            break;
                         }
-                        Logger.info('Workflow', `跳转步骤: ${step.name} -> ${result.targetStep}`, { reason: result.reason });
-                        i = targetIndex - 1; // 循环会自动 +1，所以这里 -1
-                        continue;
+
+                        if (result.action === 'abort') {
+                            throw new Error(result.reason || 'Step requested abort');
+                        }
+
+                        if (result.action === 'jump') {
+                            const targetIndex = stepIndexMap.get(result.targetStep);
+                            if (targetIndex === undefined) {
+                                throw new Error(`Jump target not found: ${result.targetStep}`);
+                            }
+                            Logger.debug(LogModule.RAG_INJECT, `跳转步骤: ${step.name} -> ${result.targetStep}`, { reason: result.reason });
+                            i = targetIndex - 1; // 循环会自动 +1，所以这里 -1
+                            continue;
+                        }
                     }
+                } catch (stepError) {
+                    Logger.error(LogModule.RAG_INJECT, `步骤执行崩溃: ${step.name}`, {
+                        error: stepError instanceof Error ? stepError.message : String(stepError),
+                        stack: stepError instanceof Error ? stepError.stack : undefined
+                    });
+                    throw stepError;
                 }
             }
 
-            Logger.success('Workflow', `工作流执行成功: ${workflow.name}`, {
+            Logger.debug(LogModule.RAG_INJECT, `工作流执行成功: ${workflow.name}`, {
                 jobId: context.id,
                 duration: Date.now() - startTime,
                 steps: context.metadata.stepsExecuted.length
             });
 
-        } catch (error) {
-            context.metadata.error = error instanceof Error ? error : new Error(String(error));
-            Logger.error('Workflow', `工作流执行失败: ${workflow.name}`, {
+        } catch (e: any) {
+            context.metadata.error = e instanceof Error ? e : new Error(String(e));
+            Logger.error(LogModule.RAG_INJECT, `工作流执行异常: ${workflow.name}`, {
                 jobId: context.id,
                 step: context.metadata.stepsExecuted[context.metadata.stepsExecuted.length - 1], // 最后一个完成的还是正在执行的？
                 error: context.metadata.error.message

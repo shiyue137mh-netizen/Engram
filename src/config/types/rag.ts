@@ -98,6 +98,15 @@ export interface RecallConfig {
     /** 策略 4: 是否使用 Agentic RAG (LLM 裁判式召回) */
     useAgenticRAG: boolean;
 
+    /** 策略 5: 是否使用关键词召回 (0 消耗模式) */
+    useKeywordRecall?: boolean;
+
+    /** 关键词召回细分：是否检索实体 (默认 true) */
+    enableEntityKeyword?: boolean;
+
+    /** 关键词召回细分：是否检索事件 (默认 true) */
+    enableEventKeyword?: boolean;
+
     /** Embedding 详细配置 */
     embedding?: {
         topK: number;

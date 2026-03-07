@@ -1,3 +1,5 @@
+import { SettingsManager } from '@/config/settings';
+import { DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
 import type { RecallConfig } from '@/config/types/rag';
 import { Logger, LogModule } from '@/core/logger';
 import { mergeResults, scoreAndSort, type ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
@@ -10,10 +12,35 @@ export class RerankMergeStep implements IStep {
 
     async execute(context: JobContext): Promise<void> {
         context.data = context.data || {};
-        let candidates: ScoredEvent[] = context.data.candidates || [];
+        const vectorCandidates: ScoredEvent[] = context.data.candidates || [];
+        const keywordCandidates: ScoredEvent[] = context.data.keywordCandidates || [];
         const config: RecallConfig | undefined = context.data.recallConfig;
 
-        if (!config || candidates.length === 0) {
+        // 1. 合并向量检索和关键词检索的候选 (按 ID 去重，保留最高分)
+        const candidateMap = new Map<string, ScoredEvent>();
+
+        // 优先加载关键词候选
+        for (const candidate of keywordCandidates) {
+            candidateMap.set(candidate.id, candidate);
+        }
+
+        // 合并向量候选，记录 embeddingScore
+        for (const candidate of vectorCandidates) {
+            if (candidateMap.has(candidate.id)) {
+                // 如果已存在（被关键词命中），补充 embeddingScore
+                const existing = candidateMap.get(candidate.id)!;
+                existing.embeddingScore = candidate.embeddingScore;
+            } else {
+                candidateMap.set(candidate.id, candidate);
+            }
+        }
+
+        const candidates = Array.from(candidateMap.values());
+        const activeConfig = config || SettingsManager.get('apiSettings')?.recallConfig || DEFAULT_RECALL_CONFIG;
+
+        if (candidates.length === 0) {
+            Logger.info(LogModule.RAG_INJECT, '没有合并候选，跳过 RerankMergeStep');
+            context.data.candidates = [];
             return;
         }
 
@@ -23,7 +50,7 @@ export class RerankMergeStep implements IStep {
         let finalCandidates = candidates;
         let rerankTime = 0;
 
-        if (config.useRerank && rerankService.isEnabled()) {
+        if (activeConfig.useRerank && rerankService.isEnabled()) {
             context.data.rerankStartTime = Date.now();
             const query = context.input?.query as string;
             const unifiedQueries = context.input?.unifiedQueries as string[] | undefined;
@@ -54,5 +81,10 @@ export class RerankMergeStep implements IStep {
 
         context.data.candidates = finalCandidates;
         context.data.rerankTime = rerankTime;
+
+        Logger.debug(LogModule.RAG_INJECT, `Rerank/Merge 完成，最终事件候选: ${finalCandidates.length} 个`, {
+            vector: vectorCandidates.length,
+            keyword: keywordCandidates.length
+        });
     }
 }

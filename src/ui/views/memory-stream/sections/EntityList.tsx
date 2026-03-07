@@ -18,6 +18,8 @@ interface EntityListProps {
     // Callbacks
     onSelect: (id: string) => void;
     onCheck: (id: string, checked: boolean) => void;
+    onArchive: (id: string, isArchived: boolean) => void;
+    onToggleLock: (id: string, isLocked: boolean) => void;
 }
 
 export const EntityList: React.FC<EntityListProps> = ({
@@ -30,6 +32,8 @@ export const EntityList: React.FC<EntityListProps> = ({
     selectedId,
     onSelect,
     onCheck,
+    onArchive,
+    onToggleLock,
 }) => {
     return (
         <div className="flex flex-col min-h-0 h-full w-full">
@@ -89,6 +93,8 @@ export const EntityList: React.FC<EntityListProps> = ({
                                             checked={checkedIds.has(entity.id)}
                                             onSelect={() => onSelect(entity.id)}
                                             onCheck={(checked) => onCheck(entity.id, checked)}
+                                            onArchive={(isArchived) => onArchive(entity.id, isArchived)}
+                                            onToggleLock={(isLocked) => onToggleLock(entity.id, isLocked)}
                                         />
                                     </div>
                                 )}
@@ -107,6 +113,8 @@ export const EntityList: React.FC<EntityListProps> = ({
                                             checked={checkedIds.has(entity.id)}
                                             onSelect={() => onSelect(entity.id)}
                                             onCheck={(checked) => onCheck(entity.id, checked)}
+                                            onArchive={(isArchived) => onArchive(entity.id, isArchived)}
+                                            onToggleLock={(isLocked) => onToggleLock(entity.id, isLocked)}
                                         />
                                     </div>
                                 )}

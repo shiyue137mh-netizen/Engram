@@ -152,6 +152,7 @@ export const MemoryStream: React.FC = () => {
                                         return newSet;
                                     });
                                 }}
+                                onToggleLock={ms.handleToggleEventLock}
                             />
                         ) : (
                             <EntityList
@@ -164,6 +165,8 @@ export const MemoryStream: React.FC = () => {
                                 selectedId={ms.selectedId}
                                 onSelect={ms.handleSelect}
                                 onCheck={ms.handleCheck}
+                                onArchive={ms.handleToggleArchive}
+                                onToggleLock={ms.handleToggleEntityLock}
                             />
                         )
                     }

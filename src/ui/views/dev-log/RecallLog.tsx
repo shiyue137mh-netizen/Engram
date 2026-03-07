@@ -104,7 +104,7 @@ const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }
 type ViewMode = 'all' | 'topK' | 'reranked';
 
 // 排序模式
-type SortMode = 'embedding' | 'rerank' | 'hybrid';
+type SortMode = 'embedding' | 'keyword' | 'rerank' | 'hybrid';
 
 /** 分数条组件 */
 const ScoreBar: React.FC<{
@@ -154,6 +154,11 @@ const ResultItem: React.FC<{ item: RecallResultItem }> = ({ item }) => {
                         TopK
                     </span>
                 )}
+                {item.keywordScore != null && (
+                    <span className="px-1.5 py-0.5 text-[10px] bg-green-500/20 text-green-400 rounded">
+                        Keyword
+                    </span>
+                )}
                 <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">
                     {item.category}
                 </span>
@@ -174,6 +179,9 @@ const ResultItem: React.FC<{ item: RecallResultItem }> = ({ item }) => {
             {expanded && (
                 <div className="mt-3 space-y-1.5 pt-2 border-t border-border/20">
                     <ScoreBar label="Embedding" score={item.embeddingScore} color="bg-blue-500" />
+                    {item.keywordScore != null && (
+                        <ScoreBar label="Keyword" score={item.keywordScore} color="bg-green-500" />
+                    )}
                     {item.rerankScore != null && (
                         <ScoreBar label="Rerank" score={item.rerankScore} color="bg-orange-500" />
                     )}
@@ -228,12 +236,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
             const getScore = (item: RecallResultItem) => {
                 switch (sortMode) {
                     case 'embedding': return item.embeddingScore;
+                    case 'keyword': return item.keywordScore ?? 0;
                     case 'rerank': return item.rerankScore ?? 0;
                     case 'hybrid':
                         return item.hybridScore ?? (
-                            item.rerankScore != null
-                                ? (item.embeddingScore + item.rerankScore) / 2
-                                : item.embeddingScore
+                            Math.max(item.embeddingScore, item.keywordScore ?? 0)
                         );
                 }
             };
@@ -343,6 +350,35 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                         </div>
                     </div>
                 )}
+
+                {/* V1.4: 被激活的实体 */}
+                {entry.recalledEntities && entry.recalledEntities.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-border/30">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-medium text-foreground">已唤醒实体</span>
+                            <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                                {entry.recalledEntities.length}
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {entry.recalledEntities.map((ent: any) => (
+                                <div key={ent.id} className="group relative">
+                                    <div className="px-2 py-1 bg-primary/10 border border-primary/20 rounded-md text-[10px] text-primary flex items-center gap-1.5 hover:bg-primary/20 transition-colors">
+                                        <Database size={10} />
+                                        {ent.name}
+                                        {ent._recallWeight && (
+                                            <span className="opacity-60 font-mono">({ent._recallWeight.toFixed(2)})</span>
+                                        )}
+                                    </div>
+                                    <div className="hidden group-hover:block absolute z-50 bottom-full left-0 mb-2 w-48 bg-popover border border-border rounded-lg shadow-xl p-2 text-[10px] text-foreground/80 leading-relaxed pointer-events-none">
+                                        <div className="font-bold mb-1">{ent.name} ({ent.type || '未知'})</div>
+                                        <div className="line-clamp-4">{ent.description || '无描述'}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* 过滤和排序工具栏 */}
@@ -368,7 +404,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
 
                 {/* 排序模式 */}
                 <div className="flex items-center gap-1 text-xs">
-                    {(['embedding', 'rerank', 'hybrid'] as SortMode[]).map(mode => (
+                    {(['hybrid', 'keyword', 'embedding', 'rerank'] as SortMode[]).map(mode => (
                         <button
                             key={mode}
                             className={`px-2 py-1 rounded transition-colors ${sortMode === mode

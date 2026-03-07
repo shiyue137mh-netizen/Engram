@@ -354,7 +354,6 @@ export class EntityBuilder {
                 for (let i = 0; i < updatedEntities.length; i += chunkSize) {
                     const chunk = updatedEntities.slice(i, i + chunkSize);
                     await Promise.all(chunk.map(entity => {
-                        Logger.debug(LogModule.MEMORY_ENTITY, 'Updating entity', { id: entity.id, name: entity.name });
                         return store.updateEntity(entity.id, {
                             profile: entity.profile,
                             aliases: entity.aliases,
@@ -374,9 +373,51 @@ export class EntityBuilder {
                 'Engram'
             );
             Logger.success(LogModule.MEMORY_ENTITY, '实体保存完成');
+
+            // V1.4.2: 成功保存后触发自动归档检查
+            if (this.config.autoArchive) {
+                await this.checkAndArchiveEntities();
+            }
         } catch (error) {
             Logger.error(LogModule.MEMORY_ENTITY, '实体保存失败', { error });
             throw error; // Re-throw for UI to catch
+        }
+    }
+
+    /**
+     * 检查并执行实体自动归档
+     * 根据 archiveLimit 归档多出的、未锁定的最旧实体
+     */
+    async checkAndArchiveEntities(): Promise<void> {
+        try {
+            const store = useMemoryStore.getState();
+            const allEntities = await store.getAllEntities();
+
+            // 仅统计未归档的实体
+            const activeEntities = allEntities.filter(e => !e.is_archived);
+            const limit = this.config.archiveLimit || 50;
+
+            if (activeEntities.length <= limit) {
+                return;
+            }
+
+            // 过滤掉已锁定的实体 (锁定的实体获得“免死金牌”)
+            const candidates = activeEntities
+                .filter(e => !e.is_locked)
+                .sort((a, b) => (a.last_updated_at || 0) - (b.last_updated_at || 0));
+
+            const overLimit = activeEntities.length - limit;
+            const toArchive = candidates.slice(0, overLimit);
+
+            if (toArchive.length > 0) {
+                const ids = toArchive.map(e => e.id);
+                Logger.info(LogModule.MEMORY_ENTITY, `由于超过上限(${limit})，自动归档 ${ids.length} 个旧实体`, {
+                    names: toArchive.map(e => e.name)
+                });
+                await store.archiveEntities(ids);
+            }
+        } catch (error) {
+            Logger.error(LogModule.MEMORY_ENTITY, '执行实体自动归档失败', { error });
         }
     }
 
@@ -399,6 +440,7 @@ export class EntityBuilder {
         const store = useMemoryStore.getState();
         const entities = await store.getAllEntities();
         const state = await chatManager.getState();
+        const archivedCount = entities.filter(e => e.is_archived).length;
 
         return {
             enabled: this.config.enabled,
@@ -406,6 +448,7 @@ export class EntityBuilder {
             floorInterval: this.config.floorInterval,
             lastExtractedFloor: state.last_extracted_floor,
             entityCount: entities.length,
+            archivedCount,
             isExtracting: this.isExtracting,
         };
     }

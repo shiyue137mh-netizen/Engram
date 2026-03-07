@@ -12,7 +12,9 @@ export interface EntityState {
     deleteEntity: (entityId: string) => Promise<void>;
     deleteEntities: (entityIds: string[]) => Promise<void>;
     findEntityByName: (name: string) => Promise<EntityNode | null>;
-    getEntityStates: () => Promise<string>;
+    archiveEntities: (entityIds: string[]) => Promise<void>;
+    toggleEntityLock: (entityId: string) => Promise<boolean>;
+    getEntityStates: (ids?: string[]) => Promise<string>;
 }
 
 export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, get) => ({
@@ -135,13 +137,59 @@ export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, g
         }
     },
 
-    getEntityStates: async () => {
+    archiveEntities: async (entityIds: string[]) => {
+        if (entityIds.length === 0) return;
+        const db = getCurrentDb();
+        if (!db) return;
+        try {
+            await db.entities.where('id').anyOf(entityIds).modify({ is_archived: true });
+            console.log(`[MemoryStore] Archived ${entityIds.length} entities`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to archive entities:', e);
+        }
+    },
+
+    toggleEntityLock: async (entityId: string) => {
+        if (!entityId) return false;
+        const db = getCurrentDb();
+        if (!db) return false;
+
+        try {
+            const existing = await db.entities.get(entityId);
+            if (!existing) return false;
+
+            const newLockState = !existing.is_locked;
+            await db.entities.update(entityId, { is_locked: newLockState });
+            console.log(`[MemoryStore] Toggled entity lock: ${entityId} -> ${newLockState}`);
+            return newLockState;
+        } catch (e) {
+            console.error('[MemoryStore] Failed to toggle entity lock:', e);
+            return false;
+        }
+    },
+
+    getEntityStates: async (ids?: string[]) => {
         const db = tryGetCurrentDb();
         if (!db) return '';
 
         try {
-            const entities = await db.entities.toArray();
-            if (entities.length === 0) return '';
+            let entities: EntityNode[] = [];
+
+            const all = await db.entities.toArray();
+            // 归档名单应该始终包含所有已归档实体，用于防重提醒
+            const archivedEntities = all.filter(e => e.is_archived);
+
+            if (ids && ids.length > 0) {
+                // 情况 A: 召回模式
+                // 召回的项（哪怕是已归档的）显示详细画像
+                entities = all.filter(e => ids.includes(e.id));
+            } else {
+                // 情况 B: 全局模式
+                // 仅显示未归档的活跃实体画像
+                entities = all.filter(e => !e.is_archived);
+            }
+
+            if (entities.length === 0 && archivedEntities.length === 0) return '';
 
             const groups: Record<string, EntityNode[]> = {
                 char: [],
@@ -178,6 +226,12 @@ export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, g
                     .join('\n---\n');
 
                 sections.push(`<${tag}>\n${contents}\n</${tag}>`);
+            }
+
+            // 补充已归档实体（仅提供名字作为上下文，防止模型重复创建）
+            if (archivedEntities.length > 0) {
+                const archivedNames = archivedEntities.map(e => e.name).join(', ');
+                sections.push(`<archived_entities>\n以下实体已存在但目前处于非活跃状态，请勿重复创建: ${archivedNames}\n</archived_entities>`);
             }
 
             return sections.join('\n\n');

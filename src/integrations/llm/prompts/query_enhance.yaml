@@ -16,6 +16,9 @@ userPromptTemplate: |
   **最近对话历史**:
   {{chatHistory}}
 
+  **命中实体 (关键词扫描)**:
+  {{hitEntities}}
+
   **用户本轮输入**:
   {{userInput}}
 

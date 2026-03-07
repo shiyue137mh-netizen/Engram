@@ -1,6 +1,9 @@
-import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
+import { SettingsManager } from '@/config/settings';
+import { DEFAULT_BRAIN_RECALL_CONFIG, DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
 import type { BrainRecallConfig, RecallConfig } from '@/config/types/rag';
 import { Logger, LogModule } from '@/core/logger';
+import { tryGetDbForChat } from '@/data/db';
+import { getCurrentChatId } from '@/integrations/tavern';
 import { brainRecallCache, type RecallCandidate } from '@/modules/rag/retrieval/BrainRecallCache';
 import type { ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
 import { JobContext } from '../../core/JobContext';
@@ -12,17 +15,40 @@ export class BrainRecallStep implements IStep {
     async execute(context: JobContext): Promise<void> {
         context.data = context.data || {};
         let candidates: ScoredEvent[] = context.data.candidates || [];
-        const config: RecallConfig | undefined = context.data.recallConfig;
-
-        if (!config || candidates.length === 0) return;
-
+        const config: RecallConfig = context.data.recallConfig || SettingsManager.get('apiSettings')?.recallConfig || DEFAULT_RECALL_CONFIG;
         const brainConfig: BrainRecallConfig = config.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
+        const keywordEntityIds: { id: string, score: number }[] = context.data.keywordEntityIds || [];
+
+        // V1.4.1 Fix: 即使没有事件候选，只要有实体召回，也必须继续
+        if (candidates.length === 0 && keywordEntityIds.length === 0) {
+            Logger.info(LogModule.RAG_INJECT, '没有检索到任何事件或实体，跳过 BrainRecallStep');
+            return;
+        }
+
+        const chatId = getCurrentChatId();
+        const db = tryGetDbForChat(chatId || '');
+        const allEntities = await (db?.entities.toArray() || []);
+        const entityMap = new Map(allEntities.map(e => [e.id, e]));
 
         if (brainConfig.enabled) {
             brainRecallCache.setConfig(brainConfig);
             brainRecallCache.nextRound();
 
-            // 转换为 RecallCandidate 格式
+            // 1. 转换实体候选并投入类脑系统更新强度
+            const entityCandidates: RecallCandidate[] = keywordEntityIds
+                .filter(ke => entityMap.has(ke.id))
+                .map(ke => {
+                    const entity = entityMap.get(ke.id)!;
+                    return {
+                        id: entity.id,
+                        label: entity.name,
+                        category: 'entity',
+                        embeddingScore: 1.0,
+                        rerankScore: 1.0,
+                    };
+                });
+
+            // 2. 转换普通事件候选
             const mappedCandidates: RecallCandidate[] = candidates.map(c => {
                 let rerankScore = c.rerankScore;
                 if (rerankScore === undefined && config.useRerank) {
@@ -32,15 +58,19 @@ export class BrainRecallStep implements IStep {
 
                 return {
                     id: c.id,
-                    label: c.node?.structured_kv?.event || c.summary.slice(0, 10),
+                    label: c.node?.structured_kv?.event || (c.summary ? c.summary.slice(0, 10) : 'event'),
                     embeddingScore: c.embeddingScore || 0,
                     rerankScore: rerankScore,
                     embeddingVector: c.node?.embedding,
                 };
             });
 
-            const brainResults = brainRecallCache.process(mappedCandidates);
+            const allMappedCandidates = [...mappedCandidates, ...entityCandidates];
+            Logger.debug(LogModule.RAG_INJECT, `类脑引擎输入: 事件=${mappedCandidates.length}, 实体=${entityCandidates.length}`);
 
+            const brainResults = brainRecallCache.process(allMappedCandidates);
+
+            // 3. 更新事件候选分数
             const candidateMap = new Map(candidates.map(c => [c.id, c]));
             context.data.candidates = brainResults
                 .filter(slot => candidateMap.has(slot.id))
@@ -52,16 +82,38 @@ export class BrainRecallStep implements IStep {
                     };
                 });
 
-            Logger.info(LogModule.RAG_RETRIEVE, '类脑召回已应用', {
-                inputCount: mappedCandidates.length,
-                outputCount: context.data.candidates.length,
-                round: brainRecallCache.getCurrentRound(),
-            });
+            // 4. V1.4.1 Fix: 关键词命中的实体具有“保送权”
+            // 只要 keywordEntityIds 命中了，无论类脑引擎是否将其排入 WorkingMemory，我们都将其召回
+            const recalledEntities = keywordEntityIds
+                .filter(ke => entityMap.has(ke.id))
+                .map(ke => {
+                    const entity = entityMap.get(ke.id)!;
+                    const brainSlot = brainResults.find(s => s.id === entity.id);
+                    return {
+                        ...entity,
+                        _recallWeight: brainSlot ? brainSlot.finalScore : (ke.score || 1.0)
+                    };
+                });
 
-            context.data.brainStats = {
-                round: brainRecallCache.getCurrentRound(),
-                snapshot: brainRecallCache.getShortTermSnapshot()
-            };
+            context.data.recalledEntities = recalledEntities;
+
+            Logger.debug(LogModule.RAG_INJECT, '类脑召回已应用', {
+                eventOutput: context.data.candidates.length,
+                entityOutput: recalledEntities.length,
+                isWorkingMemory: brainResults.length
+            });
+        } else {
+            // V1.4.1: 类脑引擎未启用，执行降级透传
+            context.data.recalledEntities = keywordEntityIds
+                .filter(ke => entityMap.has(ke.id))
+                .map(ke => ({
+                    ...entityMap.get(ke.id)!,
+                    _recallWeight: ke.score || 1.0
+                }));
+
+            Logger.debug(LogModule.RAG_INJECT, '类脑引擎未开启，执行关键词实体直通', {
+                entityCount: context.data.recalledEntities?.length || 0
+            });
         }
     }
 }

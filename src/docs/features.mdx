@@ -32,7 +32,13 @@ import { Database, Search, Layers, Command, Brain, FileText, Settings, Users, Gi
 
 位于 **数据处理** -> **运行时配置**。这里掌管着记忆产生的节奏。
 
-### 1. 总结面板 (Summary Panel)
+### 1. 关键词召回 (Keyword Recall)
+*   **子策略控制 (Selective Scanning)**: **(V1.4.3)** 关键词扫描现在支持对「实体」和「事件」进行独立控制。
+    *   **检索实体**: 扫描别名和 Trigger Keywords，高频且低峰，建议常开。
+    *   **检索事件**: 扫描历史摘要元数据。如果你已经开启了向量检索（Embedding），可以关闭此项以减少重复扫描。
+*   **0 消耗特性**: 完全基于正则匹配，不消耗任何 Token。
+
+### 2. 总结面板 (Summary Panel)
 *   **自动总结**: 全局开关。如果不希望产生新记忆，可以临时关闭。
 *   **楼层间隔 (Interval)**: 决定了记忆颗粒度。
     *   设为 `10`: 记忆非常密集，可能有大量流水账。
@@ -51,7 +57,7 @@ import { Database, Search, Layers, Command, Brain, FileText, Settings, Users, Gi
 
 ### 3. 实体提取 (Entity Extractor)
 *   这是与总结平行的进程。它专注于从每一段对话中"更新实体状态"，把重要的人名、地名、物品状态挖掘出来，存入实体库。
-*   这个功能专注于提取的是一些非实时频繁变动的,介于动态和静态之间的数据,比如关系。
+*   **自动归档管家**: **(V1.4.3)** 当活跃实体数量超过上限时，系统会自动将旧实体归档。这能保证 RAG 召回引擎始终运行在最高速的区间。
 
 ---
 
@@ -62,6 +68,7 @@ import { Database, Search, Layers, Command, Brain, FileText, Settings, Users, Gi
 ### 1. <Layers className="inline-block w-4 h-4 align-text-bottom" /> 列表视图
 按时间轴展示所有发生的"事件"。
 *   **搜索**: 顶部输入框支持全文检索。
+*   **锁定保护**: **(V1.4.3)** 点击卡片上的锁头图标。锁定后的事件免于 Trimming 精简合并；锁定后的实体免于自动归档。
 *   **过滤**: 可以只看"当前激活"（被 RAG 召回）的记忆。
 *   **CRUD**: 点击任意卡片可进行编辑或删除。
 

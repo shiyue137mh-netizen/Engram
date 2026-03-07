@@ -31,6 +31,10 @@ export interface EntityExtractConfig {
     keepRecentCount: number;
     /** 使用的提示词模板 ID */
     promptTemplateId?: string;
+    /** 是否启用自动归档 (当总数超过上限时) */
+    autoArchive?: boolean;
+    /** 实体数量上限 (默认 50) */
+    archiveLimit?: number;
 }
 
 export interface GlobalRegexConfig {

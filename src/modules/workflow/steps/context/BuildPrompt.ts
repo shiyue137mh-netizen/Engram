@@ -1,6 +1,7 @@
 import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
 import { Logger } from '@/core/logger';
 import { PromptLoader } from '@/integrations/llm/PromptLoader';
+import { getCurrentChatId } from '@/integrations/tavern';
 import { JobContext } from '../../core/JobContext';
 import { IStep } from '../../core/Step';
 
@@ -118,6 +119,23 @@ export class BuildPrompt implements IStep {
         // 手动映射已知宏 (覆盖 template 中的 {{key}})
         // V1.2.1: 只映射 Context 中存在的变量，如果是空值则跳过，
         // 从而允许后续的酒馆全局宏 (substituteParams) 进行回退处理 (例如 {{engramSummaries}})
+        // 映射命中实体 (V1.4.1 NEW)
+        let hitEntitiesSummary = '无';
+        if (context.data?.keywordEntityIds && Array.isArray(context.data.keywordEntityIds)) {
+            // 这里我们只需要名称
+            const chatId = getCurrentChatId();
+            const { tryGetDbForChat } = await import('@/data/db');
+            const db = chatId ? tryGetDbForChat(chatId) : null;
+            if (db) {
+                const names: string[] = [];
+                for (const ke of context.data.keywordEntityIds) {
+                    const ent = await db.entities.get(ke.id);
+                    if (ent) names.push(ent.name);
+                }
+                if (names.length > 0) hitEntitiesSummary = names.join(', ');
+            }
+        }
+
         const potentialMacros: Record<string, string | undefined> = {
             '{{chatHistory}}': contextData.chatHistory,
             '{{engramSummaries}}': contextData.engramSummaries,
@@ -126,6 +144,7 @@ export class BuildPrompt implements IStep {
             '{{worldbookContext}}': contextData.worldbookContext,
             '{{context}}': contextData.context || contextData.worldbookContext,
             '{{userPersona}}': contextData.userPersona,
+            '{{hitEntities}}': hitEntitiesSummary, // V1.4.1: 新增硬匹配提示
             '{{char}}': contextData.charName,
             '{{user}}': contextData.userName,
         };

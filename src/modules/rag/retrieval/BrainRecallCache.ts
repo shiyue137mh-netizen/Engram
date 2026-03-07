@@ -17,7 +17,8 @@ const MODULE = 'BrainRecallCache';
  */
 export interface MemorySlot {
     id: string;
-    label: string; // V1.3.4: 可读名称 (Event Type)
+    label: string; // V1.3.4: 可读名称 (Event Type 或 Entity Name)
+    category: 'event' | 'entity'; // V1.4: 区分实体和事件
 
     // 双轨强度
     embeddingStrength: number;
@@ -44,6 +45,7 @@ export interface MemorySlot {
 export interface RecallCandidate {
     id: string;
     label?: string; // V1.3.4: 可读名称
+    category?: 'event' | 'entity'; // V1.4: 类型区分，默认 event
     embeddingScore: number;
     rerankScore?: number;
     embeddingVector?: number[];
@@ -87,6 +89,7 @@ export class BrainRecallCache {
             return candidates.slice(0, this.config.workingLimit).map(c => ({
                 id: c.id,
                 label: c.label || c.id,
+                category: c.category || 'event',
                 embeddingStrength: c.embeddingScore,
                 rerankStrength: c.rerankScore || 0,
                 finalScore: c.embeddingScore * 0.4 + (c.rerankScore || 0) * 0.6,
@@ -135,6 +138,7 @@ export class BrainRecallCache {
                 const slot: MemorySlot = {
                     id: candidate.id,
                     label: candidate.label || candidate.id, // V1.3.4: 使用 label
+                    category: candidate.category || 'event', // V1.4: 保存类型
                     embeddingStrength: candidate.embeddingScore,
                     rerankStrength: candidate.rerankScore || 0,
                     finalScore: 0,
@@ -360,6 +364,16 @@ export class BrainRecallCache {
     getShortTermSnapshot(): MemorySlot[] {
         return Array.from(this.shortTermMemory.values())
             .sort((a, b) => b.finalScore - a.finalScore);
+    }
+
+    /**
+     * V1.4.1: 从记忆中强制抹除 (归档时调用)
+     */
+    forget(id: string): void {
+        if (this.shortTermMemory.has(id)) {
+            this.shortTermMemory.delete(id);
+            Logger.debug(MODULE, `已将 ${id} 从热点记忆中抹除`);
+        }
     }
 }
 

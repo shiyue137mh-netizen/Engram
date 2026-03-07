@@ -17,6 +17,7 @@ export interface EventState {
     getAllEvents: () => Promise<EventNode[]>;
     archiveEvents: (eventIds: string[]) => Promise<void>;
     markEventsAsEmbedded: (eventIds: string[]) => Promise<void>;
+    toggleEventLock: (eventId: string) => Promise<boolean>;
     getArchivedEventSummaries: () => Promise<string>;
     /** Agentic RAG: 构建双层 XML 目录索引 (极简 structured_kv，不含 summary) */
     getAgenticIndex: () => Promise<string>;
@@ -195,7 +196,8 @@ export const createEventSlice: StateCreator<any, [], [], EventState> = (set, get
 
         try {
             const events = await db.events.orderBy('timestamp').toArray();
-            const eligibleEvents = events.filter(e => e.level === 0 && !e.is_archived);
+            // V1.4.2: 增加 !e.is_locked 过滤点，锁定事件不参与精简合并
+            const eligibleEvents = events.filter(e => e.level === 0 && !e.is_archived && !e.is_locked);
 
             if (eligibleEvents.length <= keepRecentCount) return [];
             return eligibleEvents.slice(0, eligibleEvents.length - keepRecentCount);
@@ -231,6 +233,25 @@ export const createEventSlice: StateCreator<any, [], [], EventState> = (set, get
         } catch (e) {
             console.error('[MemoryStore] Failed to update event:', e);
             throw e;
+        }
+    },
+
+    toggleEventLock: async (eventId: string) => {
+        if (!eventId) return false;
+        const db = getCurrentDb();
+        if (!db) return false;
+
+        try {
+            const existing = await db.events.get(eventId);
+            if (!existing) return false;
+
+            const newLockState = !existing.is_locked;
+            await db.events.update(eventId, { is_locked: newLockState });
+            console.log(`[MemoryStore] Toggled event lock: ${eventId} -> ${newLockState}`);
+            return newLockState;
+        } catch (e) {
+            console.error('[MemoryStore] Failed to toggle event lock:', e);
+            return false;
         }
     },
 

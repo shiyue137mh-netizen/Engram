@@ -67,6 +67,9 @@ export const DEFAULT_RECALL_CONFIG: RecallConfig = {
     useRerank: false,
     usePreprocessing: false,
     useAgenticRAG: false,
+    useKeywordRecall: true,
+    enableEntityKeyword: true,
+    enableEventKeyword: true,
     embedding: {
         topK: 50,               // Embedding 初筛 50 条
         minScoreThreshold: 0.35, // 过滤阈值 (稍高，过滤不相关)
@@ -87,6 +90,8 @@ export const DEFAULT_ENTITY_CONFIG: EntityExtractConfig = {
     trigger: 'floor',
     floorInterval: 15,     // V0.9.5: 10-20 层一次
     keepRecentCount: 5,
+    autoArchive: true,      // V1.4.2 默认开启归档管家
+    archiveLimit: 50,      // 默认上限 50
 };
 
 const DEFAULT_REGEX_CONFIG: GlobalRegexConfig = {

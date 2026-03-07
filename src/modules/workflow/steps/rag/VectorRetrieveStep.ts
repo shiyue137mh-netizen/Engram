@@ -25,9 +25,9 @@ export class VectorRetrieveStep implements IStep {
         const apiSettings = SettingsManager.get('apiSettings');
         const config = apiSettings?.recallConfig || DEFAULT_RECALL_CONFIG;
 
-        // 如果未启用向量检索，则跳过
+        // 如果未启用向量检索，则跳过 (但不清空 keyword 结果)
         if (!config.useEmbedding || !config.enabled) {
-            context.data.candidates = [];
+            Logger.debug(LogModule.RAG_INJECT, '向量检索未开启，跳过 VectorRetrieveStep');
             return;
         }
 
@@ -94,6 +94,6 @@ export class VectorRetrieveStep implements IStep {
         context.data.vectorConfig = config.embedding; // New field
         context.data.recallConfig = config;
 
-        Logger.debug(LogModule.RAG_RETRIEVE, `向量检索完成，得到 ${context.data.candidates.length} 个候选`);
+        Logger.debug(LogModule.RAG_INJECT, `向量检索完成，得到 ${context.data.candidates.length} 个候选`);
     }
 }

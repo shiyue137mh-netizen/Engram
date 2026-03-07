@@ -1,7 +1,7 @@
 import { AgenticRecall } from '@/modules/preprocessing/types';
 import { useMemoryStore } from '@/state/memoryStore';
 import { SimpleModal } from '@/ui/components/feedback/SimpleModal';
-import { CheckSquare, MessageSquare, Search, Square } from 'lucide-react';
+import { CheckSquare, Database, MessageSquare, Search, Square } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 
@@ -9,6 +9,7 @@ interface RecallDecisionModalProps {
     isOpen: boolean;
     onClose: () => void;
     initialRecalls: AgenticRecall[];
+    recalledEntities?: any[]; // V1.4: 传入被激活的实体
     onConfirm: (newRecalls: AgenticRecall[]) => void;
 }
 
@@ -19,6 +20,7 @@ export const RecallDecisionModal: React.FC<RecallDecisionModalProps> = ({
     isOpen,
     onClose,
     initialRecalls,
+    recalledEntities = [],
     onConfirm
 }) => {
     // 状态: 存储组件内编辑的 recalls (基于 initialRecalls 初始化)
@@ -172,12 +174,40 @@ export const RecallDecisionModal: React.FC<RecallDecisionModalProps> = ({
                             </div>
                         ))}
                         {activeEvents.length === 0 && (
-                            <p className="text-xs text-muted-foreground italic py-2 text-center">暂无激的事件</p>
+                            <p className="text-xs text-muted-foreground italic py-2 text-center">暂无激活的事件</p>
                         )}
                     </div>
+
+                    {/* V1.4: 被唤醒的实体展示 (只读) */}
+                    {recalledEntities.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-border/40">
+                            <h5 className="text-[11px] font-semibold text-muted-foreground flex items-center gap-1.5 mb-2 uppercase tracking-wider">
+                                <Database size={12} className="text-primary/60" />
+                                已唤醒实体 ({recalledEntities.length})
+                            </h5>
+                            <div className="flex flex-wrap gap-2 max-h-[15vh] overflow-y-auto pr-1">
+                                {recalledEntities.map((ent: any) => (
+                                    <div
+                                        key={ent.id}
+                                        className="px-2 py-1 bg-primary/5 border border-primary/20 rounded text-[10px] text-primary/80 flex items-center gap-1.5 hover:bg-primary/10 transition-colors cursor-default"
+                                        title={ent.description || ent.name}
+                                    >
+                                        <span className="w-1.5 h-1.5 rounded-full bg-primary/40" />
+                                        <span className="font-medium">{ent.name}</span>
+                                        {ent._recallWeight && (
+                                            <span className="opacity-40 font-mono">({ent._recallWeight.toFixed(2)})</span>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="mt-2 text-[10px] text-muted-foreground italic">
+                                * 实体将根据关键词匹配或关系联想自动注入对话上下文。
+                            </p>
+                        </div>
+                    )}
                 </div>
 
-                {/* === 下半部: 未激活列表 (虚拟滚动) === */}
+                {/* === 下半部: 未激活列表 (虚拟滚动) */}
                 <div className="flex flex-col flex-1 min-h-0 bg-background">
                     <div className="p-3 border-b border-border flex items-center justify-between shrink-0 bg-background/80 backdrop-blur top-0 z-10 sticky">
                         <h4 className="text-sm font-medium text-heading">

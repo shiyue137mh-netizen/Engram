@@ -269,20 +269,26 @@ export class MacroService {
             // V1.0.2: 自动绑定 BrainRecallCache
             // 如果没有显式传入 recalledIds，则从 BrainRecallCache 获取当前短期记忆
             let effectiveRecalledIds = recalledIds;
-            if (!effectiveRecalledIds) {
-                try {
-                    // 动态导入避免循环依赖
-                    const { brainRecallCache } = await import('@/modules/rag/retrieval/BrainRecallCache');
-                    const snapshot = brainRecallCache.getShortTermSnapshot();
-                    if (snapshot.length > 0) {
-                        effectiveRecalledIds = snapshot.map(slot => slot.id);
-                        Logger.debug('MacroService', '从 BrainRecallCache 获取召回 ID', {
-                            count: effectiveRecalledIds.length
-                        });
-                    }
-                } catch (e) {
-                    Logger.debug('MacroService', 'BrainRecallCache 获取失败，跳过', e);
+            let effectiveEntityIds: string[] | undefined = undefined;
+
+            try {
+                // 动态导入避免循环依赖
+                const { brainRecallCache } = await import('@/modules/rag/retrieval/BrainRecallCache');
+                const snapshot = brainRecallCache.getShortTermSnapshot();
+
+                if (!effectiveRecalledIds && snapshot.length > 0) {
+                    effectiveRecalledIds = snapshot
+                        .filter(slot => slot.category === 'event')
+                        .map(slot => slot.id);
                 }
+
+                // 提取实体 ID
+                effectiveEntityIds = snapshot
+                    .filter(slot => slot.category === 'entity')
+                    .map(slot => slot.id);
+
+            } catch (e) {
+                Logger.debug('MacroService', 'BrainRecallCache 获取失败，跳过', e);
             }
 
             // 1. 刷新事件摘要（带召回 ID）
@@ -291,8 +297,8 @@ export class MacroService {
             // 2. 刷新归档摘要
             await this.refreshArchivedSummaries();
 
-            // 3. V1.0.0: 刷新实体状态
-            this.cachedEntityStates = await store.getEntityStates();
+            // 3. V1.0.0: 刷新实体状态 (带召回 ID)
+            this.cachedEntityStates = await store.getEntityStates(effectiveEntityIds);
 
             // 4. Agentic RAG: 刷新目录索引和纯蓝灯事件
             this.cachedAgenticIndex = await store.getAgenticIndex();
@@ -383,13 +389,22 @@ export class MacroService {
      */
     static async refreshCacheWithNodes(nodes: { id: string; summary: string }[]): Promise<void> {
         try {
-            // V1.0.3: 提取召回节点的 ID，让 getEventSummaries 处理：
-            // 1. 合并蓝灯事件（未归档的 level0）
-            // 2. 按 source_range 排序
-            // 3. 构建树状结构
             const recalledIds = nodes.map(n => n.id);
             const store = useMemoryStore.getState();
+
+            // 1. 刷新事件摘要
             this.cachedSummaries = await store.getEventSummaries(recalledIds);
+
+            // 2. V1.4.1: 同步刷新实体状态
+            try {
+                const { brainRecallCache } = await import('@/modules/rag/retrieval/BrainRecallCache');
+                const entityIds = brainRecallCache.getShortTermSnapshot()
+                    .filter(slot => slot.category === 'entity')
+                    .map(slot => slot.id);
+                this.cachedEntityStates = await store.getEntityStates(entityIds);
+            } catch (e) {
+                Logger.debug('MacroService', '刷新召回实体状态失败', e);
+            }
 
             // 刷新世界书上下文 (支持 EJS)
             try {
@@ -404,8 +419,9 @@ export class MacroService {
             // 刷新角色描述
             this.refreshCharDescription();
 
-            Logger.debug('MacroService', 'RAG 召回缓存已刷新', {
+            Logger.debug('MacroService', 'RAG 召回缓存已全面刷新', {
                 summariesLength: this.cachedSummaries.length,
+                entityStatesLength: this.cachedEntityStates.length,
                 recalledCount: recalledIds.length,
             });
         } catch (e) {

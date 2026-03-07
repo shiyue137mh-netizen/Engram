@@ -10,6 +10,7 @@ export interface RecallResultItem {
     summary: string;
     category: string;
     embeddingScore: number;       // 向量相似度 [0-1]
+    keywordScore?: number;        // 关键词匹配分数 [0.8 / 0.9]
     rerankScore?: number;         // Rerank 分数 [0-1]
     hybridScore?: number;         // 混合分数
     isTopK: boolean;              // 是否进入 TopK
@@ -51,6 +52,7 @@ export interface RecallLogEntry {
     preprocessedQuery?: string;           // 预处理后的查询
     mode: 'embedding' | 'hybrid' | 'agentic';         // (Disabled in V0.8.5)
     results: RecallResultItem[];          // 召回结果
+    recalledEntities?: any[];             // V1.4: 被激活的实体列表
     stats: RecallStats;                   // 统计信息
     brainStats?: BrainRecallStats;        // 类脑召回详情
 }

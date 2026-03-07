@@ -191,7 +191,6 @@ export function useMemoryStream() {
         });
         // 移除 setEvents 污染源数组的逻辑
     }, []);
-
     const handleEntityChange = useCallback((id: string, updates: Partial<EntityNode>) => {
         setPendingEntityChanges(prev => {
             const newMap = new Map(prev);
@@ -199,8 +198,49 @@ export function useMemoryStream() {
             newMap.set(id, { ...existing, ...updates });
             return newMap;
         });
-        // 移除 setEntities 污染源数组的逻辑
     }, []);
+
+    const handleToggleArchive = useCallback(async (id: string, isArchived: boolean) => {
+        try {
+            await store.updateEntity(id, { is_archived: isArchived });
+
+            if (isArchived) {
+                brainRecallCache.forget(id);
+            }
+
+            setEntities(prev => prev.map(e => e.id === id ? { ...e, is_archived: isArchived } : e));
+
+            const { MacroService } = await import('@/integrations/tavern/prompt/macros');
+            await MacroService.refreshEngramCache();
+
+            notificationService.success(isArchived ? '实体已归档' : '实体已恢复活跃', 'MemoryStream');
+        } catch (e) {
+            console.error('[MemoryStream] Archive toggle failed:', e);
+            notificationService.error('调整归档状态失败', 'MemoryStream');
+        }
+    }, [store]);
+
+    const handleToggleEntityLock = useCallback(async (id: string, isLocked: boolean) => {
+        try {
+            await store.toggleEntityLock(id);
+            setEntities(prev => prev.map(e => e.id === id ? { ...e, is_locked: isLocked } : e));
+            notificationService.success(isLocked ? '实体已锁定' : '实体已解锁', 'MemoryStream');
+        } catch (e) {
+            console.error('[MemoryStream] Entity lock toggle failed:', e);
+            notificationService.error('调整锁定状态失败', 'MemoryStream');
+        }
+    }, [store]);
+
+    const handleToggleEventLock = useCallback(async (id: string, isLocked: boolean) => {
+        try {
+            await store.toggleEventLock(id);
+            setEvents(prev => prev.map(e => e.id === id ? { ...e, is_locked: isLocked } : e));
+            notificationService.success(isLocked ? '事件已锁定' : '事件已解锁', 'MemoryStream');
+        } catch (e) {
+            console.error('[MemoryStream] Event lock toggle failed:', e);
+            notificationService.error('调整锁定状态失败', 'MemoryStream');
+        }
+    }, [store]);
 
     const handleBatchSave = useCallback(async () => {
         if (pendingChanges.size === 0 && pendingEntityChanges.size === 0) return;
@@ -391,6 +431,9 @@ export function useMemoryStream() {
         // Callbacks
         handleSelect, handleCheck, handleCloseEditor, handleTabChange,
         handleEventChange, handleEntityChange,
+        handleToggleArchive,
+        handleToggleEntityLock,
+        handleToggleEventLock,
         handleBatchSave, handleDelete, handleBatchDelete,
         handleReembedAll, handleOpenImportModal, handleImportExecute,
         loadEvents, loadEntities,

@@ -211,17 +211,27 @@ class Injector {
             }
 
             // 合并日志：仅记录关键信息
-            Logger.info(LogModule.RAG_INJECT, '开始处理', {
+            Logger.debug(LogModule.RAG_INJECT, '秋青子开始处理召回', {
                 inputLength: userInput.length,
                 recall: recallConfig.enabled,
                 preprocess: recallConfig.usePreprocessing && preprocessorConfig.enabled,
             });
+            // V1.4.1 BUILD: 0717
 
             // 检查自动触发 (仅当预处理启用时检查 preprocessor 配置，否则视为纯 RAG)
+            // V1.4.1: 放宽限制，支持 0 消耗关键词召回独立工作
+            const isKeywordOnly = recallConfig.useKeywordRecall && !recallConfig.enabled;
+            const shouldTriggerRecall = recallConfig.enabled || isKeywordOnly;
+
             if (recallConfig.usePreprocessing && preprocessorConfig.enabled && !preprocessorConfig.autoTrigger) {
                 Logger.debug(LogModule.RAG_INJECT, '预处理 autoTrigger 未开启');
-                // 如果 RAG 也没开启，直接返回
-                if (!recallConfig.enabled) return;
+                // 如果召回也没开启（且不是关键词模式），直接返回
+                if (!shouldTriggerRecall) return;
+            }
+
+            if (!shouldTriggerRecall && !(recallConfig.usePreprocessing && preprocessorConfig.enabled)) {
+                Logger.debug(LogModule.RAG_INJECT, '所有功能均未开启，跳过');
+                return;
             }
 
             // 开始处理
@@ -305,28 +315,24 @@ class Injector {
                             }
                         }
 
-                        // 2b. 传统 Embedding RAG (Agentic 未启用或降级后的 fallback)
-                        if (!ragHandled && recallConfig.useEmbedding) {
-                            const hasVectorData = await retriever.hasVectorizedNodes();
-                            if (!hasVectorData) {
-                                Logger.debug(LogModule.RAG_INJECT, '未检测到向量化数据，跳过 RAG');
+                        // 2b. 传统 RAG (向量检索 或 关键词检索)
+                        if (!ragHandled && (recallConfig.enabled || recallConfig.useKeywordRecall)) {
+                            Logger.debug(LogModule.RAG_INJECT, '执行召回流程');
+
+                            const recallResult = await retriever.search(
+                                userInput,
+                                queries.length > 0 ? queries : undefined
+                            );
+
+                            if (recallResult.nodes.length > 0 || (recallResult.recalledEntities && recallResult.recalledEntities.length > 0)) {
+                                Logger.success(LogModule.RAG_INJECT, '召回完成', {
+                                    nodeCount: recallResult.nodes.length,
+                                    entityCount: recallResult.recalledEntities?.length ?? 0
+                                });
+                                await MacroService.refreshCacheWithNodes(recallResult.nodes);
+                                SettingsManager.incrementStatistic('totalRagInjections', 1);
                             } else {
-                                Logger.debug(LogModule.RAG_INJECT, '执行传统 RAG 召回');
-
-                                const recallResult = await retriever.search(
-                                    userInput,
-                                    queries.length > 0 ? queries : undefined
-                                );
-
-                                if (recallResult.nodes.length > 0) {
-                                    Logger.success(LogModule.RAG_INJECT, 'RAG 召回完成', {
-                                        nodeCount: recallResult.nodes.length,
-                                    });
-                                    await MacroService.refreshCacheWithNodes(recallResult.nodes);
-                                    SettingsManager.incrementStatistic('totalRagInjections', 1);
-                                } else {
-                                    Logger.debug(LogModule.RAG_INJECT, 'RAG 无匹配结果');
-                                }
+                                Logger.debug(LogModule.RAG_INJECT, '召回无结果');
                             }
                         }
                     } catch (e) {

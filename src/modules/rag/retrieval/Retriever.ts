@@ -11,15 +11,18 @@
  */
 
 import { SettingsManager } from '@/config/settings';
+import { Logger, LogModule } from '@/core/logger';
 import { RecallLogService } from '@/core/logger/RecallLogger';
 import { tryGetDbForChat } from '@/data/db';
 import { getCurrentChatId } from '@/integrations/tavern';
 
 import { DEFAULT_BRAIN_RECALL_CONFIG, DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
 import type { BrainRecallConfig, RecallConfig, RerankConfig, VectorConfig } from '@/config/types/rag';
-import { Logger, LogModule } from '@/core/logger';
 import type { EventNode } from '@/data/types/graph';
+import { ChatHistoryHelper } from '@/integrations/tavern/chat/chatHistory';
 import type { AgenticRecall } from '@/modules/preprocessing/types';
+import { WorkflowEngine } from '@/modules/workflow/core/WorkflowEngine';
+import { createRetrievalWorkflow } from '@/modules/workflow/definitions/RetrievalWorkflow';
 import { brainRecallCache, type RecallCandidate } from './BrainRecallCache';
 
 
@@ -29,6 +32,7 @@ export interface RetrievalResult {
     entries: string[]; // Formatted entries ready for injection
     nodes: EventNode[]; // Raw nodes
     candidates?: any[]; // V1.4: 曝露带分数的候选列表供前端装配
+    recalledEntities?: any[]; // V1.4: 曝露通过类脑被召回的实体
 }
 
 // ==================== Retriever ====================
@@ -91,39 +95,49 @@ class Retriever {
     }
 
     /**
-     * 主入口：根据配置执行召回
-     *
-     * @param userInput 用户输入
-     * @param unifiedQueries 预处理生成的查询词列表 (可选)
-     * @returns 召回结果
+     * 执行检索流程
+     * @param userInput 用户原始输入
+     * @param unifiedQueries 预处理生成的查询词（可选）
      */
-    async search(userInput: string, unifiedQueries?: string[]): Promise<RetrievalResult> {
-        const recallConfig = this.getRecallConfig();
-        const vectorConfig = this.getVectorConfig();
+    async search(
+        userInput: string,
+        unifiedQueries?: string[]
+    ): Promise<RetrievalResult> {
+        Logger.debug(LogModule.RAG_INJECT, '>>> Retriever.search 被调用 <<<', {
+            input: userInput.substring(0, 20),
+            unifiedCount: unifiedQueries?.length || 0
+        });
 
-        // Fix P0: 不要使用 setConfig 覆盖全局，改用直接传递参数的方式调用
-        // 原生 EmbeddingService.embed 不支持直接传 model，但我们只需要保证获取 vectorConfig 时使用 Retriever 的配置
-        // 最佳实践是不修改全局 setConfig，如果需要临时覆盖，应在 Embedding 服务内实现 scopedContext
-        // 这里为了兼容性且不大量修改底层，我们移除了 setConfig 的危险操作。
-        // 目前系统的逻辑是 Retriever 和 Batch 共享同样的配置源，不需要在搜索时强行复写。
-        // if (recallConfig.useEmbedding && vectorConfig) {
-        //     embeddingService.setConfig(vectorConfig);
-        // }
-
-
+        const apiSettings = SettingsManager.get('apiSettings');
+        const recallConfig = apiSettings?.recallConfig || DEFAULT_RECALL_CONFIG;
 
         // 未启用召回，使用滚动窗口策略
-        if (!recallConfig.enabled) {
-            Logger.debug(LogModule.RAG_RETRIEVE, '召回未启用，使用滚动窗口策略');
-            // 注意：这里原本用 config.embedding.topK，现在不能用了
-            // 滚动窗口暂时给个默认值或者读取 Config，这里先默认 20
+        if (!recallConfig.enabled && !recallConfig.useKeywordRecall) {
+            Logger.debug(LogModule.RAG_INJECT, '召回与关键词模式均未启用，使用滚动窗口策略');
             const limit = recallConfig.embedding?.topK || 20;
             return this.rollingSearch(limit);
         }
 
-        // 向量检索 (含 Rerank)
-        if (recallConfig.useEmbedding) {
-            return this.hybridSearch(userInput, unifiedQueries, recallConfig);
+        // V1.4.1: 增强扫描深度 - 对于关键词扫描，自动拉取最近几轮对话作为上下文
+        let enhancedInput = userInput;
+        if (recallConfig.useKeywordRecall) {
+            try {
+                const recentContext = ChatHistoryHelper.getChatHistory([
+                    Math.max(1, ChatHistoryHelper.getCurrentMessageCount() - 4),
+                    ChatHistoryHelper.getCurrentMessageCount()
+                ]);
+                if (recentContext) {
+                    enhancedInput = `${recentContext}\n\n[Current]\n${userInput}`;
+                    Logger.debug(LogModule.RAG_INJECT, '已回溯聊天历史增强关键词扫描深度');
+                }
+            } catch (e) {
+                Logger.debug(LogModule.RAG_INJECT, '回溯上下文失败，仅使用当前输入');
+            }
+        }
+
+        // 向量检索或关键词检索 (均走 RetrievalWorkflow)
+        if (recallConfig.enabled || recallConfig.useKeywordRecall) {
+            return this.hybridSearch(enhancedInput, unifiedQueries, recallConfig);
         }
 
         // 默认回退
@@ -136,11 +150,9 @@ class Retriever {
         config: RecallConfig
     ): Promise<RetrievalResult> {
         const startTime = Date.now();
+        Logger.debug(LogModule.RAG_INJECT, '--- 进入 Hybrid Search 工作流 ---');
 
         try {
-            const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
-            const { createRetrievalWorkflow } = await import('@/modules/workflow/definitions/RetrievalWorkflow');
-
             const context = await WorkflowEngine.run(createRetrievalWorkflow(), {
                 input: {
                     query: userInput,
@@ -153,9 +165,18 @@ class Retriever {
                 }
             });
 
+            Logger.info(LogModule.RAG_INJECT, 'Hybrid Search 工作流执行完毕', {
+                steps: context.metadata.stepsExecuted,
+                entityCount: context.data?.recalledEntities?.length || 0,
+                candidateCount: context.data?.candidates?.length || 0
+            });
+
             return context.output as RetrievalResult || { entries: [], nodes: [] };
         } catch (e: any) {
-            Logger.error(LogModule.RAG_RETRIEVE, 'Hybrid Search 工作流执行失败', { error: e.message });
+            Logger.error(LogModule.RAG_INJECT, 'Hybrid Search 工作流遭遇毁灭性失败', {
+                error: e.message,
+                stack: e.stack
+            });
             return { entries: [], nodes: [] };
         }
     }

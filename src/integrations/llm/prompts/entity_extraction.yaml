@@ -92,8 +92,19 @@ systemPrompt: |
         执行:
           - 检查 existingEntities。
           - 若"小艾"与"艾莉丝"指代同一人，输出 entity 时 name 统一为全名 "艾莉丝"，将 "小艾" 加入 aliases。
-    </logic_protocol>
 
+  别名与外延触发词 :
+    核心规则: aliases 数组不仅是单纯的别名，更是用于关联记忆检索的“隐性逻辑锚点”。绝对禁止提取毫无特征的泛化词（如“女人”、“剑”、“法师”），必须提取能建立深度剧情关联的外延关键词。请提供 6-10 个触发词，要求必须覆盖以下维度：
+    维度要求:
+      1. 拆分与昵称: 全名的独立拆分或角色间常用的称呼（如："塞拉菲娜", "薇尔莉特","塞拉"）。
+      2. 身份与头衔: 具有标识性的社会地位或职位（如："魔导顾问", "首席"）。
+      3. 隐性社交锚点: 紧密关联的组织,社交关系或关键人物。确保在谈及该背景时能将其作为潜台词召回（如："宰相", "皇家", "帝国"——确保谈及她父亲或朝廷时能唤起她）。
+      4. 领域与权能: 实体所垄断、擅长或代表的专业领域、技术派系或核心技能（如："奥术", "支配要素", "思维解构"——确保讨论相关学术或战斗时能联想到她）。
+      5. 标志性特征: 极具辨识度的外观锚点或绑定的标志性物品（如："紫色蕾丝手套", "大魔导师礼袍"）。
+    示例说明:
+    以“帝国宰相洛伦佐之女/皇家首席魔导顾问”塞拉菲娜薇尔莉特为例：
+      错误/低效提取: ["女人", "法师", "御姐", "坏姐姐"] (过于泛化，会导致严重的记忆污染和极高的误触发率)
+      正确/高效提取: ["塞拉菲娜", "薇尔莉特", "宰相", "洛伦佐" , "皇家", "顾问", "奥术", "支配要素", "紫色蕾丝手套"]
     <update_strategy>
       标准: RFC 6902 (JSON Patch)
       统一格式: 所有操作（新增和更新）都使用 patches 数组输出。
@@ -169,7 +180,7 @@ systemPrompt: |
             "path": "/entities/角色名",
             "value": {
               "type": "char",
-              "aliases": [],
+              "aliases": ["尽量写满5个以上的简短泛用逻辑型触发关键词", "如角色职业", "如特征", "关键社交关系"],
               "profile": {
                 "identity": "核心身份描述",
                 "relations": {
@@ -188,58 +199,60 @@ systemPrompt: |
       }
       ```
     </output_template>
-
     <example_demonstration>
-      输入:
-        chatHistory: "A在荒野森林重伤濒死，被B公主发现并救助。后来A在B的安排下接受骑士训练，两人确立了主仆契约。"
-        existingEntities: []
+  输入:
+    chatHistory: "流浪者A原本在荒野森林重伤濒死。艾比利亚王国公主伊莎贝拉经过，使用高阶光魔法治愈了他。A深感震撼，当场宣誓效忠，两人确立了主仆契约。"
+    existingEntities: [
+      { "A": { "type": "char", "aliases": ["流浪者"], "profile": { "status": "重伤濒死", "relations": {} } } }
+    ]
 
-      输出:
-        ```json
+  输出:
+    ```json
+    {
+      "patches": [
         {
-          "patches": [
-            {
-              "op": "add",
-              "path": "/entities/A",
-              "value": {
-                "type": "char",
-                "aliases": [],
-                "profile": {
-                  "identity": "受伤的流浪者 -> 见习骑士",
-                  "relations": {
-                    "B": { "type": "主人", "description": "救命恩人与契约主人" }
-                  }
-                }
-              }
-            },
-            {
-              "op": "add",
-              "path": "/entities/B",
-              "value": {
-                "type": "char",
-                "aliases": ["公主"],
-                "profile": {
-                  "identity": "王国公主",
-                  "relations": {
-                    "A": { "type": "仆从", "description": "救助并收留的骑士" }
-                  }
-                }
-              }
-            },
-            {
-              "op": "add",
-              "path": "/entities/荒野森林",
-              "value": {
-                "type": "loc",
-                "aliases": [],
-                "profile": {
-                  "atmosphere": "危险的荒野地带",
-                  "features": ["森林", "野兽出没"]
-                }
+          "op": "replace",
+          "path": "/entities/A/profile/status",
+          "value": "已痊愈，宣誓效忠"
+        },
+        {
+          "op": "add",
+          "path": "/entities/A/aliases/-",
+          "value": "仆从"
+        },
+        {
+          "op": "add",
+          "path": "/entities/A/profile/relations/伊莎贝拉",
+          "value": { "type": "主人", "description": "救命恩人，用光魔法治愈了自己，已向其宣誓效忠" }
+        },
+        {
+          "op": "add",
+          "path": "/entities/伊莎贝拉",
+          "value": {
+            "type": "char",
+            "aliases": ["伊莎贝拉", "公主", "殿下", "王女", "艾比利亚", "皇室", "光魔法"],
+            "profile": {
+              "identity": "艾比利亚王国公主",
+              "skills": ["高阶光魔法"],
+              "relations": {
+                "A": { "type": "仆从/骑士", "description": "在荒野森林救治的流浪者，已接受其效忠" }
               }
             }
-          ]
+          }
+        },
+        {
+          "op": "add",
+          "path": "/entities/荒野森林",
+          "value": {
+            "type": "loc",
+            "aliases": ["荒野", "森林"],
+            "profile": {
+              "features": ["危险", "曾是A濒死之地"]
+            }
+          }
         }
-        ```
-    </example_demonstration>
+      ]
+    }
+    ```
+    <／example_demonstration>
   </system_configuration>

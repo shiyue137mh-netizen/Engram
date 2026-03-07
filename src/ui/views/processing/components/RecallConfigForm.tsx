@@ -2,7 +2,7 @@
 import type { RecallConfig, RerankConfig } from '@/config/types/rag';
 import { Switch } from '@/ui/components/core/Switch';
 import { NumberField } from '@/ui/components/form/FormComponents';
-import { AlertTriangle, BrainCircuit, Database, Layers, Network, Sliders, Sparkles, Zap } from 'lucide-react';
+import { AlertTriangle, BrainCircuit, Database, Layers, Network, Search, Sliders, Sparkles, Zap } from 'lucide-react';
 import React from 'react';
 
 interface RecallConfigFormProps {
@@ -49,6 +49,51 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                 </h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 关键词召回 (0 消耗) */}
+                    <div className={`p-4 rounded-lg border transition-all ${config.useKeywordRecall ? 'bg-primary/5 border-primary/30' : 'bg-card border-border/50 hover:border-border'}`}>
+                        <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                                <Search size={16} className={config.useKeywordRecall ? 'text-primary' : 'text-muted-foreground'} />
+                                关键词召回 (Keyword)
+                            </div>
+                            <Switch
+                                checked={config.useKeywordRecall ?? true}
+                                onChange={(val) => updateConfig({ useKeywordRecall: val })}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground leading-relaxed italic">
+                            基于 Trigger Keywords 和元数据进行正则扫描，<span className="text-amber-500/80 font-medium">零 Token 消耗</span>。
+                        </p>
+                        {config.useKeywordRecall && (
+                            <div className="mt-3 pt-3 border-t border-primary/10 grid grid-cols-2 gap-4">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">检索实体</span>
+                                    <Switch
+                                        checked={config.enableEntityKeyword ?? true}
+                                        onChange={(val) => updateConfig({ enableEntityKeyword: val })}
+                                    />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">检索事件</span>
+                                    <Switch
+                                        checked={config.enableEventKeyword ?? true}
+                                        onChange={(val) => updateConfig({ enableEventKeyword: val })}
+                                    />
+                                </div>
+                            </div>
+                        )}
+                        {config.useKeywordRecall && !config.useEmbedding && !config.useAgenticRAG && !config.enableEntityKeyword && !config.enableEventKeyword && (
+                            <p className="text-[10px] text-yellow-500 mt-2 flex items-center gap-1">
+                                <AlertTriangle size={10} /> 关键词已开启但无生效项目
+                            </p>
+                        )}
+                        {config.useKeywordRecall && !config.useEmbedding && !config.useAgenticRAG && (config.enableEntityKeyword || config.enableEventKeyword) && (
+                            <p className="text-[10px] text-primary mt-2 flex items-center gap-1">
+                                <Zap size={10} /> 当前处于纯 0 消耗模式
+                            </p>
+                        )}
+                    </div>
+
                     {/* Agentic RAG */}
                     <div className={`p-4 rounded-lg border transition-all overflow-hidden ${config.useAgenticRAG ? 'bg-primary/5 border-primary/30' : 'bg-card border-border/50 hover:border-border'}`}>
                         <div className="flex items-start justify-between mb-2">
@@ -58,17 +103,12 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                             </div>
                             <Switch
                                 checked={config.useAgenticRAG}
-                                onChange={(val) => updateConfig({ useAgenticRAG: val })}
+                                onChange={(val) => updateConfig({ useAgenticRAG: val, useEmbedding: val ? false : config.useEmbedding })}
                             />
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed break-words">
-                            LLM 裁判式召回：阅读记忆目录后精准选出需要调阅的档案 ID，跳过向量检索。需要预处理模板配合。
+                            LLM 裁判式召回：精准选出档案 ID，跳过向量检索。产生 Token 消耗。
                         </p>
-                        {config.useAgenticRAG && (
-                            <p className="text-[10px] text-value mt-2 leading-relaxed break-words">
-                                💡 Agentic 模式不依赖向量检索，可关闭「向量检索」开关。Trim 精简功能独立运行，不受影响。
-                            </p>
-                        )}
                     </div>
 
                     {/* 向量检索 */}
@@ -80,11 +120,11 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                             </div>
                             <Switch
                                 checked={config.useEmbedding}
-                                onChange={(val) => updateConfig({ useEmbedding: val })}
+                                onChange={(val) => updateConfig({ useEmbedding: val, useAgenticRAG: val ? false : config.useAgenticRAG })}
                             />
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            使用语义向量匹配历史事件，RAG 的核心能力。需要配置向量模型。
+                            使用语义向量匹配历史事件，RAG 的核心能力。产生 Token 消耗。
                         </p>
                     </div>
 
@@ -101,7 +141,7 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                             />
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            使用 LLM 优化用户输入，生成更好的检索查询词。
+                            使用 LLM 优化用户输入。产生 Token 消耗。
                         </p>
                     </div>
 
@@ -119,34 +159,21 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                             />
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                            对初筛结果进行二次精排。需要配置 Rerank 模型。
-                            {!config.useEmbedding && <span className="text-yellow-500 block mt-1 text-[10px] flex items-center gap-1"><AlertTriangle size={10} /> 需要先启用向量检索</span>}
+                            对初筛结果进行二次精排。产生 Token 消耗。
+                            {!config.useEmbedding && <span className="text-yellow-500 mt-1 text-[10px] flex items-center gap-1"><AlertTriangle size={10} /> 需要先启用向量检索</span>}
                         </p>
-                        {/* Rerank 业务参数 - 仅当 useRerank 启用时显示 */}
-                        {config.useRerank && rerankConfig && (
-                            <div className="mt-3 pt-3 border-t border-border/30 space-y-3">
-                                <NumberField
-                                    label="Top-N"
-                                    description="重排后返回的结果数量"
-                                    min={1}
-                                    max={50}
-                                    step={1}
-                                    value={rerankConfig.topN}
-                                    onChange={(val) => onRerankChange?.({ ...rerankConfig, topN: val })}
-                                />
-                                <NumberField
-                                    label="混合权重 (Hybrid Alpha)"
-                                    description="0 = 纯向量评分，1 = 纯 Rerank 评分"
-                                    min={0}
-                                    max={1}
-                                    step={0.1}
-                                    value={rerankConfig.hybridAlpha}
-                                    onChange={(val) => onRerankChange?.({ ...rerankConfig, hybridAlpha: val })}
-                                />
-                            </div>
-                        )}
                     </div>
                 </div>
+            </div>
+
+            {/* 实体召回说明 */}
+            <div className="bg-amber-500/5 border border-amber-500/20 p-3 rounded-md">
+                <p className="text-[10px] text-amber-500/90 leading-relaxed flex items-start gap-1.5">
+                    <Sparkles size={12} className="shrink-0 mt-0.5" />
+                    <span>
+                        💡 <strong>提示：</strong>目前实体（NPC/地点）召回仅支持基于触发词 (Trigger Keywords) 的关键词扫描和关系链关联。这是为了保证在极低消耗下提供最高的一致性与响应准确度。
+                    </span>
+                </p>
             </div>
 
             {/* 高级参数 */}
