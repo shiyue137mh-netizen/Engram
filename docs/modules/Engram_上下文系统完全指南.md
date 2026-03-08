@@ -31,6 +31,8 @@ Engram 提供了丰富的宏变量，用于在运行时注入上下文：
 | `{{engramSummaries}}` | 当前角色所有的历史摘要条目 | 记忆精简 (Trim) |
 | `{{char}}` | 当前角色名称 | 通用 |
 | `{{user}}` | 用户名称 | 通用 |
+| `{{engramActiveEvents}}` | 纯净蓝灯活跃事件阵列 | Agentic RAG 判断基准 |
+| `{{engramIndex}}` | 全量结构化记忆索引简要 (XML) | Agentic RAG 判断基准 |
 
 ### 2.3 EJS 支持 (V0.8.5+)
 如果启用了 **EJS 兼容模式**，并在 SillyTavern 中安装了 `ST-Prompt-Template` 扩展，您可以在模板中使用高级逻辑控制：
