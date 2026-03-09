@@ -1,107 +1,134 @@
-import { HelpCircle, AlertTriangle, Bug, Cpu, Database, FileText, Search, ShieldAlert, Clock } from 'lucide-react';
+import { HelpCircle, AlertTriangle, Bug, Cpu, Database, Search, Clock, Workflow, WandSparkles, Lock, Archive } from 'lucide-react';
 
-# 常见问题与故障排查 (FAQ)
+# 常见问题与故障排查（FAQ）
 
----
-
-遇到问题时，请先深呼吸。Engram 内置了强大的**三大日志系统**来帮助你定位问题。绝大多数问题都可以通过检查这些日志找到原因。
-
-## 🔍 第一步：自我诊断流程
-
-在报告 Bug 之前，请先根据问题的类型，检查对应的日志面板（位于 Engram 侧边栏的 **开发日志** 标签页）。
-
-### 1. 插件无法运行 / 界面无反应
-> **症状**: 点击按钮没反应、界面白屏、数据不加载。
-
-* **检查目标**: <Bug className="inline w-4 h-4 mb-1"/> **运行日志**
-* **如何自查**:
-    * 查看是否有红色的 `ERROR` 条目。
-    * 这些错误通常是因为 IndexedDB 连接失败、SillyTavern 版本不兼容或网络环境导致的核心崩溃。
-    * **应对**: 尝试刷新页面；如果是数据库错误，可能需要重置数据。
-
-### 2. 自动总结没触发 / 总结内容奇怪 / 总结没有被保存
-> **症状**: 聊了很久没有新记忆生成，或者生成的记忆全是乱码/重复内容。
-
-* **检查目标**: <Cpu className="inline w-4 h-4 mb-1"/> **模型日志**
-* **如何自查**:
-    * **触发检查**: 如果这里一片空白，说明根本没有触发总结任务。请检查 **数据处理** → **记忆摘要** 中的楼层阈值设置。
-    * **提示词 检查**: 点击日志条目查看发送给 LLM 的 提示词。
-    * **返回 检查**: 查看 LLM 返回的内容。如果返回了 `404` 或 `Connection Refused`，说明 API 配置错误；如果返回了非 JSON 格式的胡言乱语，说明模型不够聪明，建议更换模型或调整 **提示词模板**。
-
-### 3. 聊过的事情没记起来 (RAG 失效)
-> **症状**: 我明明前两句刚提过这事，AI 还是不知道，或者召回了无关的内容。
-
-* **检查目标**: <Database className="inline w-4 h-4 mb-1"/> **召回日志**
-* **如何自查**:
-    * **Query 检查**: 看系统把你的话转换成了什么搜索关键词。
-    * **Score 检查**: 查看召回条目的相似度得分。如果得分很低（< 0.3），说明检索相关性不足。
-    * **结果检查**: 如果日志里显示召回了正确的内容，但 AI 还是没反应，那可能是 LLM 的上下文窗口太小，或者 LLM 选择性忽略了注入的信息。
+> 先看日志，再改配置。Engram 的问题大多可在 **运行日志 / 模型日志 / 召回日志** 中定位。
 
 ---
 
-## 🛠️ 常见问题解决方案
+## <HelpCircle className="inline w-4 h-4 mb-1 text-primary" /> 先走这条排查路径
 
-### <AlertTriangle className="inline w-5 h-5 mb-1 text-yellow-500"/> 运行错误类
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+  <div className="p-4 rounded-lg border border-border bg-card">
+    <div className="flex items-center gap-2 mb-2 text-label font-medium">
+      <Bug className="w-4 h-4 text-primary" />
+      运行日志
+    </div>
+    <p className="text-sm text-muted-foreground">看启动、桥接、数据库连接和异常栈。</p>
+  </div>
 
-#### Q: 插件显示"连接失败"或 API 报错 (404/Connection Refused)？
-* **原因**: Engram 无法连接到你配置的 LLM 后端。
-* **解决**:
-    1.  检查 **API Base URL** 是否填写正确（通常需要包含 `/v1`，例如 `http://127.0.0.1:11434/v1`）。
-    2.  **CORS 问题**: 如果你在浏览器控制台（按 F12）看到 CORS 错误，请确保你的 API 服务端（如 Ollama, LM Studio）允许跨域请求（设置 `OLLAMA_ORIGINS="*"`）。
-    3.  **API Key**: 某些服务商必须填写 Key 才能访问，即使是本地服务也可以随便填一个字符串（如 `sk-test`）以此骗过校验。
+  <div className="p-4 rounded-lg border border-border bg-card">
+    <div className="flex items-center gap-2 mb-2 text-label font-medium">
+      <Cpu className="w-4 h-4 text-primary" />
+      模型日志
+    </div>
+    <p className="text-sm text-muted-foreground">看提示词、请求参数、模型返回与解析结果。</p>
+  </div>
 
-#### Q: 修改了记忆文本，但搜索不到？
-* **原因**: 向量索引是基于修改前的文本生成的，修改文本后索引失效。
-* **解决**: 在 **记忆编辑** 页面，找到修改过的条目，点击卡片上的 **<Search className="inline w-3 h-3"/> Re-embed** 按钮，重新生成向量数据。
-
-#### Q: <ShieldAlert className="inline w-4 h-4 mb-1"/> 更新时提示 "Forbidden" 或 "EACCES" 错误？
-* **原因**: SillyTavern 也就是 Node.js 进程没有权限覆盖旧文件。
-* **解决**:
-    1.  手动前往 `SillyTavern/public/scripts/extensions` 目录删除 `Engram` 文件夹，然后重新下载安装。
-    2.  或者赋予您的系统当前用户对 SillyTavern 文件夹的完全读写权限。
-
-### <FileText className="inline w-5 h-5 mb-1 text-blue-500"/> 功能逻辑类
-
-#### Q: <Clock className="inline w-4 h-4 mb-1"/> 为什么我刚发完消息，自动总结没有立刻开始？
-* **原因**: 这是有意为之的。Engram 使用了 **缓冲层 (Buffer)** 机制（默认 10 层）。
-* **解释**: 系统会等待最新的消息变成"旧闻"后才进行总结。这样做是为了给你留出修改、撤回、重新生成的时间。如果立刻总结，一旦你修改了聊天记录，生成的记忆就会和最新的聊天对不上，产生"幻觉"或冲突。
-
-#### Q: 预处理 (Preprocessing) 到底是干嘛的？我需要开启吗？
-* **解释**: 这是一个高级功能。它允许你在发送消息给角色 **之前**，先拦截你的输入，用另一个 AI 跑一遍自定义指令。
-* **可能场景**:
-    *   **润色**: 输入"帮我把这句话改得更委婉点：你是个白痴"，AI 润色后，再发送给角色。
-    *   **旁白**: 输入"描述一下现在的环境"，AI 生成一段环境描写，自动封装成旁白发送。
-    *   **情报分析**: 让 AI 分析当前对话局势，把分析结果作为 `System Note` 注入。
-* **结论**: 如果你只是想单纯聊天的玩家，可以关闭它。如果你是硬核 Roleplayer 或写手，它会是神技。
-
-#### Q: 自动总结没有触发？
-* **原因**: 为了防止 LLM 刷屏，Engram 设有保护机制。
-* **解决**:
-    1.  **楼层间隔**: 检查新消息数量是否达到设定的阈值（默认 5-10 条，在 **仪表盘** 可调）。
-    2.  **串行保护**: 检查右上角是否有加载动画？如果上一轮总结任务还在转圈（卡死），新任务不会开始。请尝试刷新页面重置任务队列。
-    3.  **Token 限制**: 如果历史记录过长且未开启上下文截断，可能导致 Prompt 构建失败。
-
-#### Q: 开启 RAG 后回复变慢？
-* **原因**: 每次你发送消息时，Engram 都要先进行 Embedding（向量化）和 Rerank（重排序），这增加了网络请求环节。
-* **解决**:
-    * 使用本地 **Transformers.js** 嵌入模型（在 **API 预设** → **向量化** 中选择 `Transformers (本地)`），这会利用浏览器 WebGPU 加速，消除网络延迟。
-    * 关闭 Rerank 步骤（虽然会降低精度，但能显著提升速度）。
-
-#### Q: 为什么有些记忆搜不到了？是不是被删了？
-* **解释**: 极大概率是由于 **自动归档 (Auto-Archiving)** 机制。
-* **解决**:
-    1.  Engram 会定期将超出数量上限的旧实体归档（移出活跃库）。归档后的实体不会参与 RAG 召回，但数据依然存在。
-    2.  如果你希望某个重要人物永远参与召回，请在 **记忆编辑** 面板中点击该实体卡片上的 **锁头图标** 进行锁定。
-    3.  被锁定的条目将获得“归档豁免权”。
-
-#### Q: <ShieldAlert className="inline w-4 h-4 mb-1"/> 锁定图标 (Lock) 具体有什么用？
-* **解释**: 这是 V1.4.3 引入的关键生命周期管理功能。
-* **效果**:
-    *   **锁定实体**: 防止实体被自动归档逻辑清理。
-    *   **锁定事件**: 防止该事件被 Trimmer 精简总结合并。如果你有一段非常精彩、绝对不能被“精简掉”的对话摘要，请务必锁住它。
-
-#### Q: 数据备份和多端同步？
-* **现状**: 目前 Engram 的数据完全存储在浏览器的 **IndexedDB** 中。
-* **计划**: 我们正在开发基于本地文件备份和同步的同步功能。目前如果需要备份，可以在浏览器开发者工具中手动导出 IndexedDB 数据。
+  <div className="p-4 rounded-lg border border-border bg-card">
+    <div className="flex items-center gap-2 mb-2 text-label font-medium">
+      <Database className="w-4 h-4 text-primary" />
+      召回日志
+    </div>
+    <p className="text-sm text-muted-foreground">看 query、命中条目、得分和最终注入结果。</p>
+  </div>
+</div>
 
 ---
+
+## <AlertTriangle className="inline w-5 h-5 mb-1 text-yellow-500" /> 运行与连接问题
+
+### Q1：插件无响应、界面空白或按钮失效？
+- **优先检查**：运行日志是否有 `ERROR`。
+- **常见原因**：IndexedDB 初始化失败、宿主事件未挂载、版本不兼容。
+- **处理建议**：刷新页面重试；必要时清理异常数据库后重建。
+
+### Q2：API 404 / Connection Refused / 超时？
+- **原因**：模型服务地址、端口、协议或 Key 配置错误。
+- **处理建议**：
+  1. 检查 Base URL（通常需要包含 `/v1`）。
+  2. 检查本地服务跨域策略（如 Ollama 的 `OLLAMA_ORIGINS`）。
+  3. 某些网关要求 Key 非空，即使本地也需填写占位值。
+
+### Q3：更新插件时出现 `Forbidden` / `EACCES`？
+- **原因**：SillyTavern 进程权限不足，无法覆盖旧文件。
+- **处理建议**：关闭占用进程后重新安装，或调整目录读写权限。
+
+---
+
+## <Workflow className="inline w-5 h-5 mb-1 text-primary" /> 处理链路问题（总结 / 提取 / 精简）
+
+### Q4：自动总结没触发？
+- **先看模型日志是否有请求**：
+  - 没请求：通常是触发条件没达到（间隔、缓冲、开关）。
+  - 有请求但失败：看返回码与解析错误。
+- **再看运行状态**：若上一轮任务卡住，串行保护会阻止新任务进入。
+
+### Q5：总结结果质量差或重复？
+- **原因候选**：模型能力不足、提示词不匹配、历史窗口设置不合理。
+- **处理建议**：
+  1. 更换更稳定模型。
+  2. 调整 Summary 模板。
+  3. 拉大间隔并校正缓冲区，减少噪声输入。
+
+### Q6：Trimmer 合并后“感觉记忆丢了”？
+- **解释**：Trimmer 是层级压缩，不是简单删除。
+- **建议**：
+  - 对关键节点使用 <Lock className="inline w-4 h-4 mb-1" /> 锁定保护。
+  - 在记忆流中同时检查低层与高层摘要是否语义一致。
+
+---
+
+## <Search className="inline w-5 h-5 mb-1 text-primary" /> 检索与召回问题（RAG）
+
+### Q7：明明聊过，为什么没召回？
+- **检查顺序**：
+  1. 召回日志中的 query 是否合理。
+  2. 命中得分是否过低。
+  3. 是否被上下文窗口截断或模型忽略。
+
+### Q8：我改了记忆文本，但搜不到新词？
+- **原因**：向量索引未更新。
+- **处理**：对条目执行 **Re-embed**。
+
+### Q9：开启 RAG 后明显变慢？
+- **原因**：Embedding + Rerank 会增加请求链路。
+- **优化**：
+  - 优先本地 Embedding。
+  - 在可接受精度下关闭或降频 Rerank。
+
+---
+
+## <WandSparkles className="inline w-5 h-5 mb-1 text-primary" /> 预处理问题
+
+### Q10：预处理没有生效？
+- **确认项**：
+  1. 已启用预处理总开关与自动触发。
+  2. 当前模板属于 `preprocessing` 分类。
+  3. 模板输出包含 `<output>` 标签。
+
+### Q11：Query 增强开了但召回仍然不准？
+- **检查**：模型是否输出了 `<query>`，以及 query 是否过泛。
+- **优化**：减少空泛词，增加实体名、地点名、事件锚点词。
+
+---
+
+## <Archive className="inline w-5 h-5 mb-1 text-primary" /> 生命周期与数据管理
+
+### Q12：有些记忆“消失”了？
+- **大概率**：进入归档态（绿灯），不再常驻显示。
+- **说明**：被召回时仍可临时进入上下文，不等于删除。
+
+### Q13：锁定（Lock）到底有什么用？
+- **锁定实体**：防止自动归档。
+- **锁定事件**：防止被 Trimmer 合并。
+- **场景**：核心人设、主线转折、关键设定条款。
+
+---
+
+## <Clock className="inline w-5 h-5 mb-1 text-primary" /> 一条实用建议
+
+遇到问题时按这三步执行，成功率最高：
+1. 先看日志定位是“触发问题、模型问题还是检索问题”。
+2. 只改一个参数并复测，避免多变量干扰。
+3. 记录有效配置，形成你自己的稳定预设。

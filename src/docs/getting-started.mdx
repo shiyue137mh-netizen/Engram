@@ -1,73 +1,112 @@
-import { Settings, Play, Sliders, FileCode, Book, Activity, Database } from 'lucide-react';
+import { Settings, Play, Sliders, FileCode, Activity, Database, WandSparkles, Search, CheckCircle2 } from 'lucide-react';
 
-# 快速开始
+# 快速开始（新版本）
 
-> Engram 是一个深度集成到 SillyTavern 的"第二大脑"，它需要一定的配置才能发挥最大威力。本指南将带你快速上手核心概念和配置流程。
-
----
-
-## 1. 核心概念速览
-
-在开始配置之前，了解 Engram 的几个核心概念有助于你更好地驾驭它：
-
-### <FileCode className="inline-block w-4 h-4 align-text-bottom" /> 提示词模板 (Prompt Templates)
-Engram 的智能完全依赖于高效的提示词。我们在 **API 预设** 中提供了多种专用模板：
-*   **剧情摘要 (Summary)**: 用于将达到一定长度的聊天记录压缩成简洁的剧情梗概。
-*   **实体提取 (Entity)**: 用于从对话中识别并提取角色、地点、物品等"实体"信息。你可以自定义提取的字段（在 JSON 模板的 `profile` 部分）。
-*   **预处理 (Preprocess)**: **(特色功能)** 这是一个"锦囊妙计"系统。你可以在这里预设多种指令（如"帮我润色这段话"、"分析当前局势"），在聊天输入框通过快捷指令调用，让 AI 临时辅助你思考或写作，而不会污染聊天记录。
-
-### <Activity className="inline-block w-4 h-4 align-text-bottom" /> 缓冲与处理 (Processing)
-记忆不是即时生成的，而是一个"沉淀"的过程。
-*   **楼层间隔 (Interval)**: 我们不希望 AI 每说一句话就总结一次（太费钱且碎片化），所以通常设置每 20-30 层楼总结一次。
-*   **缓冲层 (Buffer)**: 最新的几句对话往往还在变动中（比如你经常修文），所以 Engram 会刻意忽略最近的 N 条消息（默认 10 条），只总结"已经稳定"的旧历史。**注意：预处理和实体提取的"最近上下文"窗口也共享这个缓冲配置。**
-
-### <Database className="inline-block w-4 h-4 align-text-bottom" /> 记忆流 (Memory Stream)
-这是你的数据库后台。
-*   **CRUD**: 你可以在这里查看、修改、删除 AI 生成的所有记忆（摘要和实体）。
-*   **图谱**: 以可视化的方式查看事件和实体是如何连接的。
+> 本文基于当前架构：**Workflow Engine + IndexedDB + Macro 注入 + Agentic RAG**。按这份流程走，能最快把系统稳定跑起来。
 
 ---
 
-## 2. 核心配置流程
+## 0. 启动前检查（1 分钟）
 
-请按顺序检查以下配置，确保系统正常运转。
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
+  <div className="p-4 rounded-lg border border-border bg-card">
+    <div className="flex items-center gap-2 mb-2 text-heading font-semibold">
+      <FileCode className="w-4 h-4 text-primary" />
+      <span>你需要准备</span>
+    </div>
+    <ul className="text-sm text-foreground list-disc pl-5 space-y-1">
+      <li>一个可用的对话模型（用于总结 / 提取 / 预处理）</li>
+      <li>一个可用的 Embedding 模型（用于检索）</li>
+      <li>（可选）Rerank 模型（用于提升召回精度）</li>
+    </ul>
+  </div>
 
-### 第一步：模型接入 (API Presets)
-进入侧边栏的 **API 预设** 页面。
-1.  **LLM 预设**: 配置用于后台任务（总结、提取）的模型。建议使用 `gemini-3.0-flash` 或 `deepseek-v3.2` 等高智商且便宜的模型。
-2.  **向量化 (Embedding)**: **(必选)** 这是 RAG 的灵魂。推荐使用 `Qwen/Qwen3-Embedding-8B`。如果没有配置这个，搜索功能将无法使用。
-3.  **Rerank**: (进阶) 如果你发现搜索结果不准，可以开启 Rerank 模型进行二次筛选。
+  <div className="p-4 rounded-lg border border-border bg-card">
+    <div className="flex items-center gap-2 mb-2 text-heading font-semibold">
+      <CheckCircle2 className="w-4 h-4 text-primary" />
+      <span>目标结果</span>
+    </div>
+    <ul className="text-sm text-foreground list-disc pl-5 space-y-1">
+      <li>消息达到间隔后自动生成新事件</li>
+      <li>发送新消息时触发召回并注入宏</li>
+      <li>在记忆流中可查看、编辑、重嵌与过滤</li>
+    </ul>
+  </div>
+</div>
 
-### 第二步：运行时配置 (Processing)
-进入侧边栏的 **数据处理** -> **运行时配置** 页面。
-这里决定了 Engram 什么时候工作：
-*   **自动总结**: 建议开启。
-*   **楼层间隔**: 推荐 `30`。太小会导致记忆过于琐碎，太大容易遗漏细节。
-*   **缓冲层数**: 推荐 `15`。确保在这范围内的消息你可以随意修改，而不会影响已经生成的记忆。
-*   **精简配置**: 当积累了太多的短摘要时，精简会把它们合并成一个长摘要（类似以前的大总结），定期压缩记忆库,但是旧的小总结不会被删掉,而是作为细节等待激活。
+## 1. 先理解四个核心概念
 
-### 第三步：记忆管理 (Memory Stream)
-进入侧边栏的 **记忆编辑** 页面。
-*   这里主要用于检查 AI 是否记住了正确的东西。
-*   **小技巧**: 如果你修改了摘要的内容，记得点击卡片上的 **Re-embed** 按钮，否则搜索引擎还在用旧内容的索引，搜不到你的修改。
+### <Activity className="inline-block w-4 h-4 align-text-bottom text-primary" /> Workflow 驱动，而不是硬编码流程
+总结、实体提取、RAG 检索都由工作流步骤组合执行，便于替换、扩展和调试。
+
+### <Database className="inline-block w-4 h-4 align-text-bottom text-primary" /> 本地数据库是主存
+记忆、实体等核心数据写入 IndexedDB；WorldBook 主要承担宏占位与接入桥梁角色。
+
+### <Search className="inline-block w-4 h-4 align-text-bottom text-primary" /> 召回由 Retriever 统一调度
+可走向量、混合或 Agentic 直通路径。召回后统一进入宏缓存，参与当前轮上下文。
+
+### <WandSparkles className="inline-block w-4 h-4 align-text-bottom text-primary" /> 预处理是“发送前增强”
+在 GENERATION_AFTER_COMMANDS 阶段拦截输入，提取 `<output>` / `<query>`，再继续生成。
 
 ---
 
-## 3. 进阶功能
+## 2. 配置流程（按顺序）
 
-### 世界书
-Engram 兼容并增强了 SillyTavern 的世界书系统。
-*   在 **API 预设** -> **世界书** 中，你可以配置是否将自动生成的摘要写入到全局世界书，以及扫描深度。
+### 第一步：模型接入（API Presets）
+进入 **API 预设** 页面，至少完成：
 
-### 正则规则 (Regex Scripts)
-Engram 拥有独立的正则处理管道，同时也兼容酒馆的原生正则(这个没做出来)。
-*   这意味着你在酒馆里配置的"心理描写转换"等"仅提示词"脚本，也会作用于 Engram 读取到的文本，保证 AI 看到的（和总结的）是你希望的样子。
+1. **LLM 预设**（必需）
+   - 供 Summary / Entity / Preprocessing 使用。
+2. **Embedding**（强烈建议必配）
+   - 没有它，RAG 召回能力会明显下降。
+3. **Rerank**（可选）
+   - 相关性不稳定时开启，提高结果排序质量。
+
+### 第二步：运行时策略（Processing）
+进入 **数据处理 → 运行时配置**：
+
+- **自动总结**：建议开启。
+- **楼层间隔**：推荐 `20 ~ 30`。
+- **缓冲层数**：推荐 `10 ~ 15`（给你留修文空间）。
+- **Trimmer**：建议开启，用于记忆库长期控量与层级压缩。
+
+### 第三步：记忆流检查（Memory Stream）
+进入 **记忆编辑**：
+
+- 查看是否有新 `EventNode` / `EntityNode` 生成。
+- 手动编辑后记得 **Re-embed**，否则检索向量仍是旧版本。
 
 ---
 
-## 4. 验证运行
+## 3. 预处理与 RAG 联动（推荐开启）
 
-配置完成后，发送几条测试消息：
-1.  观察 **仪表盘** (侧边栏首页)，"待处理楼层" 应该会随着对话增加。
-2.  当达到设定的间隔（如 20 层）时，状态应变为 "Running"，此时后台正在生成记忆。
-3.  完成后，去 **记忆编辑** 页面，应该能看到新的事件卡片。
+### <Play className="inline-block w-4 h-4 align-text-bottom text-primary" /> 何时开启
+如果你需要“输入润色、指代展开、剧情编排”，建议开启预处理。
+
+### <Sliders className="inline-block w-4 h-4 align-text-bottom text-primary" /> 最小配置
+- 选择一个 `preprocessing` 分类模板。
+- 保证模板输出含 `<output>` 标签。
+- Query 增强场景补充 `<query>` 标签。
+
+### <Settings className="inline-block w-4 h-4 align-text-bottom text-primary" /> 预期行为
+- `<output>`：替换本轮用户输入。
+- `<query>`：进入检索流程，提升召回命中率。
+
+---
+
+## 4. 3 条验证用例（建议立即执行）
+
+1. 连续发送若干消息，确认达到间隔后出现总结任务。
+2. 输入“我们之前约定的那件事”，检查召回日志是否返回相关历史。
+3. 手动修改一条摘要并 Re-embed，再搜索新关键词验证检索更新。
+
+---
+
+## 5. 常见误区（新版）
+
+- **误区 1**：只配 LLM 不配 Embedding。
+  - 结果：能总结，但检索弱或几乎无效。
+- **误区 2**：间隔设太小。
+  - 结果：摘要碎片化严重，后续 Trimmer 压力变大。
+- **误区 3**：编辑文本后不重嵌。
+  - 结果：你看到的新文本与向量索引不一致，搜索“像坏了一样”。
