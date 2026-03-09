@@ -31,8 +31,8 @@ Engram 提供了丰富的宏变量，用于在运行时注入上下文：
 | `{{engramSummaries}}` | 当前角色所有的历史摘要条目 | 记忆精简 (Trim) |
 | `{{char}}` | 当前角色名称 | 通用 |
 | `{{user}}` | 用户名称 | 通用 |
-| `{{engramActiveEvents}}` | 纯净蓝灯活跃事件阵列 | Agentic RAG 判断基准 |
-| `{{engramIndex}}` | 全量结构化记忆索引简要 (XML) | Agentic RAG 判断基准 |
+| `{{engramActiveEvents}}` | 纯净蓝灯活跃事件阵列。不含任何 RAG 召回插入的绿灯事件，只包含近期发生的蓝灯事件 | Agentic RAG 判断基准。供给判定模型作为上下文参考使用 |
+| `{{engramIndex}}` | 全量结构化记忆索引。包含蓝灯与绿灯档案的极致压缩 XML 目录 | Agentic RAG 核心目录。用于判定模型从中直接提取目标 JSON ID 数组进行直通检索 |
 
 ### 2.3 EJS 支持 (V0.8.5+)
 如果启用了 **EJS 兼容模式**，并在 SillyTavern 中安装了 `ST-Prompt-Template` 扩展，您可以在模板中使用高级逻辑控制：
