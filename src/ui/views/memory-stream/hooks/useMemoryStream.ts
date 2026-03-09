@@ -4,7 +4,7 @@ import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
-import { filterEntities, filterEvents, groupEvents } from '@/ui/views/memory-stream/utils/streamProcessors';
+import { filterEntities, filterEvents, groupEntities, groupEvents } from '@/ui/views/memory-stream/utils/streamProcessors';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const DESKTOP_BREAKPOINT = 768;
@@ -12,6 +12,8 @@ const DESKTOP_BREAKPOINT = 768;
 export type ViewTab = 'list' | 'entities';
 export type ViewMode = 'browse' | 'edit';
 export type SortOrder = 'asc' | 'desc';
+export type EntitySortMode = 'updated_desc' | 'updated_asc' | 'name_asc';
+export type EntityGroupMode = 'none' | 'type' | 'archive';
 
 export interface GroupedEvent {
     key: number;
@@ -38,6 +40,8 @@ export function useMemoryStream() {
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
     const [showActiveOnly, setShowActiveOnly] = useState(false);
     const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
+    const [entitySortMode, setEntitySortMode] = useState<EntitySortMode>('updated_desc');
+    const [entityGroupMode, setEntityGroupMode] = useState<EntityGroupMode>('type');
 
     // === 4. 编辑与修改状态 ===
     const [pendingChanges, setPendingChanges] = useState<Map<string, Partial<EventNode>>>(new Map());
@@ -126,6 +130,10 @@ export function useMemoryStream() {
     const filteredEntities = useMemo(() => {
         return filterEntities(entities, pendingEntityChanges, searchQuery);
     }, [entities, pendingEntityChanges, searchQuery]);
+
+    const groupedEntities = useMemo(() => {
+        return groupEntities(filteredEntities, entitySortMode, entityGroupMode);
+    }, [filteredEntities, entitySortMode, entityGroupMode]);
 
     const selectedEvent = useMemo(() => {
         const event = events.find(e => e.id === selectedId);
@@ -446,17 +454,19 @@ export function useMemoryStream() {
         events, entities, isLoading, isMobile,
         viewMode, viewTab, selectedId, checkedIds,
         searchQuery, sortOrder, showActiveOnly, activeIds,
+        entitySortMode, entityGroupMode,
         hasChanges, isReembedding, pendingChanges, pendingEntityChanges,
         showPreview, previewContent,
         showImportModal, availableDbs, selectedDbToImport,
         showMobileActions,
 
         // Derived State
-        filteredEvents, filteredEntities, groupedEvents, groupStartIndices,
+        filteredEvents, filteredEntities, groupedEvents, groupStartIndices, groupedEntities,
         selectedEvent, selectedEntity,
 
         // Setters
         setSearchQuery, setSortOrder, setShowActiveOnly,
+        setEntitySortMode, setEntityGroupMode,
         setShowPreview, setPreviewContent,
         setShowImportModal, setSelectedDbToImport,
         setShowMobileActions, setCheckedIds,

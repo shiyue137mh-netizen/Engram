@@ -7,7 +7,8 @@
  * - full: 预处理 + Embedding + Rerank
  * - standard: Embedding + Rerank
  * - light: 仅 Embedding
- * - llm_only: LLM 直接召回 (未实现，留作后续)
+ * - llm_only: LLM 直接召回
+ * - keyword_only: 仅关键词扫描
  */
 
 import { SettingsManager } from '@/config/settings';
@@ -33,6 +34,7 @@ export interface RetrievalResult {
     nodes: EventNode[]; // Raw nodes
     candidates?: any[]; // V1.4: 曝露带分数的候选列表供前端装配
     recalledEntities?: any[]; // V1.4: 曝露通过类脑被召回的实体
+    skippedReason?: string; // V1.4.4: 召回短路原因（如无可召回对象）
 }
 
 // ==================== Retriever ====================
@@ -116,6 +118,33 @@ class Retriever {
             Logger.debug(LogModule.RAG_INJECT, '召回与关键词模式均未启用，使用滚动窗口策略');
             const limit = recallConfig.embedding?.topK || 20;
             return this.rollingSearch(limit);
+        }
+
+        // V1.4.4: 冷启动保护——没有可召回对象时，不进入召回工作流
+        // 可召回对象定义：存在已向量化事件，或存在已归档条目（事件/实体）
+        const chatId = getCurrentChatId();
+        const db = chatId ? tryGetDbForChat(chatId) : null;
+        if (db) {
+            const [embeddedEventCount, archivedEventCount, archivedEntityCount] = await Promise.all([
+                db.events.filter(e => !!e.embedding && e.embedding.length > 0).limit(1).count(),
+                db.events.filter(e => !!e.is_archived).limit(1).count(),
+                db.entities.filter(e => !!e.is_archived).limit(1).count(),
+            ]);
+
+            const canRecall = embeddedEventCount > 0 || archivedEventCount > 0 || archivedEntityCount > 0;
+            if (!canRecall) {
+                Logger.info(LogModule.RAG_INJECT, '冷启动保护：无可召回对象，跳过召回流程', {
+                    embeddedEventCount,
+                    archivedEventCount,
+                    archivedEntityCount,
+                });
+                const limit = recallConfig.embedding?.topK || 20;
+                const fallback = await this.rollingSearch(limit);
+                return {
+                    ...fallback,
+                    skippedReason: '当前没有向量化或归档条目，已跳过召回流程',
+                };
+            }
         }
 
         // V1.4.1: 增强扫描深度 - 对于关键词扫描，自动拉取最近几轮对话作为上下文

@@ -160,9 +160,13 @@ export const MemoryStream: React.FC = () => {
                                 isLoading={ms.isLoading}
                                 searchQuery={ms.searchQuery}
                                 setSearchQuery={ms.setSearchQuery}
-                                filteredEntities={ms.filteredEntities}
+                                groupedEntities={ms.groupedEntities}
                                 checkedIds={ms.checkedIds}
                                 selectedId={ms.selectedId}
+                                entitySortMode={ms.entitySortMode}
+                                entityGroupMode={ms.entityGroupMode}
+                                setEntitySortMode={ms.setEntitySortMode}
+                                setEntityGroupMode={ms.setEntityGroupMode}
                                 onSelect={ms.handleSelect}
                                 onCheck={ms.handleCheck}
                                 onArchive={ms.handleToggleArchive}

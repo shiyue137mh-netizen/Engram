@@ -39,6 +39,21 @@ export class KeywordRetrieveStep implements IStep {
         const apiSettings = SettingsManager.get('apiSettings');
         const recallConfig = apiSettings?.recallConfig;
 
+        // V1.4.4: 二次保护——无归档事件时跳过关键词扫描
+        // 冷启动阶段即使误入工作流，也不做无效关键词全扫
+        const archivedEventCount = await db.events
+            .filter(e => !!e.is_archived)
+            .limit(1)
+            .count();
+
+        if (archivedEventCount === 0) {
+            Logger.info(LogModule.RAG_INJECT, '关键词扫描跳过：当前无归档事件可召回');
+            context.data.keywordCandidates = [];
+            context.data.keywordEntityIds = [];
+            context.data.keywordRetrieveTime = Date.now() - startTime;
+            return;
+        }
+
         // 1. 获取全量数据 (包含归档实体，因为它们需要通过关键词唤醒)
         const allEntities = await db.entities.toArray();
         Logger.debug(LogModule.RAG_INJECT, `准备扫描。实体库总量: ${allEntities.length}`, {

@@ -102,6 +102,11 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
                 const candidates = searchResult.candidates || [];
                 const recalledEntities = searchResult.recalledEntities || [];
 
+                if (searchResult.skippedReason) {
+                    notificationService.info(searchResult.skippedReason, 'RAG 冷启动保护');
+                    return;
+                }
+
                 if (candidates.length === 0 && recalledEntities.length === 0) {
                     notificationService.warning('检索未命中任何事件或实体', 'RAG');
                     return;
