@@ -35,6 +35,13 @@ export interface EntityExtractConfig {
     autoArchive?: boolean;
     /** 实体数量上限 (默认 50) */
     archiveLimit?: number;
+
+    /**
+     * 实体提取 Watchdog 超时 (ms)
+     * - 解决本地大模型 60s 过短导致的超时死循环问题
+     * - 默认由 DEFAULT_ENTITY_CONFIG 提供 (180000ms)
+     */
+    watchdogTimeoutMs?: number;
 }
 
 export interface GlobalRegexConfig {

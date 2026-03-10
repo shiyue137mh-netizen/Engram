@@ -82,16 +82,24 @@ export class BrainRecallStep implements IStep {
                     };
                 });
 
-            // 4. V1.4.1 Fix: 关键词命中的实体具有“保送权”
-            // 只要 keywordEntityIds 命中了，无论类脑引擎是否将其排入 WorkingMemory，我们都将其召回
+            // 4. P3 Fix: 关键词命中实体不再“永远保送”
+            // 目标：保留关键词唤醒能力，但避免永久霸榜，仍然受类脑强度/衰减影响。
+            // 策略：
+            // - 若类脑选入（brainSlot 存在），权重使用 finalScore（随衰减变化）
+            // - 若未选入，则仅给一个有限保底（floor），并按 ke.score 上限夹紧
+            //   这样实体能被召回用于状态/注入，但不会碾压事件与其它实体
             const recalledEntities = keywordEntityIds
                 .filter(ke => entityMap.has(ke.id))
                 .map(ke => {
                     const entity = entityMap.get(ke.id)!;
                     const brainSlot = brainResults.find(s => s.id === entity.id);
+                    const floor = 0.35;
+                    const raw = ke.score || 1.0;
+                    const clamped = Math.max(floor, Math.min(0.9, raw));
+
                     return {
                         ...entity,
-                        _recallWeight: brainSlot ? brainSlot.finalScore : (ke.score || 1.0)
+                        _recallWeight: brainSlot ? brainSlot.finalScore : clamped,
                     };
                 });
 

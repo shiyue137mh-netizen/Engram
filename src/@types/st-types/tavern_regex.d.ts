@@ -54,25 +54,38 @@ type TavernRegex = {
  */
 declare function isCharacterTavernRegexesEnabled(): boolean;
 
-type GetTavernRegexesOption = {
-  scope?: 'all' | 'global' | 'character';
+type TavernRegexOptionGlobal = {
+  type: 'global';
+}
+
+type TavernRegexOptionCharacter = {
+  type: 'character';
+  name?: string | 'current';
+}
+
+type TavernRegexOptionPreset = {
+  type: 'preset';
+  name?: string | 'in_use';
+}
+
+type TavernRegexOption = TavernRegexOptionGlobal | TavernRegexOptionCharacter | TavernRegexOptionPreset;
+
+type GetTavernRegexesOption = TavernRegexOption & {
+  /** 按是否被开启筛选酒馆正则; 默认为 'all' */
   enable_state?: 'all' | 'enabled' | 'disabled';
 }
 
 /**
  * 获取酒馆正则
  *
- * @param option 可选选项
- *   - `scope?:'all'|'global'|'character'`:         // 按所在区域筛选酒馆正则; 默认为 `'all'`
- *   - `enable_state?:'all'|'enabled'|'disabled'`:  // 按是否被开启筛选酒馆正则; 默认为 `'all'`
- *
- * @returns 一个数组, 数组的元素是酒馆正则 `TavernRegex`. 该数组依据正则作用于文本的顺序排序, 也就是酒馆显示正则的地方从上到下排列.
+ * @param option
+ *   - type: 'global' | 'character' | 'preset'
+ *   - name: (仅 character/preset) 角色名或预设名
+ *   - enable_state?: 'all' | 'enabled' | 'disabled'
  */
-declare function getTavernRegexes({ scope, enable_state }?: GetTavernRegexesOption): TavernRegex[];
+declare function getTavernRegexes(option: GetTavernRegexesOption): TavernRegex[];
 
-type ReplaceTavernRegexesOption = {
-  scope?: 'all' | 'global' | 'character';
-}
+type ReplaceTavernRegexesOption = TavernRegexOption
 
 /**
  * 完全替换酒馆正则为 `regexes`.
@@ -83,9 +96,10 @@ type ReplaceTavernRegexesOption = {
  *
  * @param regexes 要用于替换的酒馆正则
  * @param option 可选选项
- *   - scope?: 'all' | 'global' | 'character';  // 要替换的酒馆正则部分; 默认为 'all'
+ *   - type: 'global' | 'character' | 'preset'
+ *   - name: (仅 character/preset) 角色名或预设名
  */
-declare function replaceTavernRegexes(regexes: TavernRegex[], { scope }: ReplaceTavernRegexesOption): Promise<void>;
+declare function replaceTavernRegexes(regexes: TavernRegex[], option: ReplaceTavernRegexesOption): Promise<void>;
 
 type TavernRegexUpdater =
   | ((regexes: TavernRegex[]) => TavernRegex[])
@@ -96,7 +110,8 @@ type TavernRegexUpdater =
  *
  * @param updater 用于更新酒馆正则的函数. 它应该接收酒馆正则作为参数, 并返回更新后的酒馆正则.
  * @param option 可选选项
- *   - scope?: 'all' | 'global' | 'character';  // 要替换的酒馆正则部分; 默认为 'all'
+ *   - type: 'global' | 'character' | 'preset'
+ *   - name: (仅 character/preset) 角色名或预设名
  *
  * @returns 更新后的酒馆正则
  *

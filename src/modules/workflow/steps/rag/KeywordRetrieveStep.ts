@@ -41,10 +41,23 @@ export class KeywordRetrieveStep implements IStep {
 
         // V1.4.4: 二次保护——无归档事件时跳过关键词扫描
         // 冷启动阶段即使误入工作流，也不做无效关键词全扫
-        const archivedEventCount = await db.events
-            .filter(e => !!e.is_archived)
-            .limit(1)
-            .count();
+        // P1 Fix: 兼容测试/Mock DB（可能没有 Dexie Collection 的 limit/count API）
+        let archivedEventCount: number | null = null;
+        try {
+            const filtered: any = (db.events as any).filter?.((e: any) => !!e.is_archived);
+            if (filtered) {
+                if (typeof filtered.limit === 'function' && typeof filtered.count === 'function') {
+                    archivedEventCount = await filtered.limit(1).count();
+                } else if (typeof filtered.count === 'function') {
+                    archivedEventCount = await filtered.count();
+                } else if (typeof filtered.toArray === 'function') {
+                    const arr = await filtered.toArray();
+                    archivedEventCount = Array.isArray(arr) ? arr.length : 0;
+                }
+            }
+        } catch {
+            // ignore
+        }
 
         if (archivedEventCount === 0) {
             Logger.info(LogModule.RAG_INJECT, '关键词扫描跳过：当前无归档事件可召回');
@@ -60,6 +73,14 @@ export class KeywordRetrieveStep implements IStep {
             archivedCount: allEntities.filter(e => e.is_archived).length
         });
 
+        // P1 Fix: Hard limit keyword results to avoid candidate explosion
+        // 事件/实体分别设上限（优先读 recallConfig.keywordTopK，其次回退到 embedding.topK/默认值）
+        const eventTopK = recallConfig?.keywordTopK?.events
+            ?? recallConfig?.embedding?.topK
+            ?? 50;
+        const entityTopK = recallConfig?.keywordTopK?.entities
+            ?? 30;
+
         let hitEntities: any[] = [];
         let hitEvents: any[] = [];
 
@@ -68,9 +89,9 @@ export class KeywordRetrieveStep implements IStep {
 
         // 实体扫描
         if (recallConfig?.enableEntityKeyword !== false) {
-            hitEntities = scanEntities(textToScan, allEntities);
+            hitEntities = scanEntities(textToScan, allEntities).slice(0, entityTopK);
             if (hitEntities.length > 0) {
-                Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEntities.length} 个实体: ${hitEntities.map(e => e.name).join(', ')}`);
+                Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEntities.length} 个实体(TopK=${entityTopK}): ${hitEntities.map(e => e.name).join(', ')}`);
             }
         } else {
             Logger.debug(LogModule.RAG_INJECT, '实体关键词扫描已禁用');
@@ -79,9 +100,9 @@ export class KeywordRetrieveStep implements IStep {
         // 事件仅在配置开启时扫描
         if (recallConfig?.useKeywordRecall !== false && recallConfig?.enableEventKeyword !== false) {
             const allEvents = await db.events.toArray();
-            hitEvents = scanEvents(textToScan, allEvents);
+            hitEvents = scanEvents(textToScan, allEvents).slice(0, eventTopK);
             if (hitEvents.length > 0) {
-                Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEvents.length} 条事件`);
+                Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEvents.length} 条事件(TopK=${eventTopK})`);
             }
         } else {
             Logger.debug(LogModule.RAG_INJECT, '事件关键词扫描已禁用或主开关关闭');

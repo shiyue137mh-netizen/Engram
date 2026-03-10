@@ -82,10 +82,25 @@ export class ChatHistoryHelper {
 
                     if (hasTavernHelper && hasFormatFunc) {
                         try {
-                            // usage: text, placement (2=AI Output), options
-                            // WARN: 强行退回 Object 传参并 cast as any，因为传 'prompt' 字符串导致了清空 bug
                             const prev = content;
-                            content = TavernHelper.formatAsTavernRegexedString(content, 'ai_output', { isPrompt: true } as any);
+
+                            // JS-Slash-Runner 正确签名：
+                            // formatAsTavernRegexedString(text, source, destination, option?)
+                            // destination='prompt' 对应“仅格式提示词”链路。
+                            try {
+                                content = TavernHelper.formatAsTavernRegexedString(
+                                    content,
+                                    'ai_output',
+                                    'prompt',
+                                );
+                            } catch {
+                                // 兼容旧版本/非标准实现：第三参为 option 对象
+                                content = TavernHelper.formatAsTavernRegexedString(
+                                    content,
+                                    'ai_output',
+                                    { isPrompt: true } as any,
+                                );
+                            }
 
                             // 检查正则是否有实际效果
                             const didChange = prev !== content;
@@ -93,7 +108,7 @@ export class ChatHistoryHelper {
                                 Logger.debug('ChatHistoryHelper', 'TavernHelper 正则结果', {
                                     didChange,
                                     prevLength: prev.length,
-                                    afterLength: content.length
+                                    afterLength: content.length,
                                 });
                             }
 

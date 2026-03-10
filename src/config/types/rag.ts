@@ -52,6 +52,14 @@ export interface BrainRecallConfig {
     /** 短期记忆容量 (近几轮召回过的) */
     shortTermLimit: number;
 
+    /**
+     * P2 Fix: 工作记忆分配额（实体/事件分池）
+     * - 避免实体候选把事件全部挤出 WorkingMemory
+     * - 若不填写，则回退到 workingLimit（保持旧行为）
+     */
+    eventWorkingLimit?: number;
+    entityWorkingLimit?: number;
+
     // 强化/衰减参数
     /** 再次召回的强化系数 */
     reinforceFactor: number;
@@ -106,6 +114,17 @@ export interface RecallConfig {
 
     /** 关键词召回细分：是否检索事件 (默认 true) */
     enableEventKeyword?: boolean;
+
+    /**
+     * P1 Fix: 关键词召回硬上限 (Hard TopK)
+     * - 防止 [`KeywordRetrieveStep.execute()`](src/modules/workflow/steps/rag/KeywordRetrieveStep.ts:15) 候选爆炸
+     */
+    keywordTopK?: {
+        /** 关键词命中的事件上限 */
+        events: number;
+        /** 关键词命中的实体上限 */
+        entities: number;
+    };
 
     /** Embedding 详细配置 */
     embedding?: {

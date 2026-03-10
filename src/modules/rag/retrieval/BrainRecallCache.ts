@@ -269,13 +269,16 @@ export class BrainRecallCache {
      * 移除 MMR（剧情事件的相似性是特征而非缺陷）
      */
     private selectWorkingMemory(): MemorySlot[] {
-        const limit = this.config.workingLimit;
         const newcomerBoost = this.config.newcomerBoost || 0.2;
         const boredomPenalty = this.config.boredomPenalty || 0.1;
         const boredomThreshold = this.config.boredomThreshold || 5;
 
+        const totalLimit = this.config.workingLimit;
+        const eventLimit = this.config.eventWorkingLimit ?? totalLimit;
+        const entityLimit = this.config.entityWorkingLimit ?? Math.max(0, totalLimit - eventLimit);
+
         // 1. 计算排序分数
-        const pool = Array.from(this.shortTermMemory.values()).map(slot => {
+        const scoredPool = Array.from(this.shortTermMemory.values()).map(slot => {
             // Newcomer Boost (只在第一轮生效)
             const boost = (slot.firstRound === this.currentRound) ? newcomerBoost : 0;
 
@@ -284,17 +287,41 @@ export class BrainRecallCache {
             const penalty = boredomCount * boredomPenalty;
 
             const sortScore = slot.finalScore + boost - penalty;
-
             return { slot, sortScore };
         });
 
-        // 按分数降序排序
-        pool.sort((a, b) => b.sortScore - a.sortScore);
+        // 2. 按分数降序排序
+        scoredPool.sort((a, b) => b.sortScore - a.sortScore);
 
-        // 2. 直接取 Top-K，保证填满
-        const selected = pool.slice(0, limit).map(item => item.slot);
+        // 3. 分配额选取：事件与实体分别 Top-K，再合并
+        const events: MemorySlot[] = [];
+        const entities: MemorySlot[] = [];
 
-        // 3. 更新所有 slot 的 tier 状态
+        for (const { slot } of scoredPool) {
+            if (slot.category === 'entity') {
+                if (entities.length < entityLimit) entities.push(slot);
+            } else {
+                if (events.length < eventLimit) events.push(slot);
+            }
+
+            if (events.length >= eventLimit && entities.length >= entityLimit) {
+                break;
+            }
+        }
+
+        // 4. 合并（总容量兜底，防配额过小导致不填满）
+        const selected: MemorySlot[] = [...events, ...entities];
+        if (selected.length < totalLimit) {
+            const selectedIds = new Set(selected.map(s => s.id));
+            for (const { slot } of scoredPool) {
+                if (selected.length >= totalLimit) break;
+                if (selectedIds.has(slot.id)) continue;
+                selected.push(slot);
+                selectedIds.add(slot.id);
+            }
+        }
+
+        // 5. 更新 tier 状态
         const selectedIds = new Set(selected.map(s => s.id));
         for (const slot of this.shortTermMemory.values()) {
             slot.tier = selectedIds.has(slot.id) ? 'working' : 'shortTerm';

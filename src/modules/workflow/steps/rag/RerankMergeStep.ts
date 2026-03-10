@@ -44,10 +44,16 @@ export class RerankMergeStep implements IStep {
             return;
         }
 
+        // P1 Fix: 二次 hard-limit，避免 KeywordRetrieveStep 的候选爆炸穿透到后续
+        // - 若配置存在 keywordTopK/events，则以其为上限，否则回退 embedding.topK
+        const hardLimit = activeConfig.keywordTopK?.events ?? activeConfig.embedding?.topK ?? 50;
+        const limitedCandidates = candidates.slice(0, Math.max(1, hardLimit));
+
         context.data.originalCandidateCount = candidates.length;
+        context.data.keywordHardLimit = hardLimit;
 
         // 2. Rerank 重排序 (如果启用且服务可用)
-        let finalCandidates = candidates;
+        let finalCandidates = limitedCandidates;
         let rerankTime = 0;
 
         if (activeConfig.useRerank && rerankService.isEnabled()) {
@@ -55,28 +61,28 @@ export class RerankMergeStep implements IStep {
             const query = context.input?.query as string;
             const unifiedQueries = context.input?.unifiedQueries as string[] | undefined;
             const rerankQuery = unifiedQueries?.[0] || query;
-            const documents = candidates.map(c => c.summary);
+            const documents = limitedCandidates.map(c => c.summary);
 
             try {
                 const rerankResults = await rerankService.rerank(rerankQuery, documents);
                 rerankTime = Date.now() - context.data.rerankStartTime;
 
-                const embeddingMap = new Map(candidates.map(c => [c.id, c]));
+                const embeddingMap = new Map(limitedCandidates.map(c => [c.id, c]));
                 const alpha = rerankService.getHybridAlpha();
 
                 finalCandidates = mergeResults(
                     embeddingMap,
                     rerankResults,
-                    candidates,
+                    limitedCandidates,
                     alpha
                 );
             } catch (e: any) {
                 Logger.warn(LogModule.RAG_RETRIEVE, 'Rerank 失败，退回纯 Embedding 排序', { error: e.message });
-                finalCandidates = scoreAndSort(candidates, 0);
+                finalCandidates = scoreAndSort(limitedCandidates, 0);
             }
         } else {
             // 仅使用 Embedding 分数排序
-            finalCandidates = scoreAndSort(candidates, 0);
+            finalCandidates = scoreAndSort(limitedCandidates, 0);
         }
 
         context.data.candidates = finalCandidates;

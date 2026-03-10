@@ -44,6 +44,10 @@ export const DEFAULT_BRAIN_RECALL_CONFIG: BrainRecallConfig = {
     enabled: false, // 默认关闭，实验性功能
     workingLimit: 10,        // 工作记忆：当前轮使用的
     shortTermLimit: 35,      // 短期记忆：缓存上限 (35 约 3-4 轮累积)
+
+    // P2 Defaults: 默认不改变旧行为（仅当存在实体候选时才建议在 UI 配置分配额）
+    // eventWorkingLimit/entityWorkingLimit 留空，由算法回退到 workingLimit
+
     reinforceFactor: 0.2,    // 强化系数
     decayRate: 0.08,         // 衰减速率 (稍慢，保留更多)
     evictionThreshold: 0.25, // 淘汰阈值 (降低，保留更多)
@@ -70,6 +74,10 @@ export const DEFAULT_RECALL_CONFIG: RecallConfig = {
     useKeywordRecall: true,
     enableEntityKeyword: true,
     enableEventKeyword: true,
+    keywordTopK: {
+        events: 50,
+        entities: 30,
+    },
     embedding: {
         topK: 50,               // Embedding 初筛 50 条
         minScoreThreshold: 0.35, // 过滤阈值 (稍高，过滤不相关)
@@ -92,6 +100,9 @@ export const DEFAULT_ENTITY_CONFIG: EntityExtractConfig = {
     keepRecentCount: 5,
     autoArchive: true,      // V1.4.2 默认开启归档管家
     archiveLimit: 50,      // 默认上限 50
+
+    // P0 Fix: 实体提取 watchdog 默认 180s，避免本地模型慢导致 60s 超时死循环
+    watchdogTimeoutMs: 180_000,
 };
 
 const DEFAULT_REGEX_CONFIG: GlobalRegexConfig = {

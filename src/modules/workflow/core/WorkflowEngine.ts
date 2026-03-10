@@ -44,6 +44,9 @@ export class WorkflowEngine {
             trigger: context.trigger
         });
 
+        // P0 Fix: 记录“当前正在执行的 step”，避免在 catch 中误报上一个成功 step
+        let currentStepName: string | undefined;
+
         try {
             // 2. 顺序执行 Steps
             // 构建 Step 索引缓存 (O(N))
@@ -61,6 +64,9 @@ export class WorkflowEngine {
                 }
 
                 const step = workflow.steps[i];
+                currentStepName = step.name;
+                context.metadata.currentStep = currentStepName;
+
                 Logger.debug(LogModule.RAG_INJECT, `执行步骤: ${step.name}`, { jobId: context.id });
 
                 const stepStart = Date.now();
@@ -111,7 +117,8 @@ export class WorkflowEngine {
             context.metadata.error = e instanceof Error ? e : new Error(String(e));
             Logger.error(LogModule.RAG_INJECT, `工作流执行异常: ${workflow.name}`, {
                 jobId: context.id,
-                step: context.metadata.stepsExecuted[context.metadata.stepsExecuted.length - 1], // 最后一个完成的还是正在执行的？
+                // P0 Fix: 优先记录正在执行的 step，避免误报上一个成功 step
+                step: context.metadata.currentStep || currentStepName || context.metadata.stepsExecuted[context.metadata.stepsExecuted.length - 1],
                 error: context.metadata.error.message
             });
             // 根据需求，这里可以选择抛出异常或者仅返回带 error 的 context

@@ -224,8 +224,15 @@ export class EntityBuilder {
             const globalSettings = SettingsManager.get('summarizerConfig');
             const previewEnabled = manual || (globalSettings?.previewEnabled ?? true);
 
+            // Watchdog / Cancel Signal
+            // P0 Fix: 60s watchdog 对本地模型不友好，改为可配置并提高默认阈值
+            // - 通过 signal.cancelled 让 WorkflowEngine 在 step 边界尽快停止
+            // - 仍无法强杀正在执行的底层 LLM 请求，但可避免后续步骤继续污染状态
+            const signal = { cancelled: false };
+
             const contextPromise = WorkflowEngine.run(createEntityWorkflow(), {
                 trigger: manual ? 'manual' : 'auto',
+                signal,
                 config: {
                     dryRun,
                     previewEnabled,
@@ -241,19 +248,29 @@ export class EntityBuilder {
                 }
             });
 
-            // Fix P2: 死锁保镖，增加 60 秒超时机制，防底层 LLM/Workflow 死锁
-            const timeoutPromise = new Promise<any>((_, reject) => {
-                setTimeout(() => reject(new Error('实体提取超时 (60s Watchdog)')), 60000);
+            // P0 Fix: configurable watchdog (default 180s)
+            const watchdogMs =
+                this.config.watchdogTimeoutMs ??
+                SettingsManager.get('apiSettings')?.entityExtractConfig?.watchdogTimeoutMs ??
+                180_000;
+
+            let timeoutId: any;
+            const timeoutPromise = new Promise<never>((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    signal.cancelled = true;
+                    reject(new Error(`实体提取超时 (${Math.round(watchdogMs / 1000)}s Watchdog)`));
+                }, watchdogMs);
             });
 
             const context = await Promise.race([contextPromise, timeoutPromise]);
+            clearTimeout(timeoutId);
 
             const result = context.output; // From SaveEntity
 
             if (!dryRun) {
-                // Update state logic likely needs to stay here or move to a separate PostProcess Step
-                const { chatManager } = await import('@/data/ChatManager');
-                await chatManager.updateState({ last_extracted_floor: floor });
+                // Update state: use range end when available (fix for UserReview flow / manual review)
+                const finalFloor = (range?.[1] ?? floor);
+                await chatManager.updateState({ last_extracted_floor: finalFloor });
 
                 Logger.success(LogModule.MEMORY_ENTITY, '实体提取完成', {
                     floor,
@@ -296,6 +313,24 @@ export class EntityBuilder {
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
             Logger.error(LogModule.MEMORY_ENTITY, '实体提取异常', { error: errorMsg });
+
+            // P0 Fix: watchdog 超时/失败时，防止 last_extracted_floor 指针卡死导致自动提取死循环
+            // 策略：只在【自动触发】且携带 range 时，进行防御性推进（推进到 range[1]）
+            // - 手动触发不推进，避免吞掉问题
+            // - dryRun 不推进，避免预览影响状态
+            try {
+                const isWatchdogTimeout = e instanceof Error && /Watchdog/.test(e.message);
+                if (!manual && !dryRun && range && isWatchdogTimeout) {
+                    await chatManager.updateState({ last_extracted_floor: range[1] });
+                    Logger.warn(LogModule.MEMORY_ENTITY, 'Watchdog 超时：已防御性推进 last_extracted_floor，避免自动提取死循环', {
+                        last_extracted_floor: range[1],
+                        range,
+                    });
+                }
+            } catch (stateErr) {
+                Logger.warn(LogModule.MEMORY_ENTITY, 'Watchdog 超时后的状态补偿失败', { error: stateErr });
+            }
+
             if (manual) {
                 notificationService.error(`实体提取异常: ${errorMsg}`, 'Engram 错误');
             }
