@@ -125,25 +125,32 @@ class Retriever {
         const chatId = getCurrentChatId();
         const db = chatId ? tryGetDbForChat(chatId) : null;
         if (db) {
-            const [embeddedEventCount, archivedEventCount, archivedEntityCount] = await Promise.all([
-                db.events.filter(e => !!e.embedding && e.embedding.length > 0).limit(1).count(),
-                db.events.filter(e => !!e.is_archived).limit(1).count(),
-                db.entities.filter(e => !!e.is_archived).limit(1).count(),
-            ]);
-
-            const canRecall = embeddedEventCount > 0 || archivedEventCount > 0 || archivedEntityCount > 0;
-            if (!canRecall) {
-                Logger.info(LogModule.RAG_INJECT, '冷启动保护：无可召回对象，跳过召回流程', {
-                    embeddedEventCount,
-                    archivedEventCount,
-                    archivedEntityCount,
-                });
-                const limit = recallConfig.embedding?.topK || 20;
-                const fallback = await this.rollingSearch(limit);
-                return {
-                    ...fallback,
-                    skippedReason: '当前没有向量化或归档条目，已跳过召回流程',
+            try {
+                // 更稳健的计数检查，优先尝试 count()，回退到 toArray().length
+                const getCount = async (coll: any) => {
+                    if (typeof coll.count === 'function') return await coll.limit(1).count();
+                    const arr = await coll.toArray();
+                    return arr.length;
                 };
+
+                const [embeddedEventCount, archivedEventCount, archivedEntityCount] = await Promise.all([
+                    getCount(db.events.filter(e => !!e.embedding && e.embedding.length > 0)),
+                    getCount(db.events.filter(e => !!e.is_archived)),
+                    getCount(db.entities.filter(e => !!e.is_archived)),
+                ]);
+
+                const canRecall = embeddedEventCount > 0 || archivedEventCount > 0 || archivedEntityCount > 0;
+                if (!canRecall) {
+                    Logger.info(LogModule.RAG_INJECT, '冷启动保护：无可召回对象，跳过召回流程');
+                    const limit = recallConfig.embedding?.topK || 20;
+                    const fallback = await this.rollingSearch(limit);
+                    return {
+                        ...fallback,
+                        skippedReason: '当前没有向量化或归档条目，已跳过召回流程',
+                    };
+                }
+            } catch (e) {
+                Logger.warn(LogModule.RAG_INJECT, '冷启动检查失败，跳过保护逻辑', { error: e });
             }
         }
 

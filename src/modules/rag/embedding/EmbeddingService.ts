@@ -48,6 +48,7 @@ const DEFAULT_CONCURRENCY = 5;
 // ==================== EmbeddingService ====================
 
 export class EmbeddingService {
+    constructor() {}
     private config: VectorConfig | null = null;
     private concurrency: number = DEFAULT_CONCURRENCY;
     private stopSignal: boolean = false;

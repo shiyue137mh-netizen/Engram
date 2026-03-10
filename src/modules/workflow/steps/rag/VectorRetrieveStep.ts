@@ -55,6 +55,18 @@ export class VectorRetrieveStep implements IStep {
         let queryVector: number[];
 
         try {
+            // V1.4.1 Fix: 在嵌入前配置 Embedding 服务，防止 "config not set" 错误
+            const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
+            Logger.debug(LogModule.RAG_RETRIEVE, 'VectorRetrieveStep: 准备设置配置', { hasConfig: !!vectorConfig });
+            if (vectorConfig) {
+                embeddingService.setConfig(vectorConfig);
+                Logger.debug(LogModule.RAG_RETRIEVE, 'VectorRetrieveStep: 配置已设置');
+            } else {
+                Logger.warn(LogModule.RAG_RETRIEVE, 'VectorRetrieveStep: 向量配置缺失，跳过向量检索');
+                context.data.candidates = [];
+                return;
+            }
+
             // V1.0.3: 优先使用 unifiedQueries 第一条，否则使用 userInput
             const searchQuery = unifiedQueries && unifiedQueries.length > 0 ? unifiedQueries[0] : query;
             queryVector = await embeddingService.embed(searchQuery);
