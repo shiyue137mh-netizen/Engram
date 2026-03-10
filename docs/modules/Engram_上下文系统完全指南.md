@@ -108,15 +108,15 @@ Engram 调用 `getWorldInfoPrompt` 时，配置了上下文扫描深度
 
 这是 V0.8.5 引入的核心变更，用于解决兼容性问题。
 
-### 5.1 双重管道 (Dual Pipeline)
-所有发往 LLM 的请求都会经过两道工序：
+### 5.1 双重处理流 (Dual Processing Flow)
+所有发往 LLM 的请求都会在底层适配器（Adapter）阶段经过两道工序：
 
-1.  **Native Pipeline (原生兼容层)**
+1.  **Native Hook (原生兼容层)**
     *   **触发**: `EventBus.emit(GENERATE_AFTER_DATA)`
     *   **作用**: 给 `ST-Prompt-Template` 和原生 Regex 脚本一个“插手”的机会。它们可以修改 Prompt，执行宏替换，或者运行正则清洗。
     *   **开关**: `API 配置 (API Presets)` -> `正则规则` -> `原生 Regex 兼容`
 
-2.  **Engram Pipeline (内部处理层)**
+2.  **Engram Processor (内部处理层)**
     *   **组件**: `RegexProcessor` (Engram Internal)
     *   **作用**: 执行 Engram 自己的清洗逻辑（如移除 `<think>` 标签，处理 API 特有的格式）。
     *   **始终启用**: 除非在代码级禁用。
@@ -125,11 +125,11 @@ Engram 调用 `getWorldInfoPrompt` 时，配置了上下文扫描深度
 ```
 [原始 Prompt] 
     ↓
-(Native Pipeline) → ST-Prompt-Template (EJS渲染) → Native Regex
+(Native Hook) → ST-Prompt-Template (EJS渲染) → Native Regex
     ↓
 [中间态 Prompt]
     ↓
-(Engram Pipeline) → 移除内部标签 → 格式规范化
+(Engram Processor) → 移除内部标签 → 格式规范化
     ↓
 [最终 Prompt] → LLM API
 ```
