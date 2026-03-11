@@ -59,8 +59,16 @@ export class BatchEngine {
         // 同步当前的活动任务下标，以便内部抛出异常时能够正确打标
         this.queue.currentTaskIndex = taskIndex;
 
-        this.queue.tasks[taskIndex].progress.current = currentProgress;
-        this.queue.tasks[taskIndex].status = 'running';
+        // Fix P1: 严格遵守不可变数据（Immutable）规范，解构重组改变的节点
+        this.queue.tasks[taskIndex] = {
+            ...this.queue.tasks[taskIndex],
+            status: 'running',
+            progress: {
+                ...this.queue.tasks[taskIndex].progress,
+                current: currentProgress
+            }
+        };
+
         this.queue.overallProgress.current = this.calculateOverallProgress();
         this.notifyProgress();
     }

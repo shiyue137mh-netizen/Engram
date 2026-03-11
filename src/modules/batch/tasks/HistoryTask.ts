@@ -161,38 +161,30 @@ export class HistoryTask implements IBatchTaskHandler {
         const summaryInterval = summarizerService.getConfig().floorInterval || 10;
         let processedFloors = 0;
 
-        while (processedFloors < task.floorRange.end - task.floorRange.start) {
+        const startBase = task.floorRange.start;
+        const totalToProcess = task.floorRange.end - startBase;
+
+        // 我们改为基于当前任务定义的范围进行循环，而不是全局状态
+        while (processedFloors < totalToProcess) {
             if (checkStopSignal()) return;
 
-            const state = await chatManager.getState();
-            const startBase = task.floorRange.start;
-            const totalToProcess = task.floorRange.end - startBase;
+            // 计算当前这一切片的范围
+            // 考虑基准点：当前已处理 + 起始点
+            const currentSliceStart = startBase + processedFloors;
+            const currentSliceEnd = Math.min(task.floorRange.end, currentSliceStart + summaryInterval - 1);
 
-            // 我们改为基于当前任务定义的范围进行循环，而不是全局状态
-            while (processedFloors < totalToProcess) {
+            if (currentSliceStart > currentSliceEnd) break;
+
+            try {
+                // 核心修改：向 triggerSummary 传递明确的 range
+                const res = await summarizerService.triggerSummary(true, [currentSliceStart, currentSliceEnd]);
                 if (checkStopSignal()) return;
 
-                // 计算当前这一切片的范围
-                // 考虑基准点：当前已处理 + 起始点
-                const currentSliceStart = startBase + processedFloors;
-                const currentSliceEnd = Math.min(task.floorRange.end, currentSliceStart + summaryInterval - 1);
-
-                if (currentSliceStart > currentSliceEnd) break;
-
-                try {
-                    // 核心修改：向 triggerSummary 传递明确的 range
-                    const res = await summarizerService.triggerSummary(true, [currentSliceStart, currentSliceEnd]);
-
-                    // 无论成功与否，我们都推进 processedFloors，因为逻辑已外置
-                    processedFloors += (currentSliceEnd - currentSliceStart + 1);
-                } catch (err: any) {
-                    Logger.error(LogModule.BATCH, `Summary Failed at range ${currentSliceStart}-${currentSliceEnd}`, { error: err.message });
-                    processedFloors += summaryInterval; // 跳过此分片
-                }
-
-                yield; // 释放控制权给 Engine 处理 Event loop
-
-                updateProgress(taskIndex, Math.min(task.progress.total, Math.ceil(processedFloors / summaryInterval)));
+                // 无论成功与否，我们都推进 processedFloors，因为逻辑已外置
+                processedFloors += (currentSliceEnd - currentSliceStart + 1);
+            } catch (err: any) {
+                Logger.error(LogModule.BATCH, `Summary Failed at range ${currentSliceStart}-${currentSliceEnd}`, { error: err.message });
+                processedFloors += summaryInterval; // 跳过此分片
             }
 
             yield; // 释放控制权给 Engine 处理 Event loop

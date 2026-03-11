@@ -211,93 +211,85 @@ export class SaveEntity implements IStep {
         }
 
         for (const [entityName, entityPatches] of patchesByEntity) {
-            const existing = existingEntities.find(e =>
+            let existing = existingEntities.find(e =>
                 e.name === entityName || e.aliases?.includes(entityName)
             );
 
             // 检查是否有 add 到 /entities/{name} 的操作 (新实体)
-            // V1.0.5: 移除 encodeURIComponent，因为 LLM 输出的路径不进行 URL 编码
             const addRootPatch = entityPatches.find(p =>
                 p.op === 'add' && p.path === `/entities/${entityName}`
             );
 
-            if (addRootPatch && !existing) {
-                // 新实体
-                const value = addRootPatch.value as any;
-                const entity: any = {
-                    name: entityName,
-                    type: (value?.type as EntityType) || EntityType.Unknown,
-                    aliases: value?.aliases || [],
-                    profile: value?.profile || {},
-                    description: this.profileToYaml(entityName, value?.type || 'unknown', value?.profile || {})
-                };
+            if (addRootPatch) {
+                const lowerName = entityName.toLowerCase();
+                const conflict = existingEntities.find(e =>
+                    e.name.toLowerCase() === lowerName || 
+                    e.aliases?.some(a => a.toLowerCase() === lowerName)
+                );
 
-                if (!isDryRun) {
-                    const saved = await store.saveEntity(entity);
-                    newEntities.push(saved);
+                if (!conflict) {
+                    // 真正的新实体
+                    const value = addRootPatch.value as any;
+                    const entity: any = {
+                        name: entityName,
+                        type: (value?.type as EntityType) || EntityType.Unknown,
+                        aliases: value?.aliases || [],
+                        profile: value?.profile || {},
+                        description: this.profileToYaml(entityName, value?.type || 'unknown', value?.profile || {})
+                    };
+
+                    if (!isDryRun) {
+                        const saved = await store.saveEntity(entity);
+                        newEntities.push(saved);
+                    } else {
+                        entity.id = `temp-${Date.now()}`;
+                        newEntities.push(entity);
+                    }
+                    // 标记为已处理，防止后续尝试作为更新处理 (因为由于是新创建，此时 existing 还是 null)
+                    continue; 
                 } else {
-                    entity.id = `temp-${Date.now()}`;
-                    newEntities.push(entity);
+                    // 冲突，转为更新已有实体
+                    existing = conflict;
+                    Logger.debug('SaveEntity', `🔭 Duplicate entity detected for "${entityName}", redirecting to merge mode.`);
+                    
+                    // 将 add /entities/Name 的内容解构为对 conflict 的修改
+                    const value = addRootPatch.value as any;
+                    if (value && typeof value === 'object') {
+                        if (value.profile) entityPatches.push({ op: 'add', path: `/entities/${entityName}/profile`, value: value.profile });
+                        if (value.type) entityPatches.push({ op: 'replace', path: `/entities/${entityName}/type`, value: value.type });
+                        if (value.aliases) entityPatches.push({ op: 'add', path: `/entities/${entityName}/aliases`, value: value.aliases });
+                    }
                 }
-            } else if (existing) {
+            }
+
+            if (existing) {
                 // 更新已有实体
                 try {
                     const targetDoc = JSON.parse(JSON.stringify(existing));
-                    // V1.5: Attach original for UI Diff
                     (targetDoc as any)._original = JSON.parse(JSON.stringify(existing));
 
-                    // 将路径转换为相对于实体的路径
-                    // V1.0.5: 移除 encodeURIComponent，因为 LLM 输出的路径不进行 URL 编码
-                    // V1.4: Smart-handle root updates (e.g. replace /entities/Name with full object)
-                    // The LLM often wants to "replace" the whole entity. We must not lose ID.
                     const relativeOps = [];
-
                     for (const p of entityPatches) {
                         const isRoot = p.path === `/entities/${entityName}`;
+                        if (isRoot && p.op === 'add') continue; // 已处理或无效
 
-                        // Case 1: Root Add (handled above) - skip
-                        if (isRoot && p.op === 'add') continue;
-
-                        // Case 2: Root Replace - Decompose into field updates to preserve ID/Metadata
-                        if (isRoot && (p.op === 'replace' || p.op === 'test')) { // 'test' on root is rare but valid
+                        if (isRoot && (p.op === 'replace' || p.op === 'test')) {
                             if (p.value && typeof p.value === 'object') {
                                 const val = p.value as any;
-                                // Merge known fields
                                 if (val.profile) relativeOps.push({ op: p.op, path: '/profile', value: val.profile });
                                 if (val.type) relativeOps.push({ op: p.op, path: '/type', value: val.type });
                                 if (val.aliases) relativeOps.push({ op: p.op, path: '/aliases', value: val.aliases });
-                                // Ignore others to protect ID
                             }
                             continue;
                         }
 
-
-
-                        // Case 3: Sub-path update (normal)
                         if (!isRoot) {
                             let relPath = p.path.replace(`/entities/${entityName}`, '');
-
-                            // Check if path effectively exists (fast check)
-                            // jsonpatch.getValueByPointer throws if missing, but we can try/catch
-                            // But for 'add', it might be adding a new leaf.
-
-                            // V1.6: Universal Smart Pointer
-                            // If path looks like it might be wrong (e.g. simplified prompts), try to find the real home.
-                            // We assume keys in 'profile' are somewhat unique.
-
-                            // Extract the target key or "anchor" key from the path
-                            // e.g. /profile/relations/Meihan -> Anchor: Meihan? No, generic. Anchor: relations.
-                            // e.g. /profile/body_scent -> Anchor: body_scent.
-
-                            const parts = relPath.split('/').filter(Boolean); // ["profile", "relations", "Meihan"]
-
-                            // Generic keys that are too common to be anchors
+                            const parts = relPath.split('/').filter(Boolean);
                             const GENERIC_KEYS = new Set(['profile', 'type', 'description', 'desc', 'value', 'name', 'id', 'status', 'features', 'traits']);
-
-                            // Find the deepest non-generic key to use as anchor
+                            
                             let anchorKey = '';
                             let anchorIndex = -1;
-
                             for (let i = parts.length - 1; i >= 0; i--) {
                                 if (!GENERIC_KEYS.has(parts[i])) {
                                     anchorKey = parts[i];
@@ -307,25 +299,12 @@ export class SaveEntity implements IStep {
                             }
 
                             if (anchorKey) {
-                                // Search for this anchor in the existing entity
-                                // We search in 'profile' specifically (or the whole object?)
-                                // Usually these are profile attributes.
                                 const searchRoot = targetDoc.profile || {};
                                 const foundPaths = this.findUniquePath(searchRoot, anchorKey, '/profile');
-
                                 if (foundPaths.length === 1) {
-                                    const realAnchorPath = foundPaths[0]; // e.g. "/profile/dynamic_status/relations" (if anchor was relations)
-
-                                    // Reconstruct the full path
-                                    // Old path parts: [0...anchorIndex] was the old prefix to anchor
-                                    // [anchorIndex+1...] are the suffixes (children of anchor)
-
-                                    // But wait, the `foundPaths` INCLUDES the anchor key at the end.
-                                    // So we just need to append the stuff *after* the anchor from the original path.
-
+                                    const realAnchorPath = foundPaths[0];
                                     const suffix = parts.slice(anchorIndex + 1).join('/');
                                     const newPath = suffix ? `${realAnchorPath}/${suffix}` : realAnchorPath;
-
                                     if (newPath !== relPath) {
                                         Logger.debug('SaveEntity', `🔭 Smart Pointer Redirect: ${relPath} -> ${newPath}`);
                                         relPath = newPath;
@@ -333,16 +312,13 @@ export class SaveEntity implements IStep {
                                 }
                             }
 
-                            relativeOps.push({
-                                ...p,
-                                path: relPath
-                            });
+                            relativeOps.push({ ...p, path: relPath });
                         }
                     }
 
                     if (relativeOps.length > 0) {
+                        Logger.debug('SaveEntity', `Applying ${relativeOps.length} patches to ${entityName}`, { ops: relativeOps });
                         jsonpatch.applyPatch(targetDoc, relativeOps as jsonpatch.Operation[]);
-
                         if (!isDryRun) {
                             const description = this.profileToYaml(targetDoc.name, targetDoc.type, targetDoc.profile || {});
                             await store.updateEntity(existing.id, {
@@ -354,22 +330,16 @@ export class SaveEntity implements IStep {
                             });
                             updatedEntities.push(targetDoc);
                         } else {
-                            // DryRun: Attach diffs with old/new values for UI preview
                             const diffs = relativeOps.map(op => {
                                 let oldValue: any = undefined;
                                 try {
-                                    // Try to get old value if it's a replace or remove
                                     if (op.op === 'replace' || op.op === 'remove') {
-                                        oldValue = jsonpatch.getValueByPointer(existing, op.path);
+                                        oldValue = jsonpatch.getValueByPointer(existing!, op.path);
                                     }
                                 } catch (e) { /* ignore */ }
-
                                 return { ...op, oldValue };
                             });
-
-                            // V1.5: Update description even in DryRun so Preview shows the new YAML
                             targetDoc.description = this.profileToYaml(targetDoc.name, targetDoc.type, targetDoc.profile || {});
-
                             (targetDoc as any)._diff = diffs;
                             updatedEntities.push(targetDoc);
                         }

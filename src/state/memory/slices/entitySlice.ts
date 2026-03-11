@@ -9,6 +9,7 @@ export interface EntityState {
     saveEntity: (entity: Omit<EntityNode, 'id' | 'last_updated_at'>) => Promise<EntityNode>;
     saveEntities: (entities: Omit<EntityNode, 'id' | 'last_updated_at'>[]) => Promise<EntityNode[]>;
     updateEntity: (entityId: string, updates: Partial<EntityNode>) => Promise<void>;
+    updateEntities: (updates: { id: string, updates: Partial<EntityNode> }[]) => Promise<void>;
     deleteEntity: (entityId: string) => Promise<void>;
     deleteEntities: (entityIds: string[]) => Promise<void>;
     findEntityByName: (name: string) => Promise<EntityNode | null>;
@@ -89,6 +90,33 @@ export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, g
             console.log(`[MemoryStore] Put completed for entity: ${entityId}`);
         } catch (e) {
             console.error('[MemoryStore] Failed to update entity:', e);
+            throw e;
+        }
+    },
+
+    updateEntities: async (updatesList) => {
+        if (updatesList.length === 0) return;
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            await db.transaction('rw', db.entities, async () => {
+                const now = Date.now();
+                for (const { id, updates } of updatesList) {
+                    const { id: _id, ...safeUpdates } = updates as any;
+                    const existing = await db.entities.get(id);
+                    if (existing) {
+                        await db.entities.put({
+                            ...existing,
+                            ...safeUpdates,
+                            last_updated_at: now,
+                        });
+                    }
+                }
+            });
+            console.log(`[MemoryStore] Batch updated ${updatesList.length} entities`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to batch update entities:', e);
             throw e;
         }
     },

@@ -14,6 +14,7 @@ export interface EventState {
     getEventsToMerge: (keepRecentCount?: number) => Promise<EventNode[]>;
     deleteEvents: (eventIds: string[]) => Promise<void>;
     updateEvent: (eventId: string, updates: Partial<EventNode>) => Promise<void>;
+    updateEvents: (updates: { id: string, updates: Partial<EventNode> }[]) => Promise<void>;
     getAllEvents: () => Promise<EventNode[]>;
     archiveEvents: (eventIds: string[]) => Promise<void>;
     markEventsAsEmbedded: (eventIds: string[]) => Promise<void>;
@@ -232,6 +233,25 @@ export const createEventSlice: StateCreator<any, [], [], EventState> = (set, get
             console.log(`[MemoryStore] Updated event: ${eventId}`, safeUpdates);
         } catch (e) {
             console.error('[MemoryStore] Failed to update event:', e);
+            throw e;
+        }
+    },
+
+    updateEvents: async (updatesList) => {
+        if (updatesList.length === 0) return;
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            await db.transaction('rw', db.events, async () => {
+                for (const { id, updates } of updatesList) {
+                    const { id: _id, timestamp: _ts, ...safeUpdates } = updates as any;
+                    await db.events.update(id, safeUpdates);
+                }
+            });
+            console.log(`[MemoryStore] Batch updated ${updatesList.length} events`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to batch update events:', e);
             throw e;
         }
     },

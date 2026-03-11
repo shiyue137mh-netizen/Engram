@@ -39,39 +39,31 @@ export class KeywordRetrieveStep implements IStep {
         const apiSettings = SettingsManager.get('apiSettings');
         const recallConfig = apiSettings?.recallConfig;
 
-        // V1.4.4: 二次保护——无归档事件时跳过关键词扫描
-        // 冷启动阶段即使误入工作流，也不做无效关键词全扫
-        // P1 Fix: 兼容测试/Mock DB（可能没有 Dexie Collection 的 limit/count API）
-        let archivedEventCount: number | null = null;
+        // P0 & P1 Fix: 此处不再因为无归档事件而直接返回
+        // 归档事件检查应仅限制在“事件扫描”部分，不能连累实体扫描
+        let hasArchivedEvents = false;
         try {
-            const filtered: any = (db.events as any).filter?.((e: any) => !!e.is_archived);
+            const filtered: any = (db.events as any).where?.('is_archived').equals(1);
             if (filtered) {
-                if (typeof filtered.limit === 'function' && typeof filtered.count === 'function') {
-                    archivedEventCount = await filtered.limit(1).count();
-                } else if (typeof filtered.count === 'function') {
-                    archivedEventCount = await filtered.count();
-                } else if (typeof filtered.toArray === 'function') {
-                    const arr = await filtered.toArray();
-                    archivedEventCount = Array.isArray(arr) ? arr.length : 0;
-                }
+                const count = await filtered.limit(1).count();
+                hasArchivedEvents = count > 0;
+            } else {
+                // 回退逻辑
+                const count = await db.events.toCollection().filter(e => !!e.is_archived).limit(1).count();
+                hasArchivedEvents = count > 0;
             }
-        } catch {
-            // ignore
+        } catch (err) {
+            Logger.warn(MODULE, '无法检查归档事件状态，默认尝试扫描', err);
+            hasArchivedEvents = true; 
         }
 
-        if (archivedEventCount === 0) {
-            Logger.info(LogModule.RAG_INJECT, '关键词扫描跳过：当前无归档事件可召回');
-            context.data.keywordCandidates = [];
-            context.data.keywordEntityIds = [];
-            context.data.keywordRetrieveTime = Date.now() - startTime;
-            return;
-        }
+        // 1. 获取轻量级数据镜像进行初步扫描 (P1 Fix: 内存优化)
+        // 仅获取匹配关键词所需的最小字段：id, name, aliases
+        const entityIndex = await db.entities.toCollection().toArray(items => 
+            items.map(e => ({ id: e.id, name: e.name, aliases: e.aliases }))
+        );
 
-        // 1. 获取全量数据 (包含归档实体，因为它们需要通过关键词唤醒)
-        const allEntities = await db.entities.toArray();
-        Logger.debug(LogModule.RAG_INJECT, `准备扫描。实体库总量: ${allEntities.length}`, {
-            archivedCount: allEntities.filter(e => e.is_archived).length
-        });
+        Logger.debug(LogModule.RAG_INJECT, `准备扫描。实体索引总量: ${entityIndex.length}`);
 
         // P1 Fix: Hard limit keyword results to avoid candidate explosion
         // 事件/实体分别设上限（优先读 recallConfig.keywordTopK，其次回退到 embedding.topK/默认值）
@@ -87,22 +79,34 @@ export class KeywordRetrieveStep implements IStep {
         // 2. 执行关键词扫描
         Logger.debug(LogModule.RAG_INJECT, `扫描文本预览: ${textToScan.slice(0, 50)}...`);
 
-        // 实体扫描
+        // 实体扫描 (P0 Fix: 即使无事件也执行)
         if (recallConfig?.enableEntityKeyword !== false) {
-            hitEntities = scanEntities(textToScan, allEntities).slice(0, entityTopK);
-            if (hitEntities.length > 0) {
+            // 首先通过索引进行初步过滤
+            const matchedIndex = scanEntities(textToScan, entityIndex as any).slice(0, entityTopK);
+            
+            if (matchedIndex.length > 0) {
+                // 命中后，再批量获取完整对象以进行后续的多跳联想
+                const matchedIds = matchedIndex.map(e => e.id);
+                hitEntities = await db.entities.bulkGet(matchedIds);
+                // 过滤掉可能存在的 undefined
+                hitEntities = hitEntities.filter(e => !!e);
+                
                 Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEntities.length} 个实体(TopK=${entityTopK}): ${hitEntities.map(e => e.name).join(', ')}`);
             }
         } else {
             Logger.debug(LogModule.RAG_INJECT, '实体关键词扫描已禁用');
         }
 
-        // 事件仅在配置开启时扫描
+        // 事件仅在配置开启且有归档事件时扫描 (P0 Fix: 守卫下沉)
         if (recallConfig?.useKeywordRecall !== false && recallConfig?.enableEventKeyword !== false) {
-            const allEvents = await db.events.toArray();
-            hitEvents = scanEvents(textToScan, allEvents).slice(0, eventTopK);
-            if (hitEvents.length > 0) {
-                Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEvents.length} 条事件(TopK=${eventTopK})`);
+            if (hasArchivedEvents) {
+                const allEvents = await db.events.toArray();
+                hitEvents = scanEvents(textToScan, allEvents).slice(0, eventTopK);
+                if (hitEvents.length > 0) {
+                    Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEvents.length} 条事件(TopK=${eventTopK})`);
+                }
+            } else {
+                Logger.info(LogModule.RAG_INJECT, '事件关键词扫描跳过：当前无归档事件');
             }
         } else {
             Logger.debug(LogModule.RAG_INJECT, '事件关键词扫描已禁用或主开关关闭');
@@ -126,7 +130,10 @@ export class KeywordRetrieveStep implements IStep {
         }
 
         // 4.2. 关系多跳 (第二跳)
-        // 优化方案 (V1.4.3): 预构建实体名 -> 实体 Map 以便快速查找，消除 O(N) 复杂度的 find
+        // 优化方案 (V1.4.3): 预构建实体名 -> 实体 Map 以便快速查找
+        // 注意：此处多跳依然需要完整的 allEntities 信息（至少需要关系网）
+        // 如果命中实体很多，可能还是需要性能考量，暂维持现状或改用动态加载
+        const allEntities = await db.entities.toArray();
         const entryMap = new Map<string, any>();
         for (const e of allEntities) {
             entryMap.set(e.name.toLowerCase(), e);

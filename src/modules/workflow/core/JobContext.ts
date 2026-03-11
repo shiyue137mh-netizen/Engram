@@ -64,6 +64,8 @@ export interface JobContext {
     metadata: {
         startTime: number;
         stepsExecuted: string[];
+        currentStep?: string;
+        jumpCount?: number;
         error?: Error;
         [key: string]: any;
     };

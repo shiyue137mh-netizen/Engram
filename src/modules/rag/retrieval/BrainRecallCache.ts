@@ -233,16 +233,16 @@ export class BrainRecallCache {
         const clampedRerank = Math.min(0.95, slot.rerankStrength);
 
         // V1.3.5: Max Strategy (取长板策略)
-        // 问题：如果 Rerank 模型给分很低 (0.01)，即使 Embedding 很高 (0.45)，加权平均也会导致最终分过低被淘汰。
         // 修正：只要 Embedding 或 Rerank 其中一项强，就认为该记忆有价值。
-        // Embedding 系数设为 0.8，因为向量相似度通常比 Rerank 概率值要“虚”一些。
         const effectiveStrength = Math.max(clampedRerank, slot.embeddingStrength * 0.8);
 
         // V1.4: 降低 Bias (0.35 -> 0.20)，让更多记忆存活
         const bias = 0.20;
 
         const z = (effectiveStrength - bias) / temp;
-        slot.finalScore = this.sigmoid(z, temp);
+        // 修复 V1.4.5: sigmoid 内部不应再次除以 temp，否则会导致 z 被过度放大 (z/temp)
+        // 原公式: 1 / (1 + exp(-z))
+        slot.finalScore = 1 / (1 + Math.exp(-z));
     }
 
     private enforceShortTermLimit(): void {

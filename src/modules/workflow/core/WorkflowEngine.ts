@@ -93,7 +93,17 @@ export class WorkflowEngine {
                             if (targetIndex === undefined) {
                                 throw new Error(`Jump target not found: ${result.targetStep}`);
                             }
-                            Logger.debug(LogModule.RAG_INJECT, `跳转步骤: ${step.name} -> ${result.targetStep}`, { reason: result.reason });
+
+                            // P0 Fix: 无限循环防护 (保险丝)
+                            context.metadata.jumpCount = (context.metadata.jumpCount || 0) + 1;
+                            if (context.metadata.jumpCount > 50) {
+                                throw new Error(`Workflow detected infinite loop: jumped 50 times. Last jump: ${step.name} -> ${result.targetStep}`);
+                            }
+
+                            Logger.debug(LogModule.RAG_INJECT, `跳转步骤: ${step.name} -> ${result.targetStep}`, {
+                                reason: result.reason,
+                                jumpCount: context.metadata.jumpCount
+                            });
                             i = targetIndex - 1; // 循环会自动 +1，所以这里 -1
                             continue;
                         }

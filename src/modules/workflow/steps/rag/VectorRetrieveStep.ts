@@ -68,7 +68,24 @@ export class VectorRetrieveStep implements IStep {
             }
 
             // V1.0.3: 优先使用 unifiedQueries 第一条，否则使用 userInput
-            const searchQuery = unifiedQueries && unifiedQueries.length > 0 ? unifiedQueries[0] : query;
+            const isFallbackFromChat = !unifiedQueries || unifiedQueries.length === 0;
+            const rawQuery = !isFallbackFromChat ? unifiedQueries![0] : query;
+            
+            // P0 Fix: 执行长度裁剪，防止 Embedding 精度坍塌
+            // 如果是历史回溯 (fallback)，由于通常含有多轮对话，裁剪至 300 字符
+            // 如果是抽取 Query，裁剪至 500 字符
+            const maxLength = isFallbackFromChat ? 300 : 500;
+            const searchQuery = rawQuery.length > maxLength 
+                ? rawQuery.substring(0, maxLength) + "..." 
+                : rawQuery;
+
+            if (rawQuery.length > maxLength) {
+                Logger.debug(LogModule.RAG_RETRIEVE, `VectorRetrieveStep: 查询过长，已裁剪至 ${maxLength} 字符`, {
+                    originalLength: rawQuery.length,
+                    isFallback: isFallbackFromChat
+                });
+            }
+
             queryVector = await embeddingService.embed(searchQuery);
         } catch (e: any) {
             Logger.warn(LogModule.RAG_RETRIEVE, '生成查询向量失败', { error: e.message });

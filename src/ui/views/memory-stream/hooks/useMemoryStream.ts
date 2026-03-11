@@ -37,6 +37,7 @@ export function useMemoryStream() {
 
     // === 3. 过滤与排序状态 ===
     const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
     const [showActiveOnly, setShowActiveOnly] = useState(false);
     const [activeIds, setActiveIds] = useState<Set<string>>(new Set());
@@ -60,7 +61,7 @@ export function useMemoryStream() {
     const [selectedDbToImport, setSelectedDbToImport] = useState<string>('');
     const [showMobileActions, setShowMobileActions] = useState(false);
 
-    const store = useMemoryStore.getState();
+    const store = useMemoryStore();
 
     // ==========================================
     // 生命周期与副作用
@@ -72,6 +73,14 @@ export function useMemoryStream() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // 搜索防抖
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     // 加载事件流
     const loadEvents = useCallback(async () => {
@@ -87,7 +96,7 @@ export function useMemoryStream() {
         } finally {
             setIsLoading(false);
         }
-    }, [store]);
+    }, [store.getAllEvents]);
 
     // 加载实体流
     const loadEntities = useCallback(async () => {
@@ -97,7 +106,7 @@ export function useMemoryStream() {
         } catch (e) {
             console.error('[MemoryStream] Failed to load entities:', e);
         }
-    }, [store]);
+    }, [store.getAllEntities]);
 
     useEffect(() => {
         loadEvents();
@@ -110,8 +119,8 @@ export function useMemoryStream() {
     // ==========================================
 
     const filteredEvents = useMemo(() => {
-        return filterEvents(events, pendingChanges, searchQuery, showActiveOnly, activeIds, sortOrder);
-    }, [events, pendingChanges, searchQuery, showActiveOnly, activeIds, sortOrder]);
+        return filterEvents(events, pendingChanges, debouncedSearchQuery, showActiveOnly, activeIds, sortOrder);
+    }, [events, pendingChanges, debouncedSearchQuery, showActiveOnly, activeIds, sortOrder]);
 
     const groupedEvents = useMemo(() => {
         return groupEvents(filteredEvents, sortOrder);
@@ -128,8 +137,8 @@ export function useMemoryStream() {
     }, [groupedEvents]);
 
     const filteredEntities = useMemo(() => {
-        return filterEntities(entities, pendingEntityChanges, searchQuery);
-    }, [entities, pendingEntityChanges, searchQuery]);
+        return filterEntities(entities, pendingEntityChanges, debouncedSearchQuery);
+    }, [entities, pendingEntityChanges, debouncedSearchQuery]);
 
     const groupedEntities = useMemo(() => {
         return groupEntities(filteredEntities, entitySortMode, entityGroupMode);
@@ -226,7 +235,7 @@ export function useMemoryStream() {
             console.error('[MemoryStream] Archive toggle failed:', e);
             notificationService.error('调整归档状态失败', 'MemoryStream');
         }
-    }, [store]);
+    }, [store.updateEntity]);
 
     const handleToggleEntityLock = useCallback(async (id: string, isLocked: boolean) => {
         try {
@@ -237,7 +246,7 @@ export function useMemoryStream() {
             console.error('[MemoryStream] Entity lock toggle failed:', e);
             notificationService.error('调整锁定状态失败', 'MemoryStream');
         }
-    }, [store]);
+    }, [store.toggleEntityLock]);
 
     const handleToggleEventLock = useCallback(async (id: string, isLocked: boolean) => {
         try {
@@ -248,69 +257,36 @@ export function useMemoryStream() {
             console.error('[MemoryStream] Event lock toggle failed:', e);
             notificationService.error('调整锁定状态失败', 'MemoryStream');
         }
-    }, [store]);
+    }, [store.toggleEventLock]);
 
     const handleBatchSave = useCallback(async () => {
         if (pendingChanges.size === 0 && pendingEntityChanges.size === 0) return;
 
         try {
-            const eventEntries = Array.from(pendingChanges.entries());
-            const entityEntries = Array.from(pendingEntityChanges.entries());
+            const eventUpdates = Array.from(pendingChanges.entries()).map(([id, updates]) => ({ id, updates }));
+            const entityUpdates = Array.from(pendingEntityChanges.entries()).map(([id, updates]) => ({ id, updates }));
 
-            const results = await Promise.allSettled([
-                ...eventEntries.map(([id, updates]) => store.updateEvent(id, updates)),
-                ...entityEntries.map(([id, updates]) => store.updateEntity(id, updates))
+            // 批量执行，减少数据库事务开销
+            await Promise.all([
+                eventUpdates.length > 0 ? store.updateEvents(eventUpdates) : Promise.resolve(),
+                entityUpdates.length > 0 ? store.updateEntities(entityUpdates) : Promise.resolve()
             ]);
 
-            const failedEvents = new Set<string>();
-            const failedEntities = new Set<string>();
-            let successCount = 0;
+            notificationService.success(`成功保存变更`, 'MemoryStream');
+            
+            // 刷新数据
+            await loadEvents();
+            await loadEntities();
 
-            results.forEach((result, index) => {
-                if (result.status === 'fulfilled') {
-                    successCount++;
-                } else {
-                    if (index < eventEntries.length) {
-                        failedEvents.add(eventEntries[index][0]);
-                    } else {
-                        failedEntities.add(entityEntries[index - eventEntries.length][0]);
-                    }
-                }
-            });
-
-            if (successCount > 0) {
-                notificationService.success(`保存成功，共 ${successCount} 条记录`, 'MemoryStream');
-                // 重新加载数据以刷新 UI 状态，防止回退
-                await loadEvents();
-                await loadEntities();
-            }
-
-            if (failedEvents.size > 0 || failedEntities.size > 0) {
-                notificationService.error(`部分保存失败 (${failedEvents.size + failedEntities.size} 条)，请检查控制台`, 'MemoryStream');
-            }
-
-            // 仅清除成功的变更
-            setPendingChanges(prev => {
-                const newMap = new Map();
-                prev.forEach((v, k) => {
-                    if (failedEvents.has(k)) newMap.set(k, v);
-                });
-                return newMap;
-            });
-
-            setPendingEntityChanges(prev => {
-                const newMap = new Map();
-                prev.forEach((v, k) => {
-                    if (failedEntities.has(k)) newMap.set(k, v);
-                });
-                return newMap;
-            });
+            // 清除 pending 状态
+            setPendingChanges(new Map());
+            setPendingEntityChanges(new Map());
 
         } catch (e) {
             console.error('[MemoryStream] Batch save failed:', e);
             notificationService.error('保存过程中发生严重错误', 'MemoryStream');
         }
-    }, [pendingChanges, pendingEntityChanges, store, loadEvents, loadEntities]);
+    }, [pendingChanges, pendingEntityChanges, store.updateEvents, store.updateEntities, loadEvents, loadEntities]);
 
     const handleDelete = useCallback(async (id: string) => {
         try {
@@ -337,7 +313,7 @@ export function useMemoryStream() {
         } catch (e: any) {
             notificationService.error('删除失败: ' + (e.message || '未知错误'), 'MemoryStream');
         }
-    }, [viewTab, store]);
+    }, [viewTab, store.deleteEntity, store.deleteEvents]);
 
     const handleBatchDelete = useCallback(async () => {
         if (checkedIds.size === 0) return;
@@ -367,7 +343,7 @@ export function useMemoryStream() {
         } catch (e: any) {
             notificationService.error('批量删除失败: ' + (e.message || '未知错误'), 'MemoryStream');
         }
-    }, [checkedIds, viewTab, store]);
+    }, [checkedIds, viewTab, store.deleteEntities, store.deleteEvents]);
 
     const handleReembedAll = useCallback(async () => {
         const apiSettings = SettingsManager.get('apiSettings');
@@ -413,7 +389,7 @@ export function useMemoryStream() {
             const Dexie = (await import('dexie')).default;
             const names = await Dexie.getDatabaseNames();
             // @ts-ignore
-            const currentDbName = store.getCurrentDb?.()?.name || '';
+            const currentDbName = (store as any).getCurrentDb?.()?.name || '';
             const engramDbs = names.filter(n => n.startsWith('Engram_') && n !== currentDbName);
             setAvailableDbs(engramDbs);
             if (engramDbs.length > 0) {
@@ -424,7 +400,7 @@ export function useMemoryStream() {
             console.error('[MemoryStream] Failed to get database names:', e);
             notificationService.error('获取历史数据库列表失败', 'MemoryStream');
         }
-    }, [store]);
+    }, [store.getCurrentDb, hasChanges]);
 
     const handleImportExecute = useCallback(async () => {
         if (!selectedDbToImport) {
@@ -446,14 +422,14 @@ export function useMemoryStream() {
         } finally {
             setIsLoading(false);
         }
-    }, [selectedDbToImport, store, loadEvents, loadEntities]);
+    }, [selectedDbToImport, store.importDatabase, loadEvents, loadEntities]);
 
 
     return {
         // State
         events, entities, isLoading, isMobile,
         viewMode, viewTab, selectedId, checkedIds,
-        searchQuery, sortOrder, showActiveOnly, activeIds,
+        searchQuery, debouncedSearchQuery, sortOrder, showActiveOnly, activeIds,
         entitySortMode, entityGroupMode,
         hasChanges, isReembedding, pendingChanges, pendingEntityChanges,
         showPreview, previewContent,

@@ -159,7 +159,7 @@ class Retriever {
         if (recallConfig.useKeywordRecall) {
             try {
                 const recentContext = ChatHistoryHelper.getChatHistory([
-                    Math.max(1, ChatHistoryHelper.getCurrentMessageCount() - 4),
+                    Math.max(1, ChatHistoryHelper.getCurrentMessageCount() - 2),
                     ChatHistoryHelper.getCurrentMessageCount()
                 ]);
                 if (recentContext) {
@@ -305,10 +305,11 @@ class Retriever {
                     eventId: r.id,
                     summary: validEventMap.get(r.id)!.summary,
                     category: validEventMap.get(r.id)!.structured_kv?.event || 'unknown',
-                    embeddingScore: r.score,
+                    embeddingScore: r.score, // 模型给出的分通常作为主分
+                    rerankScore: r.score,    // 对于 Agentic，Rerank 分数默认等同于评估分
                     hybridScore: r.score,
                     isTopK: true,
-                    isReranked: false,
+                    isReranked: true,        // Agentic 模式下默认视为已重排 (LLM 钦定)
                     reason: r.reason,
                 })),
             stats: {

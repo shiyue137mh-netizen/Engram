@@ -45,9 +45,21 @@ class SyncService {
 
             // 首次加载也检查一次
             const { getSTContext } = await import('@/integrations/tavern');
-            if (getSTContext()?.chatId) {
-                this.autoSyncDownload(getSTContext()?.chatId!);
+            const initialChatId = getSTContext()?.chatId;
+            if (initialChatId) {
+                this.autoSyncDownload(initialChatId);
             }
+
+            // P1 Fix: 增加可见性监听，实现“重回焦点即检查同步”
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    const currentChatId = getSTContext()?.chatId;
+                    if (currentChatId) {
+                        Logger.debug(MODULE, 'Tab became visible, checking sync...');
+                        this.autoSyncDownload(currentChatId);
+                    }
+                }
+            });
         }, 2000);
     }
 
@@ -139,20 +151,44 @@ class SyncService {
             const jsonString = JSON.stringify(dump);
             const fileName = this.getSyncFileName(chatId);
 
-            // 使用 /api/files/upload 上传
-            // 注意: data 需要是 base64 编码
-            const response = await fetch('/api/files/upload', {
-                method: 'POST',
-                headers: getRequestHeaders(),
-                body: JSON.stringify({
-                    name: fileName,
-                    data: btoa(unescape(encodeURIComponent(jsonString))) // 处理 UTF-8 字符的 Base64 编码
-                })
+            // P0 Fix: 异步转码方案，防止大文件阻塞主线程
+            // 使用 Blob + FileReader 转码为数据 URL，它能流式处理并释放 CPU 压力
+            const base64Data = await new Promise<string>((resolve, reject) => {
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    // FileReader 的 result 包含 "data:application/json;base64," 前缀，需要剔除
+                    const base64 = result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = () => reject(new Error('Base64 encoding failed'));
+                reader.readAsDataURL(blob);
             });
 
-            if (!response.ok) {
-                const errText = await response.text();
-                throw new Error(`Upload failed: ${response.statusText} - ${errText}`);
+            // 使用 /api/files/upload 上传 (带重试逻辑)
+            let response: Response | null = null;
+            for (let i = 0; i < 3; i++) {
+                try {
+                    response = await fetch('/api/files/upload', {
+                        method: 'POST',
+                        headers: getRequestHeaders(),
+                        body: JSON.stringify({
+                            name: fileName,
+                            data: base64Data
+                        })
+                    });
+                    if (response.ok) break;
+                    Logger.warn(MODULE, `Upload attempt ${i + 1} failed, retrying...`);
+                } catch (e) {
+                    if (i === 2) throw e;
+                    await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 指数退避
+                }
+            }
+
+            if (!response || !response.ok) {
+                const errText = await response?.text();
+                throw new Error(`Upload failed after 3 attempts: ${response?.statusText} - ${errText}`);
             }
 
             Logger.success(MODULE, `上传完成: ${fileName}`);

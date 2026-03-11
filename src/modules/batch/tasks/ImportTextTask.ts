@@ -77,6 +77,7 @@ export class ImportTextTask implements IBatchTaskHandler {
                 if (this.config.mode === 'detailed') {
                     // V0.9.7: 调用 LLM 生成结构化摘要
                     const llmResult = await BatchUtils.summarizeChunk(chunk, i);
+                    if (checkStopSignal()) return;
 
                     if (llmResult) {
                         // 使用 Workflow Engine 解析 JSON 并存储
@@ -97,6 +98,7 @@ export class ImportTextTask implements IBatchTaskHandler {
                                 }
                             }
                         );
+                        if (checkStopSignal()) return;
 
                         if (Array.isArray(savedEvents) && savedEvents.length > 0) {
                             // Pipeline 已处理存储，只需嵌入
@@ -120,7 +122,7 @@ export class ImportTextTask implements IBatchTaskHandler {
                     // Fix P3: 降级保护：如果 LLM 返回了数据，尝试抢救 partial summary 复用
                     let fallbackSummary = chunk;
                     if (llmResult && typeof llmResult === 'string') {
-                        const summaryMatch = llmResult.match(/"summary"\s*:\s*"([^"]+)"/);
+                        const summaryMatch = llmResult.match(/"summary"\s*:\s*"(.*?[^\\])"/);
                         if (summaryMatch && summaryMatch[1]) {
                             fallbackSummary = summaryMatch[1];
                             Logger.info(LogModule.BATCH, `分块 ${i} 抢救提取了部分 summary 字段成功`);
@@ -153,6 +155,7 @@ export class ImportTextTask implements IBatchTaskHandler {
                         }
                     }
                 );
+                if (checkStopSignal()) return;
 
                 if (Array.isArray(fallbackEvents) && fallbackEvents.length > 0) {
                     const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;

@@ -70,15 +70,23 @@ export class BrainRecallStep implements IStep {
 
             const brainResults = brainRecallCache.process(allMappedCandidates);
 
-            // 3. 更新事件候选分数
+            // 3. 更新事件候选分数 (V1.4.5: 改为增量加成模式，不再直接覆盖)
             const candidateMap = new Map(candidates.map(c => [c.id, c]));
             context.data.candidates = brainResults
                 .filter(slot => candidateMap.has(slot.id))
                 .map(slot => {
                     const original = candidateMap.get(slot.id)!;
+                    
+                    // 类脑加成逻辑：finalScore (0-1) 作为权重系数
+                    // 基础保留 80% 的原始分，类脑强度贡献最高 40% 的额外增益 (总计 1.2x)
+                    // 这样即使类脑分是 0.5 (中性)，最终得分也接近原始分 (0.8 + 0.4*0.5 = 1.0)
+                    const originalScore = original.hybridScore ?? (original.embeddingScore || 0);
+                    const brainBoost = 0.8 + (0.4 * slot.finalScore);
+                    
                     return {
                         ...original,
-                        hybridScore: slot.finalScore,
+                        hybridScore: Math.min(0.99, originalScore * brainBoost),
+                        _brainIntensity: slot.finalScore // 保留原始强度用于可能的调试
                     };
                 });
 

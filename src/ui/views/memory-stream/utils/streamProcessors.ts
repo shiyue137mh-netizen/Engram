@@ -37,44 +37,42 @@ export function filterEvents(
 }
 
 /**
- * 将事件按楼层分组
+ * 将事件按时间线分组
+ * 默认每 24 小时为一个逻辑分组，或者在 browse 模式下提供平稳的时间轴
  */
 export function groupEvents(
     filteredEvents: EventNode[],
     sortOrder: SortOrder
 ): GroupedEvent[] {
-    const interval = SettingsManager.get('summarizerConfig')?.floorInterval || 10;
-    const groups = new Map<number, { title: string, events: EventNode[] }>();
+    const groups = new Map<string, { title: string, events: EventNode[] }>();
+    const isAsc = sortOrder === 'asc';
 
     filteredEvents.forEach(event => {
-        const startIndex = event.source_range?.start_index || 0;
-        const groupKey = Math.floor(startIndex / interval) * interval;
+        // 使用日期作为分组标准，让时间线更直观
+        const date = new Date(event.timestamp);
+        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        const title = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
 
-        if (!groups.has(groupKey)) {
-            const displayStart = groupKey === 0 ? 1 : groupKey + 1;
-            const displayEnd = groupKey + interval;
-            groups.set(groupKey, {
-                title: `第 ${displayStart} - ${displayEnd} 楼`,
-                events: []
-            });
+        if (!groups.has(dateKey)) {
+            groups.set(dateKey, { title, events: [] });
         }
-        groups.get(groupKey)!.events.push(event);
+        groups.get(dateKey)!.events.push(event);
     });
 
-    const sortedKeys = Array.from(groups.keys()).sort((a, b) =>
-        sortOrder === 'asc' ? a - b : b - a
-    );
+    // 默认按日期排序
+    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+        const timeA = new Date(a).getTime();
+        const timeB = new Date(b).getTime();
+        return isAsc ? timeA - timeB : timeB - timeA;
+    });
 
-    return sortedKeys.map((key) => {
+    return sortedKeys.map((key, idx) => {
         const group = groups.get(key)!;
-        group.events.sort((a, b) => {
-            if (a.level !== b.level) {
-                return b.level - a.level;
-            }
-            return sortOrder === 'asc' ? a.timestamp - b.timestamp : b.timestamp - a.timestamp;
-        });
+        // 组内严格按时间戳排序
+        group.events.sort((a, b) => isAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
+        
         return {
-            key,
+            key: idx,
             title: group.title,
             events: group.events,
             startIndex: 0,

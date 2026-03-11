@@ -16,7 +16,7 @@ npm-debug.log*
 
 # Agent Rules
 .agent/
-
+.kilocode/
 # 环境变量
 .env
 .env.local

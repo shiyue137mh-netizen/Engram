@@ -73,7 +73,7 @@ const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }
                         ? 'bg-purple-500/20 text-purple-400'
                         : 'bg-blue-500/20 text-blue-400'
                     }`}>
-                    {entry.mode === 'agentic' ? 'Agentic' : entry.mode === 'hybrid' ? '混合' : 'Embed'}
+                    {entry.mode === 'agentic' ? 'Agentic' : entry.mode === 'hybrid' ? '混合' : '向量'}
                 </span>
                 <span className="text-[10px] text-muted-foreground">
                     {entry.stats.rerankCount}/{entry.stats.topKCount} 条
@@ -85,9 +85,16 @@ const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }
             </div>
 
             {/* 查询预览 */}
-            <p className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
-                {entry.query}
-            </p>
+            <div className="relative group/query">
+                <p className={`text-sm text-foreground/90 break-words whitespace-pre-wrap transition-all duration-300 ${isSelected ? '' : 'line-clamp-3'}`}>
+                    {entry.query}
+                </p>
+                {!isSelected && entry.query.length > 100 && (
+                    <div className="absolute bottom-0 right-0 px-1 bg-background/80 text-[10px] text-primary opacity-0 group-hover/query:opacity-100 transition-opacity">
+                        点击查看全部...
+                    </div>
+                )}
+            </div>
 
             {/* 耗时 */}
             <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
