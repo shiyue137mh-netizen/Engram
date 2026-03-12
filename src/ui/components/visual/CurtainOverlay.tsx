@@ -57,7 +57,7 @@ export const CurtainOverlay: React.FC<CurtainOverlayProps> = memo(({
                 }
             });
 
-            const targetColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#3b82f6';
+            const targetColor = getComputedStyle(document.documentElement).getPropertyValue('--background').trim() || '#1a1b26';
 
             if (mode === 'entrance') {
                 gsap.set([bottomRef.current, middleRef.current], { 

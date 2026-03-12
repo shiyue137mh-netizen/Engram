@@ -55128,7 +55128,7 @@ const nae = L.memo(({
         onComplete: () => {
           t && t();
         }
-      }), N = getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() || "#3b82f6";
+      }), N = getComputedStyle(document.documentElement).getPropertyValue("--background").trim() || "#1a1b26";
       e === "entrance" ? (Zv.set([u.current, d.current], {
         [p]: g,
         opacity: 0
