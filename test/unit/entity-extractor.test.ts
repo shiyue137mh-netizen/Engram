@@ -73,9 +73,9 @@ vi.mock('@/ui/services/NotificationService', () => ({
     },
 }));
 
-import { chatManager } from '../src/data/ChatManager';
-import { MacroService } from '../src/integrations/tavern';
-import { EntityBuilder } from '../src/modules/memory/EntityExtractor';
+import { chatManager } from '@/data/ChatManager';
+import { MacroService } from '@/integrations/tavern';
+import { EntityBuilder } from '@/modules/memory/EntityExtractor';
 
 
 describe('EntityBuilder trigger/range guards', () => {

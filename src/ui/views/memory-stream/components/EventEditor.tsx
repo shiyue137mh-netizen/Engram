@@ -67,11 +67,13 @@ const textareaStyle: React.CSSProperties = {
 /**
  * 根据 KV 字段自动生成 summary
  */
-function generateSummaryFromKV(kv: Partial<EventNode['structured_kv']>): string {
+function generateSummaryFromKV(kv: Partial<EventNode['structured_kv']> | null | undefined): string {
+    if (!kv) return '';
+
     const parts: string[] = [];
 
     // 时间和地点
-    const locationStr = Array.isArray(kv.location) ? kv.location.join(', ') : kv.location;
+    const locationStr = Array.isArray(kv.location) ? kv.location.join(', ') : (kv.location || '');
     if (kv.time_anchor && locationStr) {
         parts.push(`【${kv.time_anchor}·${locationStr}】`);
     } else if (kv.time_anchor) {
@@ -81,7 +83,7 @@ function generateSummaryFromKV(kv: Partial<EventNode['structured_kv']>): string 
     }
 
     // 人物
-    if (kv.role && kv.role.length > 0) {
+    if (Array.isArray(kv.role) && kv.role.length > 0) {
         parts.push(kv.role.join('、'));
     }
 
@@ -91,11 +93,11 @@ function generateSummaryFromKV(kv: Partial<EventNode['structured_kv']>): string 
     }
 
     // 逻辑标签
-    if (kv.logic && kv.logic.length > 0) {
+    if (Array.isArray(kv.logic) && kv.logic.length > 0) {
         parts.push(`(${kv.logic.join('/')})`);
     }
 
-    return parts.join(' ');
+    return parts.join(' ').trim();
 }
 
 // ==================== 组件 ====================
@@ -190,7 +192,8 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
         };
 
         const autoSummary = generateSummaryFromKV(kv);
-        const finalSummary = overrides.summary ?? (autoSummary || summary);
+        // V1.4.3 Fix: 优先使用覆盖值，其次是当前手填/暂存的 summary，然后是 KV 生成的，最后兜底用数据库里的
+        const finalSummary = overrides.summary ?? summary ?? autoSummary ?? event.summary;
 
         const updates = {
             summary: finalSummary,

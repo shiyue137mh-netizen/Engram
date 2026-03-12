@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BrainRecallCache, RecallCandidate } from '../src/modules/rag/retrieval/BrainRecallCache';
+import { BrainRecallCache, RecallCandidate } from '@/modules/rag/retrieval/BrainRecallCache';
 
 // 模拟配置
 const mockConfig: any = {

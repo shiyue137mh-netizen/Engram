@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { retriever } from '../src/modules/rag/retrieval/Retriever';
+import { retriever } from '@/modules/rag/retrieval/Retriever';
 
 const mockDb = {
     events: {

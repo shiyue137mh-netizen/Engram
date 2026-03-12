@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { KeywordRetrieveStep } from '../src/modules/workflow/steps/rag/KeywordRetrieveStep';
-import { JobContext } from '../src/modules/workflow/core/JobContext';
-import { useMemoryStore } from '../src/state/memoryStore';
-import { SettingsManager } from '../src/config/settings';
+import { KeywordRetrieveStep } from '@/modules/workflow/steps/rag/KeywordRetrieveStep';
+import { JobContext } from '@/modules/workflow/core/JobContext';
+import { useMemoryStore } from '@/state/memoryStore';
+import { SettingsManager } from '@/config/settings';
 
 // Mock tavern
 vi.mock('@/integrations/tavern', () => ({

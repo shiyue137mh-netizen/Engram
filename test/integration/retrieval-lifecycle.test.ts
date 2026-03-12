@@ -61,7 +61,8 @@ describe('Retrieval Lifecycle Integration', () => {
                             reinforceFactor: 0.2,
                             maxDamping: 0.1
                         }
-                    }
+                    },
+                    vectorConfig: { enabled: true }
                 };
             }
             return null;
@@ -104,8 +105,8 @@ describe('Retrieval Lifecycle Integration', () => {
             await db.events.add({
                 id: 'evt_B',
                 summary: '由于天气太冷，艾莉丝回家喝热可可。',
-                embedding: null,
-                is_embedded: false,
+                embedding: [0, 1, 0],
+                is_embedded: true,
                 level: 0,
                 significance_score: 0.3,
                 structured_kv: { event: '休息', role: ['艾莉丝'], location: ['家'], time_anchor: '', logic: [], causality: '' },

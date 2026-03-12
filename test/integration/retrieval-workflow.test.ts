@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { WorkflowEngine } from '../src/modules/workflow/core/WorkflowEngine';
-import { createRetrievalWorkflow } from '../src/modules/workflow/definitions/RetrievalWorkflow';
+import { WorkflowEngine } from '@/modules/workflow/core/WorkflowEngine';
+import { createRetrievalWorkflow } from '@/modules/workflow/definitions/RetrievalWorkflow';
 
 // Mocks
 vi.mock('@/integrations/tavern', () => ({
@@ -36,6 +36,7 @@ vi.mock('@/data/db', () => ({
 vi.mock('@/modules/rag/embedding/EmbeddingService', () => ({
     embeddingService: {
         embed: vi.fn().mockResolvedValue([0.1, 0.2]),
+        setConfig: vi.fn(),
         computeNorm: vi.fn().mockReturnValue(1),
         cosineSimilarity: vi.fn().mockImplementation((a, b) => {
             if (b[0] === 0.1) return 0.9;
@@ -50,6 +51,7 @@ vi.mock('@/modules/rag/retrieval/Reranker', () => ({
             { id: 'evt_1', score: 0.95 },
             { id: 'evt_2', score: 0.85 }
         ]),
+        isEnabled: vi.fn().mockReturnValue(true),
         isReady: vi.fn().mockResolvedValue(true)
     }
 }));
@@ -62,7 +64,20 @@ vi.mock('@/core/logger/RecallLogger', () => ({
 
 vi.mock('@/config/settings', () => ({
     SettingsManager: {
-        get: vi.fn().mockReturnValue(undefined)
+        get: vi.fn().mockImplementation((key) => {
+            if (key === 'apiSettings') return {
+                recallConfig: {
+                    enabled: true,
+                    useEmbedding: true,
+                    useRerank: true,
+                    embedding: { topK: 5, minScoreThreshold: 0.1 },
+                    rerank: { topK: 3, minScoreThreshold: 0.1 },
+                    brainRecall: { enabled: true, workingLimit: 5, shortTermLimit: 15 }
+                },
+                vectorConfig: { enabled: true }
+            };
+            return undefined;
+        })
     }
 }));
 

@@ -232,16 +232,47 @@ class SyncService {
 
             if (!response.ok) return { exists: false, timestamp: 0 };
 
-            const dump = await response.json() as ChatDataDump;
-
-            if (!dump.meta || !dump.meta.lastModified) {
-                return { exists: false, timestamp: 0 };
+            // P1 Fix: 放弃直接 response.json() 把整个几 MB 甚至几十 MB 吃进内存
+            // 改为流式读取 Buffer 首部，提取 meta.lastModified 后即刻 abort
+            const reader = response.body?.getReader();
+            if (!reader) {
+                // 如果环境不支持流式读取（极少），回退为常规读取
+                const dump = await response.json() as ChatDataDump;
+                return {
+                    exists: true,
+                    timestamp: (dump.meta?.lastModified as number) || 0,
+                };
             }
 
-            return {
-                exists: true,
-                timestamp: dump.meta.lastModified as number,
-            };
+            const decoder = new TextDecoder('utf-8');
+            let chunkStr = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                chunkStr += decoder.decode(value, { stream: true });
+                
+                // 尝试用正则匹配 `"lastModified": 123456789`
+                const match = chunkStr.match(/"lastModified"\s*:\s*(\d+)/);
+                if (match) {
+                    // 取到值后，强制立刻切断后方冗长的数据流下载，拯救内存与带宽喵！
+                    reader.cancel();
+                    return {
+                        exists: true,
+                        timestamp: parseInt(match[1], 10)
+                    };
+                }
+                
+                // 为了防止极端情况下 meta 不在最前面，但也不会找太久
+                // 仅扫描前 100KB (粗略判断)，如果在 100KB 内没找到也 abort 以保安全
+                if (chunkStr.length > 102400) {
+                    reader.cancel();
+                    break;
+                }
+            }
+
+            return { exists: false, timestamp: 0 };
 
         } catch (error) {
             // 404 等错误也会进这里

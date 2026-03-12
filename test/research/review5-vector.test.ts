@@ -1,13 +1,17 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { VectorRetrieveStep } from '../src/modules/workflow/steps/rag/VectorRetrieveStep';
+import { VectorRetrieveStep } from '@/modules/workflow/steps/rag/VectorRetrieveStep';
 
-// 1. 定义 Mock 函数
-const embedMock = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
+// 1. 定义 Mock 函数 (Vite requires vi.hoisted if referenced in factory)
+const { embedMock } = vi.hoisted(() => ({
+    embedMock: vi.fn().mockResolvedValue([0.1, 0.2, 0.3])
+}));
 
 // 2. 模拟依赖项
-vi.mock('@/modules/rag/embeddings/EmbeddingService', () => ({
+vi.mock('@/modules/rag/embedding/EmbeddingService', () => ({
     embeddingService: {
-        embed: embedMock
+        embed: embedMock,
+        setConfig: vi.fn(),
+        cosineSimilarity: vi.fn()
     }
 }));
 

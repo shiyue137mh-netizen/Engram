@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { WorkflowEngine, WorkflowDefinition } from '../src/modules/workflow/core/WorkflowEngine';
-import { JobContext } from '../src/modules/workflow/core/JobContext';
-import { IStep } from '../src/modules/workflow/core/Step';
+import { WorkflowEngine, WorkflowDefinition } from '@/modules/workflow/core/WorkflowEngine';
+import { JobContext } from '@/modules/workflow/core/JobContext';
+import { IStep } from '@/modules/workflow/core/Step';
 
 describe('WorkflowEngine Loop Protection', () => {
     

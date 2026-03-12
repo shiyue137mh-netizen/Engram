@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { SaveEntity } from '../src/modules/workflow/steps/persistence/SaveEntity';
+import { SaveEntity } from '@/modules/workflow/steps/persistence/SaveEntity';
 
 // 直接定义 Mock 函数以便在外部引用
 const saveEntityMock = vi.fn().mockImplementation(e => Promise.resolve({ ...e, id: 'new-id' }));

@@ -19,6 +19,10 @@ export class BatchEngine {
     // 节流时间阈值 (ms)
     private readonly THROTTLE_MS = 100;
 
+    // P2 Fix: 使用 Promise Lock 替换 setTimeout 轮询
+    private pausePromise: Promise<void> | null = null;
+    private pauseResolve: (() => void) | null = null;
+
     /**
      * 订阅队列状态变化
      * @param callback 进度变更的回调函数
@@ -118,6 +122,8 @@ export class BatchEngine {
         this.queue.isRunning = true;
         this.stopSignal = false;
         this.queue.isPaused = false;
+        this.pausePromise = null;
+        this.pauseResolve = null;
 
         try {
             // 步骤1：让业务方给出此次调度的预估任务切片名细
@@ -145,9 +151,9 @@ export class BatchEngine {
 
             // 消费每一个循环
             for await (const _ of generator) {
-                // 等待取消暂停 (软暂停模式：挂起事件循环)
-                while (this.queue.isPaused && !this.stopSignal) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                // 等待取消暂停 (软暂停模式：利用 Promise Lock 挂起事件循环)
+                if (this.queue.isPaused && !this.stopSignal && this.pausePromise) {
+                    await this.pausePromise;
                 }
 
                 if (this.stopSignal) {
@@ -182,6 +188,9 @@ export class BatchEngine {
     pause(): void {
         if (!this.queue.isRunning || this.queue.isPaused) return;
         this.queue.isPaused = true;
+        this.pausePromise = new Promise<void>(resolve => {
+            this.pauseResolve = resolve;
+        });
         this.notifyProgress(true);
     }
 
@@ -191,6 +200,11 @@ export class BatchEngine {
     resume(): void {
         if (!this.queue.isRunning || !this.queue.isPaused) return;
         this.queue.isPaused = false;
+        if (this.pauseResolve) {
+            this.pauseResolve();
+            this.pauseResolve = null;
+            this.pausePromise = null;
+        }
         this.notifyProgress(true);
     }
 
@@ -201,6 +215,11 @@ export class BatchEngine {
         this.stopSignal = true;
         this.queue.isRunning = false;
         this.queue.isPaused = false;
+        if (this.pauseResolve) {
+            this.pauseResolve();
+            this.pauseResolve = null;
+            this.pausePromise = null;
+        }
 
         // Mark remaining running tasks as skipped or left as is, typically reset UI.
         this.queue.tasks.forEach(task => {
@@ -211,6 +230,11 @@ export class BatchEngine {
 
         this.notifyProgress(true);
         // Wait a slight tick then clear (so UI sees the stop)
-        setTimeout(() => this.clearQueue(), 500);
+        setTimeout(() => {
+            // Fix P0: 防止在此期间已经发起了新的 execute()，消除清除竞态！
+            if (!this.queue.isRunning) {
+                this.clearQueue();
+            }
+        }, 500);
     }
 }

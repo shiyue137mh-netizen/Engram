@@ -59,9 +59,8 @@ export class KeywordRetrieveStep implements IStep {
 
         // 1. 获取轻量级数据镜像进行初步扫描 (P1 Fix: 内存优化)
         // 仅获取匹配关键词所需的最小字段：id, name, aliases
-        const entityIndex = await db.entities.toCollection().toArray(items => 
-            items.map(e => ({ id: e.id, name: e.name, aliases: e.aliases }))
-        );
+        const allEntitiesForIds = await db.entities.toArray();
+        const entityIndex = allEntitiesForIds.map(e => ({ id: e.id, name: e.name, aliases: e.aliases }));
 
         Logger.debug(LogModule.RAG_INJECT, `准备扫描。实体索引总量: ${entityIndex.length}`);
 

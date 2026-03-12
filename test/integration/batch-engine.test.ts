@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { BatchEngine } from '../src/modules/batch/engine/BatchEngine';
-import { BatchTask, IBatchTaskHandler } from '../src/modules/batch/types';
+import { BatchEngine } from '@/modules/batch/engine/BatchEngine';
+import { BatchTask, IBatchTaskHandler } from '@/modules/batch/types';
 
 // ==================== Mocks ====================
 class MockTaskHandler implements IBatchTaskHandler {
