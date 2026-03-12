@@ -377,3 +377,55 @@
     outline: 2px solid var(--ring, #3b82f6);
     outline-offset: 2px;
 }
+/* ==================== Curtain Overlay (V7 - Random Flux) ==================== */
+
+.engram-curtain-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.engram-curtain-slice {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    will-change: transform, opacity, background-color;
+    backdrop-filter: blur(24px); /* V7: 强化模糊 */
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    /* 初始设置为 0%，由 GSAP 立即覆盖，防止计算方位前的瞬现 */
+    opacity: 0;
+}
+
+/* 边缘羽化效果：动态渐变卸力 */
+.engram-curtain-slice::after {
+    content: '';
+    position: absolute;
+    /* 通过 JS 动态注入 --feather-dir 和 --feather-edge */
+    background: linear-gradient(to var(--feather-dir, left), transparent, rgba(0,0,0,0.25));
+    pointer-events: none;
+    inset: var(--feather-inset, 0 0 0 -150px);
+    width: var(--feather-w, 150px);
+    height: var(--feather-h, 100%);
+}
+
+.engram-curtain-slice.bottom {
+    z-index: 11;
+    background-color: var(--primary);
+    box-shadow: 0 0 120px rgba(0, 0, 0, 0.5);
+}
+
+.engram-curtain-slice.middle {
+    z-index: 12;
+    background-color: var(--background);
+    box-shadow: 0 0 200px rgba(0, 0, 0, 0.7);
+}
+
+
+
+
+
+

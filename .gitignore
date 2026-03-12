@@ -33,3 +33,4 @@ npm-debug.log*
 # Scripts and test
 test/private/
 coverage/
+
