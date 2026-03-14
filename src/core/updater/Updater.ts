@@ -10,6 +10,7 @@
 import { SettingsManager } from '@/config/settings';
 import { notificationService } from "@/ui/services/NotificationService";
 import manifest from '../../../manifest.json';
+declare const __COMMIT_HASH__: string;
 
 /** GitHub 仓库配置 */
 const REPO_CONFIG = {
@@ -18,11 +19,13 @@ const REPO_CONFIG = {
     branch: 'master', 
 };
 
-/** 当前版本（从 manifest.json 中读取） */
+/** 当前开发版本与哈希 */
 const CURRENT_VERSION = manifest.version;
+const CURRENT_HASH = typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'unknown';
 
 /** 缓存 */
 let cachedLatestVersion: string | null = null;
+let cachedLatestHash: string | null = null;
 let cachedChangelog: string | null = null;
 
 /**
@@ -47,10 +50,55 @@ function compareVersions(a: string, b: string): number {
  */
 export class UpdateService {
     /**
-     * 获取当前版本
+     * 获取当前哈希
      */
-    static getCurrentVersion(): string {
-        return CURRENT_VERSION;
+    static getCurrentHash(): string {
+        return CURRENT_HASH;
+    }
+
+    /**
+     * 从 GitHub 获取最新提交哈希
+     */
+    static async getLatestHash(): Promise<string | null> {
+        if (cachedLatestHash) {
+            return cachedLatestHash;
+        }
+
+        try {
+            // 尝试从 GitHub API 获取最新的 commit hash
+            const url = `https://api.github.com/repos/${REPO_CONFIG.owner}/${REPO_CONFIG.repo}/commits/${REPO_CONFIG.branch}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                cachedLatestHash = data.sha?.substring(0, 7) || null;
+                return cachedLatestHash;
+            }
+        } catch {
+            // 静默失败
+        }
+        return null;
+    }
+
+    /**
+     * 尝试从酒馆后端获取自身 Git 状态
+     */
+    static async getTavernGitStatus(): Promise<{ isUpToDate: boolean, currentCommitHash: string } | null> {
+        try {
+            const response = await fetch('/api/extensions/version', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    extensionName: 'Engram', 
+                    global: false // 默认为当前用户扩展
+                }),
+            });
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch {
+            // 静默失败
+        }
+        return null;
     }
 
     /**
@@ -66,7 +114,6 @@ export class UpdateService {
             const response = await fetch(url);
 
             if (!response.ok) {
-                // 仓库未上传时静默返回，不打印警告
                 return null;
             }
 
@@ -74,19 +121,35 @@ export class UpdateService {
             cachedLatestVersion = manifest.version || null;
             return cachedLatestVersion;
         } catch {
-            // 网络错误静默返回
             return null;
         }
     }
 
     /**
-     * 检查是否有更新
+     * 检查是否有更新 (版本优先，哈希次之)
      */
     static async hasUpdate(): Promise<boolean> {
-        const latest = await this.getLatestVersion();
-        if (!latest) return false;
+        // 1. 优先检查酒馆后端 (如果通过 Git 安装)
+        const tavernStatus = await this.getTavernGitStatus();
+        if (tavernStatus && !tavernStatus.isUpToDate) {
+            return true;
+        }
 
-        return compareVersions(latest, CURRENT_VERSION) > 0;
+        // 2. 检查版本号
+        const latestVersion = await this.getLatestVersion();
+        if (latestVersion && compareVersions(latestVersion, CURRENT_VERSION) > 1) {
+            return true;
+        }
+
+        // 3. 检查哈希 (如果版本号一致)
+        if (latestVersion === CURRENT_VERSION || !latestVersion) {
+            const latestHash = await this.getLatestHash();
+            if (latestHash && CURRENT_HASH !== 'unknown' && latestHash !== CURRENT_HASH) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -117,9 +180,9 @@ export class UpdateService {
     }
 
     /**
-     * 获取已读版本（上次用户确认查看的版本）
+     * 获取已读标识 (优先哈希，次之版本)
      */
-    static getReadVersion(): string {
+    static getReadMark(): string {
         try {
             return SettingsManager.get('lastReadVersion') || '0.0.0';
         } catch {
@@ -128,15 +191,19 @@ export class UpdateService {
     }
 
     /**
-     * 标记版本已读
+     * 标记标识已读
      */
-    static async markAsRead(version?: string): Promise<void> {
-        const targetVersion = version || await this.getLatestVersion() || CURRENT_VERSION;
+    static async markAsRead(): Promise<void> {
+        const latestVersion = await this.getLatestVersion() || CURRENT_VERSION;
+        const latestHash = await this.getLatestHash() || CURRENT_HASH;
+        
+        // 存储格式: version@hash
+        const mark = `${latestVersion}@${latestHash}`;
         try {
-            SettingsManager.set('lastReadVersion', targetVersion);
-            console.debug('[Engram] UpdateService: 已标记版本已读', targetVersion);
+            SettingsManager.set('lastReadVersion', mark);
+            console.debug('[Engram] UpdateService: 已标记已读', mark);
         } catch (e) {
-            console.error('[Engram] UpdateService: 标记已读失败', e);
+            console.error('[Engram] UpdateService: 标记失败', e);
         }
     }
 
@@ -144,16 +211,15 @@ export class UpdateService {
      * 检查是否有未读更新
      */
     static async hasUnreadUpdate(): Promise<boolean> {
-        const latest = await this.getLatestVersion();
-        if (!latest) return false;
+        const hasUpdate = await this.hasUpdate();
+        if (!hasUpdate) return false;
 
-        // 逻辑修复：首先必须有新版本 (Remote > Local)
-        if (compareVersions(latest, CURRENT_VERSION) <= 0) {
-            return false;
-        }
-
-        const readVersion = this.getReadVersion();
-        return compareVersions(latest, readVersion) > 0;
+        const latestVersion = await this.getLatestVersion() || CURRENT_VERSION;
+        const latestHash = await this.getLatestHash() || CURRENT_HASH;
+        const currentMark = `${latestVersion}@${latestHash}`;
+        
+        const readMark = this.getReadMark();
+        return readMark !== currentMark;
     }
 
     /**
@@ -161,6 +227,7 @@ export class UpdateService {
      */
     static clearCache(): void {
         cachedLatestVersion = null;
+        cachedLatestHash = null;
         cachedChangelog = null;
     }
 }

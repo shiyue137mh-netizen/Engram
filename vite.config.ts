@@ -3,6 +3,15 @@ import react from '@vitejs/plugin-react';
 import mdx from '@mdx-js/rollup';
 import remarkGfm from 'remark-gfm';
 import path from 'path';
+import { execSync } from 'child_process';
+
+const commitHash = (() => {
+    try {
+        return execSync('git rev-parse --short HEAD').toString().trim();
+    } catch (e) {
+        return 'unknown';
+    }
+})();
 
 export default defineConfig(({ mode }) => ({
     plugins: [
@@ -67,6 +76,7 @@ export default defineConfig(({ mode }) => ({
     // 定义环境变量，避免浏览器 process is not defined 错误
     define: {
         'process.env.NODE_ENV': JSON.stringify(mode),
+        '__COMMIT_HASH__': JSON.stringify(commitHash),
     },
 
     resolve: {
