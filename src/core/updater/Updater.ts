@@ -50,6 +50,13 @@ function compareVersions(a: string, b: string): number {
  */
 export class UpdateService {
     /**
+     * 获取当前版本
+     */
+    static getCurrentVersion(): string {
+        return CURRENT_VERSION;
+    }
+
+    /**
      * 获取当前哈希
      */
     static getCurrentHash(): string {
@@ -192,16 +199,14 @@ export class UpdateService {
 
     /**
      * 标记标识已读
+     * @param mark 可选，手动指定标记内容 (version@hash)
      */
-    static async markAsRead(): Promise<void> {
-        const latestVersion = await this.getLatestVersion() || CURRENT_VERSION;
-        const latestHash = await this.getLatestHash() || CURRENT_HASH;
+    static async markAsRead(mark?: string): Promise<void> {
+        const targetMark = mark || `${await this.getLatestVersion() || CURRENT_VERSION}@${await this.getLatestHash() || CURRENT_HASH}`;
         
-        // 存储格式: version@hash
-        const mark = `${latestVersion}@${latestHash}`;
         try {
-            SettingsManager.set('lastReadVersion', mark);
-            console.debug('[Engram] UpdateService: 已标记已读', mark);
+            SettingsManager.set('lastReadVersion', targetMark);
+            console.debug('[Engram] UpdateService: 已标记已读', targetMark);
         } catch (e) {
             console.error('[Engram] UpdateService: 标记失败', e);
         }

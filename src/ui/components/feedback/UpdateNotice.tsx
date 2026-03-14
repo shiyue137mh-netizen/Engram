@@ -155,6 +155,7 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
 export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) => {
     const [isLoading, setIsLoading] = useState(true);
     const [latestVersion, setLatestVersion] = useState<string | null>(null);
+    const [latestHash, setLatestHash] = useState<string | null>(null);
     const [changelog, setChangelog] = useState<string | null>(null);
     const [hasUpdate, setHasUpdate] = useState(false);
     const [isMarking, setIsMarking] = useState(false);
@@ -162,6 +163,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
     const [updateMessage, setUpdateMessage] = useState<string | null>(null);
 
     const currentVersion = UpdateService.getCurrentVersion();
+    const currentHash = UpdateService.getCurrentHash();
 
     useEffect(() => {
         if (isOpen) {
@@ -173,12 +175,14 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
     const loadUpdateInfo = async () => {
         setIsLoading(true);
         try {
-            const [latest, log, update] = await Promise.all([
+            const [latest, hash, log, update] = await Promise.all([
                 UpdateService.getLatestVersion(),
+                UpdateService.getLatestHash(),
                 UpdateService.getChangelog(),
                 UpdateService.hasUpdate(),
             ]);
             setLatestVersion(latest);
+            setLatestHash(hash);
             setChangelog(log);
             setHasUpdate(update);
         } catch (e) {
@@ -191,9 +195,8 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
     const handleMarkAsRead = async () => {
         setIsMarking(true);
         try {
-            const versionToMark = latestVersion || currentVersion;
-            console.debug('[Engram] Marking update as read:', versionToMark);
-            await UpdateService.markAsRead(versionToMark);
+            // 不传参数，由 UpdateService 内部构建最新的 mark (latestVersion@latestHash)
+            await UpdateService.markAsRead();
             onClose();
         } finally {
             setIsMarking(false);
@@ -261,7 +264,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                         <div>
                             <h2 className="text-base font-semibold text-foreground">更新通知</h2>
                             <p className="text-xs text-muted-foreground">
-                                当前版本: v{currentVersion}
+                                当前版本: v{currentVersion} {currentHash !== 'unknown' && `(${currentHash})`}
                             </p>
                         </div>
                     </div>
@@ -307,7 +310,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                                     <div className="flex-1">
                                         <p className="font-medium text-foreground">
                                             {hasUpdate
-                                                ? `发现新版本: v${latestVersion}`
+                                                ? `发现新版本: v${latestVersion}${latestHash ? ` (${latestHash})` : ''}`
                                                 : '已是最新版本'}
                                         </p>
                                         <p className="text-xs text-muted-foreground mt-0.5">
