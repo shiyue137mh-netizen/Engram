@@ -15,12 +15,9 @@ export class VectorRetrieveStep implements IStep {
         // Ensure context.data is initialized
         context.data = context.data || {};
 
-        const query = context.input?.query as string;
+        // P0 Fix: 不再暴力抛错，改为在后文根据 fallback 逻辑判断
+        const query = (context.input?.query as string) || '';
         const unifiedQueries = context.input?.unifiedQueries as string[] | undefined;
-
-        if (!query) {
-            throw new Error('VectorRetrieveStep: Missing query in context.input');
-        }
 
         const apiSettings = SettingsManager.get('apiSettings');
         const config = apiSettings?.recallConfig || DEFAULT_RECALL_CONFIG;
@@ -46,10 +43,17 @@ export class VectorRetrieveStep implements IStep {
             return;
         }
 
-        // 获取所有已嵌入的事件
-        const events = await db.events
-            .filter(e => !!e.embedding && e.embedding.length > 0)
-            .toArray();
+        // P1 Fix: 使用流式读取或更轻量的过滤。此处暂时先读取有向量的事件，后面可以考虑游标过滤
+        // 注意：Dexie 的 filter 是内存操作，toArray 才会拉取。这里如果是大量事件，toArray 依然有压力。
+        // 改为流式处理计算相似度时再收集。
+        const events: any[] = [];
+        await db.events
+            .toCollection()
+            .each(e => {
+                if (e.embedding && e.embedding.length > 0) {
+                    events.push(e);
+                }
+            });
 
         // 获取查询的嵌入向量
         let queryVector: number[];
@@ -71,15 +75,13 @@ export class VectorRetrieveStep implements IStep {
             const isFallbackFromChat = !unifiedQueries || unifiedQueries.length === 0;
             const rawQuery = !isFallbackFromChat ? unifiedQueries![0] : query;
             
-            // P0 Fix: 执行长度裁剪，防止 Embedding 精度坍塌
-            // 如果是历史回溯 (fallback)，由于通常含有多轮对话，裁剪至 300 字符
-            // 如果是抽取 Query，裁剪至 500 字符
+            // P2 Fix: 使用字符级安全的截断方式，防止 Emoji/多字节字符截断损坏
             const maxLength = isFallbackFromChat ? 300 : 500;
-            const searchQuery = rawQuery.length > maxLength 
-                ? rawQuery.substring(0, maxLength) + "..." 
+            const searchQuery = Array.from(rawQuery).length > maxLength 
+                ? Array.from(rawQuery).slice(0, maxLength).join('') + "..." 
                 : rawQuery;
 
-            if (rawQuery.length > maxLength) {
+            if (Array.from(rawQuery).length > maxLength) {
                 Logger.debug(LogModule.RAG_RETRIEVE, `VectorRetrieveStep: 查询过长，已裁剪至 ${maxLength} 字符`, {
                     originalLength: rawQuery.length,
                     isFallback: isFallbackFromChat

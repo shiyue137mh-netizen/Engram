@@ -67,21 +67,10 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
         setIsCurtainActive(true);
     }, [enableAnimations, onClose]);
 
-    // 揭开内容的触发器 (V8: 移入 MainLayout 以确保 Ref 稳定性)
+    // 揭开内容的触发器
     const handleCurtainReveal = useCallback(() => {
         setIsContentVisible(true);
-        
-        if (contentRef.current) {
-            const axis = animationDir === 'left' ? 'x' : 'y';
-            const travelDistance = '200%';
-            
-            // 完美同步：内容入场动画
-            gsap.fromTo(contentRef.current, 
-                { [axis]: travelDistance, opacity: 0 },
-                { [axis]: '0%', opacity: 1, duration: 1.3, ease: 'expo.out' }
-            );
-        }
-    }, [animationDir]);
+    }, []);
 
     // 动画环节回调 - 记忆化以防止子组件二次触发
     const handleCurtainCovered = useCallback(() => {
@@ -132,11 +121,14 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
 
             {/* Main Content Area - Only rendered when curtain covers the screen */}
             {isReadyToRender && (
-                <div 
+                <motion.div 
                     ref={contentRef}
                     className="flex w-full h-full"
+                    initial={enableAnimations ? { x: animationDir === 'left' ? '50%' : 0, y: animationDir === 'top' ? '50%' : 0, opacity: 0 } : false}
+                    animate={isContentVisible ? { x: 0, y: 0, opacity: 1 } : {}}
+                    transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
                     style={{ 
-                        opacity: isContentVisible ? 1 : 0,
+                        zIndex: 100, // 确保叠在大幕之上
                         pointerEvents: (enableAnimations && isCurtainActive) ? 'none' : 'auto'
                     }}
                 >
@@ -209,7 +201,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                             )}
                         </main>
                     </div>  {/* End Right Content Area */}
-                </div>
+                </motion.div>
             )}
         </div>
     );

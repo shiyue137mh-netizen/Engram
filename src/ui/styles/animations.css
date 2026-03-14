@@ -383,7 +383,7 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 9999;
+    z-index: 10;
     overflow: hidden;
 }
 
@@ -400,17 +400,7 @@
     opacity: 0;
 }
 
-/* 边缘羽化效果：动态渐变卸力 */
-.engram-curtain-slice::after {
-    content: '';
-    position: absolute;
-    /* 通过 JS 动态注入 --feather-dir 和 --feather-edge */
-    background: linear-gradient(to var(--feather-dir, left), transparent, rgba(0,0,0,0.25));
-    pointer-events: none;
-    inset: var(--feather-inset, 0 0 0 -150px);
-    width: var(--feather-w, 150px);
-    height: var(--feather-h, 100%);
-}
+/* 移除羽化效果 */
 
 .engram-curtain-slice.bottom {
     z-index: 11;

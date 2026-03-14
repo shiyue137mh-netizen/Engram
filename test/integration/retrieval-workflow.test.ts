@@ -7,31 +7,46 @@ vi.mock('@/integrations/tavern', () => ({
     getCurrentChatId: () => 'test-chat-id'
 }));
 
-vi.mock('@/data/db', () => ({
-    tryGetDbForChat: () => ({
-        events: {
-            filter: vi.fn().mockReturnThis(),
-            toArray: vi.fn().mockResolvedValue([
-                {
-                    id: 'evt_1',
-                    summary: 'test event 1',
-                    embedding: [0.1, 0.2],
-                    structured_kv: { role: [], location: [], event: 'evt_1' },
-                },
-                {
-                    id: 'evt_2',
-                    summary: 'test event 2',
-                    embedding: [0.3, 0.4],
-                    structured_kv: { role: [], location: [], event: 'evt_2' },
-                }
-            ])
+vi.mock('@/data/db', () => {
+    const mockEvents = [
+        {
+            id: 'evt_1',
+            summary: 'test event 1',
+            embedding: [0.1, 0.2],
+            structured_kv: { role: [], location: [], event: 'evt_1' },
+            is_archived: 1
         },
-        // KeywordRetrieveStep 现在会访问 entities 表（用于关键词扫描）
-        entities: {
-            toArray: vi.fn().mockResolvedValue([])
+        {
+            id: 'evt_2',
+            summary: 'test event 2',
+            embedding: [0.3, 0.4],
+            structured_kv: { role: [], location: [], event: 'evt_2' },
+            is_archived: 1
         }
-    })
-}));
+    ];
+
+    const createMockTable = (data: any[]) => ({
+        filter: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue(data),
+        toCollection: vi.fn().mockReturnThis(),
+        each: vi.fn().mockImplementation(async (callback) => {
+            for (const item of data) {
+                await callback(item);
+            }
+        }),
+        where: vi.fn().mockReturnThis(),
+        equals: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        count: vi.fn().mockResolvedValue(data.length)
+    });
+
+    return {
+        tryGetDbForChat: () => ({
+            events: createMockTable(mockEvents),
+            entities: createMockTable([])
+        })
+    };
+});
 
 vi.mock('@/modules/rag/embedding/EmbeddingService', () => ({
     embeddingService: {

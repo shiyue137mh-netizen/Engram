@@ -122,9 +122,9 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
             {editingEntity && (
                 <div
                     className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in"
-                    style={{ height: '100dvh', width: '100vw' }}
+                    style={{ height: '100dvh', width: '100vw', top: 0, left: 0 }}
                 >
-                    <div className="w-full max-w-6xl bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 h-[90dvh] overflow-hidden">
+                    <div className="w-full max-w-6xl mx-auto bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 h-[90dvh] overflow-hidden">
                         <div className="flex items-center justify-between border-b pb-2 mb-2 shrink-0">
                             <h3 className="text-lg font-bold">编辑实体</h3>
                             <div className="text-xs text-muted-foreground">保存时将自动使用右侧预览的 YAML 格式</div>

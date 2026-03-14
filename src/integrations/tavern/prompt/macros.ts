@@ -117,7 +117,10 @@ export class MacroService {
             MacroService.registerMacro(
                 'userPersona',
                 () => {
-                    return MacroService.cachedUserPersona;
+                    // 实时优先：由于人设切换频繁，此处优先读取酒馆原生变量
+                    // @ts-ignore
+                    const liveDescription = window.power_user?.persona_description || window.SillyTavern?.getContext?.()?.powerUserSettings?.persona_description;
+                    return typeof liveDescription === 'string' ? liveDescription : MacroService.cachedUserPersona;
                 },
                 'Engram: 用户角色设定 (酒馆 Persona Description)'
             );
@@ -166,6 +169,11 @@ export class MacroService {
                     Logger.info('MacroService', '聊天切换，清理旧缓存');
                     this.clearCache();
                     this.refreshCache().catch(e => Logger.warn('MacroService', '刷新缓存失败', e));
+                });
+
+                // V1.0.1: 监听设置更新（通常包含人设描述变更）
+                eventSource.on('settings_updated', () => {
+                    this.refreshCache().catch(e => Logger.warn('MacroService', '设置更新后刷新缓存失败', e));
                 });
             }
 
@@ -489,8 +497,8 @@ export class MacroService {
      */
     private static refreshUserPersona(): void {
         try {
-            // @ts-ignore - 酒馆全局变量
-            const powerUser = window.power_user;
+            // @ts-ignore - 酒馆全局变量，优先通过 context 获取
+            const powerUser = window.power_user || window.SillyTavern?.getContext?.()?.powerUserSettings;
             this.cachedUserPersona = powerUser?.persona_description || '';
             Logger.debug('MacroService', '用户设定缓存已刷新', {
                 length: this.cachedUserPersona.length

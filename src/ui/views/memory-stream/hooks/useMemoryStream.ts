@@ -2,7 +2,7 @@ import { SettingsManager } from '@/config/settings';
 import type { EntityNode, EventNode } from '@/data/types/graph';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
-import { useMemoryStore } from '@/state/memoryStore';
+import { useMemoryStore, getCurrentDb } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
 import { filterEntities, filterEvents, groupEntities, groupEvents } from '@/ui/views/memory-stream/utils/streamProcessors';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -437,7 +437,7 @@ export function useMemoryStream() {
             const Dexie = (await import('dexie')).default;
             const names = await Dexie.getDatabaseNames();
             // @ts-ignore
-            const currentDbName = (store as any).getCurrentDb?.()?.name || '';
+            const currentDbName = getCurrentDb()?.name || '';
             const engramDbs = names.filter(n => n.startsWith('Engram_') && n !== currentDbName);
             setAvailableDbs(engramDbs);
             if (engramDbs.length > 0) {
@@ -448,7 +448,7 @@ export function useMemoryStream() {
             console.error('[MemoryStream] Failed to get database names:', e);
             notificationService.error('获取历史数据库列表失败', 'MemoryStream');
         }
-    }, [store.getCurrentDb, hasChanges]);
+    }, [hasChanges]);
 
     const handleImportExecute = useCallback(async () => {
         if (!selectedDbToImport) {

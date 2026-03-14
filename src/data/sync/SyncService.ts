@@ -149,6 +149,14 @@ class SyncService {
             Logger.debug(MODULE, `导出中: ${dump.events.length} 事件, ${dump.entities.length} 实体`);
 
             const jsonString = JSON.stringify(dump);
+            
+            // P3 Fix: 增加超大文件预警，防止静默同步失败喵
+            const sizeInMB = jsonString.length / (1024 * 1024);
+            if (sizeInMB > 15) {
+                Logger.warn(MODULE, `同步内容过大 (${sizeInMB.toFixed(2)} MB), 可能会导致同步缓慢或失败喵！`);
+                notificationService.warning(`记忆库较大 (${sizeInMB.toFixed(2)} MB), 同步可能需要更长时间喵~`, 'Sync');
+            }
+
             const fileName = this.getSyncFileName(chatId);
 
             // P0 Fix: 异步转码方案，防止大文件阻塞主线程

@@ -8,7 +8,7 @@
  */
 import { SettingsManager, type EngramSettings } from '@/config/settings';
 import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
-import { getSTContext, MacroService } from '@/integrations/tavern';
+import { getSTContext, MacroService, getCurrentChatId } from '@/integrations/tavern';
 import { summarizerService } from '@/modules/memory';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
@@ -120,6 +120,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
     });
 
     const isMounted = useRef(true);
+    const lastDbModified = useRef<number>(0);
 
     // 获取 memoryStore 方法
     const getAllEvents = useMemoryStore(state => state.getAllEvents);
@@ -155,29 +156,38 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             setGlobalStats(currentStats as EngramSettings['statistics']);
 
             // 2. Memory Stats
-            const events = await getAllEvents();
-            const entities = await getAllEntities();
+            // P1 Optimization: 只有在数据真正变化时才重新获取全量数据和重新计算 Token
+            const chatId = getCurrentChatId();
+            const db = chatId ? (await import('@/data/db')).tryGetDbForChat(chatId) : null;
+            const metaMod = db ? await db.meta.get('lastModified') : null;
+            const currentMod = (metaMod?.value as number) || 0;
 
-            const entityByType: Record<string, number> = {};
-            entities.forEach(e => {
-                entityByType[e.type] = (entityByType[e.type] || 0) + 1;
-            });
+            if (currentMod !== lastDbModified.current || lastDbModified.current === 0) {
+                const events = await getAllEvents();
+                const entities = await getAllEntities();
 
-            const archivedEvents = events.filter(e => e.is_archived);
-            // 估算 Token：每个事件平均 100 tokens
-            const estimatedTokens = events.reduce((sum, e) => {
-                return sum + Math.ceil((e.summary?.length || 0) / 4);
-            }, 0);
+                const entityByType: Record<string, number> = {};
+                entities.forEach(e => {
+                    entityByType[e.type] = (entityByType[e.type] || 0) + 1;
+                });
 
-            if (!isMounted.current) return;
-            setMemory({
-                eventCount: events.length,
-                entityCount: entities.length,
-                entityByType,
-                archivedCount: archivedEvents.length,
-                activeCount: events.length - archivedEvents.length,
-                estimatedTokens,
-            });
+                const archivedEvents = events.filter(e => e.is_archived);
+                // 估算 Token：每个事件平均一些 tokens (基于长度)
+                const estimatedTokens = events.reduce((sum, e) => {
+                    return sum + Math.ceil((e.summary?.length || 0) / 4);
+                }, 0);
+
+                if (!isMounted.current) return;
+                setMemory({
+                    eventCount: events.length,
+                    entityCount: entities.length,
+                    entityByType,
+                    archivedCount: archivedEvents.length,
+                    activeCount: events.length - archivedEvents.length,
+                    estimatedTokens,
+                });
+                lastDbModified.current = currentMod;
+            }
 
             // 3. Feature Status
             const apiSettings = SettingsManager.get('apiSettings');

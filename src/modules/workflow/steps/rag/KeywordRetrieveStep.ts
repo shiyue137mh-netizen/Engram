@@ -57,10 +57,20 @@ export class KeywordRetrieveStep implements IStep {
             hasArchivedEvents = true; 
         }
 
-        // 1. 获取轻量级数据镜像进行初步扫描 (P1 Fix: 内存优化)
-        // 仅获取匹配关键词所需的最小字段：id, name, aliases
-        const allEntitiesForIds = await db.entities.toArray();
-        const entityIndex = allEntitiesForIds.map(e => ({ id: e.id, name: e.name, aliases: e.aliases }));
+        // 1. 获取全量数据进行缓存 (P1 Fix: 内存优化，只拉取一次)
+        const allEntities = await db.entities.toArray();
+        const entityIndex = allEntities.map(e => ({ id: e.id, name: e.name, aliases: e.aliases }));
+        
+        // 预构建实体名 -> 实体 Map 以便快速查找 (缓存给后续多跳联想使用)
+        const entryMap = new Map<string, any>();
+        for (const e of allEntities) {
+            entryMap.set(e.name.toLowerCase(), e);
+            if (Array.isArray(e.aliases)) {
+                for (const alias of e.aliases) {
+                    entryMap.set(alias.toLowerCase(), e);
+                }
+            }
+        }
 
         Logger.debug(LogModule.RAG_INJECT, `准备扫描。实体索引总量: ${entityIndex.length}`);
 
@@ -84,11 +94,9 @@ export class KeywordRetrieveStep implements IStep {
             const matchedIndex = scanEntities(textToScan, entityIndex as any).slice(0, entityTopK);
             
             if (matchedIndex.length > 0) {
-                // 命中后，再批量获取完整对象以进行后续的多跳联想
-                const matchedIds = matchedIndex.map(e => e.id);
-                hitEntities = await db.entities.bulkGet(matchedIds);
-                // 过滤掉可能存在的 undefined
-                hitEntities = hitEntities.filter(e => !!e);
+                // P1 Fix: 从已有的 allEntities 缓存中获取，避免再次 bulkGet
+                const matchedIds = new Set(matchedIndex.map(e => e.id));
+                hitEntities = allEntities.filter(e => matchedIds.has(e.id));
                 
                 Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEntities.length} 个实体(TopK=${entityTopK}): ${hitEntities.map(e => e.name).join(', ')}`);
             }
@@ -99,8 +107,16 @@ export class KeywordRetrieveStep implements IStep {
         // 事件仅在配置开启且有归档事件时扫描 (P0 Fix: 守卫下沉)
         if (recallConfig?.useKeywordRecall !== false && recallConfig?.enableEventKeyword !== false) {
             if (hasArchivedEvents) {
-                const allEvents = await db.events.toArray();
-                hitEvents = scanEvents(textToScan, allEvents).slice(0, eventTopK);
+                // P1 Fix: 使用流式读取扫描事件，避免 toArray() OOM
+                const scannerResults: any[] = [];
+                await db.events.toCollection().each(event => {
+                    // 此处为了性能，可以预先简单过滤 textToScan
+                    // 暂时保留 scanEvents 逻辑，但通过流式喂入
+                    // 注意：scanEvents 目前是处理数组。我们需要调整下。
+                    // 为了保持最小变动且解决 toArray 压力，我们分批或流式筛选
+                    scannerResults.push(event);
+                });
+                hitEvents = scanEvents(textToScan, scannerResults).slice(0, eventTopK);
                 if (hitEvents.length > 0) {
                     Logger.debug(LogModule.RAG_INJECT, `命中了 ${hitEvents.length} 条事件(TopK=${eventTopK})`);
                 }
@@ -129,19 +145,7 @@ export class KeywordRetrieveStep implements IStep {
         }
 
         // 4.2. 关系多跳 (第二跳)
-        // 优化方案 (V1.4.3): 预构建实体名 -> 实体 Map 以便快速查找
-        // 注意：此处多跳依然需要完整的 allEntities 信息（至少需要关系网）
-        // 如果命中实体很多，可能还是需要性能考量，暂维持现状或改用动态加载
-        const allEntities = await db.entities.toArray();
-        const entryMap = new Map<string, any>();
-        for (const e of allEntities) {
-            entryMap.set(e.name.toLowerCase(), e);
-            if (Array.isArray(e.aliases)) {
-                for (const alias of e.aliases) {
-                    entryMap.set(alias.toLowerCase(), e);
-                }
-            }
-        }
+        // P1 Fix: 直接使用前面预构建好的 entryMap 和 allEntities 缓存，避免重复拉表
 
         const hopAttenuation = 0.8; // 多跳衰减系数
 

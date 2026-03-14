@@ -17,21 +17,15 @@ export class FetchContext implements IStep {
             const charAny = char as any;
             context.input.charName = char.name;
             context.input.charPersona = charAny.personality || charAny.description || '';
-            // 注意：酒馆内部 persona 字段可能叫 description, personality 等，需确认
-            // 通常 {{char}} 是 name, {{description}} 是 description
-        }
 
-        // 获取用户 persona (酒馆通常存储在全局 user_persona 或类似)
-        // 这里暂时用 MacroService 或 context helper 获取
-        // 为了简单，我们先留空，或者让 BuildPrompt 里的 MacroService 兜底
-        // 但为了 {{userPersona}} 宏，我们尝试获取
+        }
         // @ts-ignore
         const stContext = window.SillyTavern?.getContext?.();
         if (stContext) {
             context.input.userName = stContext.name1 || 'User';
-            // 尝试获取 persona
-            // ST存储在 personas.js，这里可能不好直接拿，
-            // 暂定: 如果 BuildPrompt 发现变量里有 {{userPersona}}，它会去替换
+            // 显式注入人设描述，确保 BuildPrompt 不需要回退到宏系统
+            // @ts-ignore
+            context.input.userPersona = window.power_user?.persona_description || stContext.powerUserSettings?.persona_description || '';
         }
 
         // 2. 获取 Chat History
