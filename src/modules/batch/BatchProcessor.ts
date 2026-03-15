@@ -103,12 +103,9 @@ class BatchProcessor {
         this.engine.pause();
     }
 
-    /** 继续（如果当前有未执行完的 HistoryTask 可以通过内部偏移重新分配） */
+    /** 继续执行任务 */
     resume(): void {
-        // 注：受制于目前的封装设计，直接 resume 这里仅做恢复标记。
-        // 未完成任务实际上会在 Engine 的迭代中被检查。
-        // V1.0 目前不强调中途 Resume 的断点重续，未来可在 Engine.ts 加强
-        console.warn('Resume not fully implemented yet in new engine context.');
+        this.engine.resume();
     }
 
     /** 停止并清理 */

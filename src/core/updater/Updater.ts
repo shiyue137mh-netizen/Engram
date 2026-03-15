@@ -26,6 +26,7 @@ const CURRENT_HASH = typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 
 /** 缓存 */
 let cachedLatestVersion: string | null = null;
 let cachedLatestHash: string | null = null;
+let cachedRealLocalHash: string | null = null;
 let cachedChangelog: string | null = null;
 
 /**
@@ -57,9 +58,24 @@ export class UpdateService {
     }
 
     /**
-     * 获取当前哈希
+     * 获取当前哈希 (优先使用后端获取的真实哈希)
      */
     static getCurrentHash(): string {
+        return cachedRealLocalHash || CURRENT_HASH;
+    }
+
+    /**
+     * 获取真实的本地哈希 (从酒馆后端获取)
+     */
+    static async getRealLocalHash(): Promise<string> {
+        if (cachedRealLocalHash) return cachedRealLocalHash;
+
+        const tavernStatus = await this.getTavernGitStatus();
+        if (tavernStatus?.currentCommitHash) {
+            cachedRealLocalHash = tavernStatus.currentCommitHash.substring(0, 7);
+            return cachedRealLocalHash;
+        }
+
         return CURRENT_HASH;
     }
 
@@ -133,27 +149,34 @@ export class UpdateService {
     }
 
     /**
-     * 检查是否有更新 (版本优先，哈希次之)
+     * 检查是否有更新 (版本优先)
+     * V1.4.8: 改进哈希对齐逻辑
      */
     static async hasUpdate(): Promise<boolean> {
-        // 1. 优先检查酒馆后端 (如果通过 Git 安装)
-        const tavernStatus = await this.getTavernGitStatus();
-        if (tavernStatus && !tavernStatus.isUpToDate) {
-            return true;
-        }
+        // 1. 获取最新信息
+        const [latestVersion, localRealHash, latestHash] = await Promise.all([
+            this.getLatestVersion(),
+            this.getRealLocalHash(),
+            this.getLatestHash()
+        ]);
 
-        // 2. 检查版本号
-        const latestVersion = await this.getLatestVersion();
-        if (latestVersion && compareVersions(latestVersion, CURRENT_VERSION) > 1) {
+        // 2. 优先检查版本号
+        if (latestVersion && compareVersions(latestVersion, CURRENT_VERSION) > 0) {
             return true;
         }
 
         // 3. 检查哈希 (如果版本号一致)
-        if (latestVersion === CURRENT_VERSION || !latestVersion) {
-            const latestHash = await this.getLatestHash();
-            if (latestHash && CURRENT_HASH !== 'unknown' && latestHash !== CURRENT_HASH) {
-                return true;
-            }
+        // 只有当本地真实哈希可用，且与远程哈希不一致时才视为有更新
+        if (latestHash && localRealHash !== 'unknown' && latestHash !== localRealHash) {
+            // 如果版本号是一样的，说明可能是小修小补或者是还没升 version 的 commit
+            return true;
+        }
+
+        // 4. 作为备份，检查酒馆后端的 isUpToDate 状态
+        const tavernStatus = await this.getTavernGitStatus();
+        if (tavernStatus && !tavernStatus.isUpToDate) {
+            // 如果后端明确说不是最新的，那肯定有更新
+            return true;
         }
 
         return false;
@@ -233,6 +256,7 @@ export class UpdateService {
     static clearCache(): void {
         cachedLatestVersion = null;
         cachedLatestHash = null;
+        cachedRealLocalHash = null;
         cachedChangelog = null;
     }
 }
