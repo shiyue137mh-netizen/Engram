@@ -2,59 +2,60 @@ import { Brain, Database, Network, GitBranch, Workflow, ShieldCheck, Lightbulb }
 
 # 欢迎使用 Engram
 
-> **Engram** 是 SillyTavern 的本地优先记忆操作系统：以 **Workflow** 编排任务、以 **IndexedDB** 持久化记忆、以 **宏注入** 安全接入上下文。
+> **Engram** 是 SillyTavern 的本地优先记忆操作系统：以 **工作流** 编排任务、以 **本地数据库** 持久化记忆、以 **宏变量注入** 安全接入上下文。
 
 ---
 
 ## 一句话理解系统
 
-Engram 的核心链路是：**触发请求 → Service Facade → Workflow Steps → IndexedDB → Macro 注入到 LLM 请求**。
+Engram 的核心链路是：**触发请求 → 门面服务层 → 工作流步骤处理 → 本地数据库持久化 → 宏变量注入到大模型请求**。
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
   <div className="p-4 rounded-lg border border-border bg-card">
     <div className="flex items-center gap-2 mb-2 text-heading font-semibold">
       <Workflow className="w-4 h-4 text-primary" />
-      <span>Workflow 引擎</span>
+      <span>工作流引擎</span>
     </div>
     <p className="text-sm text-foreground leading-6">
-      所有总结、提取、检索流程都由可声明、可复用的步骤编排执行。
+      所有总结、提取、检索流程都由可声明、可复用的工作流原子步骤编排执行。
     </p>
   </div>
 
   <div className="p-4 rounded-lg border border-border bg-card">
     <div className="flex items-center gap-2 mb-2 text-heading font-semibold">
       <Database className="w-4 h-4 text-primary" />
-      <span>IndexedDB 优先</span>
+      <span>本地优先</span>
     </div>
     <p className="text-sm text-foreground leading-6">
-      记忆与实体保存在浏览器本地数据库，避免对远端服务的强依赖。
+      记忆与实体保存在浏览器的 IndexedDB 本地数据库，避免对远端服务的强依赖。
     </p>
   </div>
 
   <div className="p-4 rounded-lg border border-border bg-card">
     <div className="flex items-center gap-2 mb-2 text-heading font-semibold">
       <Network className="w-4 h-4 text-primary" />
-      <span>宏注入上下文</span>
+      <span>宏变量注入</span>
     </div>
     <p className="text-sm text-foreground leading-6">
-      通过 <code>{'{{engramActiveEvents}}'}</code> / <code>{'{{engramIndex}}'}</code> 等宏动态注入，减少污染原始聊天内容的风险。
+      通过 <code>{'{{engramActiveEvents}}'}</code> / <code>{'{{engramIndex}}'}</code> 等宏命令动态注入，减少污染原始聊天内容的风险。
     </p>
   </div>
 </div>
 
 ## 核心机制总览
 
-### 1) 记忆沉淀（Consolidation）
+### 1) 记忆沉淀（存储与精简）
 
-- 达到楼层间隔后触发总结流程。
-- 从历史中提取 `EventNode`（摘要）与 `EntityNode`（实体）。
-- 支持后续 Trimmer 精简与层级化存储（Level 0/1+）。
+- 达到楼层间隔后触发自动总结流程。
+- 从聊天历史中提取事件摘要与人物实体。
+- 支持后续记忆精简（Trimmer）与层级化存储（基础事件 / 高层大纲）。
 
-### 2) 记忆召回（Retrieval）
+### 2) 记忆召回与宏变量注入
 
-- 检索路径由 `Retriever` 统一调度。
-- 支持传统向量召回、混合召回与 Agentic RAG 直通。
-- 召回结果进入缓存后参与宏注入，影响当前轮模型上下文。
+- 检索路径由基于工作流的统一检索器调度完成。
+- **混合检索**: 支持向量匹配与重排序（Rerank）模型的联合打分。
+- **主动直通检索 (Agentic RAG)**: 大模型作为裁判，直接提取指定目标记忆集合，彻底绕过传统向量阶段，精准推入类脑缓存机制中。
+- 最终结果进入类脑缓存池后，统一通过 `{{engramIndex}}`（全量索引字典）或 `{{engramActiveEvents}}`（近期纯净活跃事件数组）聚合，暴露给宿主的提示词系统。
 
 ### 3) 可见性策略（蓝灯/绿灯）
 
@@ -99,16 +100,16 @@ Engram 的核心链路是：**触发请求 → Service Facade → Workflow Steps
   <div className="p-4 rounded-lg border border-border bg-card">
     <div className="flex items-center gap-2 mb-2 text-label font-medium">
       <Lightbulb className="w-4 h-4 text-primary" />
-      工作流替代硬编码
+      全面现代化的底层引擎
     </div>
     <p className="text-sm text-muted-foreground">
-      老式 Pipeline 已逐步被可组合 Workflow 取代，维护与扩展成本显著降低。
+      老式 <code>Pipeline</code> 被具有图流转控制与防护能力的 <code>WorkflowEngine</code> 取代；高耦合的 <code>devLogStore</code> 也已迁移至基于 RxJS 的 <code>Logger</code>/<code>RecallLogger</code> 体系。
     </p>
   </div>
 </div>
 
 ## 数据与隐私
 
-- **Zero Server Dependency（核心存储）**：记忆数据存于浏览器 IndexedDB。
-- **模型可插拔**：支持 OpenAI 兼容接口与本地模型服务。
-- **增量处理**：只处理新数据，减少重复计算与 Token 浪费。
+- **零服务端依赖**：记忆数据永远存于浏览器本地。
+- **模型可插拔**：支持兼容 OpenAI 标准格式的各种接口与本地私有化部署的模型服务。
+- **增量处理**：始终只处理最新聊天数据，减少重复计算与 Token 消耗。

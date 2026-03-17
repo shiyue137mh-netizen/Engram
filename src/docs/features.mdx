@@ -21,20 +21,20 @@ import { Database, Search, Layers, Command, Brain, Settings, Users, GitBranch, S
 
 ---
 
-## <Workflow className="inline-block w-4 h-4 align-text-bottom text-primary" /> Workflow 核心链路
+## <Workflow className="inline-block w-4 h-4 align-text-bottom text-primary" /> 工作流核心链路
 
 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
   <div className="p-4 rounded-lg border border-border bg-card">
-    <h3 className="text-heading font-semibold mb-2">Service Facade</h3>
-    <p className="text-sm text-muted-foreground">接收 UI 或事件请求，组装输入并调用工作流。</p>
+    <h3 className="text-heading font-semibold mb-2">门面服务</h3>
+    <p className="text-sm text-muted-foreground">接收界面或事件请求，组装输入数据并调用工作流。</p>
   </div>
   <div className="p-4 rounded-lg border border-border bg-card">
-    <h3 className="text-heading font-semibold mb-2">Workflow Engine</h3>
-    <p className="text-sm text-muted-foreground">按定义执行步骤，管理依赖、状态与控制流。</p>
+    <h3 className="text-heading font-semibold mb-2">工作流引擎</h3>
+    <p className="text-sm text-muted-foreground">按定义执行预设步骤，管理依赖、状态与控制流。</p>
   </div>
   <div className="p-4 rounded-lg border border-border bg-card">
-    <h3 className="text-heading font-semibold mb-2">Step Pipeline</h3>
-    <p className="text-sm text-muted-foreground">上下文获取、LLM 调用、后处理、持久化分层执行。</p>
+    <h3 className="text-heading font-semibold mb-2">原子步骤</h3>
+    <p className="text-sm text-muted-foreground">基于最小原子步骤（上下文获取、大模型调用、数据持久化）分发执行。</p>
   </div>
 </div>
 
@@ -47,14 +47,14 @@ import { Database, Search, Layers, Command, Brain, Settings, Users, GitBranch, S
 - **楼层间隔**：控制记忆颗粒度，建议 `20 ~ 30`。
 - **缓冲层**：为“可编辑的最新消息区”留出安全窗口，避免刚写完就被固化。
 
-### 2) 精简策略（Trimmer）
-- 当低层级摘要累计过多时触发合并。
-- 合并后形成更高层摘要，降低上下文压力。
-- 旧信息不会“凭空消失”，而是进入层级化记忆结构。
+### 2) 精简策略（合并与压缩）
+- 当低层级事件摘要累计过多时自动触发合并。
+- 向上归纳形成更高层大纲，有效降低模型上下文压力。
+- 旧信息不会“凭空消失”，而是作为子节点被纳入层级化的树状结构。
 
-### 3) 实体提取（Entity Extraction）
-- 与总结并行运行，持续更新角色/地点/物品状态。
-- 活跃实体过多时会触发自动归档，维持召回效率。
+### 3) 实体提取
+- 与剧情总结并行执行，自动更新角色、场景或重要物品的状态设定。
+- 活跃实体达到阈值后将触发自动归档机制，确保检索系统高效运转。
 
 ---
 
@@ -67,9 +67,9 @@ import { Database, Search, Layers, Command, Brain, Settings, Users, GitBranch, S
       召回链路
     </div>
     <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-      <li>向量召回 / 混合召回 / Agentic 直通。</li>
-      <li>支持重排与日志记录，便于调参。</li>
-      <li>结果进入缓存后由宏系统注入模型上下文。</li>
+      <li>**向量召回 / 混合打分 / 主动直通**（完全绕开传统的向量相似度和重排筛选，由大模型查阅目录索引字典 `{{engramIndex}}` 后直接指名提取目标记忆）。</li>
+      <li>支持语义重排序（Rerank）与全链路日志监控，便于精确调参。</li>
+      <li>检索结果进入**类脑缓存池**后，交由宏变量系统统一组装并注入到大模型的上下文提示词中。</li>
     </ul>
   </div>
 
@@ -88,11 +88,11 @@ import { Database, Search, Layers, Command, Brain, Settings, Users, GitBranch, S
 
 ---
 
-## <WandSparkles className="inline-block w-4 h-4 align-text-bottom text-primary" /> 输入预处理（Preprocessing）
+## <WandSparkles className="inline-block w-4 h-4 align-text-bottom text-primary" /> 意图与输入预处理
 
-- 在发送链路中拦截输入并调用模板。
-- 输出以 `<output>` 为主，Query 增强场景增加 `<query>`。
-- `<query>` 可直接服务检索，提高“指代句”命中率。
+- 在用户发送消息前将其拦截并交给判定模型处理。
+- 主要用于输出改写后的 `<output>` 正文；在搜索增强场景下会额外输出提取后的核心 `<query>`。
+- `<query>` 能立刻被传递给底层检索器，从而极大提高含糊指代词的精准命中率。
 
 ---
 
@@ -110,9 +110,9 @@ import { Database, Search, Layers, Command, Brain, Settings, Users, GitBranch, S
 ### <GitBranch className="inline-block w-4 h-4 align-text-bottom text-primary" /> 图谱视图
 - 可视化事件与实体关系，便于排查“记住了什么、为什么召回”。
 
-### <Sparkles className="inline-block w-4 h-4 align-text-bottom text-primary" /> Re-embed（非常关键）
-- 文本变了，向量不会自动变。
-- 不重嵌会导致“看起来改了，检索却还是旧结果”。
+### <Sparkles className="inline-block w-4 h-4 align-text-bottom text-primary" /> 重新向量化（极其关键）
+- 手动修改了记忆文本后，底层的特征向量不会随之自动更新。
+- 务必在编辑后点击重嵌（Re-embed）按钮，否则你的搜索结果将依然停留在修改前的“幽灵状态”。
 
 ---
 
@@ -123,6 +123,6 @@ import { Database, Search, Layers, Command, Brain, Settings, Users, GitBranch, S
 - 通过归档与精简平衡“可回忆性”和“上下文成本”。
 
 ### <Lock className="inline-block w-4 h-4 align-text-bottom text-primary" /> 锁定保护
-- 锁定事件：避免被 Trimmer 合并。
-- 锁定实体：避免自动归档清理。
-- 适合关键剧情节点与核心角色。
+- 锁定事件：避免被合并压缩机制（Trimmer）处理。
+- 锁定实体：避免被系统自动清理或归档。
+- 最适合用于必须时刻常驻的关键剧情节点与核心角色设定。

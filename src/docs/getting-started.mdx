@@ -2,7 +2,7 @@ import { Settings, Play, Sliders, FileCode, Activity, Database, WandSparkles, Se
 
 # 快速开始（新版本）
 
-> 本文基于当前架构：**Workflow Engine + IndexedDB + Macro 注入 + Agentic RAG**。按这份流程走，能最快把系统稳定跑起来。
+> 本文基于当前架构：**工作流引擎 + 本地数据库 + 宏变量注入 + 主动直通检索 (Agentic RAG)**。按这份流程走，能最快把系统稳定跑起来。
 
 ---
 
@@ -15,9 +15,9 @@ import { Settings, Play, Sliders, FileCode, Activity, Database, WandSparkles, Se
       <span>你需要准备</span>
     </div>
     <ul className="text-sm text-foreground list-disc pl-5 space-y-1">
-      <li>一个可用的对话模型（用于总结 / 提取 / 预处理）</li>
-      <li>一个可用的 Embedding 模型（用于检索）</li>
-      <li>（可选）Rerank 模型（用于提升召回精度）</li>
+      <li>一个可用的对话大模型（用于总结 / 提取 / 预处理）</li>
+      <li>一个可用的特征向量 (Embedding) 模型（用于检索）</li>
+      <li>（可选）语义重排序 (Rerank) 模型（用于提升召回精度）</li>
     </ul>
   </div>
 
@@ -36,57 +36,57 @@ import { Settings, Play, Sliders, FileCode, Activity, Database, WandSparkles, Se
 
 ## 1. 先理解四个核心概念
 
-### <Activity className="inline-block w-4 h-4 align-text-bottom text-primary" /> Workflow 驱动，而不是硬编码流程
-总结、实体提取、RAG 检索都由工作流步骤组合执行，便于替换、扩展和调试。
+### <Activity className="inline-block w-4 h-4 align-text-bottom text-primary" /> 工作流驱动，而不是硬编码流程
+总结、实体提取、检索召回都由工作流步骤组合执行，便于替换、扩展和调试。
 
 ### <Database className="inline-block w-4 h-4 align-text-bottom text-primary" /> 本地数据库是主存
-记忆、实体等核心数据写入 IndexedDB；WorldBook 主要承担宏占位与接入桥梁角色。
+记忆、实体等核心数据写入浏览器的本地数据库；酒馆原生的世界书主要只承担宏变量占位与接入桥梁的角色。
 
-### <Search className="inline-block w-4 h-4 align-text-bottom text-primary" /> 召回由 Retriever 统一调度
-可走向量、混合或 Agentic 直通路径。召回后统一进入宏缓存，参与当前轮上下文。
+### <Search className="inline-block w-4 h-4 align-text-bottom text-primary" /> 召回由统一门面服务调度
+可走向量打分、混合重排或主动直通（Agentic）路径。召回结果统一进入宏变量缓存池，参与当前轮的上下文。
 
 ### <WandSparkles className="inline-block w-4 h-4 align-text-bottom text-primary" /> 预处理是“发送前增强”
-在 GENERATION_AFTER_COMMANDS 阶段拦截输入，提取 `<output>` / `<query>`，再继续生成。
+在用户发言发出前的阶段拦截输入，大模型分析后提取 `<output>` 正文和 `<query>` 搜索词，再继续系统生成。
 
 ---
 
 ## 2. 配置流程（按顺序）
 
-### 第一步：模型接入（API Presets）
+### 第一步：模型接入
 进入 **API 预设** 页面，至少完成：
 
-1. **LLM 预设**（必需）
-   - 供 Summary / Entity / Preprocessing 使用。
-2. **Embedding**（强烈建议必配）
-   - 没有它，RAG 召回能力会明显下降。
-3. **Rerank**（可选）
-   - 相关性不稳定时开启，提高结果排序质量。
+1. **大语言模型 (LLM) 预设**（必需）
+   - 供总结 / 实体提取 / 意图预处理 使用。
+2. **向量化 (Embedding) 模型**（强烈建议必配）
+   - 没有它，文本特征关联检索的能力会明显下降。
+3. **重排序 (Rerank) 模型**（可选）
+   - 相关性不稳定时开启，大幅提高候选结果排序质量。
 
-### 第二步：运行时策略（Processing）
+### 第二步：运行时策略
 进入 **数据处理 → 运行时配置**：
 
 - **自动总结**：建议开启。
 - **楼层间隔**：推荐 `20 ~ 30`。
-- **缓冲层数**：推荐 `10 ~ 15`（给你留修文空间）。
-- **Trimmer**：建议开启，用于记忆库长期控量与层级压缩。
+- **缓冲层数**：推荐 `10 ~ 15`（给你留出修文空间）。
+- **合并与压缩机制 (Trimmer)**：建议开启，用于记忆库长期控量与层级架构的维护。
 
-### 第三步：记忆流检查（Memory Stream）
+### 第三步：记忆流检查
 进入 **记忆编辑**：
 
-- 查看是否有新 `EventNode` / `EntityNode` 生成。
-- 手动编辑后记得 **Re-embed**，否则检索向量仍是旧版本。
+- 查看是否有新的事件节点或实体节点生成。
+- 手动编辑后记得 **重新向量化 (Re-embed)**，否则底层的检索向量仍是旧版本。
 
 ---
 
-## 3. 预处理与 RAG 联动（推荐开启）
+## 3. 预处理与检索联动（推荐开启）
 
 ### <Play className="inline-block w-4 h-4 align-text-bottom text-primary" /> 何时开启
-如果你需要“输入润色、指代展开、剧情编排”，建议开启预处理。
+如果你需要“输入润色、含糊词（如：那个、他）指代展开、剧情前置编排”，建议开启预处理。
 
 ### <Sliders className="inline-block w-4 h-4 align-text-bottom text-primary" /> 最小配置
-- 选择一个 `preprocessing` 分类模板。
-- 保证模板输出含 `<output>` 标签。
-- Query 增强场景补充 `<query>` 标签。
+- 选择一个意图预处理分类的模板。
+- 保证判定模型输出含 `<output>` 标签。
+- 搜索增强场景补充 `<query>` 标签。
 
 ### <Settings className="inline-block w-4 h-4 align-text-bottom text-primary" /> 预期行为
 - `<output>`：替换本轮用户输入。
@@ -104,9 +104,9 @@ import { Settings, Play, Sliders, FileCode, Activity, Database, WandSparkles, Se
 
 ## 5. 常见误区（新版）
 
-- **误区 1**：只配 LLM 不配 Embedding。
-  - 结果：能总结，但检索弱或几乎无效。
-- **误区 2**：间隔设太小。
-  - 结果：摘要碎片化严重，后续 Trimmer 压力变大。
-- **误区 3**：编辑文本后不重嵌。
-  - 结果：你看到的新文本与向量索引不一致，搜索“像坏了一样”。
+- **误区 1**：只配对话模型，不配向量模型。
+  - 结果：能生成总结，但文本检索和关联能力极弱或几乎无效。
+- **误区 2**：楼层间隔设太小。
+  - 结果：事件摘要碎片化严重，导致后续归纳合并的压力极大。
+- **误区 3**：在记忆列表修改文本后，忘记点击重新向量化。
+  - 结果：你看到的新文本与底层的数字向量索引不一致，导致搜索机制“像坏了一样”。
