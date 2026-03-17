@@ -252,7 +252,7 @@ export class EntityBuilder {
             const watchdogMs =
                 this.config.watchdogTimeoutMs ??
                 SettingsManager.get('apiSettings')?.entityExtractConfig?.watchdogTimeoutMs ??
-                180_000;
+                1_800_000;
 
             let timeoutId: any;
             const timeoutPromise = new Promise<never>((_, reject) => {

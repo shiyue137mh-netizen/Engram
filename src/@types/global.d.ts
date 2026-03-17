@@ -28,6 +28,11 @@ declare global {
         };
 
         /**
+         * 当前选择的模型名称
+         */
+        selected_model?: string;
+
+        /**
          * jQuery (由 SillyTavern 提供)
          */
         jQuery: JQuery;

@@ -113,7 +113,7 @@ export class ChatHistoryHelper {
                             }
 
                             if (!content && prev) {
-                                Logger.warn('ChatHistoryHelper', 'TavernHelper stripped content empty!', { prev, content });
+                                Logger.debug('ChatHistoryHelper', 'TavernHelper stripped content empty!', { prev, content });
                                 content = prev; // 兜底恢复
                             }
                         } catch (err) {

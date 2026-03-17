@@ -38,6 +38,7 @@ interface FieldOverrides {
     logicText?: string;
     score?: number;
     summary?: string;  // V1.2.9: Add summary to avoid stale closure
+    isArchived?: boolean;
 }
 
 // ==================== 样式 ====================
@@ -118,6 +119,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     const [roleText, setRoleText] = useState('');
     const [logicText, setLogicText] = useState('');
     const [score, setScore] = useState(0.5);
+    const [isArchived, setIsArchived] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [lastEventId, setLastEventId] = useState<string | null>(null);
 
@@ -144,6 +146,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             setRoleText(event.structured_kv?.role?.join(', ') || '');
             setLogicText(event.structured_kv?.logic?.join(', ') || '');
             setScore(event.significance_score);
+            setIsArchived(!!event.is_archived);
             setIsDirty(false);
             setLastEventId(event.id);
         }
@@ -178,6 +181,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             roleText: overrides.roleText ?? roleText,
             logicText: overrides.logicText ?? logicText,
             score: overrides.score ?? score,
+            isArchived: overrides.isArchived ?? isArchived,
         };
 
         const splitTrim = (s: string) => s.split(',').map(v => v.trim()).filter(Boolean);
@@ -199,6 +203,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             summary: finalSummary,
             structured_kv: { ...event.structured_kv, ...kv },
             significance_score: fields.score,
+            is_archived: fields.isArchived,
         };
 
         if (immediate) {
@@ -414,6 +419,28 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                         style={{ appearance: 'none', WebkitAppearance: 'none' }}
                     />
                 </div>
+            </div>
+
+            {/* 归档状态 */}
+            <div className="flex justify-between items-center py-2">
+                <div className="flex flex-col">
+                    <span className="text-xs text-meta">归档此事件</span>
+                    <span className="text-[10px] text-meta/60">归档后将不再参与自动摘要生成</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={isArchived}
+                        onChange={(e) => {
+                            const val = e.target.checked;
+                            setIsArchived(val);
+                            setIsDirty(true);
+                            syncToParent({ isArchived: val });
+                        }}
+                    />
+                    <div className="w-9 h-5 bg-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary transition-colors"></div>
+                </label>
             </div>
 
             <Divider spacing="md" />

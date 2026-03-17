@@ -156,34 +156,49 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             setGlobalStats(currentStats as EngramSettings['statistics']);
 
             // 2. Memory Stats
-            // P1 Optimization: 只有在数据真正变化时才重新获取全量数据和重新计算 Token
+            // P1 Optimization: 只有在数据真正变化时才重新获取数据进行统计
             const chatId = getCurrentChatId();
-            const db = chatId ? (await import('@/data/db')).tryGetDbForChat(chatId) : null;
-            const metaMod = db ? await db.meta.get('lastModified') : null;
+            if (!chatId) return;
+
+            const dbModule = await import('@/data/db');
+            const db = dbModule.tryGetDbForChat(chatId);
+            if (!db) return;
+
+            const metaMod = await db.meta.get('lastModified');
             const currentMod = (metaMod?.value as number) || 0;
 
             if (currentMod !== lastDbModified.current || lastDbModified.current === 0) {
-                const events = await getAllEvents();
-                const entities = await getAllEntities();
+                // 使用 count() 获取总数，避免拉取全表实体
+                const eventCount = await db.events.count();
+                const entityCount = await db.entities.count();
 
+                // 对于类型分布，如果数量不大可以继续获取，或者使用专用的聚合方法
+                // 这里暂时保留获取实体以统计类型，但未来可以考虑索引化
+                const entities = await getAllEntities(); 
                 const entityByType: Record<string, number> = {};
                 entities.forEach(e => {
                     entityByType[e.type] = (entityByType[e.type] || 0) + 1;
                 });
 
-                const archivedEvents = events.filter(e => e.is_archived);
-                // 估算 Token：每个事件平均一些 tokens (基于长度)
-                const estimatedTokens = events.reduce((sum, e) => {
-                    return sum + Math.ceil((e.summary?.length || 0) / 4);
-                }, 0);
+                // 获取活跃事件总数 (is_archived 为 0/false)
+                const archivedCount = await db.events.where('is_archived').equals(1).count();
+
+                // 估算 Token：这里如果全量拉取仍然重。
+                // 优化思路：只拉取最近的 N 条或者在存储时就记下长度。
+                // 暂时使用更轻量的逻辑：如果事件很多，只取前 100 条估算平均值，或者直接跳过全量 reduce
+                const sampleEvents = await db.events.limit(100).toArray();
+                const avgLen = sampleEvents.length > 0 
+                    ? sampleEvents.reduce((s, e) => s + (e.summary?.length || 0), 0) / sampleEvents.length 
+                    : 0;
+                const estimatedTokens = Math.ceil((avgLen * eventCount) / 4);
 
                 if (!isMounted.current) return;
                 setMemory({
-                    eventCount: events.length,
-                    entityCount: entities.length,
+                    eventCount,
+                    entityCount,
                     entityByType,
-                    archivedCount: archivedEvents.length,
-                    activeCount: events.length - archivedEvents.length,
+                    archivedCount,
+                    activeCount: eventCount - archivedCount,
                     estimatedTokens,
                 });
                 lastDbModified.current = currentMod;
@@ -238,6 +253,15 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 
             } catch (e) {
                 console.warn('[useDashboardData] Failed to load brain stats', e);
+                if (isMounted.current) {
+                    setBrainStats({
+                        shortTermCount: 0,
+                        shortTermLimit: 0,
+                        workingCount: 0,
+                        workingLimit: 0,
+                        topItems: []
+                    });
+                }
             }
 
             if (isMounted.current) setIsLoading(false);
@@ -248,84 +272,95 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
     }, [getAllEvents, getAllEntities]);
 
     // 切换功能开关
-    const toggleFeature = useCallback((feature: keyof FeatureStatus) => {
+    const toggleFeature = useCallback(async (feature: keyof FeatureStatus) => {
         const apiSettings = SettingsManager.get('apiSettings') || {};
         const summarizerConfig = SettingsManager.get('summarizerConfig') || {};
 
-        switch (feature) {
-            case 'summarizer':
-                const newSummarizerEnabled = !features.summarizer;
-                SettingsManager.set('summarizerConfig', {
-                    ...summarizerConfig,
-                    enabled: newSummarizerEnabled,
-                });
-                // 联动服务
-                summarizerService.updateConfig({ enabled: newSummarizerEnabled });
-                break;
-
-            case 'entity':
-                const currentEntityConfig = (apiSettings as any)?.entityExtractConfig || {};
-                SettingsManager.set('apiSettings', {
-                    ...apiSettings,
-                    entityExtractConfig: {
-                        ...currentEntityConfig,
-                        enabled: !features.entity,
-                    },
-                } as any);
-                break;
-
-            case 'embedding':
-                const currentEmbeddingConfig = (apiSettings as any)?.embeddingConfig || {};
-                SettingsManager.set('apiSettings', {
-                    ...apiSettings,
-                    embeddingConfig: {
-                        ...currentEmbeddingConfig,
-                        enabled: !features.embedding,
-                    },
-                } as any);
-                break;
-
-            case 'recall':
-                const currentRecallConfig = (apiSettings as any)?.recallConfig || {};
-                SettingsManager.set('apiSettings', {
-                    ...apiSettings,
-                    recallConfig: {
-                        ...currentRecallConfig,
-                        enabled: !features.recall,
-                    },
-                } as any);
-                break;
-
-            case 'preprocessing':
-                const currentPreprocessingConfig = SettingsManager.get('preprocessingConfig') || DEFAULT_PREPROCESSING_CONFIG;
-                const newPreprocessingEnabled = !features.preprocessing;
-
-                // 1. 更新 Preprocessing Config
-                SettingsManager.set('preprocessingConfig', {
-                    ...currentPreprocessingConfig,
-                    enabled: newPreprocessingEnabled,
-                } as any);
-
-                // 2. 同时更新 Recall Config 以保持同步
-                import('@/config/types/defaults').then(({ getDefaultAPISettings }) => {
-                    const currentApiSettings = SettingsManager.get('apiSettings');
-                    const safeApiSettings = currentApiSettings || getDefaultAPISettings();
-                    const currentRecallConfig = safeApiSettings.recallConfig || {};
-
+        // 使用函数式更新获取最新 features 状态，避免闭包陷阱
+        setFeatures(prev => {
+            const currentStatus = { ...prev };
+            
+            switch (feature) {
+                case 'summarizer': {
+                    const nextVal = !currentStatus.summarizer;
+                    SettingsManager.set('summarizerConfig', {
+                        ...summarizerConfig,
+                        enabled: nextVal,
+                    });
+                    summarizerService.updateConfig({ enabled: nextVal });
+                    currentStatus.summarizer = nextVal;
+                    break;
+                }
+                case 'entity': {
+                    const settings = apiSettings as any;
+                    const nextVal = !currentStatus.entity;
                     SettingsManager.set('apiSettings', {
-                        ...safeApiSettings,
-                        recallConfig: {
-                            ...currentRecallConfig,
-                            usePreprocessing: newPreprocessingEnabled
-                        }
+                        ...settings,
+                        entityExtractConfig: {
+                            ...(settings?.entityExtractConfig || {}),
+                            enabled: nextVal,
+                        },
                     } as any);
-                });
-                break;
-        }
+                    currentStatus.entity = nextVal;
+                    break;
+                }
+                case 'embedding': {
+                    const settings = apiSettings as any;
+                    const nextVal = !currentStatus.embedding;
+                    SettingsManager.set('apiSettings', {
+                        ...settings,
+                        embeddingConfig: {
+                            ...(settings?.embeddingConfig || {}),
+                            enabled: nextVal,
+                        },
+                    } as any);
+                    currentStatus.embedding = nextVal;
+                    break;
+                }
+                case 'recall': {
+                    const settings = apiSettings as any;
+                    const nextVal = !currentStatus.recall;
+                    SettingsManager.set('apiSettings', {
+                        ...settings,
+                        recallConfig: {
+                            ...(settings?.recallConfig || {}),
+                            enabled: nextVal,
+                        },
+                    } as any);
+                    currentStatus.recall = nextVal;
+                    break;
+                }
+                case 'preprocessing': {
+                    const nextVal = !currentStatus.preprocessing;
+                    SettingsManager.set('preprocessingConfig', {
+                        ...(SettingsManager.get('preprocessingConfig') || {}),
+                        enabled: nextVal,
+                    } as any);
+                    
+                    // 异步处理 Recall 同步逻辑
+                    import('@/config/types/defaults').then(({ getDefaultAPISettings }) => {
+                        const currentApi = SettingsManager.get('apiSettings') || getDefaultAPISettings();
+                        SettingsManager.set('apiSettings', {
+                            ...currentApi,
+                            recallConfig: {
+                                ...(currentApi.recallConfig || {}),
+                                usePreprocessing: nextVal
+                            }
+                        } as any);
+                        // 对于异步完成的，手动触发一次刷新，甚至可以在这里 refetch
+                        refreshRef.current();
+                    });
+                    
+                    currentStatus.preprocessing = nextVal;
+                    break;
+                }
+            }
+            return currentStatus;
+        });
 
-        // 立即刷新状态
-        refresh();
-    }, [features, refresh]);
+        // 立即执行一次刷新，确保 UI 与底层同步
+        await refresh();
+    }, [refresh]);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
     const refreshRef = useRef(refresh);
@@ -354,7 +389,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             isTabActive = document.visibilityState === 'visible';
             scheduleTimer();
             if (isTabActive) {
-                refresh(); // 重新获得焦点时火速更新补偿
+                refreshRef.current(); // 使用最新 ref 避免闭包陷阱
             }
         };
 

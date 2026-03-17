@@ -9,16 +9,7 @@ import { Logger } from '@/core/logger';
 
 const MODULE = 'STContext';
 
-// SillyTavern 全局类型声明
-declare global {
-    interface Window {
-        SillyTavern?: {
-            getContext?: () => STContext;
-        };
-        // 兼容一些直接挂载在 window 上的变量
-        selected_model?: string;
-    }
-}
+// SillyTavern 全局类型声明已移至 @types/global.d.ts
 
 /** ST 上下文类型 */
 export interface STContext {

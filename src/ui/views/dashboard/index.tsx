@@ -59,10 +59,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
     useEffect(() => {
         setLogs(Logger.getLogs().slice(0, 4));
+        
+        // 日志节流逻辑：每 500ms 只更新一次 UI
+        let pendingLogs: LogEntry[] = [];
+        let throttleTimer: NodeJS.Timeout | null = null;
+
         const unsubscribe = Logger.subscribe((newLog) => {
-            setLogs(prev => [newLog, ...prev].slice(0, 4));
+            pendingLogs.unshift(newLog);
+            
+            if (!throttleTimer) {
+                throttleTimer = setTimeout(() => {
+                    setLogs(prev => {
+                        const combined = [...pendingLogs, ...prev];
+                        pendingLogs = [];
+                        return combined.slice(0, 4);
+                    });
+                    throttleTimer = null;
+                }, 500);
+            }
         });
-        return unsubscribe;
+
+        return () => {
+            unsubscribe();
+            if (throttleTimer) clearTimeout(throttleTimer);
+        };
     }, []);
 
     const handleNavigate = (path: string) => onNavigate?.(path);

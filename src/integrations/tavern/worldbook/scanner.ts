@@ -5,7 +5,7 @@ import { WorldInfoEntry } from './types';
 
 const MODULE = 'Worldbook';
 
-// 动态加载 world-info.js 中模块的类型定义 (近似)
+// 动态加载 world-info.js 中模块的类型 definition (近似)
 interface WorldInfoModule {
     checkWorldInfo: (
         chat: string[],
@@ -256,19 +256,23 @@ export class WorldbookScannerService {
                 if (context?.chat && Array.isArray(context.chat)) {
                     const rangeChat = context.chat.slice(startFloor - 1, endFloor);
                     messages = rangeChat.map((m: { mes?: string }) => m.mes || '').reverse();
-                    Logger.debug(MODULE, '使用楼层范围扫描', {
-                        floorRange: options.floorRange,
-                        messageCount: messages.length
-                    });
+                    if (messages) {
+                        Logger.debug(MODULE, '使用楼层范围扫描', {
+                            floorRange: options.floorRange,
+                            messageCount: messages.length
+                        });
+                    }
                 }
             } else if (!messages || messages.length === 0) {
                 if (context?.chat && Array.isArray(context.chat)) {
                     const recentChat = context.chat.slice(-DEFAULT_SCAN_LIMIT);
                     messages = recentChat.map((m: { mes?: string }) => m.mes || '').reverse();
-                    Logger.debug(MODULE, '使用默认最近消息扫描', {
-                        scanLimit: DEFAULT_SCAN_LIMIT,
-                        messageCount: messages.length
-                    });
+                    if (messages) {
+                        Logger.debug(MODULE, '使用默认最近消息扫描', {
+                            scanLimit: DEFAULT_SCAN_LIMIT,
+                            messageCount: messages.length
+                        });
+                    }
                 }
             }
 

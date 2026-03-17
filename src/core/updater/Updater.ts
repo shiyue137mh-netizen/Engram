@@ -8,6 +8,7 @@
  */
 
 import { SettingsManager } from '@/config/settings';
+import { getRequestHeaders } from '@/integrations/tavern';
 import { notificationService } from "@/ui/services/NotificationService";
 import manifest from '../../../manifest.json';
 declare const __COMMIT_HASH__: string;
@@ -114,7 +115,7 @@ export class UpdateService {
 
             const response = await fetch('/api/extensions/version', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getRequestHeaders(),
                 body: JSON.stringify({ 
                     extensionName: extensionName, 
                     global: false 
@@ -137,7 +138,9 @@ export class UpdateService {
         if (cachedRealExtensionName) return cachedRealExtensionName;
 
         try {
-            const response = await fetch('/api/extensions/discover');
+            const response = await fetch('/api/extensions/discover', {
+                headers: getRequestHeaders()
+            });
             if (!response.ok) return null;
 
             const extensions: { name: string; type: string }[] = await response.json();
