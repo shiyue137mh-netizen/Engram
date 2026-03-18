@@ -32,7 +32,7 @@ Engram 提供了丰富的宏变量，用于在运行时注入上下文：
 | `{{char}}` | 当前角色名称 | 通用 |
 | `{{user}}` | 用户名称 | 通用 |
 | `{{engramActiveEvents}}` | 纯净蓝灯活跃事件阵列。不含任何 RAG 召回插入的绿灯事件，只包含近期发生的蓝灯事件 | Agentic RAG 判断基准。供给判定模型作为上下文参考使用 |
-| `{{engramIndex}}` | 全量结构化记忆索引。包含蓝灯与绿灯档案的极致压缩 XML 目录 | Agentic RAG 核心目录。用于判定模型从中直接提取目标 JSON ID 数组进行直通检索 |
+| `{{engramIndex}}` | 全量结构化记忆索引。包含蓝灯与绿灯档案的极致压缩 XML 目录，提取自 `eventSlice.ts` | Agentic RAG 核心目录。用于判定模型从中直接提取目标 JSON ID 数组进行 `agenticSearch` 直通检索。 |
 
 ### 2.3 EJS 支持 (V0.8.5+)
 如果启用了 **EJS 兼容模式**，并在 SillyTavern 中安装了 `ST-Prompt-Template` 扩展，您可以在模板中使用高级逻辑控制：
@@ -175,7 +175,7 @@ Engram 摒弃了不稳定的事件模拟方式，转而采用了与 `数据库` 
 *   **核心机制**: 在宏生成阶段主动调用酒馆原生接口。
 *   **处理流程** (以 `{{chatHistory}}` 为例):
     1.  **第一层: 原生兼容 (Native Layer)**
-        *   安全调用全局酒馆扩展 API，例如利用包装过的 `window.TavernHelper.formatAsTavernRegexedString(content, 'ai_output', { isPrompt: true })`。
+        *   安全调用全局酒馆扩展 API，现已通过 `src/integrations/llm/Adapter.ts` 及其它 Adapter 解耦封装，例如利用解耦包装过的 `TavernHelper.formatAsTavernRegexedString`(content, 'ai_output', { isPrompt: true })`。
         *   这会完整触发用户在酒馆扩展面板中配置的所有 Regex 规则，且应用顺序与原生酒馆完全一致。为防止系统崩溃，Engram 在内部设计了容错适配层，确保即便当前版本缺少 `TavernHelper` 或对应方法，依然能够将降级的原始字符串抛回。
     2.  **第二层: 内部处理 (Internal Layer)**
         *   调用 Engram 内部的 `RegexProcessor` (`src/modules/workflow/processors/RegexProcessor`)。
