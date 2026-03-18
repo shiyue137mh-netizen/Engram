@@ -29,15 +29,20 @@ export class FetchContext implements IStep {
         }
 
         // 2. 获取 Chat History
-        // 优先使用传入的 range，否则 check config
+        // 优先使用任务输入中传入的明确范围 (range)，常用于批处理切片执行。
+        // 如果未传入 range，则回退到 MacroService 的默认逻辑（通常是获取最近的 N 条消息）。
         const range = context.input.range as [number, number] | undefined;
-        Logger.debug('FetchContext', `获取聊天记录范围: ${range ? range.join('-') : 'Recent'}`);
+        Logger.debug('FetchContext', `开始获取聊天记录，指定范围: ${range ? range.join('-') : '默认最近'}`);
 
+        // 调用 History 助手获取格式化后的文本
         const history = MacroService.getChatHistory(range);
-        if (history) {
-            context.input.chatHistory = history;
-        } else {
-            Logger.warn('FetchContext', '未获取到聊天记录');
+        
+        // 关键修复：确保 context.input.chatHistory 始终有值（即使为空字符串），
+        // 这样 BuildPrompt 步骤就能正确通过 split/join 逻辑替换掉 {{chatHistory}} 占位符。
+        context.input.chatHistory = history || '';
+        
+        if (!history) {
+            Logger.warn('FetchContext', '未获取到任何聊天记录，这可能导致提示词中出现空上下文');
         }
 
         // 3. 获取 World Info (依赖 range)

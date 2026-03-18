@@ -159,7 +159,7 @@ export const BatchProcessingPanel: React.FC = () => {
     // 历史批处理状态
     const [analysis, setAnalysis] = useState<HistoryAnalysis | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [startFloor, setStartFloor] = useState(0);
+    const [startFloor, setStartFloor] = useState(1);
     const [endFloor, setEndFloor] = useState<number>(summarizerService.getStatus().currentFloor || 0);
 
     // 外部导入状态
@@ -279,7 +279,7 @@ export const BatchProcessingPanel: React.FC = () => {
                         label="起始楼层"
                         value={startFloor}
                         onChange={setStartFloor}
-                        min={0}
+                        min={1}
                         max={endFloor}
                         step={1}
                     />

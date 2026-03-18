@@ -17,10 +17,13 @@ export class HistoryTask implements IBatchTaskHandler {
     readonly type = 'history';
 
     constructor(
-        private startFloor: number = 0,
+        private startFloor: number = 1,
         private endFloor?: number,
         private types?: BatchTaskType[]
-    ) { }
+    ) {
+        // 越界保护
+        this.startFloor = Math.max(1, startFloor);
+    }
 
     /**
      * 第一步：计算历史进度的差距，推测所需补全的 Task
