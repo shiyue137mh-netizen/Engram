@@ -176,6 +176,8 @@ export const MemoryStream: React.FC = () => {
                                     });
                                 }}
                                 onToggleLock={ms.handleToggleEventLock}
+                                onArchive={ms.handleToggleEventArchive}
+                                onDelete={ms.handleDelete}
                             />
                         ) : (
                             <EntityList

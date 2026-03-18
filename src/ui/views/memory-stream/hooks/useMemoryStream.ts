@@ -259,6 +259,17 @@ export function useMemoryStream() {
         }
     }, [store.toggleEventLock]);
 
+    const handleToggleEventArchive = useCallback(async (id: string, isArchived: boolean) => {
+        try {
+            await store.updateEvent(id, { is_archived: isArchived });
+            setEvents(prev => prev.map(e => e.id === id ? { ...e, is_archived: isArchived } : e));
+            notificationService.success(isArchived ? '事件已归档' : '事件已从归档恢复', 'MemoryStream');
+        } catch (e) {
+            console.error('[MemoryStream] Event archive toggle failed:', e);
+            notificationService.error('调整归档状态失败', 'MemoryStream');
+        }
+    }, [store.updateEvent]);
+
     const handleBatchSave = useCallback(async () => {
         if (pendingChanges.size === 0 && pendingEntityChanges.size === 0) return;
 
@@ -501,6 +512,7 @@ export function useMemoryStream() {
         handleToggleArchive,
         handleToggleEntityLock,
         handleToggleEventLock,
+        handleToggleEventArchive,
         handleBatchSave, handleDelete, handleBatchDelete,
         handleReembedAll, handleOpenImportModal, handleImportExecute,
         handleCreateEvent, handleCreateEntity,

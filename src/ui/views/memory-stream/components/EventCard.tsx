@@ -6,7 +6,7 @@
  * 文本层级：heading(标题) → foreground(正文) → meta(元数据)
  */
 import type { EventNode } from '@/data/types/graph';
-import { ChevronRight, Lock, LockOpen, Zap } from 'lucide-react';
+import { Archive, ChevronRight, Lock, LockOpen, Trash2, Zap } from 'lucide-react';
 import React from 'react';
 
 interface EventCardProps {
@@ -21,6 +21,8 @@ interface EventCardProps {
     /** 是否处于召回激活状态 */
     isActive?: boolean;
     onToggleLock?: (isLocked: boolean) => void;
+    onArchive?: (isArchived: boolean) => void;
+    onDelete?: () => void;
     className?: string;
 }
 
@@ -98,6 +100,8 @@ export const EventCard: React.FC<EventCardProps> = ({
     onSelect,
     onCheck,
     onToggleLock,
+    onArchive,
+    onDelete,
     checked = false,
     hasChanges = false,
     className = '',
@@ -156,20 +160,35 @@ export const EventCard: React.FC<EventCardProps> = ({
                     </p>
                 </div>
 
-                {/* 锁定按钮 (紧凑模式) */}
-                <button
-                    className={`p-1 transition-colors ${isLocked ? 'text-emphasis' : 'text-meta opacity-40 hover:opacity-100'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleLock?.(!isLocked);
-                    }}
-                    title={isLocked ? '解锁' : '锁定以防止被精简或归档'}
-                >
-                    {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
-                </button>
+                {/* 快捷操作 (紧凑模式) */}
+                <div className="flex items-center gap-1">
+                    {/* 锁定按钮 */}
+                    <button
+                        className={`p-1.5 rounded-md transition-colors ${isLocked ? 'text-emphasis bg-emphasis/10' : 'text-meta opacity-40 hover:opacity-100 hover:bg-muted/50'}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleLock?.(!isLocked);
+                        }}
+                        title={isLocked ? '解锁' : '锁定以防止被精简或归档'}
+                    >
+                        {isLocked ? <Lock size={12} /> : <LockOpen size={12} />}
+                    </button>
 
-                {/* 箭头 */}
-                <ChevronRight size={16} className="text-meta" />
+                    {/* 归档按钮 (紧凑模式) */}
+                    <button
+                        className={`p-1.5 rounded-md transition-colors ${event.is_archived ? 'text-emphasis bg-emphasis/10' : 'text-meta opacity-40 hover:opacity-100 hover:bg-muted/50'}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onArchive?.(!event.is_archived); 
+                        }}
+                        title={event.is_archived ? '从归档中恢复' : '归档该事件'}
+                    >
+                        <Archive size={12} className={event.is_archived ? 'fill-current' : ''} />
+                    </button>
+                    
+                    {/* 箭头 */}
+                    <ChevronRight size={16} className="text-meta" />
+                </div>
             </div>
         );
     }
@@ -178,18 +197,20 @@ export const EventCard: React.FC<EventCardProps> = ({
     return (
         <div
             className={`
-                p-4 cursor-pointer rounded-lg
-                transition-all duration-150 relative
+                group p-4 cursor-pointer rounded-lg
+                transition-all duration-150 relative overflow-hidden
                 ${isSelected
-                    ? 'border border-primary bg-transparent'
+                    ? 'border border-primary bg-transparent shadow-sm'
                     : isActive
                         ? 'border border-value/50 bg-value/5 hover:border-value'
-                        : 'border border-transparent hover:border-border/50'
+                        : 'border border-transparent hover:border-border/50 hover:bg-muted/10'
                 }
                 ${className}
             `}
             onClick={onSelect}
         >
+            {/* 这里的 Group hover 已经在父 div 加上 group 标记了 */}
+            
             {/* Active Label */}
             {isActive && (
                 <div className="absolute top-2 right-2 text-[10px] text-value font-medium px-1.5 py-0.5 bg-value/10 rounded">
@@ -213,28 +234,66 @@ export const EventCard: React.FC<EventCardProps> = ({
                 </span>
                 <EmbeddingBadge isEmbedded={event.is_embedded} />
                 {hasChanges && (
-                    <span className="w-2 h-2 rounded-full bg-yellow-500" title="有未保存的修改" />
+                    <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" title="有未保存的修改" />
                 )}
+                
                 <div className="flex-1" />
-                <ScoreDots score={event.significance_score} />
 
-                {/* 锁定按钮 (桌面模式) */}
-                <button
-                    className={`
-                        ml-2 p-1.5 rounded-md transition-all
-                        ${isLocked
-                            ? 'text-emphasis bg-emphasis/10 hover:bg-emphasis/20'
-                            : 'text-muted-foreground hover:bg-muted/50 opacity-0 group-hover:opacity-100'
-                        }
-                    `}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleLock?.(!isLocked);
-                    }}
-                    title={isLocked ? '点击解锁' : '通过锁定记忆，可防止其在精简或清理时被自动处理'}
-                >
-                    {isLocked ? <Lock size={14} /> : <LockOpen size={14} />}
-                </button>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* 归档按钮 (桌面模式) */}
+                    <button
+                        className={`
+                            p-1.5 rounded-md transition-all
+                            ${event.is_archived
+                                ? 'text-emphasis bg-emphasis/10 hover:bg-emphasis/20'
+                                : 'text-muted-foreground hover:bg-muted/50'
+                            }
+                        `}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onArchive?.(!event.is_archived);
+                        }}
+                        title={event.is_archived ? '从归档中恢复' : '归档该事件，排除出摘要上下文'}
+                    >
+                        <Archive size={14} className={event.is_archived ? 'fill-current' : ''} />
+                    </button>
+
+                    {/* 锁定按钮 (桌面模式) */}
+                    <button
+                        className={`
+                            p-1.5 rounded-md transition-all
+                            ${isLocked
+                                ? 'text-emphasis bg-emphasis/10 hover:bg-emphasis/20 opacity-100'
+                                : 'text-muted-foreground hover:bg-muted/50'
+                            }
+                        `}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleLock?.(!isLocked);
+                        }}
+                        title={isLocked ? '点击解锁' : '锁定记忆，防止被精简或清理'}
+                    >
+                        {isLocked ? <Lock size={14} /> : <LockOpen size={14} />}
+                    </button>
+
+                    {/* 删除按钮 (桌面模式) - 保持谨慎颜色 */}
+                    <button
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm('确定删除此事件吗？')) {
+                                onDelete?.();
+                            }
+                        }}
+                        title="删除事件"
+                    >
+                        <Trash2 size={14} />
+                    </button>
+                </div>
+
+                <div className="w-px h-3 bg-border mx-1 opacity-20" />
+                
+                <ScoreDots score={event.significance_score} />
             </div>
 
             {/* 元数据行 */}

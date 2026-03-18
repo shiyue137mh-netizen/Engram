@@ -63,9 +63,9 @@ class Retriever {
         if (!db) return false;
 
         // 检查是否存在任何带有 embeddings 的事件
-        // 使用 limit(1) 提高效率，只要找到一个就返回 true
+        // V1.5.0: 由于部分环境布尔索引兼容性问题 (DataError)，回退至 filter 模式
         const count = await db.events
-            .filter(e => !!e.embedding && e.embedding.length > 0)
+            .filter(e => !!e.is_embedded)
             .limit(1)
             .count();
 
@@ -134,9 +134,9 @@ class Retriever {
                 };
 
                 const [embeddedEventCount, archivedEventCount, archivedEntityCount] = await Promise.all([
-                    getCount(db.events.filter(e => !!e.embedding && e.embedding.length > 0)),
-                    getCount(db.events.filter(e => !!e.is_archived)),
-                    getCount(db.entities.filter(e => !!e.is_archived)),
+                    db.events.filter(e => !!e.is_embedded).limit(1).count(),
+                    db.events.filter(e => !!e.is_archived).limit(1).count(),
+                    db.entities.filter(e => !!e.is_archived).limit(1).count(),
                 ]);
 
                 const canRecall = embeddedEventCount > 0 || archivedEventCount > 0 || archivedEntityCount > 0;

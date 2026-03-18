@@ -20,16 +20,35 @@ export class StopGeneration implements IStep {
      */
     static async abort(): Promise<void> {
         try {
-            // @ts-ignore - SillyTavern 全局对象
-            const context = window.SillyTavern?.getContext?.();
-            if (context?.stopGeneration) {
-                context.stopGeneration();
-                Logger.info(LogModule.SYSTEM, '已调用酒馆 stopGeneration');
-            } else {
-                Logger.warn(LogModule.SYSTEM, 'StopGeneration 不可用: 上下文未找到 stopGeneration 方法');
+            // 路径 1: 使用官方 Context 接口 (Engram 集成层)
+            // @ts-ignore
+            const stCtx = window.SillyTavern?.getContext?.();
+            if (stCtx?.stopGeneration) {
+                stCtx.stopGeneration();
+                Logger.info(LogModule.SYSTEM, '通过 ST Context 成功调用 stopGeneration');
+                return;
             }
+
+            // 路径 2: 尝试全局作用域下的 stopGeneration (酒馆主脚本可能导出到全局)
+            // @ts-ignore
+            if (typeof window.stopGeneration === 'function') {
+                // @ts-ignore
+                window.stopGeneration();
+                Logger.info(LogModule.SYSTEM, '通过 window.stopGeneration 成功调用');
+                return;
+            }
+
+            // 路径 3: 暴力模拟 UI 点击 (最后的兜底，只要按钮在 DOM 中就有效)
+            const stopButton = document.getElementById('mes_stop');
+            if (stopButton && stopButton.offsetParent !== null) { // 确保按钮可见/在文档中
+                stopButton.click();
+                Logger.info(LogModule.SYSTEM, '通过模拟点击 #mes_stop 按钮触发中断');
+                return;
+            }
+
+            Logger.warn(LogModule.SYSTEM, '未找到有效的 StopGeneration 触发路径');
         } catch (e) {
-            Logger.warn(LogModule.SYSTEM, '调用 stopGeneration 失败', e);
+            Logger.warn(LogModule.SYSTEM, '调用 stopGeneration 过程中发生致命错误', e);
         }
     }
 }

@@ -7,10 +7,10 @@
  * - Feature Status: 功能开关状态
  */
 import { SettingsManager, type EngramSettings } from '@/config/settings';
-import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
+import { DEFAULT_BRAIN_RECALL_CONFIG, getDefaultAPISettings } from '@/config/types/defaults';
+import { Logger, LogModule } from '@/core/logger';
 import { getSTContext, MacroService, getCurrentChatId } from '@/integrations/tavern';
 import { summarizerService } from '@/modules/memory';
-import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
 import { useMemoryStore } from '@/state/memoryStore';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -123,7 +123,6 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
     const lastDbModified = useRef<number>(0);
 
     // 获取 memoryStore 方法
-    const getAllEvents = useMemoryStore(state => state.getAllEvents);
     const getAllEntities = useMemoryStore(state => state.getAllEntities);
 
     // 刷新数据
@@ -172,20 +171,19 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 const eventCount = await db.events.count();
                 const entityCount = await db.entities.count();
 
-                // 对于类型分布，如果数量不大可以继续获取，或者使用专用的聚合方法
-                // 这里暂时保留获取实体以统计类型，但未来可以考虑索引化
+                // TODO [P1 优化]: 对于类型分布，当实体规模超大时应使用 Dexie 聚合查询或索引
+                // 当前阶段实体规模有限，暂时保留 getAllEntities 统计类型分布
                 const entities = await getAllEntities(); 
                 const entityByType: Record<string, number> = {};
                 entities.forEach(e => {
                     entityByType[e.type] = (entityByType[e.type] || 0) + 1;
                 });
 
-                // 获取活跃事件总数 (is_archived 为 0/false)
-                const archivedCount = await db.events.where('is_archived').equals(1).count();
+                // 获取活跃事件总数 (is_archived 为 true)
+                // P0 Fix: 回退至 filter 模式，规避部分环境对布尔索引键报错 (DataError)
+                const archivedCount = await db.events.filter(e => !!e.is_archived).count();
 
-                // 估算 Token：这里如果全量拉取仍然重。
-                // 优化思路：只拉取最近的 N 条或者在存储时就记下长度。
-                // 暂时使用更轻量的逻辑：如果事件很多，只取前 100 条估算平均值，或者直接跳过全量 reduce
+                // 估算 Token：采样前 100 条估算平均值
                 const sampleEvents = await db.events.limit(100).toArray();
                 const avgLen = sampleEvents.length > 0 
                     ? sampleEvents.reduce((s, e) => s + (e.summary?.length || 0), 0) / sampleEvents.length 
@@ -205,27 +203,36 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             }
 
             // 3. Feature Status
-            const apiSettings = SettingsManager.get('apiSettings');
-            const entityConfig = apiSettings?.entityExtractConfig;
-            const embeddingConfig = apiSettings?.embeddingConfig;
-            const recallConfig = apiSettings?.recallConfig;
+            // P0 Fix: 使用 getDefaultAPISettings() 提供完整的 fallback，防止可选字段缺失导致显示为 false
+            const defaults = getDefaultAPISettings();
+            const apiSettings = SettingsManager.get('apiSettings') || defaults;
+            const entityConfig = apiSettings?.entityExtractConfig ?? defaults.entityExtractConfig;
+            const embeddingConfig = apiSettings?.embeddingConfig ?? defaults.embeddingConfig;
+            const recallConfig = apiSettings?.recallConfig ?? defaults.recallConfig;
             const preprocessingConfig = SettingsManager.get('preprocessingConfig') as { enabled?: boolean } | undefined;
+
+            Logger.debug(LogModule.DASHBOARD, '同步 Feature Status', { 
+                summarizer: summarizerConfig.enabled, 
+                entity: entityConfig?.enabled,
+                recall: recallConfig?.enabled,
+                preprocessing: preprocessingConfig?.enabled
+            });
 
             if (!isMounted.current) return;
             setFeatures({
-                summarizer: summarizerConfig.enabled !== false,
-                entity: entityConfig?.enabled || false,
-                embedding: embeddingConfig?.enabled || false,
-                recall: recallConfig?.enabled !== false,
-                preprocessing: preprocessingConfig?.enabled || false,
+                summarizer: summarizerConfig.enabled !== false, // 默认为开启
+                entity: !!entityConfig?.enabled,
+                embedding: !!embeddingConfig?.enabled,
+                recall: recallConfig?.enabled !== false,     // 默认为开启
+                preprocessing: !!preprocessingConfig?.enabled,
             });
 
             // 4. Brain & Context Stats
             try {
                 const snapshot = brainRecallCache.getShortTermSnapshot();
-                // FIX: 直接从 SettingsManager 读取最新的配置，而不是 Cache 里的旧副本
-                const apiSettings = SettingsManager.get('apiSettings');
-                const brainConfig = apiSettings?.recallConfig?.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
+                // 直接从 SettingsManager 读取最新的配置
+                const brainApiSettings = SettingsManager.get('apiSettings');
+                const brainConfig = brainApiSettings?.recallConfig?.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
 
                 // Get working memory items (Tier = 'working')
                 const workingItems = snapshot.filter(s => s.tier === 'working');
@@ -252,7 +259,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 });
 
             } catch (e) {
-                console.warn('[useDashboardData] Failed to load brain stats', e);
+                Logger.warn(LogModule.DASHBOARD, '加载 Brain Stats 失败', e);
                 if (isMounted.current) {
                     setBrainStats({
                         shortTermCount: 0,
@@ -266,99 +273,98 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 
             if (isMounted.current) setIsLoading(false);
         } catch (error) {
-            console.error('[useDashboardData] Error refreshing data:', error);
+            Logger.error(LogModule.DASHBOARD, '刷新 Dashboard 数据失败', { error });
             if (isMounted.current) setIsLoading(false);
         }
-    }, [getAllEvents, getAllEntities]);
+    }, [getAllEntities]);
 
     // 切换功能开关
+    // P0 Fix: 副作用全部提取到 setFeatures 外部，保证 setState 更新器是纯函数
     const toggleFeature = useCallback(async (feature: keyof FeatureStatus) => {
-        const apiSettings = SettingsManager.get('apiSettings') || {};
-        const summarizerConfig = SettingsManager.get('summarizerConfig') || {};
+        // 1. 读取最新配置（使用完整 defaults 作为 fallback，防止丢失嵌套字段）
+        const defaults = getDefaultAPISettings();
+        const currentApiSettings = SettingsManager.get('apiSettings') || defaults;
+        const currentSummarizerConfig = SettingsManager.get('summarizerConfig') || {};
 
-        // 使用函数式更新获取最新 features 状态，避免闭包陷阱
-        setFeatures(prev => {
-            const currentStatus = { ...prev };
-            
-            switch (feature) {
-                case 'summarizer': {
-                    const nextVal = !currentStatus.summarizer;
-                    SettingsManager.set('summarizerConfig', {
-                        ...summarizerConfig,
-                        enabled: nextVal,
-                    });
-                    summarizerService.updateConfig({ enabled: nextVal });
-                    currentStatus.summarizer = nextVal;
-                    break;
-                }
-                case 'entity': {
-                    const settings = apiSettings as any;
-                    const nextVal = !currentStatus.entity;
-                    SettingsManager.set('apiSettings', {
-                        ...settings,
-                        entityExtractConfig: {
-                            ...(settings?.entityExtractConfig || {}),
-                            enabled: nextVal,
-                        },
-                    } as any);
-                    currentStatus.entity = nextVal;
-                    break;
-                }
-                case 'embedding': {
-                    const settings = apiSettings as any;
-                    const nextVal = !currentStatus.embedding;
-                    SettingsManager.set('apiSettings', {
-                        ...settings,
-                        embeddingConfig: {
-                            ...(settings?.embeddingConfig || {}),
-                            enabled: nextVal,
-                        },
-                    } as any);
-                    currentStatus.embedding = nextVal;
-                    break;
-                }
-                case 'recall': {
-                    const settings = apiSettings as any;
-                    const nextVal = !currentStatus.recall;
-                    SettingsManager.set('apiSettings', {
-                        ...settings,
-                        recallConfig: {
-                            ...(settings?.recallConfig || {}),
-                            enabled: nextVal,
-                        },
-                    } as any);
-                    currentStatus.recall = nextVal;
-                    break;
-                }
-                case 'preprocessing': {
-                    const nextVal = !currentStatus.preprocessing;
-                    SettingsManager.set('preprocessingConfig', {
-                        ...(SettingsManager.get('preprocessingConfig') || {}),
-                        enabled: nextVal,
-                    } as any);
-                    
-                    // 异步处理 Recall 同步逻辑
-                    import('@/config/types/defaults').then(({ getDefaultAPISettings }) => {
-                        const currentApi = SettingsManager.get('apiSettings') || getDefaultAPISettings();
-                        SettingsManager.set('apiSettings', {
-                            ...currentApi,
-                            recallConfig: {
-                                ...(currentApi.recallConfig || {}),
-                                usePreprocessing: nextVal
-                            }
-                        } as any);
-                        // 对于异步完成的，手动触发一次刷新，甚至可以在这里 refetch
-                        refreshRef.current();
-                    });
-                    
-                    currentStatus.preprocessing = nextVal;
-                    break;
-                }
+        // 2. 获取当前功能状态并计算新值
+        let nextVal: boolean;
+
+        switch (feature) {
+            case 'summarizer': {
+                nextVal = !(currentSummarizerConfig.enabled !== false);
+                // 写入 SettingsManager
+                SettingsManager.set('summarizerConfig', {
+                    ...currentSummarizerConfig,
+                    enabled: nextVal,
+                });
+                summarizerService.updateConfig({ enabled: nextVal });
+                break;
             }
-            return currentStatus;
-        });
+            case 'entity': {
+                const entityConfig = currentApiSettings.entityExtractConfig ?? defaults.entityExtractConfig;
+                nextVal = !(entityConfig?.enabled ?? false);
+                SettingsManager.set('apiSettings', {
+                    ...currentApiSettings,
+                    entityExtractConfig: {
+                        ...(entityConfig || {}),
+                        enabled: nextVal,
+                    },
+                } as any);
+                break;
+            }
+            case 'embedding': {
+                const embeddingConfig = currentApiSettings.embeddingConfig ?? defaults.embeddingConfig;
+                nextVal = !(embeddingConfig?.enabled ?? false);
+                SettingsManager.set('apiSettings', {
+                    ...currentApiSettings,
+                    embeddingConfig: {
+                        ...(embeddingConfig || {}),
+                        enabled: nextVal,
+                    },
+                } as any);
+                break;
+            }
+            case 'recall': {
+                const recallConfig = currentApiSettings.recallConfig ?? defaults.recallConfig;
+                nextVal = !(recallConfig?.enabled !== false);
+                SettingsManager.set('apiSettings', {
+                    ...currentApiSettings,
+                    recallConfig: {
+                        ...(recallConfig || {}),
+                        enabled: nextVal,
+                    },
+                } as any);
+                break;
+            }
+            case 'preprocessing': {
+                const currentPreprocessingConfig = SettingsManager.get('preprocessingConfig') || {};
+                nextVal = !(currentPreprocessingConfig as { enabled?: boolean })?.enabled;
+                // 同步写入预处理配置
+                SettingsManager.set('preprocessingConfig', {
+                    ...currentPreprocessingConfig,
+                    enabled: nextVal,
+                } as any);
 
-        // 立即执行一次刷新，确保 UI 与底层同步
+                // 同步写入 Recall 关联配置
+                const { getDefaultAPISettings: getDefaults } = await import('@/config/types/defaults');
+                const latestApi = SettingsManager.get('apiSettings') || getDefaults();
+                SettingsManager.set('apiSettings', {
+                    ...latestApi,
+                    recallConfig: {
+                        ...(latestApi.recallConfig || {}),
+                        usePreprocessing: nextVal,
+                    }
+                } as any);
+                break;
+            }
+            default:
+                return;
+        }
+
+        // 3. 同步更新 UI state（纯函数，无副作用）
+        setFeatures(prev => ({ ...prev, [feature]: nextVal }));
+
+        // 4. 刷新确保与底层同步
         await refresh();
     }, [refresh]);
 
@@ -415,4 +421,3 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         refresh,
     };
 }
-

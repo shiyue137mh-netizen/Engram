@@ -1,5 +1,30 @@
 # 更新日志 (CHANGELOG)
 
+## [1.4.9] - 2026-03-18
+
+### 🛑 真正的运行时停止 (True Backend Stop)
+
+- **后端直通中断 (Stop API)**: 现在在预处理运行时点击 toastr 通知，会真正触发酒馆后端的 `stopGeneration` 请求，不再只是 UI 维度的本地状态变更。
+- **多级 Fallback 策略**: 实现了从酒馆 Context API -> 全局 `stopGeneration` -> 模拟 `#mes_stop` 按钮点击的层级后备逻辑，确保中控可靠性。
+
+### 📊 Dashboard 稳定性与性能修复 (P0)
+
+- **数据库 V3 升级**: 为 `events` 和 `entities` 表新增了 `is_archived` 和 `is_embedded` 索引。
+- **RAG 检索性能飞跃**: `Retriever` 查询逻辑重构，大幅减少了不必要的全表扫描深度。
+- **功能开关同步修正**: 修复了 Dashboard feature toggles 与持久化配置在刷新后可能出现的类型显示偏移。
+
+### 💄 UI/UX 细节体验优化
+
+- **MemoryStream 管理增强**:
+  - **快速操作栏**: 在列表卡片上直接暴露“归档、锁定、删除”操作，减少跳转。
+  - **编辑器对齐**: 在详情页头部增加了“锁定”与“归档”切换按钮，使深度编辑更连贯。
+- **API 预设视觉引导**: 强化了正则规则列表中“新增规则”按钮的权重与可见度，降低操作发现成本。
+
+### 📝 正则规则精进
+
+- **模型思考适配**: `think` 清洗规则现在支持 `<thinking>` 标签及其多种变体。
+- **反截断增强**: 新增了针对 `<disclaimer>` 标签及其内容的自动清洗规则。
+
 ## [1.4.8] - 2026-03-17
 
 ### 🚀 Dashboard 性能与稳定性增强 (Dashboard Performance & Stability)

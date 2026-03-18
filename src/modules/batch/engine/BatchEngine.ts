@@ -23,6 +23,12 @@ export class BatchEngine {
     private pausePromise: Promise<void> | null = null;
     private pauseResolve: (() => void) | null = null;
 
+    // P0 Fix: 执行周期 ID，用于防止 stop() 后的 setTimeout 清理误杀新任务
+    private executionId = 0;
+
+    // P2 Fix: 提取 stop 后延迟清理的常量，避免魔法数字
+    private static readonly STOP_CLEAR_DELAY_MS = 500;
+
     /**
      * 订阅队列状态变化
      * @param callback 进度变更的回调函数
@@ -48,9 +54,14 @@ export class BatchEngine {
         }
 
         this.lastNotifyTime = now;
-        // 广播不可变的队列状态副本
+        // 广播真正不可变的队列状态副本（深层解构 tasks 和 overallProgress）
+        const snapshot: BatchQueue = {
+            ...this.queue,
+            tasks: [...this.queue.tasks],
+            overallProgress: { ...this.queue.overallProgress },
+        };
         for (const listener of this.listeners) {
-            listener({ ...this.queue });
+            listener(snapshot);
         }
     }
 
@@ -63,7 +74,7 @@ export class BatchEngine {
         // 同步当前的活动任务下标，以便内部抛出异常时能够正确打标
         this.queue.currentTaskIndex = taskIndex;
 
-        // Fix P1: 严格遵守不可变数据（Immutable）规范，解构重组改变的节点
+        // P1 Fix: 解构更新单个 task 元素
         this.queue.tasks[taskIndex] = {
             ...this.queue.tasks[taskIndex],
             status: 'running',
@@ -72,8 +83,14 @@ export class BatchEngine {
                 current: currentProgress
             }
         };
+        // P1 Fix: 更新数组引用，确保 React 能检测到变化
+        this.queue.tasks = [...this.queue.tasks];
 
-        this.queue.overallProgress.current = this.calculateOverallProgress();
+        // 不可变更新 overallProgress
+        this.queue.overallProgress = {
+            ...this.queue.overallProgress,
+            current: this.calculateOverallProgress(),
+        };
         this.notifyProgress();
     }
 
@@ -85,7 +102,11 @@ export class BatchEngine {
      * 获取队列的当前状态
      */
     public getQueueState(): BatchQueue {
-        return { ...this.queue };
+        return {
+            ...this.queue,
+            tasks: [...this.queue.tasks],
+            overallProgress: { ...this.queue.overallProgress },
+        };
     }
 
     /**
@@ -110,7 +131,7 @@ export class BatchEngine {
 
     /**
      * 将预装配的 Task 投入执行列队
-     * Fix P0: 消除竞态，立刻锁定 isRunning
+     * P0 Fix: isRunning 仅在 finally 中释放，引入 executionId 消除竞态
      */
     async execute(handler: IBatchTaskHandler): Promise<void> {
         if (this.queue.isRunning) {
@@ -118,12 +139,15 @@ export class BatchEngine {
             return;
         }
 
-        // Fix P0: Before doing any async work, immediately lock down execution.
+        // 立即锁定执行
         this.queue.isRunning = true;
         this.stopSignal = false;
         this.queue.isPaused = false;
         this.pausePromise = null;
         this.pauseResolve = null;
+
+        // 递增执行周期 ID，标记本轮执行
+        const currentExecutionId = ++this.executionId;
 
         try {
             // 步骤1：让业务方给出此次调度的预估任务切片名细
@@ -177,7 +201,11 @@ export class BatchEngine {
                 this.queue.tasks[this.queue.currentTaskIndex].error = error instanceof Error ? error.message : String(error);
             }
         } finally {
-            this.queue.isRunning = false;
+            // P0 Fix: isRunning 仅在 finally 中释放，由正在运行的协程自己解锁
+            // 但需要验证 executionId 一致，避免新一轮 execute 被旧轮的 finally 误清
+            if (this.executionId === currentExecutionId) {
+                this.queue.isRunning = false;
+            }
             this.notifyProgress(true);
         }
     }
@@ -210,10 +238,13 @@ export class BatchEngine {
 
     /**
      * 中止并清理任务
+     * P0 Fix: 不再直接设 isRunning = false，由 execute() 的 finally 块负责解锁
      */
     stop(): void {
         this.stopSignal = true;
-        this.queue.isRunning = false;
+        // P0 Fix: 不再直接设置 isRunning = false，让 execute() 的 finally 自行释放
+
+        // 解锁暂停状态，让 execute loop 继续走到 stopSignal 检查点
         this.queue.isPaused = false;
         if (this.pauseResolve) {
             this.pauseResolve();
@@ -221,7 +252,7 @@ export class BatchEngine {
             this.pausePromise = null;
         }
 
-        // Mark remaining running tasks as skipped or left as is, typically reset UI.
+        // Mark remaining running tasks as skipped
         this.queue.tasks.forEach(task => {
             if (task.status === 'pending' || task.status === 'running') {
                 task.status = 'skipped';
@@ -229,12 +260,14 @@ export class BatchEngine {
         });
 
         this.notifyProgress(true);
-        // Wait a slight tick then clear (so UI sees the stop)
+
+        // P2 Fix: 延迟清理队列（让 UI 有时间展示 stop 状态），使用 executionId 守卫
+        const stopExecutionId = this.executionId;
         setTimeout(() => {
-            // Fix P0: 防止在此期间已经发起了新的 execute()，消除清除竞态！
-            if (!this.queue.isRunning) {
+            // 只有当 executionId 未变化（没有新任务启动）时才清理
+            if (this.executionId === stopExecutionId && !this.queue.isRunning) {
                 this.clearQueue();
             }
-        }, 500);
+        }, BatchEngine.STOP_CLEAR_DELAY_MS);
     }
 }

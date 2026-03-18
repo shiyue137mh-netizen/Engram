@@ -82,6 +82,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         return () => {
             unsubscribe();
             if (throttleTimer) clearTimeout(throttleTimer);
+            // P3 Fix: 组件卸载前 flush 已积累的 pendingLogs
+            if (pendingLogs.length > 0) {
+                setLogs(prev => [...pendingLogs, ...prev].slice(0, 4));
+            }
         };
     }, []);
 

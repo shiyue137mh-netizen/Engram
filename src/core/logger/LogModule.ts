@@ -28,6 +28,9 @@ export enum LogModule {
     // ===== 批处理 =====
     BATCH = 'Batch',
 
+    // ===== UI =====
+    DASHBOARD = 'UI/Dashboard',
+
     // ===== 数据层 =====
     DATA_SYNC = 'Data/Sync',
     DATA_CLEANUP = 'Data/Cleanup',

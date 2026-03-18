@@ -25,6 +25,8 @@ interface EventListProps {
     onCheck: (id: string, checked: boolean) => void;
     onGroupCheck: (group: GroupedEvent, checked: boolean) => void;
     onToggleLock: (id: string, isLocked: boolean) => void;
+    onArchive?: (id: string, isArchived: boolean) => void;
+    onDelete?: (id: string) => void;
 }
 
 export const EventList: React.FC<EventListProps> = ({
@@ -43,6 +45,8 @@ export const EventList: React.FC<EventListProps> = ({
     onCheck,
     onGroupCheck,
     onToggleLock,
+    onArchive,
+    onDelete,
 }) => {
     return (
         <div className="flex flex-col min-h-0 h-full w-full">
@@ -152,6 +156,8 @@ export const EventList: React.FC<EventListProps> = ({
                                                 onSelect={() => onSelect(event.id)}
                                                 onCheck={(checked) => onCheck(event.id, checked)}
                                                 onToggleLock={(isLocked) => onToggleLock(event.id, isLocked)}
+                                                onArchive={(isArchived) => onArchive?.(event.id, isArchived)}
+                                                onDelete={() => onDelete?.(event.id)}
                                                 className={event.level > 0 ? 'bg-primary/5 border-primary/20 shadow-sm transition-all' : 'transition-all'} // 重点高亮总结
                                             />
                                         </ErrorBoundary>

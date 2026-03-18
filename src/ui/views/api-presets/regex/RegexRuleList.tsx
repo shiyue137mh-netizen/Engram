@@ -1,7 +1,7 @@
 import { RegexRule } from "@/modules/workflow/steps";
 import { Switch } from '@/ui/components/core/Switch';
 import { AnimatePresence, Reorder } from 'framer-motion';
-import { GripVertical, Power, Regex, Trash2 } from 'lucide-react';
+import { GripVertical, Plus, Power, Regex, Trash2 } from 'lucide-react';
 import React from 'react';
 
 interface RegexRuleListProps {
@@ -41,10 +41,11 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
                         重置默认
                     </button>
                     <button
-                        className="text-muted-foreground hover:text-foreground transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary-foreground bg-primary hover:bg-primary/90 rounded-md shadow-sm transition-all active:scale-95"
                         onClick={onAdd}
                     >
-                        <Regex size={16} />
+                        <Plus size={14} strokeWidth={2.5} />
+                        新增规则
                     </button>
                 </div>
             </div>

@@ -10,7 +10,7 @@ import { TextField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
 import { useResponsive } from '@/ui/hooks/useResponsive';
 import { debounce } from 'lodash';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { Archive, ArrowLeft, Lock, LockOpen, Trash2 } from 'lucide-react';
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 // ==================== 类型定义 ====================
@@ -39,6 +39,7 @@ interface FieldOverrides {
     score?: number;
     summary?: string;  // V1.2.9: Add summary to avoid stale closure
     isArchived?: boolean;
+    isLocked?: boolean;
 }
 
 // ==================== 样式 ====================
@@ -120,6 +121,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     const [logicText, setLogicText] = useState('');
     const [score, setScore] = useState(0.5);
     const [isArchived, setIsArchived] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
     const [isDirty, setIsDirty] = useState(false);
     const [lastEventId, setLastEventId] = useState<string | null>(null);
 
@@ -147,6 +149,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             setLogicText(event.structured_kv?.logic?.join(', ') || '');
             setScore(event.significance_score);
             setIsArchived(!!event.is_archived);
+            setIsLocked(!!event.is_locked);
             setIsDirty(false);
             setLastEventId(event.id);
         }
@@ -182,6 +185,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             logicText: overrides.logicText ?? logicText,
             score: overrides.score ?? score,
             isArchived: overrides.isArchived ?? isArchived,
+            isLocked: overrides.isLocked ?? isLocked,
         };
 
         const splitTrim = (s: string) => s.split(',').map(v => v.trim()).filter(Boolean);
@@ -204,6 +208,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             structured_kv: { ...event.structured_kv, ...kv },
             significance_score: fields.score,
             is_archived: fields.isArchived,
+            is_locked: fields.isLocked,
         };
 
         if (immediate) {
@@ -421,11 +426,39 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                 </div>
             </div>
 
+            {/* 锁定状态 */}
+            <div className="flex justify-between items-center py-2">
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-meta">锁定此事件</span>
+                        {isLocked ? <Lock size={12} className="text-emphasis" /> : <LockOpen size={12} className="text-meta/60" />}
+                    </div>
+                    <span className="text-[10px] text-meta/60">锁定后将防止该记忆在自动精简或清理时被删除</span>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={isLocked}
+                        onChange={(e) => {
+                            const val = e.target.checked;
+                            setIsLocked(val);
+                            setIsDirty(true);
+                            syncToParent({ isLocked: val });
+                        }}
+                    />
+                    <div className="w-9 h-5 bg-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emphasis transition-colors"></div>
+                </label>
+            </div>
+
             {/* 归档状态 */}
             <div className="flex justify-between items-center py-2">
                 <div className="flex flex-col">
-                    <span className="text-xs text-meta">归档此事件</span>
-                    <span className="text-[10px] text-meta/60">归档后将不再参与自动摘要生成</span>
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-meta">归档此事件</span>
+                        <Archive size={12} className={isArchived ? "text-primary" : "text-meta/60"} />
+                    </div>
+                    <span className="text-[10px] text-meta/60">归档后将不再参与自动摘要生成和实时上下文</span>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -476,12 +509,39 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                         <ArrowLeft size={18} />
                     </button>
                     <h2 className="text-sm font-medium text-foreground flex-1">编辑事件</h2>
-                    <button
-                        onClick={handleDelete}
-                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => {
+                                const val = !isArchived;
+                                setIsArchived(val);
+                                setIsDirty(true);
+                                syncToParent({ isArchived: val }, true);
+                            }}
+                            className={`p-1.5 rounded transition-colors ${isArchived ? 'text-primary bg-primary/10' : 'text-meta hover:bg-muted/50'}`}
+                            title={isArchived ? "取消归档" : "归档"}
+                        >
+                            <Archive size={16} className={isArchived ? 'fill-current' : ''} />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const val = !isLocked;
+                                setIsLocked(val);
+                                setIsDirty(true);
+                                syncToParent({ isLocked: val }, true);
+                            }}
+                            className={`p-1.5 rounded transition-colors ${isLocked ? 'text-emphasis bg-emphasis/10' : 'text-meta hover:bg-muted/50'}`}
+                            title={isLocked ? "解锁" : "锁定"}
+                        >
+                            {isLocked ? <Lock size={16} /> : <LockOpen size={16} />}
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className="p-1.5 text-destructive hover:bg-destructive/10 rounded ml-1"
+                            title="删除"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* 表单内容 */}
@@ -515,13 +575,39 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                         <ArrowLeft size={18} />
                     </button>
                     <h3 className="text-sm font-medium text-primary flex-1">编辑事件</h3>
-                    <button
-                        onClick={handleDelete}
-                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
-                        title="删除"
-                    >
-                        <Trash2 size={16} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => {
+                                const val = !isArchived;
+                                setIsArchived(val);
+                                setIsDirty(true);
+                                syncToParent({ isArchived: val }, true);
+                            }}
+                            className={`p-1.5 rounded transition-colors ${isArchived ? 'text-primary bg-primary/10' : 'text-meta hover:bg-muted/50'}`}
+                            title={isArchived ? "取消归档" : "归档"}
+                        >
+                            <Archive size={16} className={isArchived ? 'fill-current' : ''} />
+                        </button>
+                        <button
+                            onClick={() => {
+                                const val = !isLocked;
+                                setIsLocked(val);
+                                setIsDirty(true);
+                                syncToParent({ isLocked: val }, true);
+                            }}
+                            className={`p-1.5 rounded transition-colors ${isLocked ? 'text-emphasis bg-emphasis/10' : 'text-meta hover:bg-muted/50'}`}
+                            title={isLocked ? "解锁" : "锁定"}
+                        >
+                            {isLocked ? <Lock size={16} /> : <LockOpen size={16} />}
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            className="p-1.5 text-destructive hover:bg-destructive/10 rounded ml-1"
+                            title="删除"
+                        >
+                            <Trash2 size={16} />
+                        </button>
+                    </div>
                 </div>
             )}
 
