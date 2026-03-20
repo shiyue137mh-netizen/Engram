@@ -199,7 +199,7 @@ HybridScore = (1 - α) * EmbeddingScore + α * RerankScore
 | **填满优先** | 工作记忆 (WM) 不满时，全部进入；只有满了才优胜劣汰 |
 | **基于容量淘汰** | 不设“斩杀线”，而是在超出容量时淘汰分数最低的 |
 | **剧情连贯性** | 剧情事件有时间和逻辑联系，相似度高是正常的 |
-| **异构同轨 (V1.4)** | 系统不再区分 `event` 还是 `entity`，一律使用 `category` 统一入列缓存池，在内部公平竞价打分 |
+| **双轨限流 (V1.4)** | 系统通过 `category` 字段严格区分 `event` 和 `entity`，并受 `eventWorkingLimit` 和 `entityWorkingLimit` 独立容量配额管控，防止上下文过度污染 |
 
 #### 4.3.3 双轨存储机制
 
