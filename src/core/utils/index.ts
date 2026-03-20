@@ -32,3 +32,10 @@ export function generateShortUUID(prefix: string, length: number = 6): string {
     return result;
 }
 
+/**
+ * 延迟指定毫秒数 (用于重试退避)
+ * @param ms 毫秒数
+ */
+export function sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}

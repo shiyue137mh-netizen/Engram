@@ -6,10 +6,28 @@ import { getCurrentChatId } from '@/integrations/tavern';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { type ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
 import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import { IStep, RetryConfig } from '../../core/Step';
 
 export class VectorRetrieveStep implements IStep {
     name = 'VectorRetrieveStep';
+
+    get retry(): RetryConfig {
+        const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
+        const customConfig = vectorConfig?.retryConfig;
+        return {
+            maxAttempts: customConfig?.maxAttempts ?? 3,
+            delay: customConfig?.retryDelay ?? 2000,
+            backoff: 'exponential',
+            retryIf: (error: any) => {
+                const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+                return msg.includes('429') ||
+                       msg.includes('rate limit') ||
+                       msg.includes('timeout') ||
+                       msg.includes('network error') ||
+                       msg.includes('failed to fetch');
+            }
+        };
+    }
 
     async execute(context: JobContext): Promise<void> {
         // Ensure context.data is initialized
@@ -91,8 +109,9 @@ export class VectorRetrieveStep implements IStep {
             queryVector = await embeddingService.embed(searchQuery);
         } catch (e: any) {
             Logger.warn(LogModule.RAG_RETRIEVE, '生成查询向量失败', { error: e.message });
-            context.data.candidates = [];
-            return;
+            // P2 Update: 为了让 WorkflowEngine 触发重试逻辑，这里需要向上抛出而不是静默吞没
+            // 如果所有的重试都失败了，WorkflowEngine 会中断整个 Workflow，这比悄悄生成低质量回复更好
+            throw e;
         }
 
         // 计算相似度

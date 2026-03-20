@@ -328,6 +328,34 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                     </div>
                 </div>
             </FormSection>
+
+            {/* 网络与重试 */}
+            <FormSection title="网络与重试" description="控制 API 请求的容错重试行为" collapsible defaultCollapsed>
+                <div className="space-y-4">
+                    <TextField
+                        label="最大尝试次数"
+                        type="number"
+                        value={preset.retryConfig?.maxAttempts?.toString() ?? ''}
+                        onChange={(value) => {
+                            const num = parseInt(value, 10);
+                            updatePreset({ retryConfig: { ...preset.retryConfig, maxAttempts: isNaN(num) ? 3 : num, retryDelay: preset.retryConfig?.retryDelay ?? 2000 } });
+                        }}
+                        placeholder="3"
+                        description="包含首次请求和后续重试的最大次数。报错 429/Timeout 会自动退避重试（1表示不重试）"
+                    />
+                    <TextField
+                        label="重试初始延迟 (ms)"
+                        type="number"
+                        value={preset.retryConfig?.retryDelay?.toString() ?? ''}
+                        onChange={(value) => {
+                            const num = parseInt(value, 10);
+                            updatePreset({ retryConfig: { ...preset.retryConfig, maxAttempts: preset.retryConfig?.maxAttempts ?? 3, retryDelay: isNaN(num) ? 2000 : num } });
+                        }}
+                        placeholder="2000"
+                        description="首次重试的等待时间，后续重试将进行指数退避"
+                    />
+                </div>
+            </FormSection>
         </div>
     );
 };

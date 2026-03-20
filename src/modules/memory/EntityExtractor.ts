@@ -211,24 +211,31 @@ export class EntityBuilder {
         const startTime = Date.now();
         Logger.info(LogModule.MEMORY_ENTITY, `开始实体提取 (Workflow) (楼层 ${floor}, DryRun: ${dryRun})`);
 
-        if (manual) {
-            notificationService.info('正在进行实体提取...', 'Engram');
-        }
-
         try {
             // Lazy import to avoid circular dep
             const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
             const { createEntityWorkflow } = await import('@/modules/workflow/definitions/EntityWorkflow');
+            const { MacroService } = await import('@/integrations/tavern');
 
             // V1.0.4: 使用全局 "启用修订模式" 开关 (复用 summarizerConfig)
             const globalSettings = SettingsManager.get('summarizerConfig');
             const previewEnabled = manual || (globalSettings?.previewEnabled ?? true);
 
-            // Watchdog / Cancel Signal
-            // P0 Fix: 60s watchdog 对本地模型不友好，改为可配置并提高默认阈值
-            // - 通过 signal.cancelled 让 WorkflowEngine 在 step 边界尽快停止
-            // - 仍无法强杀正在执行的底层 LLM 请求，但可避免后续步骤继续污染状态
+            // 获取聊天历史 (如果是单条楼层，则宏系统会自动处理)
+            const chatHistory = MacroService.getChatHistory(range || [floor, floor]);
+
+            // 231: Watchdog / Cancel Signal
             const signal = { cancelled: false };
+
+            // 显示运行中通知 (支持取消)
+            let runningToast: any = null;
+            if (manual) {
+                runningToast = notificationService.running('正在进行实体提取...', 'Engram', () => {
+                    signal.cancelled = true;
+                    Logger.info(LogModule.MEMORY_ENTITY, '用户请求取消实体提取');
+                    notificationService.warning('正在取消实体提取...', 'Engram');
+                });
+            }
 
             const contextPromise = WorkflowEngine.run(createEntityWorkflow(), {
                 trigger: manual ? 'manual' : 'auto',
@@ -241,34 +248,17 @@ export class EntityBuilder {
                     category: 'entity_extraction', // V1.0.8: Explicitly pass category for FetchContext to find default template
                 },
                 input: {
-                    // Pass range if possible, otherwise FetchChatHistory logic needs to handle single floor or raw string
-                    // Ideally pass range: [floor, floor] or the actual range
-                    range: range || [floor, floor], // Use passed range or default to single floor
-                    chatHistory // Pass raw string as optimization
+                    range: range || [floor, floor],
+                    chatHistory
                 }
             });
 
-            // P0 Fix: configurable watchdog (default 180s)
-            const watchdogMs =
-                this.config.watchdogTimeoutMs ??
-                SettingsManager.get('apiSettings')?.entityExtractConfig?.watchdogTimeoutMs ??
-                1_800_000;
-
-            let timeoutId: any;
-            const timeoutPromise = new Promise<never>((_, reject) => {
-                timeoutId = setTimeout(() => {
-                    signal.cancelled = true;
-                    reject(new Error(`实体提取超时 (${Math.round(watchdogMs / 1000)}s Watchdog)`));
-                }, watchdogMs);
-            });
-
-            const context = await Promise.race([contextPromise, timeoutPromise]);
-            clearTimeout(timeoutId);
+            const context = await contextPromise;
+            if (runningToast) notificationService.remove(runningToast);
 
             const result = context.output; // From SaveEntity
 
             if (!dryRun) {
-                // Update state: use range end when available (fix for UserReview flow / manual review)
                 const finalFloor = (range?.[1] ?? floor);
                 await chatManager.updateState({ last_extracted_floor: finalFloor });
 
@@ -290,14 +280,12 @@ export class EntityBuilder {
                     newCount: result?.newEntities?.length || 0,
                     updatedCount: result?.updatedEntities?.length || 0
                 });
-                // V0.9.11: Persist for UI
                 this.pendingReviewResult = {
                     success: true,
                     newEntities: result?.newEntities || [],
                     updatedEntities: result?.updatedEntities || []
                 };
 
-                // Add notification for Preview
                 notificationService.success(
                     `实体预览就绪: 发现 ${result?.newEntities?.length || 0} 个新实体`,
                     'Engram'
@@ -312,6 +300,12 @@ export class EntityBuilder {
 
         } catch (e) {
             const errorMsg = e instanceof Error ? e.message : String(e);
+            
+            if (errorMsg === 'UserCancelled') {
+                Logger.info(LogModule.MEMORY_ENTITY, '实体提取已被用户取消');
+                return { success: false, newEntities: [], updatedEntities: [], error: 'UserCancelled' };
+            }
+
             Logger.error(LogModule.MEMORY_ENTITY, '实体提取异常', { error: errorMsg });
 
             // P0 Fix: watchdog 超时/失败时，防止 last_extracted_floor 指针卡死导致自动提取死循环

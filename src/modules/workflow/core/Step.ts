@@ -17,9 +17,33 @@ export type StepAction =
  */
 export type StepResult = void | StepAction;
 
+export interface RetryConfig {
+    /** 最大尝试次数 (包括首次执行，1 表示不重试) */
+    maxAttempts: number;
+    /** 初始重试延迟 (ms) */
+    delay: number;
+    /**
+     * 退避策略，默认为 exponential
+     * linear: 延迟固定
+     * exponential: 延迟翻倍
+     */
+    backoff?: 'linear' | 'exponential';
+    /** 
+     * 判定某个 Error 是否值得重试 
+     * 如果未提供，则所有 Error 都进行重试
+     */
+    retryIf?: (error: any) => boolean;
+}
+
 export interface IStep {
     /** 步骤名称 (用于日志和调试) */
     name: string;
+
+    /** 重试配置 (可选，WorkflowEngine 据此执行重试控制) */
+    retry?: RetryConfig;
+
+    /** 彻底失败后是否忽略错误继续执行工作流 (可选) */
+    ignoreFailure?: boolean;
 
     /**
      * 执行步骤

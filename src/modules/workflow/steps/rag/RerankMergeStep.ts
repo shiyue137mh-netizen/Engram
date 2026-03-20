@@ -5,10 +5,31 @@ import { Logger, LogModule } from '@/core/logger';
 import { mergeResults, scoreAndSort, type ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
 import { rerankService } from '@/modules/rag/retrieval/Reranker';
 import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import { IStep, RetryConfig } from '../../core/Step';
 
 export class RerankMergeStep implements IStep {
     name = 'RerankMergeStep';
+    ignoreFailure = true;
+
+    get retry(): RetryConfig {
+        const rerankConfig = SettingsManager.get('apiSettings')?.rerankConfig;
+        const customConfig = rerankConfig?.retryConfig;
+        
+        return {
+            maxAttempts: customConfig?.maxAttempts ?? 3,
+            delay: customConfig?.retryDelay ?? 2000,
+            backoff: 'exponential',
+            retryIf: (error: any) => {
+                const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+                return msg.includes('429') ||
+                       msg.includes('rate limit') ||
+                       msg.includes('timeout') ||
+                       msg.includes('network') ||
+                       msg.includes('failed to fetch');
+            }
+        };
+    }
+
 
     async execute(context: JobContext): Promise<void> {
         context.data = context.data || {};
@@ -52,6 +73,9 @@ export class RerankMergeStep implements IStep {
         context.data.originalCandidateCount = candidates.length;
         context.data.keywordHardLimit = hardLimit;
 
+        // 在重试机制介入前，预先设置好降级候选列表，以防多次尝试彻底失败后 WorkflowEngine 根据 ignoreFailure 继续执行时空结果
+        context.data.candidates = scoreAndSort(limitedCandidates, 0);
+
         // 2. Rerank 重排序 (如果启用且服务可用)
         let finalCandidates = limitedCandidates;
         let rerankTime = 0;
@@ -76,16 +100,14 @@ export class RerankMergeStep implements IStep {
                     limitedCandidates,
                     alpha
                 );
+                
+                context.data.candidates = finalCandidates;
             } catch (e: any) {
-                Logger.warn(LogModule.RAG_RETRIEVE, 'Rerank 失败，退回纯 Embedding 排序', { error: e.message });
-                finalCandidates = scoreAndSort(limitedCandidates, 0);
+                Logger.warn(LogModule.RAG_RETRIEVE, 'Rerank 失败，准备重试或回退', { error: e.message });
+                throw e; // 抛出异常交给 WorkflowEngine 重试，若穷尽则忽略失败继续使用初始 fallback
             }
-        } else {
-            // 仅使用 Embedding 分数排序
-            finalCandidates = scoreAndSort(limitedCandidates, 0);
         }
 
-        context.data.candidates = finalCandidates;
         context.data.rerankTime = rerankTime;
 
         Logger.debug(LogModule.RAG_INJECT, `Rerank/Merge 完成，最终事件候选: ${finalCandidates.length} 个`, {

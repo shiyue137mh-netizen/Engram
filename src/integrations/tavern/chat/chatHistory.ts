@@ -114,7 +114,9 @@ export class ChatHistoryHelper {
                             }
 
                             if (!content && prev) {
-                                Logger.debug('ChatHistoryHelper', 'TavernHelper stripped content empty!', { prev, content });
+                                if (index === 0) {
+                                    Logger.debug('ChatHistoryHelper', 'TavernHelper stripped content empty! (Recovered)', { prev, content });
+                                }
                                 content = prev; // 兜底恢复
                             }
                         } catch (err) {

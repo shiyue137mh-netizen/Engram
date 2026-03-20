@@ -1,12 +1,36 @@
-import { IStep } from '../../core/Step';
+import { IStep, RetryConfig } from '../../core/Step';
 import { JobContext } from '../../core/JobContext';
 import { llmAdapter } from '@/integrations/llm/Adapter';
 import { ModelLogger } from '@/core/logger/ModelLogger';
 import { getCurrentCharacter, getCurrentModel } from '@/integrations/tavern';
 import { Logger } from '@/core/logger';
+import { SettingsManager } from '@/config/settings';
 
 export class LlmRequest implements IStep {
     name = 'LlmRequest';
+
+    get retry(): RetryConfig {
+        const apiSettings = SettingsManager.get('apiSettings') as any;
+        const presets = apiSettings?.llmPresets || [];
+        const activePresetId = apiSettings?.activeLLMPresetId;
+        const activePreset = presets.find((p: any) => p.id === activePresetId) || presets[0];
+        const customConfig = activePreset?.retryConfig;
+        
+        return {
+            maxAttempts: customConfig?.maxAttempts ?? 3,
+            delay: customConfig?.retryDelay ?? 2000,
+            backoff: 'exponential',
+            retryIf: (error: any) => {
+                const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+                return msg.includes('429') ||
+                       msg.includes('rate limit') ||
+                       msg.includes('timeout') ||
+                       msg.includes('network') ||
+                       msg.includes('failed to fetch');
+            }
+        };
+    }
+
 
     async execute(context: JobContext): Promise<void> {
         if (!context.prompt) {
@@ -57,11 +81,13 @@ export class LlmRequest implements IStep {
 
             Logger.debug('LlmRequest', 'LLM 请求成功', { duration: Date.now() - startTime });
 
-        } catch (e) {
+        } catch (e: any) {
             const errorMsg = e instanceof Error ? e.message : String(e);
+            const isCancelled = e.isCancellation || errorMsg === 'UserCancelled';
+
             ModelLogger.logReceive(logId, {
-                status: 'error',
-                error: errorMsg,
+                status: isCancelled ? 'cancelled' : 'error',
+                error: isCancelled ? '用户手动取消' : errorMsg,
                 duration: Date.now() - startTime,
             });
             throw e;

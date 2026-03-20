@@ -1,7 +1,7 @@
 import { EntityNode, EntityType } from '@/data/types/graph';
 import { ModernButton as Button } from '@/ui/components/core/Button';
 import * as jsYaml from 'js-yaml';
-import { AlertTriangle, Edit2, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, Edit2, Save, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface EntityReviewProps {
@@ -24,6 +24,8 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
     const [updatedEntities, setUpdatedEntities] = useState<EntityNodeWithDiff[]>(data.updatedEntities || []);
     const [editingEntity, setEditingEntity] = useState<{ list: 'new' | 'updated', index: number, entity: EntityNodeWithDiff } | null>(null);
     const [previewDescription, setPreviewDescription] = useState<string>('');
+    const [isEditorExpanded, setIsEditorExpanded] = useState<boolean>(true);
+    const [isPreviewExpanded, setIsPreviewExpanded] = useState<boolean>(true);
 
     // Sync when external data changes
     useEffect(() => {
@@ -120,10 +122,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
 
             {/* Editing Modal/Overlay */}
             {editingEntity && (
-                <div
-                    className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in"
-                    style={{ height: '100dvh', width: '100vw', top: 0, left: 0 }}
-                >
+                <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
                     <div className="w-full max-w-6xl mx-auto bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 h-[90dvh] overflow-hidden">
                         <div className="flex items-center justify-between border-b pb-2 mb-2 shrink-0">
                             <h3 className="text-lg font-bold">编辑实体</h3>
@@ -153,31 +152,26 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                             </div>
                         </div>
 
-                        {/* Comparison View */}
-                        <div className="flex-1 min-h-0 grid grid-cols-2 gap-6">
-                            {/* Left Column: Original Description + Profile Editor */}
-                            <div className="flex flex-col gap-4 min-h-0 min-w-0">
-                                {/* If updated, show original description */}
-                                {editingEntity.list === 'updated' && editingEntity.entity._original && (
-                                    <div className="flex-1 min-h-0 flex flex-col gap-2">
-                                        <label className="text-xs font-medium text-muted-foreground flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-muted-foreground/30"></span>
-                                            原始烧录文本 (Original Description)
-                                        </label>
-                                        <div className="flex-1 p-3 bg-muted/30 border border-border rounded-md text-xs font-mono overflow-y-auto custom-scrollbar select-text opacity-70 whitespace-pre-wrap break-all">
-                                            {editingEntity.entity._original.description}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Profile JSON Editor (Always Visible) */}
-                                <div className={`${editingEntity.list === 'updated' ? 'h-1/2' : 'h-full'} flex flex-col gap-2 min-h-0`}>
-                                    <label className="text-xs font-medium text-foreground flex items-center gap-2">
-                                        <Edit2 size={12} />
+                        {/* Vertical Edit & Preview View */}
+                        <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-hidden w-full">
+                            {/* Profile JSON Editor Panel */}
+                            <div className={`flex flex-col gap-2 border border-border rounded-md p-4 bg-muted/10 transition-all ${isEditorExpanded ? 'flex-1 min-h-0' : 'shrink-0'}`}>
+                                <button
+                                    className="flex items-center justify-between w-full group cursor-pointer"
+                                    onClick={() => setIsEditorExpanded(!isEditorExpanded)}
+                                >
+                                    <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                                        <Edit2 size={14} />
                                         编辑属性 (Edit Profile JSON)
-                                    </label>
+                                    </div>
+                                    <div className="text-muted-foreground group-hover:text-foreground">
+                                        {isEditorExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                    </div>
+                                </button>
+                                
+                                {isEditorExpanded && (
                                     <textarea
-                                        className="flex-1 p-3 rounded-md bg-muted border border-border text-xs font-mono resize-none focus:ring-2 focus:ring-primary/20 outline-none custom-scrollbar overflow-x-auto whitespace-pre"
+                                        className="flex-1 min-h-0 w-full p-3 rounded-md bg-muted/50 border border-border/50 text-xs font-mono resize-none focus:ring-2 focus:ring-primary/20 outline-none custom-scrollbar whitespace-pre-wrap break-all"
                                         value={JSON.stringify(editingEntity.entity.profile, null, 2)}
                                         onChange={(e) => {
                                             try {
@@ -188,20 +182,29 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                                             }
                                         }}
                                     />
-                                </div>
+                                )}
                             </div>
 
-                            {/* Right Column: New Description Preview */}
-                            <div className="flex flex-col gap-2 min-w-0 min-h-0">
-                                <label className="text-xs font-medium text-primary flex items-center gap-2">
-                                    <span className="w-2 h-2 rounded-full bg-primary"></span>
-                                    新烧录文本预览 (New Description Preview)
-                                </label>
-                                <div className="flex-1 p-3 bg-primary/5 border border-primary/20 rounded-md text-xs font-mono overflow-y-auto overflow-x-hidden custom-scrollbar select-text whitespace-pre-wrap break-words max-w-full text-foreground relative">
-                                    <div className="absolute inset-0 p-3 overflow-y-auto custom-scrollbar">
+                            {/* New Description Preview Panel */}
+                            <div className={`flex flex-col gap-2 border border-primary/20 rounded-md p-4 bg-primary/5 transition-all ${isPreviewExpanded ? 'flex-1 min-h-0' : 'shrink-0'}`}>
+                                <button
+                                    className="flex items-center justify-between w-full group cursor-pointer"
+                                    onClick={() => setIsPreviewExpanded(!isPreviewExpanded)}
+                                >
+                                    <div className="flex items-center gap-2 text-xs font-bold text-primary">
+                                        <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
+                                        新烧录文本预览 (New Description Preview)
+                                    </div>
+                                    <div className="text-muted-foreground group-hover:text-primary">
+                                        {isPreviewExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                    </div>
+                                </button>
+                                
+                                {isPreviewExpanded && (
+                                    <div className="flex-1 min-h-0 w-full p-3 bg-background/50 border border-primary/10 rounded-md text-xs font-mono overflow-y-auto overflow-x-hidden custom-scrollbar select-text whitespace-pre-wrap break-all text-foreground">
                                         {previewDescription}
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </div>
 

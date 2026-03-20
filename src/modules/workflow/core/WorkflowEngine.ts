@@ -1,7 +1,7 @@
 import { Logger, LogModule } from '@/core/logger';
-import { generateShortUUID } from '@/core/utils';
+import { generateShortUUID, sleep } from '@/core/utils';
 import { JobContext } from './JobContext';
-import { IStep } from './Step';
+import { IStep, StepResult } from './Step';
 
 export interface WorkflowDefinition {
     name: string;
@@ -14,6 +14,60 @@ export interface WorkflowDefinition {
  * 负责顺序执行 Steps，管理 Context，处理错误。
  */
 export class WorkflowEngine {
+    /**
+     * 执行带有重试机制的步骤
+     */
+    private static async executeWithRetry(
+        step: IStep,
+        context: JobContext
+    ): Promise<StepResult> {
+        const retryConfig = step.retry;
+        
+        // 如果没有配置重试，或者设定 maxAttempts <= 1，直接执行
+        if (!retryConfig || retryConfig.maxAttempts <= 1) {
+            return await step.execute(context);
+        }
+
+        let attempt = 1;
+        let delay = retryConfig.delay;
+
+        while (true) {
+            try {
+                return await step.execute(context);
+            } catch (error) {
+                // 取消检查点：如果已被取消，则不进行重试
+                if (context.signal && context.signal.cancelled) {
+                    throw error;
+                }
+
+                // 判断是否值得重试
+                const shouldRetry = retryConfig.retryIf ? retryConfig.retryIf(error) : true;
+                
+                if (!shouldRetry || attempt >= retryConfig.maxAttempts) {
+                    throw error; // 不满足重试条件，或次数耗尽，向上抛出
+                }
+
+                Logger.warn(LogModule.RAG_INJECT, `[Retry] Step ${step.name} failed (${attempt}/${retryConfig.maxAttempts}), retrying in ${delay}ms...`, {
+                    error: error instanceof Error ? error.message : String(error)
+                });
+
+                // 等待指定的延迟
+                await sleep(delay);
+
+                // 取消检查点：如果等待期间被取消，则终止重试并抛出上次的错误
+                if (context.signal && context.signal.cancelled) {
+                    throw error;
+                }
+
+                // 计算下一次退避延迟
+                if (retryConfig.backoff === 'exponential') {
+                    delay *= 2;
+                }
+
+                attempt++;
+            }
+        }
+    }
     /**
      * 执行一个工作流
      * @param workflow 工作流定义
@@ -71,7 +125,7 @@ export class WorkflowEngine {
 
                 const stepStart = Date.now();
                 try {
-                    const result = await step.execute(context);
+                    const result = await this.executeWithRetry(step, context);
                     const duration = Date.now() - stepStart;
 
                     context.metadata.stepsExecuted.push(step.name);
@@ -109,6 +163,13 @@ export class WorkflowEngine {
                         }
                     }
                 } catch (stepError) {
+                    if (step.ignoreFailure) {
+                        Logger.warn(LogModule.RAG_INJECT, `步骤执行彻底失败，但配置了忽略错误，继续流转: ${step.name}`, {
+                            error: stepError instanceof Error ? stepError.message : String(stepError)
+                        });
+                        continue;
+                    }
+
                     Logger.error(LogModule.RAG_INJECT, `步骤执行崩溃: ${step.name}`, {
                         error: stepError instanceof Error ? stepError.message : String(stepError),
                         stack: stepError instanceof Error ? stepError.stack : undefined
@@ -124,7 +185,20 @@ export class WorkflowEngine {
             });
 
         } catch (e: any) {
+            const isCancelled = context.signal && context.signal.cancelled;
             context.metadata.error = e instanceof Error ? e : new Error(String(e));
+            
+            if (isCancelled) {
+                Logger.info(LogModule.RAG_INJECT, `工作流已由用户取消: ${workflow.name}`, {
+                    jobId: context.id,
+                    step: context.metadata.currentStep || currentStepName
+                });
+                // 抛出特定错误供上层识别
+                const abortError = new Error('UserCancelled');
+                (abortError as any).isCancellation = true;
+                throw abortError;
+            }
+
             Logger.error(LogModule.RAG_INJECT, `工作流执行异常: ${workflow.name}`, {
                 jobId: context.id,
                 // P0 Fix: 优先记录正在执行的 step，避免误报上一个成功 step

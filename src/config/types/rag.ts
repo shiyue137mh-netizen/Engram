@@ -13,6 +13,11 @@ export interface VectorConfig {
     dimensions?: number;
     /** 自动添加 URL 后缀 (默认 true) */
     autoSuffix?: boolean;
+    /** API 调用重试配置 */
+    retryConfig?: {
+        maxAttempts: number;
+        retryDelay: number;
+    };
 }
 
 export type VectorSource =
@@ -40,6 +45,11 @@ export interface RerankConfig {
     hybridAlpha: number;
     /** 自动添加 URL 后缀 (默认 true) */
     autoSuffix?: boolean;
+    /** API 调用重试配置 */
+    retryConfig?: {
+        maxAttempts: number;
+        retryDelay: number;
+    };
 }
 
 export interface BrainRecallConfig {

@@ -58,4 +58,9 @@ export interface LLMPreset {
     createdAt: number;
     /** 更新时间 */
     updatedAt: number;
+    /** API 调用重试配置 */
+    retryConfig?: {
+        maxAttempts: number;
+        retryDelay: number;
+    };
 }

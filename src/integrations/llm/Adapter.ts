@@ -233,25 +233,12 @@ class LLMAdapter {
             },
         };
 
-        // 触发 Native Pipeline Hook
-        const { EventBus, TavernEventType } = await import('@/integrations/tavern');
-        await EventBus.emit(TavernEventType.GENERATION_AFTER_COMMANDS, 'engram', {}, false);
-        await EventBus.emit(TavernEventType.GENERATE_AFTER_DATA, generateData);
-
-        // 提取处理后的上下文
-        const processedPrompt = typeof generateData.prompt === 'string' ?
-            generateData.prompt : combinedPrompt;
-
         let finalSystemPrompt = request.systemPrompt;
         let finalUserPrompt = request.userPrompt;
 
-        if (processedPrompt !== combinedPrompt) {
-            finalSystemPrompt = '';
-            finalUserPrompt = processedPrompt;
-        }
-
         // Engram Pipeline (RegexProcessor)
-        const { regexProcessor } = await import('@/modules/workflow/steps');
+        // Fix P1: 移除导致循环依赖的 @/modules/workflow/steps 导入，改为直接导入
+        const { regexProcessor } = await import('@/modules/workflow/steps/processing/RegexProcessor');
         finalUserPrompt = regexProcessor.process(finalUserPrompt, 'input');
 
         // =========================================================================

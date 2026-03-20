@@ -16,11 +16,7 @@ import { Logger, LogModule } from '@/core/logger';
 import { EventBus, getCurrentChatId, getSTContext, MacroService, TavernEventType } from '@/integrations/tavern';
 import { preprocessor } from '@/modules/preprocessing';
 import { retriever } from '@/modules/rag/retrieval/Retriever';
-import { regexProcessor } from "@/modules/workflow/steps";
-
-/**
- * GENERATION_AFTER_COMMANDS 事件参数类型
- */
+import { regexProcessor } from "@/modules/workflow/steps/processing/RegexProcessor";
 interface GenerationAfterCommandsParams {
     automatic_trigger?: boolean;
     force_name2?: boolean;
@@ -132,9 +128,17 @@ class Injector {
                 return;
             }
 
-            // V0.9.6: 检查内部请求标记
+            // V1.5 取消不安全的全局内部锁，改为精准载荷匹配
+            // 如果事件带有 `_engram_internal` (理想状态)
             if (params._engram_internal) {
                 Logger.debug(LogModule.RAG_INJECT, '检测到内部请求，跳过预处理');
+                return;
+            }
+
+            // JS-Slash-Runner 等拦截原生请求后，会手动发一个硬编码的空参数 `{}` 事件。
+            // 真实的 SilyTavern 会带有一大堆参数，例如 { automatic_trigger, quiet_prompt, signal, 等... }
+            if (type === 'normal' && Object.keys(params).length === 0) {
+                Logger.debug(LogModule.RAG_INJECT, '检测到第三方扩展发出的格式化空载荷假事件，直接跳过处理');
                 return;
             }
 

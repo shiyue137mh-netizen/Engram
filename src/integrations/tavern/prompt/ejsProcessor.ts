@@ -18,7 +18,7 @@ export class EjsProcessor {
             // 1. 准备上下文 (自动包含 {{user}}, {{char}} 及所有酒馆变量)
             const context = await window.EjsTemplate.prepareContext();
 
-            // 2. 尝试获取 MVU 变量并合并 (参考脚本.js)
+            // 2. 尝试获取 MVU 变量并合并 
             if (typeof window.Mvu !== 'undefined' && window.Mvu.getMvuData) {
                 try {
                     const mvuObj = window.Mvu.getMvuData({ type: 'message', message_id: 'latest' });
