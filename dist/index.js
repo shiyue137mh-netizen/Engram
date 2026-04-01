@@ -575,7 +575,7 @@ function FO(e, t) {
     }));
   });
 }
-const $O = "1.4.10", tk = {
+const $O = "1.4.11", tk = {
   version: $O
 }, um = class um {
   constructor() {
@@ -908,7 +908,7 @@ const cm = "TavernChat";
 async function pA(e, t) {
   var n;
   try {
-    const r = `/hide start=${e} end=${t}`;
+    const r = `/hide ${e}-${t}`;
     if (typeof ((n = window.TavernHelper) == null ? void 0 : n.triggerSlash) == "function")
       window.TavernHelper.triggerSlash(r), V.debug(cm, `Slash command execution: ${r}`);
     else {
@@ -3585,7 +3585,7 @@ systemPrompt: |
     </update_strategy>
 
     <profile_structure>
-      profile 是完全开放的 JSON 对象，你可以根据实体类型自由写入任何属性。
+      profile 是完全开放的 JSON 对象，你可以根据实体类型自由写入任何属性,甚至不同角色有不同的kv,比如恋人可以有情欲值,敌人可以有敌意值等。
 
       约定字段 (强制):
         - relations: Record<目标名, RelationInfo> — 与其他实体的关系 (对象格式)
@@ -3644,6 +3644,7 @@ systemPrompt: |
               "profile": {
                 "identity": "核心身份描述",
                 "description": "在剧情中的简短定位/摘要",
+                "其他自选kv比如性格等"
                 "relations": {
                   "目标实体名": { "type": "关系类型", "description": "可选细节" }
                 }

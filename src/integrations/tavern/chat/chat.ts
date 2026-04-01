@@ -10,7 +10,7 @@ const MODULE = 'TavernChat';
  */
 export async function hideMessageRange(start: number, end: number): Promise<void> {
     try {
-        const command = `/hide start=${start} end=${end}`;
+        const command = `/hide ${start}-${end}`;
         
         // 优先使用官方扩展支持的斜杠指令触发器（高兼容性）
         // @ts-ignore
