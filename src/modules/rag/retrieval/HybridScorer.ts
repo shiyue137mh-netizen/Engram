@@ -74,8 +74,9 @@ function calculateHybridScore(
     if (baseScore === 0) return rerankScore ?? 0;
     if (rerankScore == null) return baseScore;
 
-    // 加权平均: hybrid = (1-α) * baseScore + α * rerank
-    return (1 - alpha) * baseScore + alpha * rerankScore;
+    // 混合分数 = 基础分 (Embedding/Keyword) + Rerank 分数
+    // 这样做可以更直观地反映多路召回的累加贡献
+    return baseScore + (rerankScore ?? 0);
 }
 
 /**

@@ -97,21 +97,70 @@ class Retriever {
     }
 
     /**
+     * 获取指定深度的最近聊天上下文
+     * @param count 消息条数
+     */
+    private getRecentContext(count: number): string | null {
+        try {
+            const currentCount = ChatHistoryHelper.getCurrentMessageCount();
+            if (currentCount <= 0) return null;
+
+            return ChatHistoryHelper.getChatHistory([
+                Math.max(1, currentCount - count),
+                currentCount
+            ]);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
      * 执行检索流程
      * @param userInput 用户原始输入
      * @param unifiedQueries 预处理生成的查询词（可选）
+     * @param options 额外配置 (skipContext, mode 等)
      */
     async search(
         userInput: string,
-        unifiedQueries?: string[]
+        unifiedQueries?: string[],
+        options?: { skipContext?: boolean; mode?: string }
     ): Promise<RetrievalResult> {
         Logger.debug(LogModule.RAG_INJECT, '>>> Retriever.search 被调用 <<<', {
             input: userInput.substring(0, 20),
-            unifiedCount: unifiedQueries?.length || 0
+            unifiedCount: unifiedQueries?.length || 0,
+            skipContext: options?.skipContext
         });
 
         const apiSettings = SettingsManager.get('apiSettings');
         const recallConfig = apiSettings?.recallConfig || DEFAULT_RECALL_CONFIG;
+
+        // --- 逻辑分发 ---
+        let intentQuery = userInput; // 意图轨道 (Embedding/Rerank)
+        let scanQuery = userInput;   // 扫描轨道 (Keyword)
+
+        // 只有在非跳过模式下才进行上下文增强
+        if (!options?.skipContext) {
+            // 轨道 A: 关键词扫描增强 (深层回溯: 5 条)
+            if (recallConfig.useKeywordRecall) {
+                const deepContext = this.getRecentContext(5);
+                if (deepContext) {
+                    scanQuery = `${deepContext}\n\n[Current]\n${userInput}`;
+                    Logger.debug(LogModule.RAG_INJECT, '已回溯 5 条聊天历史增强关键词扫描深度');
+                }
+            }
+
+            // 轨道 B: 意图语义增强 (浅层回溯: 2 条) - 仅限正式聊天且无预处理结果时
+            const noUnifiedQueries = !unifiedQueries || unifiedQueries.length === 0;
+            if (noUnifiedQueries) {
+                const shallowContext = this.getRecentContext(2);
+                if (shallowContext) {
+                    intentQuery = `${shallowContext}\n\n[Current]\n${userInput}`;
+                    Logger.debug(LogModule.RAG_INJECT, '已回溯 2 条聊天历史进行意图兜底增强');
+                }
+            }
+        } else {
+            Logger.debug(LogModule.RAG_INJECT, '手动测试模式：跳过上下文增强');
+        }
 
         // 未启用召回，使用滚动窗口策略
         if (!recallConfig.enabled && !recallConfig.useKeywordRecall) {
@@ -120,7 +169,7 @@ class Retriever {
             return this.rollingSearch(limit);
         }
 
-        // V1.4.4: 冷启动保护——没有可召回对象时，不进入召回工作流
+        // V1.4.4: 冷启动保护 —— 没有可召回对象时，不进入召回工作流
         // 可召回对象定义：存在已向量化事件，或存在已归档条目（事件/实体）
         const chatId = getCurrentChatId();
         const db = chatId ? tryGetDbForChat(chatId) : null;
@@ -154,26 +203,9 @@ class Retriever {
             }
         }
 
-        // V1.4.1: 增强扫描深度 - 对于关键词扫描，自动拉取最近几轮对话作为上下文
-        let enhancedInput = userInput;
-        if (recallConfig.useKeywordRecall) {
-            try {
-                const recentContext = ChatHistoryHelper.getChatHistory([
-                    Math.max(1, ChatHistoryHelper.getCurrentMessageCount() - 2),
-                    ChatHistoryHelper.getCurrentMessageCount()
-                ]);
-                if (recentContext) {
-                    enhancedInput = `${recentContext}\n\n[Current]\n${userInput}`;
-                    Logger.debug(LogModule.RAG_INJECT, '已回溯聊天历史增强关键词扫描深度');
-                }
-            } catch (e) {
-                Logger.debug(LogModule.RAG_INJECT, '回溯上下文失败，仅使用当前输入');
-            }
-        }
-
         // 向量检索或关键词检索 (均走 RetrievalWorkflow)
         if (recallConfig.enabled || recallConfig.useKeywordRecall) {
-            return this.hybridSearch(enhancedInput, unifiedQueries, recallConfig);
+            return this.hybridSearch(intentQuery, unifiedQueries, recallConfig, scanQuery);
         }
 
         // 默认回退
@@ -183,15 +215,19 @@ class Retriever {
     private async hybridSearch(
         userInput: string,
         unifiedQueries: string[] | undefined,
-        config: RecallConfig
+        config: RecallConfig,
+        scanQuery?: string
     ): Promise<RetrievalResult> {
         const startTime = Date.now();
-        Logger.debug(LogModule.RAG_INJECT, '--- 进入 Hybrid Search 工作流 ---');
+        Logger.debug(LogModule.RAG_INJECT, '--- 进入 Hybrid Search 工作流 ---', {
+            scanQueryLen: scanQuery?.length
+        });
 
         try {
             const context = await WorkflowEngine.run(createRetrievalWorkflow(), {
                 input: {
                     query: userInput,
+                    scanQuery: scanQuery || userInput, // 供 KeywordRetrieveStep 使用
                     unifiedQueries,
                     mode: 'hybrid'
                 },
@@ -223,9 +259,13 @@ class Retriever {
      * 跳过 Embedding/Rerank，直接按 LLM 裁判给出的 ID 从数据库捣取事件
      *
      * @param recalls LLM 输出的召回决策列表
+     * @param options 额外配置 (mode, isManualTest 等)
      * @returns 检索结果
      */
-    async agenticSearch(recalls: AgenticRecall[]): Promise<RetrievalResult> {
+    async agenticSearch(
+        recalls: AgenticRecall[],
+        options?: { mode?: string; isManualTest?: boolean }
+    ): Promise<RetrievalResult> {
         const startTime = Date.now();
         const chatId = getCurrentChatId();
         if (!chatId) {
@@ -272,7 +312,7 @@ class Retriever {
         const brainConfig: BrainRecallConfig = recallConfig.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
         let finalNodes = validEvents;
 
-        if (brainConfig.enabled) {
+        if (brainConfig.enabled && !options?.isManualTest) {
             brainRecallCache.setConfig(brainConfig);
             brainRecallCache.nextRound();
 
@@ -287,39 +327,44 @@ class Retriever {
                 outputCount: brainResults.length,
                 round: brainRecallCache.getCurrentRound(),
             });
+        } else if (options?.isManualTest) {
+            Logger.debug(LogModule.RAG_RETRIEVE, 'Agentic Search: 手动测试模式跳过类脑处理逻辑');
         }
 
-        // 4. 记录召回日志
         const totalTime = Date.now() - startTime;
-        const brainStats = brainConfig.enabled ? {
-            round: brainRecallCache.getCurrentRound(),
-            snapshot: brainRecallCache.getShortTermSnapshot()
-        } : undefined;
 
-        RecallLogService.log({
-            query: '[Agentic RAG]',
-            mode: 'agentic',
-            results: recalls
-                .filter(r => validEventMap.has(r.id))
-                .map(r => ({
-                    eventId: r.id,
-                    summary: validEventMap.get(r.id)!.summary,
-                    category: validEventMap.get(r.id)!.structured_kv?.event || 'unknown',
-                    embeddingScore: r.score, // 模型给出的分通常作为主分
-                    rerankScore: r.score,    // 对于 Agentic，Rerank 分数默认等同于评估分
-                    hybridScore: r.score,
-                    isTopK: true,
-                    isReranked: true,        // Agentic 模式下默认视为已重排 (LLM 钦定)
-                    reason: r.reason,
-                })),
-            stats: {
-                totalCandidates: recalls.length,
-                topKCount: validEvents.length,
-                rerankCount: 0,
-                latencyMs: totalTime,
-            },
-            brainStats,
-        });
+        // 4. 记录召回日志 (如果是手动测试确认，则跳过日志记录)
+        if (!options?.isManualTest) {
+            const brainStats = brainConfig.enabled ? {
+                round: brainRecallCache.getCurrentRound(),
+                snapshot: brainRecallCache.getShortTermSnapshot()
+            } : undefined;
+
+            RecallLogService.log({
+                query: options?.mode === 'hybrid' ? '[Hybrid Preview Mode]' : '[Agentic RAG]',
+                mode: (options?.mode as any) || 'agentic',
+                results: recalls
+                    .filter(r => validEventMap.has(r.id))
+                    .map(r => ({
+                        eventId: r.id,
+                        summary: validEventMap.get(r.id)!.summary,
+                        category: validEventMap.get(r.id)!.structured_kv?.event || 'unknown',
+                        embeddingScore: r.score, // 模型给出的分通常作为主分
+                        rerankScore: r.score,    // 对于 Agentic，Rerank 分数默认等同于评估分
+                        hybridScore: r.score,
+                        isTopK: true,
+                        isReranked: true,        // Agentic 模式下默认视为已重排 (LLM 钦定)
+                        reason: r.reason,
+                    })),
+                stats: {
+                    totalCandidates: recalls.length,
+                    topKCount: validEvents.length,
+                    rerankCount: 0,
+                    latencyMs: totalTime,
+                },
+                brainStats,
+            });
+        }
 
         // 5. 返回结果
         const entries = finalNodes.map(n => n.summary);

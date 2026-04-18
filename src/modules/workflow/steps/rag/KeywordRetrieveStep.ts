@@ -16,11 +16,14 @@ export class KeywordRetrieveStep implements IStep {
         context.data = context.data || {};
 
         const query = context.input?.query as string;
+        const scanQuery = context.input?.scanQuery as string;
+        const textInput = context.input?.text as string; // 适配 Preprocessor 的输入格式
         const unifiedQueries = context.input?.unifiedQueries as string[] | undefined;
 
-        const textToScan = unifiedQueries && unifiedQueries.length > 0
+        // 优先顺序: unifiedQueries > scanQuery (已增强) > query (意图词) > text (原生原文)
+        const textToScan = (unifiedQueries && unifiedQueries.length > 0)
             ? unifiedQueries.join('\n')
-            : query;
+            : (scanQuery || query || textInput);
 
         if (!textToScan) {
             Logger.debug(LogModule.RAG_INJECT, '没有提供扫描上下文，跳过关键词检索');

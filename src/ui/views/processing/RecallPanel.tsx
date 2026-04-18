@@ -98,7 +98,7 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
                 setIsModalOpen(true);
             } else {
                 // 普通（向量/混合）模式：先进行标准检索
-                const searchResult = await retriever.search(testQuery);
+                const searchResult = await retriever.search(testQuery, undefined, { skipContext: true });
                 const candidates = searchResult.candidates || [];
                 const recalledEntities = searchResult.recalledEntities || [];
 
@@ -289,7 +289,10 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
                     try {
                         setIsTesting(true);
                         // 确认后，通过提供明确的 ID 数组强制触发最终的内容装配与记录，绕过额外的无谓检索
-                        const searchResult = await retriever.agenticSearch(newRecalls);
+                        const searchResult = await retriever.agenticSearch(newRecalls, {
+                            mode: isAgenticMode ? 'agentic' : 'hybrid',
+                            isManualTest: true // 显式标记为手动测试，跳过日志和 Brain 状态变更
+                        });
                         notificationService.success(
                             `预览确认完成! 强一致性注入 ${searchResult.nodes?.length ?? 0} 条事件，请查看日志`,
                             'RAG'
