@@ -37,10 +37,10 @@ interface NotificationOptions {
  * 默认选项
  */
 const DEFAULT_OPTIONS: NotificationOptions = {
-    timeOut: 5000,
-    extendedTimeOut: 1000,
     closeButton: true,
+    extendedTimeOut: 1000,
     progressBar: true,
+    timeOut: 5000,
 };
 
 /**
@@ -52,7 +52,7 @@ const DEFAULT_OPTIONS: NotificationOptions = {
 class NotificationService {
     private static instance: NotificationService;
 
-    private constructor() { }
+    private constructor() {}
 
     public static getInstance(): NotificationService {
         if (!NotificationService.instance) {
@@ -65,7 +65,7 @@ class NotificationService {
      * 获取全局 toastr 对象
      */
     private getToastr(): Toastr | null {
-        // @ts-ignore
+        // @ts-expect-error
         return window.toastr || null;
     }
 
@@ -83,7 +83,7 @@ class NotificationService {
                 ...DEFAULT_OPTIONS,
                 ...options,
                 onclick: this.buildClickHandler(finalOnClick),
-                tapToDismiss: !!finalOnClick,
+                tapToDismiss: Boolean(finalOnClick),
             });
         } else {
             console.log(`[Engram] SUCCESS: ${title} - ${message}`);
@@ -105,7 +105,7 @@ class NotificationService {
                 ...DEFAULT_OPTIONS,
                 ...options,
                 onclick: this.buildClickHandler(finalOnClick),
-                tapToDismiss: !!finalOnClick,
+                tapToDismiss: Boolean(finalOnClick),
             });
         } else {
             console.log(`[Engram] INFO: ${title} - ${message}`);
@@ -127,7 +127,7 @@ class NotificationService {
                 ...DEFAULT_OPTIONS,
                 ...options,
                 onclick: this.buildClickHandler(finalOnClick),
-                tapToDismiss: !!finalOnClick,
+                tapToDismiss: Boolean(finalOnClick),
             });
         } else {
             console.warn(`[Engram] WARNING: ${title} - ${message}`);
@@ -152,7 +152,7 @@ class NotificationService {
                 timeOut: 8000,
                 ...options,
                 onclick: finalOnClick,
-                tapToDismiss: !!finalOnClick,
+                tapToDismiss: Boolean(finalOnClick),
             });
         } else {
             console.error(`[Engram] ERROR: ${title} - ${message}`);
@@ -165,19 +165,19 @@ class NotificationService {
      */
     private navigate(path: string): void {
         Logger.info('Notification', `触发导航: ${path}`);
-        EventBus.emit({ type: 'UI_NAVIGATE_REQUEST', payload: path });
+        EventBus.emit({ payload: path, type: 'UI_NAVIGATE_REQUEST' });
     }
 
     /**
      * 构建点击处理函数
      */
     private buildClickHandler(handler?: () => void): (() => void) | undefined {
-        if (!handler) return undefined;
+        if (!handler) {return undefined;}
         return () => {
             try {
                 handler();
-            } catch (e) {
-                console.error('[Engram] Notification click handler error:', e);
+            } catch (error) {
+                console.error('[Engram] Notification click handler error:', error);
             }
         };
     }
@@ -198,7 +198,7 @@ class NotificationService {
                 : message;
 
             const toast = toastr.info(displayMessage, title, {
-                timeOut: 20000,       // 最大显示 20 秒
+                timeOut: 20_000,       // 最大显示 20 秒
                 extendedTimeOut: 0,   // 悬停时不延长
                 closeButton: false,   // 不显示关闭按钮
                 progressBar: true,    // 显示进度条（表示倒计时）
@@ -212,10 +212,10 @@ class NotificationService {
                 escapeHtml: false,    // 允许 HTML
             });
             return toast;
-        } else {
+        }
             console.log(`[Engram] RUNNING: ${title} - ${message}`);
             return null;
-        }
+        
     }
 
     /**

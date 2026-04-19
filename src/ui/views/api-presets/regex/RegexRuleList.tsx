@@ -1,4 +1,4 @@
-import { RegexRule } from "@/modules/workflow/steps";
+import type { RegexRule } from "@/modules/workflow/steps";
 import { Switch } from '@/ui/components/core/Switch';
 import { AnimatePresence, Reorder } from 'framer-motion';
 import { GripVertical, Plus, Power, Regex, Trash2 } from 'lucide-react';
@@ -28,8 +28,7 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
     onReorder,
     enableNativeRegex,
     onToggleNativeRegex,
-}) => {
-    return (
+}) => (
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">正则规则列表</h3>
@@ -148,4 +147,3 @@ export const RegexRuleList: React.FC<RegexRuleListProps> = ({
             )}
         </div >
     );
-};

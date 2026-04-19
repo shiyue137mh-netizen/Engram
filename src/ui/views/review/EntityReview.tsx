@@ -1,7 +1,8 @@
-import { EntityNode, EntityType } from '@/data/types/graph';
+import type { EntityNode} from '@/data/types/graph';
+import { EntityType } from '@/data/types/graph';
 import { ModernButton as Button } from '@/ui/components/core/Button';
 import * as jsYaml from 'js-yaml';
-import { AlertTriangle, Edit2, Save, Trash2, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Edit2, Save, Trash2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 interface EntityReviewProps {
@@ -43,7 +44,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
     const updatePreview = (entity: EntityNode) => {
         try {
             const entityObj = { profile: entity.profile };
-            // @ts-ignore
+            // @ts-expect-error
             const yamlContent = jsYaml.dump(entityObj, {
                 indent: 2,
                 lineWidth: -1,
@@ -51,7 +52,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                 sortKeys: false,
             });
             setPreviewDescription(`${entity.name}\n${yamlContent.trim()}`);
-        } catch (e) {
+        } catch {
             // If JSON is invalid during typing, we might not have a valid object to dump.
             // But here entity.profile is already an object (parsed from JSON input).
             // So this catch is for yaml dump errors.
@@ -75,11 +76,11 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
     };
 
     const handleEditStart = (list: 'new' | 'updated', index: number, entity: EntityNodeWithDiff) => {
-        setEditingEntity({ list, index, entity: JSON.parse(JSON.stringify(entity)) });
+        setEditingEntity({ entity: JSON.parse(JSON.stringify(entity)), index, list });
     };
 
     const handleEditSave = () => {
-        if (!editingEntity) return;
+        if (!editingEntity) {return;}
         const { list, index, entity } = editingEntity;
 
         // V1.5: Enforce Standard YAML Description Format on Save
@@ -177,7 +178,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
                                             try {
                                                 const profile = JSON.parse(e.target.value);
                                                 setEditingEntity({ ...editingEntity, entity: { ...editingEntity.entity, profile } });
-                                            } catch (err) {
+                                            } catch {
                                                 // Ignore parse error while typing
                                             }
                                         }}

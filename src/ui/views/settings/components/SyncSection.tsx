@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useConfigStore } from "@/state/configStore";
 import { Switch } from "@/ui/components/core/Switch";
 import { getCurrentChatId } from "@/integrations/tavern";
-import { Logger, LogModule } from "@/core/logger";
+import { LogModule, Logger } from "@/core/logger";
 
 export const SyncSection: React.FC = () => {
     const { syncConfig, updateConfig } = useConfigStore();
@@ -29,7 +29,7 @@ export const SyncSection: React.FC = () => {
                 return;
             }
 
-            const chatId = context.chatId;
+            const {chatId} = context;
             setSyncStatus('syncing');
             setSyncMessage('同步中...');
 
@@ -41,27 +41,32 @@ export const SyncSection: React.FC = () => {
             setLastSyncTime(Date.now());
 
             switch (result) {
-                case 'downloaded':
+                case 'downloaded': {
                     setSyncStatus('success');
                     setSyncMessage('已从服务端恢复');
                     break;
-                case 'uploaded':
+                }
+                case 'uploaded': {
                     setSyncStatus('success');
                     setSyncMessage('已上传至服务端');
                     break;
-                case 'synced':
+                }
+                case 'synced': {
                     setSyncStatus('success');
                     setSyncMessage('无需同步');
                     break;
-                case 'ignored':
+                }
+                case 'ignored': {
                     setSyncStatus('idle');
                     setSyncMessage('服务端无数据');
                     break;
+                }
                 case 'error':
-                default:
+                default: {
                     setSyncStatus('error');
                     setSyncMessage('同步失败');
                     break;
+                }
             }
 
             if (result !== 'error') {
@@ -70,8 +75,8 @@ export const SyncSection: React.FC = () => {
                     setSyncMessage('');
                 }, 3000);
             }
-        } catch (e) {
-            console.error(e);
+        } catch (error) {
+            console.error(error);
             setSyncStatus('error');
             setSyncMessage('发生异常');
         }
@@ -94,7 +99,7 @@ export const SyncSection: React.FC = () => {
                             <h4 className="font-medium text-heading truncate">多端数据同步 (Beta)</h4>
                             {syncStatus !== 'idle' && (
                                 <span className={`text-xs ${syncStatus === 'error' ? 'text-red-500' :
-                                    syncStatus === 'success' ? 'text-green-500' : 'text-blue-500 animate-pulse'
+                                    (syncStatus === 'success' ? 'text-green-500' : 'text-blue-500 animate-pulse')
                                     }`}>
                                     {syncMessage}
                                 </span>
@@ -158,7 +163,7 @@ export const SyncSection: React.FC = () => {
                             setSyncMessage('强制上传中...');
                             const { getSTContext } = await import('@/integrations/tavern');
                             const chatId = getSTContext()?.chatId;
-                            if (!chatId) throw new Error('未连接到聊天');
+                            if (!chatId) {throw new Error('未连接到聊天');}
 
                             const { syncService } = await import('@/data/sync/SyncService');
                             const success = await syncService.upload(chatId);
@@ -170,10 +175,10 @@ export const SyncSection: React.FC = () => {
                             } else {
                                 throw new Error('上传失败');
                             }
-                        } catch (e) {
-                            Logger.error(LogModule.DATA_SYNC, 'Manual upload failed', e);
+                        } catch (error) {
+                            Logger.error(LogModule.DATA_SYNC, 'Manual upload failed', error);
                             setSyncStatus('error');
-                            setSyncMessage('上传错误: ' + String(e));
+                            setSyncMessage('上传错误: ' + String(error));
                         }
                     }}
                     className="px-2 py-1 text-[10px] font-medium rounded bg-background border border-border hover:bg-blue-500/10 text-muted-foreground hover:text-blue-500 transition-colors"
@@ -187,7 +192,7 @@ export const SyncSection: React.FC = () => {
                             setSyncMessage('强制下载中...');
                             const { getSTContext } = await import('@/integrations/tavern');
                             const chatId = getSTContext()?.chatId;
-                            if (!chatId) throw new Error('未连接到聊天');
+                            if (!chatId) {throw new Error('未连接到聊天');}
 
                             const { syncService } = await import('@/data/sync/SyncService');
                             const result = await syncService.download(chatId);
@@ -199,10 +204,10 @@ export const SyncSection: React.FC = () => {
                             } else {
                                 throw new Error(result === 'no_data' ? '服务端无数据' : '下载失败');
                             }
-                        } catch (e) {
-                            Logger.error(LogModule.DATA_SYNC, 'Manual download failed', e);
+                        } catch (error) {
+                            Logger.error(LogModule.DATA_SYNC, 'Manual download failed', error);
                             setSyncStatus('error');
-                            setSyncMessage('下载错误: ' + String(e));
+                            setSyncMessage('下载错误: ' + String(error));
                         }
                     }}
                     className="px-2 py-1 text-[10px] font-medium rounded bg-background border border-border hover:bg-orange-500/10 text-muted-foreground hover:text-orange-500 transition-colors"

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Database, Trash2, RefreshCw } from 'lucide-react';
-import { listAllChatIds, getDatabaseStats, deleteDatabase, DatabaseStats } from '@/data/db';
+import React, { useEffect, useState } from 'react';
+import { Database, RefreshCw, Trash2 } from 'lucide-react';
+import type { DatabaseStats } from '@/data/db';
+import { listAllChatIds, getDatabaseStats, deleteDatabase } from '@/data/db';
 import { getCurrentChatId } from '@/integrations/tavern';
 
 export const GlobalDatabaseList: React.FC = () => {
@@ -18,8 +19,8 @@ export const GlobalDatabaseList: React.FC = () => {
             // 按照更新时间排序 (最近更新的在前面)
             stats.sort((a, b) => b.lastUpdateTime - a.lastUpdateTime);
             setDbs(stats);
-        } catch (e) {
-            console.error('Failed to fetch databases', e);
+        } catch (error) {
+            console.error('Failed to fetch databases', error);
         } finally {
             setLoading(false);
         }
@@ -40,8 +41,8 @@ export const GlobalDatabaseList: React.FC = () => {
                 setLoading(true);
                 await deleteDatabase(chatId);
                 await fetchDatabases();
-            } catch (e) {
-                alert(`删除失败: ${e}`);
+            } catch (error) {
+                alert(`删除失败: ${error}`);
                 setLoading(false);
             }
         }
@@ -59,8 +60,8 @@ export const GlobalDatabaseList: React.FC = () => {
                     }
                     alert('清理完成！');
                     await fetchDatabases();
-                } catch (e) {
-                    alert(`清理出错: ${e}`);
+                } catch (error) {
+                    alert(`清理出错: ${error}`);
                     setLoading(false);
                 }
             }
@@ -68,7 +69,7 @@ export const GlobalDatabaseList: React.FC = () => {
     };
 
     const formatTime = (ts: number) => {
-        if (!ts) return '未知';
+        if (!ts) {return '未知';}
         return new Date(ts).toLocaleString();
     };
 

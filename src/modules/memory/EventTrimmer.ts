@@ -7,7 +7,7 @@
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_TRIM_CONFIG } from '@/config/types/defaults';
 import type { TrimConfig } from '@/config/types/memory';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import type { EventNode } from '@/data/types/graph';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
@@ -23,7 +23,7 @@ interface TrimResult {
 
 /** JSON 响应格式 */
 interface TrimResponse {
-    events: Array<{
+    events: {
         summary: string;
         meta: {
             time_anchor?: string;
@@ -34,7 +34,7 @@ interface TrimResponse {
             causality?: string;
         };
         significance_score: number;
-    }>;
+    }[];
 }
 
 /**
@@ -116,13 +116,13 @@ class EventTrimmer {
 
             const config = this.getEffectiveConfig();
             const context = await WorkflowEngine.run(createTrimmerWorkflow(), {
-                trigger: manual ? 'manual' : 'auto',
                 config: {
                     keepRecentCount: config.keepRecentCount,
                     previewEnabled: (SettingsManager.get('globalPreviewEnabled') ?? true) && (config.previewEnabled ?? true),
                     templateId: 'builtin_trim', // Hardcoded for now, matches BuildPrompt category mapping potentially
                     logType: 'trimming'
-                }
+                },
+                trigger: manual ? 'manual' : 'auto'
             });
 
             if (context.data?.skipTrimming) {
@@ -132,8 +132,8 @@ class EventTrimmer {
 
             return context.output as TrimResult;
 
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
             if (errorMsg === 'UserCancelled') {
                 Logger.info(LogModule.MEMORY_TRIM, '精简被用户取消');
                 return null;
@@ -172,8 +172,8 @@ class EventTrimmer {
 
         const config = this.getEffectiveConfig();
         const triggerType = config.trigger;
-        const tokenLimit = config.tokenLimit;
-        const countLimit = config.countLimit;
+        const {tokenLimit} = config;
+        const {countLimit} = config;
 
         if (triggerType === 'token') {
             currentValue = totalTokens;
@@ -192,22 +192,22 @@ class EventTrimmer {
         triggered = triggered && pendingEntryCount >= 2;
 
         Logger.debug(LogModule.MEMORY_TRIM, '精简状态检查', {
-            triggerType,
             currentValue,
-            threshold,
-            pendingEntryCount,
             enabled: config.enabled,
             keepRecentCount: config.keepRecentCount,
+            pendingEntryCount,
+            threshold,
+            triggerType,
             triggered,
         });
 
         return {
-            triggered,
-            triggerType,
             currentValue,
-            threshold,
+            isTrimming: this.isTrimming,
             pendingEntryCount,
-            isTrimming: this.isTrimming
+            threshold,
+            triggerType,
+            triggered
         };
     }
 }

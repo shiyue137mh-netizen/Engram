@@ -88,11 +88,11 @@ export interface SummarizerStatus {
 /** 总结请求参数 */
 interface SummarizeRequest {
     /** 消息内容数组 */
-    messages: Array<{
+    messages: {
         role: 'user' | 'assistant' | 'system';
         content: string;
         name?: string;
-    }>;
+    }[];
     /** 楼层范围 */
     floorRange: [number, number];
     /** 使用的模板 ID */

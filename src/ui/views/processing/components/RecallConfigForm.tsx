@@ -120,7 +120,7 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                             </div>
                             <Switch
                                 checked={config.useEmbedding}
-                                onChange={(val) => updateConfig({ useEmbedding: val, useAgenticRAG: val ? false : config.useAgenticRAG })}
+                                onChange={(val) => updateConfig({ useAgenticRAG: val ? false : config.useAgenticRAG, useEmbedding: val })}
                             />
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
@@ -186,8 +186,8 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                     value={config.embedding?.topK ?? 20}
                     onChange={(val) => updateConfig({
                         embedding: {
-                            topK: val,
-                            minScoreThreshold: config.embedding?.minScoreThreshold ?? 0.3
+                            minScoreThreshold: config.embedding?.minScoreThreshold ?? 0.3,
+                            topK: val
                         }
                     })}
                 />
@@ -201,8 +201,8 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                     value={config.embedding?.minScoreThreshold ?? 0.3}
                     onChange={(val) => updateConfig({
                         embedding: {
-                            topK: config.embedding?.topK ?? 20,
-                            minScoreThreshold: val
+                            minScoreThreshold: val,
+                            topK: config.embedding?.topK ?? 20
                         }
                     })}
                 />
@@ -246,20 +246,20 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                             checked={config.brainRecall?.enabled ?? false}
                             onChange={(val) => updateConfig({
                                 brainRecall: {
-                                    enabled: val,
-                                    workingLimit: config.brainRecall?.workingLimit ?? 10,
-                                    shortTermLimit: config.brainRecall?.shortTermLimit ?? 35,
-                                    reinforceFactor: config.brainRecall?.reinforceFactor ?? 0.2,
-                                    decayRate: config.brainRecall?.decayRate ?? 0.08,
-                                    evictionThreshold: config.brainRecall?.evictionThreshold ?? 0.25,
+                                    boredomPenalty: config.brainRecall?.boredomPenalty ?? 0.2,
+                                    boredomThreshold: config.brainRecall?.boredomThreshold ?? 3,
                                     contextSwitchThreshold: config.brainRecall?.contextSwitchThreshold ?? 0.4,
+                                    decayRate: config.brainRecall?.decayRate ?? 0.08,
+                                    enabled: val,
+                                    evictionThreshold: config.brainRecall?.evictionThreshold ?? 0.25,
                                     gateThreshold: config.brainRecall?.gateThreshold ?? 0.6,
                                     maxDamping: config.brainRecall?.maxDamping ?? 3.0,
-                                    sigmoidTemperature: config.brainRecall?.sigmoidTemperature ?? 5.0,
-                                    boredomThreshold: config.brainRecall?.boredomThreshold ?? 3,
-                                    boredomPenalty: config.brainRecall?.boredomPenalty ?? 0.2,
                                     mmrThreshold: config.brainRecall?.mmrThreshold ?? 0.6,
                                     newcomerBoost: config.brainRecall?.newcomerBoost ?? 0.3,
+                                    reinforceFactor: config.brainRecall?.reinforceFactor ?? 0.2,
+                                    shortTermLimit: config.brainRecall?.shortTermLimit ?? 35,
+                                    sigmoidTemperature: config.brainRecall?.sigmoidTemperature ?? 5.0,
+                                    workingLimit: config.brainRecall?.workingLimit ?? 10,
                                 },
                             })}
                         />
@@ -377,9 +377,9 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     label="最大阻尼"
                                     description="单次强化的最大增量限制"
                                     min={0.1}
-                                    max={10.0}
+                                    max={10}
                                     step={0.1}
-                                    value={config.brainRecall.maxDamping ?? 3.0}
+                                    value={config.brainRecall.maxDamping ?? 3}
                                     onChange={(val) => updateConfig({
                                         brainRecall: { ...config.brainRecall!, maxDamping: val }
                                     })}
@@ -388,9 +388,9 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     label="Sigmoid 温度"
                                     description="控制强化曲线的陡峭程度 (越小越陡)"
                                     min={0.1}
-                                    max={20.0}
+                                    max={20}
                                     step={0.5}
-                                    value={config.brainRecall.sigmoidTemperature ?? 5.0}
+                                    value={config.brainRecall.sigmoidTemperature ?? 5}
                                     onChange={(val) => updateConfig({
                                         brainRecall: { ...config.brainRecall!, sigmoidTemperature: val }
                                     })}
@@ -420,7 +420,7 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     label="厌倦惩罚"
                                     description="触发厌倦时的额外衰减系数"
                                     min={0}
-                                    max={2.0}
+                                    max={2}
                                     step={0.1}
                                     value={config.brainRecall.boredomPenalty ?? 0.2}
                                     onChange={(val) => updateConfig({
@@ -432,7 +432,7 @@ export const RecallConfigForm: React.FC<RecallConfigFormProps> = ({ config, onCh
                                     label="新人红利"
                                     description="新记忆条目的初始加成"
                                     min={0}
-                                    max={2.0}
+                                    max={2}
                                     step={0.1}
                                     value={config.brainRecall.newcomerBoost ?? 0.3}
                                     onChange={(val) => updateConfig({

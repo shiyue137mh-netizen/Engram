@@ -6,26 +6,27 @@
  * - 支持默认展开/折叠
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-    ChevronRight,
-    ChevronDown,
-    Layers,
-    Terminal,
-    Link,
     Brain,
-    Search,
-    Settings,
-    Palette,
-    FileCode,
-    Database,
-    Server,
-    Cpu,
-    Zap,
+    ChevronDown,
+    ChevronRight,
     CloudCog,
+    Cpu,
+    Database,
+    FileCode,
+    Layers,
+    Link,
     type LucideIcon,
+    Palette,
+    Search,
+    Server,
+    Settings,
+    Terminal,
+    Zap,
 } from 'lucide-react';
-import { LogEntry, LogLevel, LogLevelConfig } from "@/core/logger";
+import type { LogEntry} from "@/core/logger";
+import { LogLevel, LogLevelConfig } from "@/core/logger";
 
 interface LogEntryItemProps {
     entry: LogEntry;
@@ -51,11 +52,11 @@ function formatTime(timestamp: number): string {
 
 // 级别样式映射 - 简洁配色（加深 DEBUG 颜色）
 const LEVEL_STYLES: Record<LogLevel, { text: string; bg: string }> = {
-    [LogLevel.DEBUG]: { text: 'text-zinc-400', bg: 'bg-zinc-500/15' },
-    [LogLevel.INFO]: { text: 'text-blue-400', bg: 'bg-blue-500/10' },
-    [LogLevel.SUCCESS]: { text: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    [LogLevel.WARN]: { text: 'text-amber-400', bg: 'bg-amber-500/10' },
-    [LogLevel.ERROR]: { text: 'text-red-400', bg: 'bg-red-500/10' },
+    [LogLevel.DEBUG]: { bg: 'bg-zinc-500/15', text: 'text-zinc-400' },
+    [LogLevel.INFO]: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
+    [LogLevel.SUCCESS]: { bg: 'bg-emerald-500/10', text: 'text-emerald-400' },
+    [LogLevel.WARN]: { bg: 'bg-amber-500/10', text: 'text-amber-400' },
+    [LogLevel.ERROR]: { bg: 'bg-red-500/10', text: 'text-red-400' },
 };
 
 /**
@@ -201,12 +202,10 @@ export const LogGroup: React.FC<LogGroupProps> = ({
     const groupModule = entries[0]?.module || 'Unknown';
     const entryCount = entries.length;
     const firstEntry = entries[0];
-    const lastEntry = entries[entries.length - 1];
+    const lastEntry = entries.at(-1);
 
     // 获取最高级别（用于显示颜色）
-    const highestLevel = useMemo(() => {
-        return entries.reduce((max, e) => Math.max(max, e.level), LogLevel.DEBUG) as LogLevel;
-    }, [entries]);
+    const highestLevel = useMemo(() => entries.reduce((max, e) => Math.max(max, e.level), LogLevel.DEBUG) as LogLevel, [entries]);
     const levelStyle = LEVEL_STYLES[highestLevel];
 
     // 时间范围
@@ -233,8 +232,8 @@ export const LogGroup: React.FC<LogGroupProps> = ({
 
                 {/* 分组图标 - 根据模块显示对应图标 */}
                 {React.createElement(getModuleIcon(groupModule), {
-                    size: 13,
                     className: `shrink-0 ${levelStyle.text}`,
+                    size: 13,
                 })}
 
                 {/* 模块名 */}
@@ -274,7 +273,7 @@ export const LogGroup: React.FC<LogGroupProps> = ({
  * 连续相同模块的日志会被合并到一个组里
  */
 export function groupLogsByModule(logs: LogEntry[]): LogEntry[][] {
-    if (logs.length === 0) return [];
+    if (logs.length === 0) {return [];}
 
     const groups: LogEntry[][] = [];
     let currentGroup: LogEntry[] = [];

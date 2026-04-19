@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState, memo } from 'react';
+import React, { memo, useLayoutEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 
 interface CurtainOverlayProps {
@@ -36,7 +36,7 @@ export const CurtainOverlay: React.FC<CurtainOverlayProps> = memo(({
         const ctx = gsap.context(() => {
             const tl = gsap.timeline({
                 onComplete: () => {
-                    if (onComplete) onComplete();
+                    if (onComplete) {onComplete();}
                 }
             });
 
@@ -95,7 +95,7 @@ export const CurtainOverlay: React.FC<CurtainOverlayProps> = memo(({
 
     return (
         <div className="engram-curtain-container" ref={containerRef}>
-            <div ref={layerRef} className="engram-curtain-slice bottom" style={{ width: '100%', height: '100%' }} />
+            <div ref={layerRef} className="engram-curtain-slice bottom" style={{ height: '100%', width: '100%' }} />
         </div>
     );
 });

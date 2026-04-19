@@ -8,7 +8,7 @@
  */
 
 import type { VectorConfig } from '@/config/types/rag';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { getDbForChat, tryGetDbForChat } from '@/data/db';
 import type { EventNode } from '@/data/types/graph';
 import { EmbeddingClient } from '@/integrations/embedding/EmbeddingClient';
@@ -64,7 +64,8 @@ export class EmbeddingService {
      * 设置并发数
      */
     public setConcurrency(n: number) {
-        this.concurrency = Math.max(1, Math.min(20, n));
+        const val = typeof n === 'number' && !isNaN(n) ? n : DEFAULT_CONCURRENCY;
+        this.concurrency = Math.max(1, Math.min(20, val));
     }
 
     /**
@@ -116,16 +117,16 @@ export class EmbeddingService {
 
         // 并发处理
         const worker = async (index: number) => {
-            if (index >= requests.length || this.stopSignal) return;
+            if (index >= requests.length || this.stopSignal) {return;}
 
             const req = requests[index];
             try {
                 const embedding = await this.callEmbeddingAPI(req.text);
-                results[index] = { id: req.id, embedding };
-            } catch (e: any) {
+                results[index] = { embedding, id: req.id };
+            } catch (error: any) {
                 errors++;
-                results[index] = { id: req.id, embedding: [], error: e.message };
-                Logger.warn(LogModule.RAG_EMBED, `嵌入失败: ${req.id}`, { error: e.message });
+                results[index] = { id: req.id, embedding: [], error: error.message };
+                Logger.warn(LogModule.RAG_EMBED, `嵌入失败: ${req.id}`, { error: error.message });
             } finally {
                 completed++;
                 onProgress?.(completed, requests.length, errors);
@@ -134,7 +135,7 @@ export class EmbeddingService {
 
         // 分批并发
         for (let i = 0; i < requests.length; i += this.concurrency) {
-            if (this.stopSignal) break;
+            if (this.stopSignal) {break;}
             const batch = Array.from(
                 { length: Math.min(this.concurrency, requests.length - i) },
                 (_, j) => worker(i + j)
@@ -179,14 +180,14 @@ export class EmbeddingService {
         if (range) {
             events = events.filter(e => {
                 const { start_index, end_index } = e.source_range;
-                if (range.start !== undefined && start_index < range.start) return false;
-                if (range.end !== undefined && end_index > range.end) return false;
+                if (range.start !== undefined && start_index < range.start) {return false;}
+                if (range.end !== undefined && end_index > range.end) {return false;}
                 return true;
             });
         }
 
         if (events.length === 0) {
-            return { success: 0, failed: 0 };
+            return { failed: 0, success: 0 };
         }
 
         Logger.info(LogModule.RAG_EMBED, `开始嵌入 ${events.length} 个事件`);
@@ -205,7 +206,7 @@ export class EmbeddingService {
         let failed = 0;
 
         for (const result of results) {
-            if (result.error || result.embedding.length === 0) {
+            if (!result || result.error || result.embedding.length === 0) {
                 failed++;
                 continue;
             }
@@ -218,7 +219,7 @@ export class EmbeddingService {
         }
 
         Logger.info(LogModule.RAG_EMBED, `嵌入完成: ${success} 成功, ${failed} 失败`);
-        return { success, failed };
+        return { failed, success };
     }
 
     /**
@@ -229,11 +230,11 @@ export class EmbeddingService {
         onProgress?: EmbedProgressCallback
     ): Promise<{ success: number; failed: number }> {
         if (events.length === 0) {
-            return { success: 0, failed: 0 };
+            return { failed: 0, success: 0 };
         }
 
         const chatId = getCurrentChatId();
-        if (!chatId) throw new Error('No current chat');
+        if (!chatId) {throw new Error('No current chat');}
         const db = getDbForChat(chatId);
 
         // 构建请求
@@ -250,7 +251,7 @@ export class EmbeddingService {
         let failed = 0;
 
         for (const result of results) {
-            if (result.error || result.embedding.length === 0) {
+            if (!result || result.error || result.embedding.length === 0) {
                 failed++;
                 continue;
             }
@@ -262,7 +263,7 @@ export class EmbeddingService {
             success++;
         }
 
-        return { success, failed };
+        return { failed, success };
     }
 
     /**
@@ -309,14 +310,14 @@ export class EmbeddingService {
         if (range) {
             events = events.filter(e => {
                 const { start_index, end_index } = e.source_range;
-                if (range.start !== undefined && start_index < range.start) return false;
-                if (range.end !== undefined && end_index > range.end) return false;
+                if (range.start !== undefined && start_index < range.start) {return false;}
+                if (range.end !== undefined && end_index > range.end) {return false;}
                 return true;
             });
         }
 
         if (events.length === 0) {
-            return { success: 0, failed: 0 };
+            return { failed: 0, success: 0 };
         }
 
         Logger.info(LogModule.RAG_EMBED, `重新嵌入 ${events.length} 个事件`);
@@ -356,7 +357,7 @@ export class EmbeddingService {
      * @param normSqB (可选) 向量 B 的范数平方
      */
     public cosineSimilarity(vecA: number[], vecB: number[], normSqA?: number, normSqB?: number): number {
-        if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+        if (!vecA || !vecB || vecA.length !== vecB.length) {return 0;}
 
         let dot = 0;
         let nA = normSqA ?? 0;
@@ -367,8 +368,8 @@ export class EmbeddingService {
 
         for (let i = 0; i < vecA.length; i++) {
             dot += vecA[i] * vecB[i];
-            if (calcA) nA += vecA[i] * vecA[i];
-            if (calcB) nB += vecB[i] * vecB[i];
+            if (calcA) {nA += vecA[i] * vecA[i];}
+            if (calcB) {nB += vecB[i] * vecB[i];}
         }
 
         const denom = Math.sqrt(nA) * Math.sqrt(nB);
@@ -385,21 +386,21 @@ export class EmbeddingService {
     }> {
         const chatId = getCurrentChatId();
         if (!chatId) {
-            return { total: 0, embedded: 0, pending: 0 };
+            return { embedded: 0, pending: 0, total: 0 };
         }
 
         const db = tryGetDbForChat(chatId);
         if (!db) {
-            return { total: 0, embedded: 0, pending: 0 };
+            return { embedded: 0, pending: 0, total: 0 };
         }
 
         const events = await db.events.toArray();
         const embedded = events.filter(e => e.is_embedded).length;
 
         return {
-            total: events.length,
             embedded,
             pending: events.length - embedded,
+            total: events.length,
         };
     }
 }

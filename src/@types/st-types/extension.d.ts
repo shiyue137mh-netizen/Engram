@@ -14,12 +14,12 @@ declare function getTavernHelperExtensionId(): string;
  */
 declare function getExtensionType(extension_id: string): 'local' | 'global' | 'system' | null;
 
-type ExtensionInstallationInfo = {
+interface ExtensionInstallationInfo {
   current_branch_name: string;
   current_commit_hash: string;
   is_up_to_date: boolean;
   remote_url: string;
-};
+}
 
 /**
  * 获取扩展安装信息

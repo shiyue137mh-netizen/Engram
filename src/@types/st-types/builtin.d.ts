@@ -27,7 +27,7 @@ declare const builtin: {
   getVideoTokenCost: (data_url: string) => Promise<number>;
   parseRegexFromString: (regex: string) => RegExp | null;
   promptManager: {
-    messages: Array<{
+    messages: {
       collection: Array<{
         identifier: string;
         role: 'user' | 'assistant' | 'system';
@@ -35,9 +35,9 @@ declare const builtin: {
         tokens: number;
       }>;
       identifier: string;
-    }>;
+    }[];
     getPromptCollection: () => {
-      collection: Array<{
+      collection: {
         identifier: string;
         name: string;
         enabled?: boolean;
@@ -55,7 +55,7 @@ declare const builtin: {
         extra?: Record<string, any>;
 
         forbid_overrides?: boolean;
-      }>;
+      }[];
       [key: string]: any;
     };
     [key: string]: any;

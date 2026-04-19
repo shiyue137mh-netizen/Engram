@@ -1,10 +1,10 @@
 import { createPromptTemplate, getBuiltInTemplateByCategory, getBuiltInTemplateById } from '@/config/types/defaults';
 import type { PromptCategory, PromptTemplate } from '@/config/types/prompt';
 import { PROMPT_CATEGORIES } from '@/config/types/prompt';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 import { dump, load } from 'js-yaml';
-import { BrainCircuit, Clapperboard, Copy, Download, FolderInput, Paintbrush, Power, RotateCcw, Search, Trash2, Wand2, type LucideIcon } from 'lucide-react';
+import { BrainCircuit, Clapperboard, Copy, Download, FolderInput, type LucideIcon, Paintbrush, Power, RotateCcw, Search, Trash2, Wand2 } from 'lucide-react';
 import React, { useRef } from 'react';
 
 interface PromptTemplateCardProps {
@@ -23,14 +23,18 @@ interface PromptTemplateCardProps {
  */
 function getCategoryColorClass(category: PromptCategory): string {
     switch (category) {
-        case 'summary':
+        case 'summary': {
             return 'text-label bg-label/10 border border-label/20';
-        case 'trim':
+        }
+        case 'trim': {
             return 'text-emphasis bg-emphasis/10 border border-emphasis/20';
-        case 'preprocessing':
+        }
+        case 'preprocessing': {
             return 'text-value bg-value/10 border border-value/20';
-        default:
+        }
+        default: {
             return 'text-muted-foreground bg-muted border border-border';
+        }
     }
 }
 
@@ -57,12 +61,12 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
     const handleExport = (e: React.MouseEvent) => {
         e.stopPropagation();
         const exportData = {
-            name: template.name,
-            category: template.category,
             boundPresetId: template.boundPresetId,
+            category: template.category,
+            injectionMode: template.injectionMode,
+            name: template.name,
             systemPrompt: template.systemPrompt,
             userPromptTemplate: template.userPromptTemplate,
-            injectionMode: template.injectionMode,
         };
 
         const yamlString = dump(exportData, {
@@ -74,7 +78,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `engram_template_${template.name.replace(/\s+/g, '_')}.yaml`;
+        a.download = `engram_template_${template.name.replaceAll(/\s+/g, '_')}.yaml`;
         a.click();
         URL.revokeObjectURL(url);
     };
@@ -87,7 +91,7 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
 
     const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file || !onImport) return;
+        if (!file || !onImport) {return;}
 
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -119,8 +123,8 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                     Logger.error(LogModule.TAVERN, 'Invalid template format during import', data);
                     notificationService.error('导入失败: 无效的模板文件格式');
                 }
-            } catch (err) {
-                Logger.error(LogModule.TAVERN, 'Failed to parse template file', err);
+            } catch (error) {
+                Logger.error(LogModule.TAVERN, 'Failed to parse template file', error);
                 notificationService.error('导入失败: 无法解析文件');
             }
         };
@@ -169,10 +173,10 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                     // 预处理模板：内置模板使用专属图标，自建模板用通用图标
                     (() => {
                         const BUILTIN_ICON_MAP: Record<string, LucideIcon> = {
-                            builtin_query_enhance: Search,
-                            builtin_plot_director: Clapperboard,
-                            builtin_description_enhance: Paintbrush,
                             builtin_agentic_recall: BrainCircuit,
+                            builtin_description_enhance: Paintbrush,
+                            builtin_plot_director: Clapperboard,
+                            builtin_query_enhance: Search,
                         };
                         const Icon = BUILTIN_ICON_MAP[template.id] || Wand2;
                         return (
@@ -235,9 +239,9 @@ export const PromptTemplateCard: React.FC<PromptTemplateCardProps> = ({
                                 // 保留当前模板的 ID 和 enabled 状态，替换内容
                                 onResetToDefault({
                                     ...defaultTemplate,
-                                    id: template.id,
                                     enabled: template.enabled,
-                                    extraWorldbooks: template.extraWorldbooks, // V1.3.3: 保留绑定的世界书
+                                    extraWorldbooks: template.extraWorldbooks,
+                                    id: template.id, // V1.3.3: 保留绑定的世界书
                                 });
                             }
                         }}

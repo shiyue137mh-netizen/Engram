@@ -56,7 +56,7 @@ const MAX_ENTRIES = 100;
  */
 class ModelLoggerClass {
     private entries: ModelLogEntry[] = [];
-    private listeners: Set<() => void> = new Set();
+    private listeners = new Set<() => void>();
 
     /**
      * 创建新的日志条目（发送阶段）
@@ -73,17 +73,17 @@ class ModelLoggerClass {
         const id = `log_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
         const entry: ModelLogEntry = {
-            id,
-            timestamp: Date.now(),
-            type: data.type,
-            direction: 'sent',
-            systemPrompt: data.systemPrompt,
-            userPrompt: data.userPrompt,
-            tokensSent: data.tokensSent,
-            model: data.model,
             character: data.character,
+            direction: 'sent',
             floorRange: data.floorRange,
+            id,
+            model: data.model,
             status: 'pending',
+            systemPrompt: data.systemPrompt,
+            timestamp: Date.now(),
+            tokensSent: data.tokensSent,
+            type: data.type,
+            userPrompt: data.userPrompt,
         };
 
         this.entries.unshift(entry);
@@ -104,22 +104,22 @@ class ModelLoggerClass {
         duration?: number;
     }): void {
         const entry = this.entries.find(e => e.id === id);
-        if (!entry) return;
+        if (!entry) {return;}
 
         // 添加接收条目
         const receiveEntry: ModelLogEntry = {
-            id: `${id}_recv`,
-            timestamp: Date.now(),
-            type: entry.type,
-            direction: 'received',
-            response: data.response,
-            tokensReceived: data.tokensReceived,
-            status: data.status,
-            error: data.error,
-            duration: data.duration,
-            model: entry.model,
             character: entry.character,
+            direction: 'received',
+            duration: data.duration,
+            error: data.error,
             floorRange: entry.floorRange,
+            id: `${id}_recv`,
+            model: entry.model,
+            response: data.response,
+            status: data.status,
+            timestamp: Date.now(),
+            tokensReceived: data.tokensReceived,
+            type: entry.type,
         };
 
         // 更新原条目状态
@@ -128,7 +128,7 @@ class ModelLoggerClass {
 
         // 在发送条目后插入接收条目
         const index = this.entries.findIndex(e => e.id === id);
-        if (index >= 0) {
+        if (index !== -1) {
             this.entries.splice(index, 0, receiveEntry);
         } else {
             this.entries.unshift(receiveEntry);
@@ -159,18 +159,18 @@ class ModelLoggerClass {
         try {
             const result = await action();
             this.logReceive(id, {
+                duration: Date.now() - startTime,
                 response: typeof result === 'string' ? result : JSON.stringify(result),
                 status: 'success',
-                duration: Date.now() - startTime,
             });
             return result;
-        } catch (e) {
+        } catch (error) {
             this.logReceive(id, {
                 status: 'error',
-                error: e instanceof Error ? e.message : String(e),
+                error: error instanceof Error ? error.message : String(error),
                 duration: Date.now() - startTime,
             });
-            throw e;
+            throw error;
         }
     }
 
@@ -192,7 +192,7 @@ class ModelLoggerClass {
             const received = this.entries.find(
                 e => e.id === `${sent.id}_recv` && e.direction === 'received'
             );
-            result.push({ sent, received });
+            result.push({ received, sent });
         }
 
         return result;

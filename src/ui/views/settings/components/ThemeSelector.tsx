@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { ThemeManager } from '@/ui/services/ThemeManager';
-import { themes, ThemeName } from '../../../styles/themes';
+import type { ThemeName } from '../../../styles/themes';
+import { themes } from '../../../styles/themes';
 import { useThemeStore } from '@/state/themeStore';
 
 interface ThemeOption {
@@ -25,13 +26,13 @@ export const ThemeSelector: React.FC = () => {
 
     // Prepare theme options for display
     const options: ThemeOption[] = Object.entries(themes).map(([key, theme]) => {
-        let bg = theme.colors.background;
-        let prim = theme.colors.primary;
+        const bg = theme.colors.background;
+        const prim = theme.colors.primary;
 
         // Handle CSS variables for SillyTavern theme preview
-        // if (key === 'sillytavern') {
-        //     bg = 'var(--SmartThemeBlurTintColor, #333)';
-        //     prim = 'var(--SmartThemeQuoteColor, #0af)';
+        // If (key === 'sillytavern') {
+        //     Bg = 'var(--SmartThemeBlurTintColor, #333)';
+        //     Prim = 'var(--SmartThemeQuoteColor, #0af)';
         // }
 
         return {

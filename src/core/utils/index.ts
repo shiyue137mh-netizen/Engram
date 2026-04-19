@@ -11,7 +11,7 @@ function formatTimestamp(timestamp: number): string {
  * 截断文本
  */
 function truncateText(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
+    if (text.length <= maxLength) {return text;}
     return text.slice(0, maxLength) + '...';
 }
 

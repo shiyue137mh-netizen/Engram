@@ -45,11 +45,11 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 }) => {
     const panelRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState(initialPosition || { x: 100, y: 100 });
-    const [size, setSize] = useState({ width: initialWidth, height: 'auto' as number | 'auto' });
+    const [size, setSize] = useState({ height: 'auto' as number | 'auto', width: initialWidth });
     const [isDragging, setIsDragging] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
     const dragOffset = useRef({ x: 0, y: 0 });
-    const resizeStart = useRef({ width: 0, height: 0, x: 0, y: 0 });
+    const resizeStart = useRef({ height: 0, width: 0, x: 0, y: 0 });
 
     // 初始化位置到屏幕中央偏下
     useEffect(() => {
@@ -68,7 +68,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 
     useEffect(() => {
         const handleWindowResize = () => {
-            if (!panelRef.current) return;
+            if (!panelRef.current) {return;}
             const currentWidth = typeof size.width === 'number' ? size.width : 300;
             const pos = positionRef.current;
             const newX = Math.max(0, Math.min(window.innerWidth - currentWidth, pos.x));
@@ -85,7 +85,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 
     // 拖拽处理
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
-        if (!panelRef.current) return;
+        if (!panelRef.current) {return;}
 
         const rect = panelRef.current.getBoundingClientRect();
         dragOffset.current = {
@@ -105,7 +105,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             const deltaY = e.clientY - resizeStart.current.y;
             const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStart.current.width + deltaX));
             const newHeight = Math.max(minHeight, resizeStart.current.height + deltaY);
-            setSize({ width: newWidth, height: newHeight });
+            setSize({ height: newHeight, width: newWidth });
         }
     }, [isDragging, isResizing, size.width, minWidth, maxWidth, minHeight]);
 
@@ -118,12 +118,12 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     const handleResizeStart = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if (!panelRef.current) return;
+        if (!panelRef.current) {return;}
 
         const rect = panelRef.current.getBoundingClientRect();
         resizeStart.current = {
-            width: rect.width,
             height: rect.height,
+            width: rect.width,
             x: e.clientX,
             y: e.clientY,
         };
@@ -141,7 +141,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         }
     }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
-    if (!isOpen) return null;
+    if (!isOpen) {return null;}
 
     return ReactDOM.createPortal(
         <div className="engram-app-root" style={{ display: 'contents' }}>
@@ -149,14 +149,14 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                 ref={panelRef}
                 className="fixed z-[11000] flex flex-col rounded-lg shadow-2xl border border-border overflow-hidden engram-animate-scale-in"
                 style={{
+                    WebkitBackdropFilter: 'blur(20px)',
+                    backdropFilter: 'blur(20px)',
+                    backgroundColor: 'var(--popover, #1a1a2e)',
+                    height: size.height === 'auto' ? 'auto' : size.height,
                     left: position.x,
+                    minHeight: minHeight,
                     top: position.y,
                     width: size.width,
-                    height: size.height === 'auto' ? 'auto' : size.height,
-                    minHeight: minHeight,
-                    backgroundColor: 'var(--popover, #1a1a2e)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
                 }}
             >
                 {/* 标题栏 - 可拖拽 */}
@@ -164,8 +164,8 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
                     className="flex items-center justify-between px-3 py-2 border-b border-border select-none"
                     onMouseDown={handleMouseDown}
                     style={{
-                        cursor: isDragging ? 'grabbing' : 'grab',
                         backgroundColor: 'var(--surface, rgba(255,255,255,0.05))',
+                        cursor: isDragging ? 'grabbing' : 'grab',
                     }}
                 >
                     <div className="flex items-center gap-2">

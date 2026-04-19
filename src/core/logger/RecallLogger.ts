@@ -12,7 +12,7 @@ type RecallLogSubscriber = (logs: RecallLogEntry[]) => void;
 class RecallLogServiceClass {
     private logs: RecallLogEntry[] = [];
     private maxLogs = 50;
-    private subscribers: Set<RecallLogSubscriber> = new Set();
+    private subscribers = new Set<RecallLogSubscriber>();
 
     /**
      * 记录一次召回
@@ -32,7 +32,7 @@ class RecallLogServiceClass {
         }
 
         Logger.debug('RecallLogService', '记录召回日志', {
-            query: entry.query.substring(0, 50),
+            query: entry.query.slice(0, 50),
             resultCount: entry.results.length,
         });
 
@@ -76,17 +76,17 @@ class RecallLogServiceClass {
     exportLogs(): void {
         const { VERSION } = require('@/constants');
         const exportData = {
-            version: VERSION,
             exportedAt: Date.now(),
             logs: this.getLogs(),
+            version: VERSION,
         };
 
         const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `engram_debug_log_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-        document.body.appendChild(a);
+        a.download = `engram_debug_log_${new Date().toISOString().replaceAll(/[:.]/g, '-')}.json`;
+        document.body.append(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);

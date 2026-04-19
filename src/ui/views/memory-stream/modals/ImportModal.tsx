@@ -18,8 +18,7 @@ export const ImportModal: React.FC<ImportModalProps> = ({
     availableDbs,
     selectedDb,
     onSelectDb
-}) => {
-    return (
+}) => (
         <SimpleModal
             isOpen={isOpen}
             onClose={onClose}
@@ -69,4 +68,3 @@ export const ImportModal: React.FC<ImportModalProps> = ({
             </div>
         </SimpleModal>
     );
-};

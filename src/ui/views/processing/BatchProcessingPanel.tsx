@@ -5,7 +5,7 @@
  * - 历史消息批处理
  * - 外部 txt 导入
  */
-import { batchProcessor, type HistoryAnalysis, type ImportMode } from '@/modules/batch';
+import { type HistoryAnalysis, type ImportMode, batchProcessor } from '@/modules/batch';
 import { summarizerService } from '@/modules/memory';
 import { NumberField } from '@/ui/components/form/FormComponents';
 import { Divider } from '@/ui/components/layout/Divider';
@@ -16,25 +16,30 @@ import React, { useCallback, useRef, useState } from 'react';
 // 任务状态图标
 const TaskStatusIcon: React.FC<{ status: string }> = ({ status }) => {
     switch (status) {
-        case 'done':
+        case 'done': {
             return <CheckCircle2 size={14} className="text-value" />;
-        case 'error':
+        }
+        case 'error': {
             return <XCircle size={14} className="text-destructive" />;
-        case 'running':
+        }
+        case 'running': {
             return <RefreshCw size={14} className="text-primary animate-spin" />;
-        case 'skipped':
+        }
+        case 'skipped': {
             return <Clock size={14} className="text-muted-foreground" />;
-        default:
+        }
+        default: {
             return <Clock size={14} className="text-muted-foreground/50" />;
+        }
     }
 };
 
 // 任务类型中文映射
 const TASK_TYPE_LABELS: Record<string, string> = {
-    summary: '剧情总结',
-    entity: '实体提取',
-    trim: '事件精简',
     embed: '向量化',
+    entity: '实体提取',
+    summary: '剧情总结',
+    trim: '事件精简',
 };
 
 // ==================== 数据批处理区域 ====================
@@ -57,7 +62,7 @@ const DataBatchSection: React.FC = () => {
             const allEvents = await store.getAllEvents();
             const total = allEvents.filter(e => e.level === 0).length;
             const pending = allEvents.filter(e => e.is_embedded && !e.is_archived && e.level === 0).length;
-            setArchiveStats({ total, pending });
+            setArchiveStats({ pending, total });
         } finally {
             setIsScanning(false);
         }
@@ -65,7 +70,7 @@ const DataBatchSection: React.FC = () => {
 
     // 执行归档
     const handleArchive = async () => {
-        if (!archiveStats || archiveStats.pending === 0) return;
+        if (!archiveStats || archiveStats.pending === 0) {return;}
         setIsArchiving(true);
         try {
             const store = useMemoryStore.getState();
@@ -75,7 +80,7 @@ const DataBatchSection: React.FC = () => {
             await store.archiveEvents(ids);
             notificationService.success(`已归档 ${ids.length} 条事件`, 'Engram');
             setArchiveStats(prev => prev ? { ...prev, pending: 0 } : null);
-        } catch (error) {
+        } catch {
             notificationService.error('归档失败', 'Engram');
         } finally {
             setIsArchiving(false);
@@ -169,8 +174,8 @@ export const BatchProcessingPanel: React.FC = () => {
                 const { chatManager } = await import('@/data/ChatManager');
                 const state = await chatManager.getState();
                 setStartFloor((state.last_summarized_floor || 0) + 1);
-            } catch (e) {
-                console.error('[BatchPanel] 获取初始楼层失败:', e);
+            } catch (error) {
+                console.error('[BatchPanel] 获取初始楼层失败:', error);
             }
         };
         initFloors();
@@ -185,10 +190,10 @@ export const BatchProcessingPanel: React.FC = () => {
 
     // 任务类型选择
     const [selectedTypes, setSelectedTypes] = useState<Record<string, boolean>>({
-        summary: true,
+        embed: true,
         entity: true,
-        trim: true,
-        embed: true
+        summary: true,
+        trim: true
     });
 
     const handleTypeToggle = (type: string) => {
@@ -216,19 +221,19 @@ export const BatchProcessingPanel: React.FC = () => {
 
     // 开始批处理
     const handleStart = useCallback(async () => {
-        if (!analysis) return;
+        if (!analysis) {return;}
         const types = Object.entries(selectedTypes)
             .filter(([_, enabled]) => enabled)
             .map(([type]) => type) as any[];
 
         await batchProcessor.startHistory(analysis.startFloor, analysis.endFloor, types);
-        // useWorkflow 会自动更新状态
+        // UseWorkflow 会自动更新状态
     }, [analysis, selectedTypes]);
 
     // 暂停/恢复
     const handlePauseResume = useCallback(() => {
-        if (queue.isPaused) resume();
-        else pause();
+        if (queue.isPaused) {resume();}
+        else {pause();}
     }, [queue.isPaused, resume, pause]);
 
     // 停止
@@ -242,17 +247,17 @@ export const BatchProcessingPanel: React.FC = () => {
 
     // 导入外部文本
     const handleImport = useCallback(async () => {
-        if (!importText.trim()) return;
+        if (!importText.trim()) {return;}
 
         try {
             const result = await batchProcessor.importText(
                 importText,
-                { mode: importMode, chunkSize, overlapSize }
+                { chunkSize, mode: importMode, overlapSize }
             );
             // 依赖 BatchProcessor 内部的消息通知或者 Error 冒泡
             // V1.0 架构下引擎结束会自动清理 queue，进度条会自然消失
-        } catch (e) {
-            console.error('Import failed', e);
+        } catch (error) {
+            console.error('Import failed', error);
             notificationService.error('导入失败', 'Engram Batch');
         } finally {
             setImportProgress(null);
@@ -262,7 +267,7 @@ export const BatchProcessingPanel: React.FC = () => {
     // 文件选择
     const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
+        if (!file) {return;}
         const reader = new FileReader();
         reader.onload = (event) => setImportText(event.target?.result as string || '');
         reader.readAsText(file);
@@ -432,8 +437,8 @@ export const BatchProcessingPanel: React.FC = () => {
                             </div>
                             <div className="flex justify-between mt-1 text-[11px] text-meta font-mono">
                                 <span>当前阶段: {queue.currentTaskIndex + 1} / {queue.overallProgress.total}</span>
-                                <span className={queue.isPaused ? "text-emphasis" : queue.isRunning ? "text-primary" : ""}>
-                                    {queue.isPaused ? "已暂停" : queue.isRunning ? "运行中..." : "等待中"}
+                                <span className={queue.isPaused ? "text-emphasis" : (queue.isRunning ? "text-primary" : "")}>
+                                    {queue.isPaused ? "已暂停" : (queue.isRunning ? "运行中..." : "等待中")}
                                 </span>
                             </div>
                         </div>
@@ -553,7 +558,7 @@ export const BatchProcessingPanel: React.FC = () => {
                         value={chunkSize}
                         onChange={setChunkSize}
                         min={100}
-                        max={10000}
+                        max={10_000}
                         step={100}
                     />
                     <NumberField

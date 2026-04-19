@@ -1,8 +1,9 @@
 /**
- * useWorkflow - 批处理工作流 Hook
+ * UseWorkflow - 批处理工作流 Hook
  */
 
-import { batchProcessor, BatchQueue, BatchTaskStatus } from '@/modules/batch';
+import type { BatchQueue, BatchTaskStatus } from '@/modules/batch';
+import { batchProcessor } from '@/modules/batch';
 import { useCallback, useEffect, useState } from 'react';
 
 export type WorkflowStatus = BatchTaskStatus | 'idle';
@@ -23,7 +24,7 @@ export interface UseWorkflowReturn {
 
 export function useWorkflow(): UseWorkflowReturn {
     const [status, setStatus] = useState<WorkflowStatus>('idle');
-    const [queue, setQueue] = useState<BatchQueue>({ tasks: [], isRunning: false, isPaused: false, currentTaskIndex: 0, overallProgress: { current: 0, total: 0 } });
+    const [queue, setQueue] = useState<BatchQueue>({ currentTaskIndex: 0, isPaused: false, isRunning: false, overallProgress: { current: 0, total: 0 }, tasks: [] });
     const [progress, setProgress] = useState(0);
     const [currentTask, setCurrentTask] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -35,8 +36,8 @@ export function useWorkflow(): UseWorkflowReturn {
             setQueue(currentQueue);
 
             // 计算综合状态与进度
-            const isRunning = currentQueue.isRunning;
-            const isPaused = currentQueue.isPaused;
+            const {isRunning} = currentQueue;
+            const {isPaused} = currentQueue;
             const tCnt = currentQueue.tasks.length;
 
             if (tCnt === 0) {
@@ -47,10 +48,10 @@ export function useWorkflow(): UseWorkflowReturn {
                 return;
             }
 
-            if (isPaused) setStatus('pending');
-            else if (isRunning) setStatus('running');
-            else if (currentQueue.tasks.some(t => t.status === 'error')) setStatus('error');
-            else setStatus('done');
+            if (isPaused) {setStatus('pending');}
+            else if (isRunning) {setStatus('running');}
+            else if (currentQueue.tasks.some(t => t.status === 'error')) {setStatus('error');}
+            else {setStatus('done');}
 
             const total = currentQueue.overallProgress.total || 1;
             setProgress(Math.round((currentQueue.overallProgress.current / total) * 100));
@@ -81,15 +82,15 @@ export function useWorkflow(): UseWorkflowReturn {
     const stop = useCallback(() => batchProcessor.stop(), []);
 
     return {
-        status,
-        queue,
-        progress,
+        clear: stop,
         currentTask,
         error,
-        start,
         pause,
+        progress,
+        queue,
         resume,
-        stop,
-        clear: stop // Map clear to stop for safety
+        start,
+        status,
+        stop // Map clear to stop for safety
     };
 }

@@ -1,10 +1,10 @@
 import { Logger } from '@/core/logger';
-import { EventNode } from '@/data/types/graph';
-import { hideMessageRange, MacroService } from '@/integrations/tavern';
+import type { EventNode } from '@/data/types/graph';
+import { MacroService, hideMessageRange } from '@/integrations/tavern';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 // Replaces Pipeline.ts logic
 export class SaveEvent implements IStep {
@@ -20,7 +20,7 @@ export class SaveEvent implements IStep {
 
         const store = useMemoryStore.getState();
         const db = await store.initChat();
-        if (!db) throw new Error('No chat context');
+        if (!db) {throw new Error('No chat context');}
 
 
         let eventsToSave: any[] = [];
@@ -35,8 +35,8 @@ export class SaveEvent implements IStep {
                 if (parsed && parsed.events) {
                     eventsToSave = parsed.events;
                 }
-            } catch (e) {
-                throw new Error('SaveEvent: 无法解析 JSON 事件数据');
+            } catch {
+                throw new Error('SaveEvent: 无法解析 JSON 事件数据', { cause: e });
             }
         }
 
@@ -58,7 +58,7 @@ export class SaveEvent implements IStep {
 
             // Build title suffix with causality and logic
             const titleSuffixParts: string[] = [];
-            if (kv.causality) titleSuffixParts.push(kv.causality);
+            if (kv.causality) {titleSuffixParts.push(kv.causality);}
             if (kv.logic && kv.logic.length > 0) {
                 const logicStr = Array.isArray(kv.logic) ? kv.logic.join(', ') : kv.logic;
                 titleSuffixParts.push(logicStr);
@@ -71,37 +71,37 @@ export class SaveEvent implements IStep {
 
             // Build meta line (time | location | characters)
             const metaParts: string[] = [];
-            if (kv.time_anchor) metaParts.push(kv.time_anchor);
+            if (kv.time_anchor) {metaParts.push(kv.time_anchor);}
             if (kv.location) {
                 const loc = Array.isArray(kv.location) ? kv.location.join(', ') : kv.location;
-                if (loc) metaParts.push(loc);
+                if (loc) {metaParts.push(loc);}
             }
             const roles = kv.role || kv.characters || []; // Support both names
             const rolesArray = Array.isArray(roles) ? roles : [roles];
-            if (rolesArray.length > 0) metaParts.push(rolesArray.join(', '));
+            if (rolesArray.length > 0) {metaParts.push(rolesArray.join(', '));}
             const metaLine = metaParts.length > 0 ? `(${metaParts.join(' | ')}) ` : '';
 
-            let rawSummary = evt.summary || `[Summary Missing] ${kv.event || '无摘要'}`;
+            const rawSummary = evt.summary || `[Summary Missing] ${kv.event || '无摘要'}`;
             const burnedSummary = `${titleLine}${metaLine}${rawSummary}`;
 
             const saved = await store.saveEvent({
-                summary: burnedSummary,
-                structured_kv: {
-                    time_anchor: kv.time_anchor || '',
-                    role: rolesArray,
-                    location: Array.isArray(kv.location) ? kv.location : (kv.location ? [kv.location] : []),
-                    event: kv.event || '',
-                    logic: Array.isArray(kv.logic) ? kv.logic : (kv.logic ? [kv.logic] : []),
-                    causality: kv.causality || ''
-                },
-                significance_score: evt.significance_score || 0.5,
-                level: 0,
-                is_embedded: false,
                 is_archived: false,
+                is_embedded: false,
+                level: 0,
+                significance_score: evt.significance_score || 0.5,
                 source_range: {
-                    start_index: range[0],
-                    end_index: range[1]
-                }
+                    end_index: range[1],
+                    start_index: range[0]
+                },
+                structured_kv: {
+                    causality: kv.causality || '',
+                    event: kv.event || '',
+                    location: Array.isArray(kv.location) ? kv.location : (kv.location ? [kv.location] : []),
+                    logic: Array.isArray(kv.logic) ? kv.logic : (kv.logic ? [kv.logic] : []),
+                    role: rolesArray,
+                    time_anchor: kv.time_anchor || ''
+                },
+                summary: burnedSummary
             });
             savedEvents.push(saved);
         }
@@ -127,14 +127,14 @@ export class SaveEvent implements IStep {
             const startIndex = range[0] - 1;
             const endIndex = range[1] - 1;
             Logger.info('SaveEvent', '准备执行自动隐藏', {
-                workflowRange: range,
-                hideRange: [startIndex, endIndex],
                 autoHide: context.config.autoHide,
+                hideRange: [startIndex, endIndex],
                 isImport,
                 savedEventCount: savedEvents.length,
+                workflowRange: range,
             });
-            hideMessageRange(startIndex, endIndex).catch(e => {
-                Logger.error('SaveEvent', '自动隐藏失败', e);
+            hideMessageRange(startIndex, endIndex).catch(error => {
+                Logger.error('SaveEvent', '自动隐藏失败', error);
             });
         }
 

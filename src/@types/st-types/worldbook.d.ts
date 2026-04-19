@@ -18,10 +18,10 @@ declare function getGlobalWorldbookNames(): string[];
  */
 declare function rebindGlobalWorldbooks(worldbook_names: string[]): Promise<void>;
 
-type CharWorldbooks = {
+interface CharWorldbooks {
   primary: string | null;
   additional: string[];
-};
+}
 /**
  * 获取角色卡绑定的世界书
  *
@@ -61,7 +61,7 @@ declare function rebindChatWorldbook(chat_name: 'current', worldbook_name: strin
  */
 declare function getOrCreateChatWorldbook(chat_name: 'current', worldbook_name?: string): Promise<string>;
 
-type WorldbookEntry = {
+interface WorldbookEntry {
   /** uid 是相对于世界书内部的, 不要跨世界书使用 */
   uid: number;
   name: string;
@@ -140,7 +140,7 @@ type WorldbookEntry = {
 
   /** 额外字段, 用于为世界书条目绑定额外数据 */
   extra?: Record<string, any>;
-};
+}
 
 /**
  * 创建新的世界书
@@ -176,7 +176,7 @@ declare function createOrReplaceWorldbook(
 declare function deleteWorldbook(worldbook_name: string): Promise<boolean>;
 
 // TODO: rename 需要处理世界书绑定
-// export function renameWorldbook(old_name: string, new_name: string): boolean;
+// Export function renameWorldbook(old_name: string, new_name: string): boolean;
 
 /**
  * 获取 `worldbook_name` 世界书的内容

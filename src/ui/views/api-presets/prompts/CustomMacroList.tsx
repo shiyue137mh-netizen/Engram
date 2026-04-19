@@ -24,8 +24,7 @@ export const CustomMacroList: React.FC<CustomMacroListProps> = ({
     onAdd,
     onToggle,
     onDelete,
-}) => {
-    return (
+}) => (
         <div className="flex flex-col gap-4 h-full">
             {/* 头部操作栏 */}
             <div className="flex items-center justify-between gap-2">
@@ -124,5 +123,4 @@ export const CustomMacroList: React.FC<CustomMacroListProps> = ({
             </motion.div>
         </div>
     );
-};
 

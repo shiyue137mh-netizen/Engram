@@ -27,15 +27,15 @@ interface EntityListProps {
 }
 
 const sortModeLabels: Record<EntitySortMode, string> = {
-    updated_desc: '最近更新',
-    updated_asc: '最早更新',
     name_asc: '名称 A-Z',
+    updated_asc: '最早更新',
+    updated_desc: '最近更新',
 };
 
 const groupModeLabels: Record<EntityGroupMode, string> = {
+    archive: '按归档',
     none: '不分组',
     type: '按类型',
-    archive: '按归档',
 };
 
 export const EntityList: React.FC<EntityListProps> = ({
@@ -69,8 +69,8 @@ export const EntityList: React.FC<EntityListProps> = ({
     const toggleGroup = (key: string) => {
         setCollapsedGroups(prev => {
             const next = new Set(prev);
-            if (next.has(key)) next.delete(key);
-            else next.add(key);
+            if (next.has(key)) {next.delete(key);}
+            else {next.add(key);}
             return next;
         });
     };
@@ -91,11 +91,11 @@ export const EntityList: React.FC<EntityListProps> = ({
                                 border: 'none',
                                 borderBottom: '1px solid var(--border)',
                                 borderRadius: 0,
+                                color: 'var(--foreground)',
+                                fontSize: '14px',
                                 outline: 'none',
                                 padding: '8px 0 8px 24px',
-                                fontSize: '14px',
                                 width: '100%',
-                                color: 'var(--foreground)',
                             }}
                             className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
                         />
@@ -133,7 +133,7 @@ export const EntityList: React.FC<EntityListProps> = ({
                         <RefreshCw size={24} className="animate-spin" />
                         <p className="text-sm font-light">加载中...</p>
                     </div>
-                ) : totalCount === 0 ? (
+                ) : (totalCount === 0 ? (
                     <EmptyState
                         icon={Users}
                         title={searchQuery ? '没有找到匹配的实体' : '暂无实体'}
@@ -190,7 +190,7 @@ export const EntityList: React.FC<EntityListProps> = ({
                             );
                         })}
                     </div>
-                )}
+                ))}
             </div>
         </div>
     );

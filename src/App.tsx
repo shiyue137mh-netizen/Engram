@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { MainLayout } from '@/ui/components/layout/MainLayout';
 import { WelcomeAnimation } from '@/ui/components/visual/WelcomeAnimation';
 import { SettingsManager } from '@/config/settings';
@@ -93,8 +93,8 @@ const App: React.FC<AppProps> = ({ onClose }) => {
                         { action: { goto: 'settings' } }  // 跳转设置页，可以打开更新面板
                     );
                 }
-            } catch (e) {
-                console.debug('[Engram] 更新检测失败', e);
+            } catch (error) {
+                console.debug('[Engram] 更新检测失败', error);
             }
         };
         // 延迟执行，避免影响首屏加载
@@ -120,9 +120,10 @@ const App: React.FC<AppProps> = ({ onClose }) => {
         const subtab = subtabParts.join(':') || undefined;
 
         switch (page) {
-            case 'dashboard':
+            case 'dashboard': {
                 return <Dashboard onNavigate={handleNavigate} />;
-            case 'presets':
+            }
+            case 'presets': {
                 return (
                     <APIPresets
                         onNavigate={handleNavigate}
@@ -130,18 +131,25 @@ const App: React.FC<AppProps> = ({ onClose }) => {
                         initialTabPath={subtab}
                     />
                 );
-            case 'devlog':
+            }
+            case 'devlog': {
                 return <DevLog initialTab={subtab as 'runtime' | 'model'} />;
-            case 'settings':
+            }
+            case 'settings': {
                 return <Settings />;
-            case 'memory':
+            }
+            case 'memory': {
                 return <MemoryStream initialTab={subtab as 'list' | 'entities' | undefined} />;
-            case 'processing':
+            }
+            case 'processing': {
                 return <ProcessingView onNavigate={handleNavigate} initialTab={subtab as 'summary' | 'vectorization' | 'recall' | 'entity' | 'batch' | undefined} />;
-            case 'docs':
-                return <DocsView initialTab={subtab} />;  // V0.9.11
-            default:
+            }
+            case 'docs': {
+                return <DocsView initialTab={subtab} />;
+            }  // V0.9.11
+            default: {
                 return <Dashboard onNavigate={handleNavigate} />;
+            }
         }
     };
 

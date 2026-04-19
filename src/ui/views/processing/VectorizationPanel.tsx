@@ -51,7 +51,7 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
     onConfigChange
 }) => {
     // 状态
-    const [stats, setStats] = useState<EmbeddingStats>({ total: 0, embedded: 0, pending: 0 });
+    const [stats, setStats] = useState<EmbeddingStats>({ embedded: 0, pending: 0, total: 0 });
     const [progress, setProgress] = useState<EmbeddingProgress | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -72,8 +72,8 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
             // 获取统计
             const newStats = await embeddingService.getEmbeddingStats();
             setStats(newStats);
-        } catch (e: any) {
-            setError(e.message || '加载失败');
+        } catch (error: any) {
+            setError(error.message || '加载失败');
         } finally {
             setLoading(false);
         }
@@ -93,7 +93,7 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
         }
 
         setIsProcessing(true);
-        setProgress({ current: 0, total: stats.pending, errors: 0 });
+        setProgress({ current: 0, errors: 0, total: stats.pending });
         setError(null);
         setLastResult(null);
 
@@ -102,18 +102,18 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
             embeddingService.setConcurrency(config.concurrency);
 
             const range = {
-                start: rangeStart ? parseInt(rangeStart, 10) : undefined,
                 end: rangeEnd ? parseInt(rangeEnd, 10) : undefined,
+                start: rangeStart ? parseInt(rangeStart, 10) : undefined,
             };
 
             const result = await embeddingService.embedUnprocessedEvents((current, total, errors) => {
-                setProgress({ current, total, errors });
+                setProgress({ current, errors, total });
             }, range);
 
             setLastResult(result);
             await refreshStats();
-        } catch (e: any) {
-            setError(e.message || '嵌入失败');
+        } catch (error: any) {
+            setError(error.message || '嵌入失败');
         } finally {
             setIsProcessing(false);
             setProgress(null);
@@ -137,7 +137,7 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
         }
 
         setIsProcessing(true);
-        setProgress({ current: 0, total: stats.total, errors: 0 });
+        setProgress({ current: 0, errors: 0, total: stats.total });
         setError(null);
         setLastResult(null);
 
@@ -146,18 +146,18 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
             embeddingService.setConcurrency(config.concurrency);
 
             const range = {
-                start: rangeStart ? parseInt(rangeStart, 10) : undefined,
                 end: rangeEnd ? parseInt(rangeEnd, 10) : undefined,
+                start: rangeStart ? parseInt(rangeStart, 10) : undefined,
             };
 
             const result = await embeddingService.reembedAllEvents((current, total, errors) => {
-                setProgress({ current, total, errors });
+                setProgress({ current, errors, total });
             }, range);
 
             setLastResult(result);
             await refreshStats();
-        } catch (e: any) {
-            setError(e.message || '重新嵌入失败');
+        } catch (error: any) {
+            setError(error.message || '重新嵌入失败');
         } finally {
             setIsProcessing(false);
             setProgress(null);
@@ -166,7 +166,7 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
 
     // 计算进度百分比
     const progressPercent = progress
-        ? progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0
+        ? (progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0)
         : 0;
 
     // 检查向量配置是否有效
@@ -336,9 +336,9 @@ export const VectorizationPanel: React.FC<VectorizationPanelProps> = ({
                     value={config.trigger}
                     onChange={(value) => onConfigChange({ trigger: value as EmbeddingConfig['trigger'] })}
                     options={[
-                        { value: 'with_trim', label: '与 Trim 联动' },
-                        { value: 'standalone', label: '独立触发' },
-                        { value: 'manual', label: '仅手动' },
+                        { label: '与 Trim 联动', value: 'with_trim' },
+                        { label: '独立触发', value: 'standalone' },
+                        { label: '仅手动', value: 'manual' },
                     ]}
                     description="with_trim: Trim 时自动嵌入 | standalone: 使用相同阈值独立触发"
                 />

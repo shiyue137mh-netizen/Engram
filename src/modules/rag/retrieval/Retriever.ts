@@ -12,7 +12,7 @@
  */
 
 import { SettingsManager } from '@/config/settings';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { RecallLogService } from '@/core/logger/RecallLogger';
 import { tryGetDbForChat } from '@/data/db';
 import { getCurrentChatId } from '@/integrations/tavern';
@@ -24,7 +24,7 @@ import { ChatHistoryHelper } from '@/integrations/tavern/chat/chatHistory';
 import type { AgenticRecall } from '@/modules/preprocessing/types';
 import { WorkflowEngine } from '@/modules/workflow/core/WorkflowEngine';
 import { createRetrievalWorkflow } from '@/modules/workflow/definitions/RetrievalWorkflow';
-import { brainRecallCache, type RecallCandidate } from './BrainRecallCache';
+import { type RecallCandidate, brainRecallCache } from './BrainRecallCache';
 
 
 // ==================== 类型定义 ====================
@@ -57,15 +57,15 @@ class Retriever {
      */
     async hasVectorizedNodes(): Promise<boolean> {
         const chatId = getCurrentChatId();
-        if (!chatId) return false;
+        if (!chatId) {return false;}
 
         const db = tryGetDbForChat(chatId);
-        if (!db) return false;
+        if (!db) {return false;}
 
         // 检查是否存在任何带有 embeddings 的事件
         // V1.5.0: 由于部分环境布尔索引兼容性问题 (DataError)，回退至 filter 模式
         const count = await db.events
-            .filter(e => !!e.is_embedded)
+            .filter(e => Boolean(e.is_embedded))
             .limit(1)
             .count();
 
@@ -103,13 +103,13 @@ class Retriever {
     private getRecentContext(count: number): string | null {
         try {
             const currentCount = ChatHistoryHelper.getCurrentMessageCount();
-            if (currentCount <= 0) return null;
+            if (currentCount <= 0) {return null;}
 
             return ChatHistoryHelper.getChatHistory([
                 Math.max(1, currentCount - count),
                 currentCount
             ]);
-        } catch (e) {
+        } catch {
             return null;
         }
     }
@@ -127,8 +127,8 @@ class Retriever {
     ): Promise<RetrievalResult> {
         Logger.debug(LogModule.RAG_INJECT, '>>> Retriever.search 被调用 <<<', {
             input: userInput.substring(0, 20),
-            unifiedCount: unifiedQueries?.length || 0,
-            skipContext: options?.skipContext
+            skipContext: options?.skipContext,
+            unifiedCount: unifiedQueries?.length || 0
         });
 
         const apiSettings = SettingsManager.get('apiSettings');
@@ -177,15 +177,15 @@ class Retriever {
             try {
                 // 更稳健的计数检查，优先尝试 count()，回退到 toArray().length
                 const getCount = async (coll: any) => {
-                    if (typeof coll.count === 'function') return await coll.limit(1).count();
+                    if (typeof coll.count === 'function') {return await coll.limit(1).count();}
                     const arr = await coll.toArray();
                     return arr.length;
                 };
 
                 const [embeddedEventCount, archivedEventCount, archivedEntityCount] = await Promise.all([
-                    db.events.filter(e => !!e.is_embedded).limit(1).count(),
-                    db.events.filter(e => !!e.is_archived).limit(1).count(),
-                    db.entities.filter(e => !!e.is_archived).limit(1).count(),
+                    db.events.filter(e => Boolean(e.is_embedded)).limit(1).count(),
+                    db.events.filter(e => Boolean(e.is_archived)).limit(1).count(),
+                    db.entities.filter(e => Boolean(e.is_archived)).limit(1).count(),
                 ]);
 
                 const canRecall = embeddedEventCount > 0 || archivedEventCount > 0 || archivedEntityCount > 0;
@@ -198,8 +198,8 @@ class Retriever {
                         skippedReason: '当前没有向量化或归档条目，已跳过召回流程',
                     };
                 }
-            } catch (e) {
-                Logger.warn(LogModule.RAG_INJECT, '冷启动检查失败，跳过保护逻辑', { error: e });
+            } catch (error) {
+                Logger.warn(LogModule.RAG_INJECT, '冷启动检查失败，跳过保护逻辑', { error: error });
             }
         }
 
@@ -225,29 +225,29 @@ class Retriever {
 
         try {
             const context = await WorkflowEngine.run(createRetrievalWorkflow(), {
+                data: {
+                    recallConfig: config,
+                    vectorRetrieveStartTime: startTime
+                },
                 input: {
                     query: userInput,
                     scanQuery: scanQuery || userInput, // 供 KeywordRetrieveStep 使用
                     unifiedQueries,
                     mode: 'hybrid'
-                },
-                data: {
-                    recallConfig: config,
-                    vectorRetrieveStartTime: startTime
                 }
             });
 
             Logger.info(LogModule.RAG_INJECT, 'Hybrid Search 工作流执行完毕', {
-                steps: context.metadata.stepsExecuted,
+                candidateCount: context.data?.candidates?.length || 0,
                 entityCount: context.data?.recalledEntities?.length || 0,
-                candidateCount: context.data?.candidates?.length || 0
+                steps: context.metadata.stepsExecuted
             });
 
             return context.output as RetrievalResult || { entries: [], nodes: [] };
-        } catch (e: any) {
+        } catch (error: any) {
             Logger.error(LogModule.RAG_INJECT, 'Hybrid Search 工作流遭遇毁灭性失败', {
-                error: e.message,
-                stack: e.stack
+                error: error.message,
+                stack: error.stack
             });
             return { entries: [], nodes: [] };
         }
@@ -292,8 +292,8 @@ class Retriever {
         }
 
         Logger.info(LogModule.RAG_RETRIEVE, 'Agentic Search: 数据库查询完成', {
-            requested: ids.length,
             found: validEvents.length,
+            requested: ids.length,
         });
 
         // 2. 构建 RecallCandidate（用 LLM 给的 score 填充双轨）
@@ -301,9 +301,9 @@ class Retriever {
         const candidates: RecallCandidate[] = recalls
             .filter(r => validEventMap.has(r.id))
             .map(r => ({
+                embeddingScore: r.score,
                 id: r.id,
                 label: validEventMap.get(r.id)!.structured_kv?.event || r.id,
-                embeddingScore: r.score,
                 rerankScore: r.score, // 双轨同分，让 BrainRecallCache 的门控逻辑正常工作
             }));
 
@@ -347,7 +347,7 @@ class Retriever {
                     steps: [new KeywordRetrieveStep()]
                 }, {
                     input: {
-                        scanQuery: scanQuery,
+                        scanQuery,
                         // 为 KeywordRetrieveStep 提供额外的意图信息（如有）
                         unifiedQueries: recalls.map(r => r.reason).filter(Boolean) as string[]
                     }
@@ -359,16 +359,16 @@ class Retriever {
                     // 将实体也送入 BrainRecallCache 注册
                     if (brainConfig.enabled && !options?.isManualTest) {
                         const entityCandidates: RecallCandidate[] = recalledEntities.map(re => ({
+                            embeddingScore: re.score,
                             id: re.id,
                             label: 'entity',
-                            embeddingScore: re.score,
                             rerankScore: re.score
                         }));
                         brainRecallCache.process(entityCandidates);
                     }
                 }
-            } catch (kErr) {
-                Logger.warn(LogModule.RAG_RETRIEVE, 'Agentic 模式下的关键词扫描失败', kErr);
+            } catch (error) {
+                Logger.warn(LogModule.RAG_RETRIEVE, 'Agentic 模式下的关键词扫描失败', error);
             }
         }
 
@@ -382,8 +382,9 @@ class Retriever {
             } : undefined;
 
             RecallLogService.log({
-                query: options?.mode === 'hybrid' ? '[Hybrid Preview Mode]' : '[Agentic RAG]',
+                brainStats,
                 mode: (options?.mode as any) || 'agentic',
+                query: options?.mode === 'hybrid' ? '[Hybrid Preview Mode]' : '[Agentic RAG]',
                 results: recalls
                     .filter(r => validEventMap.has(r.id))
                     .map(r => ({
@@ -398,12 +399,11 @@ class Retriever {
                         reason: r.reason,
                     })),
                 stats: {
-                    totalCandidates: recalls.length,
-                    topKCount: validEvents.length,
-                    rerankCount: 0,
                     latencyMs: totalTime,
+                    rerankCount: 0,
+                    topKCount: validEvents.length,
+                    totalCandidates: recalls.length,
                 },
-                brainStats,
             });
         }
 
@@ -411,11 +411,11 @@ class Retriever {
         const entries = finalNodes.map(n => n.summary);
 
         Logger.info(LogModule.RAG_RETRIEVE, 'Agentic Search 完成', {
-            totalTime,
             resultCount: finalNodes.length,
+            totalTime,
         });
 
-        return { entries, nodes: finalNodes, candidates };
+        return { candidates, entries, nodes: finalNodes };
     }
 
 
@@ -437,14 +437,14 @@ class Retriever {
         // 1. Get recent Level 0 (Details)
         const recentEvents = await db.events
             .filter(node => node.level === 0)
-            .reverse()
+            .toReversed()
             .limit(limit)
             .toArray();
 
         // 2. Get latest Level 1 (Macro Context)
         const latestMacro = await db.events
             .filter(node => node.level === 1)
-            .reverse()
+            .toReversed()
             .first();
 
         const nodes: EventNode[] = [...recentEvents];

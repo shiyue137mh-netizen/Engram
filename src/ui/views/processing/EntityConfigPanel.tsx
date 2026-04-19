@@ -40,8 +40,8 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
         try {
             const s = await entityBuilder.getStatus() as EntityStatus;
             setStatus(s);
-        } catch (e) {
-            console.error('[EntityConfigPanel] Failed to load status:', e);
+        } catch (error) {
+            console.error('[EntityConfigPanel] Failed to load status:', error);
         }
     };
 
@@ -93,8 +93,8 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
             if (result && result.success) {
                 await loadStatus();
             }
-        } catch (e) {
-            console.error('[EntityConfigPanel] Manual extraction failed:', e);
+        } catch (error) {
+            console.error('[EntityConfigPanel] Manual extraction failed:', error);
         } finally {
             setIsLoading(false);
         }
@@ -105,9 +105,9 @@ export const EntityConfigPanel: React.FC<EntityConfigPanelProps> = ({ config, on
         setIsLoading(true);
         try {
             await entityBuilder.checkAndArchiveEntities();
-            // loadStatus() 已经由 EventBus 监听器处理，不再需要手动调用
-        } catch (e) {
-            console.error('[EntityConfigPanel] Manual archiving failed:', e);
+            // LoadStatus() 已经由 EventBus 监听器处理，不再需要手动调用
+        } catch (error) {
+            console.error('[EntityConfigPanel] Manual archiving failed:', error);
         } finally {
             setIsLoading(false);
         }

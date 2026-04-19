@@ -30,7 +30,7 @@ interface WatcherCallbacks {
 class EventWatcher {
     private static instance: EventWatcher | null = null;
     private unsubscribers: Unsubscribe[] = [];
-    private callbacks: Map<string, Set<() => void | Promise<void>>> = new Map();
+    private callbacks = new Map<string, Set<() => void | Promise<void>>>();
 
     private constructor() {
         // 私有构造函数，使用 getInstance() 获取实例
@@ -105,8 +105,8 @@ class EventWatcher {
             callbacks.forEach(cb => {
                 try {
                     cb();
-                } catch (e) {
-                    console.error(`[EventWatcher] Callback error for ${eventKey}:`, e);
+                } catch (error) {
+                    console.error(`[EventWatcher] Callback error for ${eventKey}:`, error);
                 }
             });
         }
@@ -117,10 +117,10 @@ class EventWatcher {
      */
     private mapEventKey(event: keyof WatcherCallbacks): string {
         const map: Record<keyof WatcherCallbacks, string> = {
-            onMessageReceived: 'messageReceived',
             onChatChanged: 'chatChanged',
+            onGenerationEnded: 'generationEnded',
             onGenerationStarted: 'generationStarted',
-            onGenerationEnded: 'generationEnded'
+            onMessageReceived: 'messageReceived'
         };
         return map[event];
     }

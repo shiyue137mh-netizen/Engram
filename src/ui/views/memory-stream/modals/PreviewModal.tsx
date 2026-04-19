@@ -8,8 +8,7 @@ interface PreviewModalProps {
     content: string;
 }
 
-export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, content }) => {
-    return (
+export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, content }) => (
         <SimpleModal
             isOpen={isOpen}
             onClose={onClose}
@@ -29,4 +28,3 @@ export const PreviewModal: React.FC<PreviewModalProps> = ({ isOpen, onClose, con
             </div>
         </SimpleModal>
     );
-};

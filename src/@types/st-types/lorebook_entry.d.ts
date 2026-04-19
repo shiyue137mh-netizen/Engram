@@ -1,5 +1,5 @@
 /** @deprecated 请使用 `WolrdbookEntry` */
-type LorebookEntry = {
+interface LorebookEntry {
   uid: number;
   display_index: number;
   comment: string;
@@ -36,12 +36,12 @@ type LorebookEntry = {
   sticky: number | null;
   cooldown: number | null;
   delay: number | null;
-};
+}
 
 /** @deprecated 请使用 `getWorldbook` */
-type GetLorebookEntriesOption = {
+interface GetLorebookEntriesOption {
   filter?: 'none' | Partial<LorebookEntry>;
-};
+}
 
 /** @deprecated 请使用 `getWorldbook` */
 declare function getLorebookEntries(lorebook: string): Promise<LorebookEntry[]>;
@@ -60,7 +60,7 @@ declare function updateLorebookEntriesWith(lorebook: string, updater: LorebookEn
 /** @deprecated 请使用 `replaceWorldbook` */
 declare function setLorebookEntries(
   lorebook: string,
-  entries: Array<Pick<LorebookEntry, 'uid'> & Partial<LorebookEntry>>,
+  entries: (Pick<LorebookEntry, 'uid'> & Partial<LorebookEntry>)[],
 ): Promise<LorebookEntry[]>;
 
 /** @deprecated 请使用 `createWorldbookEntries` */

@@ -2,7 +2,8 @@
  * LLM 预设编辑表单
  */
 import type { APISource, LLMPreset } from '@/config/types/llm';
-import { ModelInfo, ModelService } from '@/integrations/llm/ModelDiscovery';
+import type { ModelInfo} from '@/integrations/llm/ModelDiscovery';
+import { ModelService } from '@/integrations/llm/ModelDiscovery';
 import { SliderField } from '@/ui/components/core/SliderField';
 import { FormSection, SelectField, SwitchField, TextField } from '@/ui/components/form/FormComponents';
 import { Loader2, RefreshCw } from 'lucide-react';
@@ -17,18 +18,18 @@ interface LLMPresetFormProps {
 
 // API 源选项
 const API_SOURCE_OPTIONS: { value: APISource; label: string }[] = [
-    { value: 'openai', label: 'OpenAI' },
-    { value: 'anthropic', label: 'Anthropic' },
-    { value: 'ollama', label: 'Ollama' },
-    { value: 'vllm', label: 'vLLM' },
-    { value: 'azure', label: 'Azure OpenAI' },
-    { value: 'custom', label: '自定义' },
+    { label: 'OpenAI', value: 'openai' },
+    { label: 'Anthropic', value: 'anthropic' },
+    { label: 'Ollama', value: 'ollama' },
+    { label: 'vLLM', value: 'vllm' },
+    { label: 'Azure OpenAI', value: 'azure' },
+    { label: '自定义', value: 'custom' },
 ];
 
 // 配置源选项
 const SOURCE_OPTIONS = [
-    { value: 'tavern', label: '使用酒馆当前配置' },
-    { value: 'custom', label: '自定义 API 配置' },
+    { label: '使用酒馆当前配置', value: 'tavern' },
+    { label: '自定义 API 配置', value: 'custom' },
 ];
 
 export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
@@ -59,7 +60,7 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                 models = await ModelService.fetchOllamaModels({ apiUrl });
             } else {
                 // OpenAI 兼容 API (openai, vllm, azure, custom)
-                models = await ModelService.fetchOpenAIModels({ apiUrl, apiKey });
+                models = await ModelService.fetchOpenAIModels({ apiKey, apiUrl });
             }
             setModelList(models);
             if (models.length === 0) {
@@ -201,7 +202,7 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                                 label=""
                                 value={preset.custom?.model || ''}
                                 onChange={(value) => updateCustom('model', value)}
-                                options={modelList.map(m => ({ value: m.id, label: m.name || m.id }))}
+                                options={modelList.map(m => ({ label: m.name || m.id, value: m.id }))}
                                 placeholder="选择模型"
                             />
                         ) : (
@@ -273,13 +274,13 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                         <div className="text-xs text-muted-foreground flex items-center">
                             最大输出 Token 为
                             <input
-                                type="number" min={64} max={16384} step={64}
+                                type="number" min={64} max={16_384} step={64}
                                 value={preset.parameters.maxTokens}
                                 onChange={(e) => updateParameters('maxTokens', Number(e.target.value))}
                                 className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-16 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
                             />
                         </div>
-                        <SliderField min={64} max={16384} step={64} value={preset.parameters.maxTokens} onChange={(val) => updateParameters('maxTokens', val)} />
+                        <SliderField min={64} max={16_384} step={64} value={preset.parameters.maxTokens} onChange={(val) => updateParameters('maxTokens', val)} />
                     </div>
 
                     {/* Max Context */}
@@ -287,13 +288,13 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                         <div className="text-xs text-muted-foreground flex items-center">
                             上下文 Token 上限为
                             <input
-                                type="number" min={0} max={2000000} step={1000}
-                                value={preset.parameters.maxContext ?? 150000}
+                                type="number" min={0} max={2_000_000} step={1000}
+                                value={preset.parameters.maxContext ?? 150_000}
                                 onChange={(e) => updateParameters('maxContext', Number(e.target.value))}
                                 className="bg-transparent border-b border-transparent hover:border-border focus:border-primary outline-none text-base font-medium text-foreground mx-1 text-center w-20 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none p-0"
                             />
                         </div>
-                        <SliderField min={0} max={2000000} step={1000} value={preset.parameters.maxContext ?? 150000} onChange={(val) => updateParameters('maxContext', val)} />
+                        <SliderField min={0} max={2_000_000} step={1000} value={preset.parameters.maxContext ?? 150_000} onChange={(val) => updateParameters('maxContext', val)} />
                         <div className="text-xs text-muted-foreground/70">建议值: 150000。限制传给大模型的最大上下文 Token 长度。</div>
                     </div>
 
@@ -337,7 +338,7 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                         type="number"
                         value={preset.retryConfig?.maxAttempts?.toString() ?? ''}
                         onChange={(value) => {
-                            const num = parseInt(value, 10);
+                            const num = Number.parseInt(value, 10);
                             updatePreset({ retryConfig: { ...preset.retryConfig, maxAttempts: isNaN(num) ? 3 : num, retryDelay: preset.retryConfig?.retryDelay ?? 2000 } });
                         }}
                         placeholder="3"
@@ -348,7 +349,7 @@ export const LLMPresetForm: React.FC<LLMPresetFormProps> = ({
                         type="number"
                         value={preset.retryConfig?.retryDelay?.toString() ?? ''}
                         onChange={(value) => {
-                            const num = parseInt(value, 10);
+                            const num = Number.parseInt(value, 10);
                             updatePreset({ retryConfig: { ...preset.retryConfig, maxAttempts: preset.retryConfig?.maxAttempts ?? 3, retryDelay: isNaN(num) ? 2000 : num } });
                         }}
                         placeholder="2000"

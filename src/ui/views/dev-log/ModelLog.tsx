@@ -3,48 +3,51 @@
  *
  * 伪聊天式布局展示 LLM 调用记录
  */
-import { ModelLogEntry, ModelLogger } from "@/core/logger/ModelLogger";
+import type { ModelLogEntry} from "@/core/logger/ModelLogger";
+import { ModelLogger } from "@/core/logger/ModelLogger";
 import { AlertCircle, Bot, CheckCircle, ChevronDown, ChevronRight, Clock, Loader2, Send, Trash2, XCircle, Zap } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 /** 类型标签配置 */
 const TYPE_LABELS: Record<ModelLogEntry['type'], { label: string; color: string }> = {
-    summarize: { label: '总结', color: 'bg-blue-500/20 text-blue-400' },
-    trim: { label: '修剪', color: 'bg-yellow-500/20 text-yellow-500' },
-    vectorize: { label: '向量化', color: 'bg-purple-500/20 text-purple-400' },
-    query: { label: '查询', color: 'bg-green-500/20 text-green-400' },
-    entity_extraction: { label: '实体提取', color: 'bg-cyan-500/20 text-cyan-400' },
-    other: { label: '其他', color: 'bg-gray-500/20 text-gray-400' },
+    entity_extraction: { color: 'bg-cyan-500/20 text-cyan-400', label: '实体提取' },
+    other: { color: 'bg-gray-500/20 text-gray-400', label: '其他' },
+    query: { color: 'bg-green-500/20 text-green-400', label: '查询' },
+    summarize: { color: 'bg-blue-500/20 text-blue-400', label: '总结' },
+    trim: { color: 'bg-yellow-500/20 text-yellow-500', label: '修剪' },
+    vectorize: { color: 'bg-purple-500/20 text-purple-400', label: '向量化' },
 };
 
 /** 状态图标 */
 const StatusIcon: React.FC<{ status: ModelLogEntry['status'] }> = ({ status }) => {
     switch (status) {
-        case 'pending':
+        case 'pending': {
             return <Loader2 size={14} className="animate-spin text-yellow-400" />;
-        case 'success':
+        }
+        case 'success': {
             return <CheckCircle size={14} className="text-green-400" />;
-        case 'error':
+        }
+        case 'error': {
             return <AlertCircle size={14} className="text-red-400" />;
-        case 'cancelled':
+        }
+        case 'cancelled': {
             return <XCircle size={14} className="text-orange-400" />;
+        }
     }
 };
 
 /** 格式化时间 */
-const formatTime = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleTimeString('zh-CN', {
+const formatTime = (timestamp: number): string => new Date(timestamp).toLocaleTimeString('zh-CN', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
     });
-};
 
 /** 格式化耗时 */
 const formatDuration = (ms?: number): string => {
-    if (ms === undefined) return '-';
-    if (ms < 1000) return `${ms}ms`;
+    if (ms === undefined) {return '-';}
+    if (ms < 1000) {return `${ms}ms`;}
     return `${(ms / 1000).toFixed(1)}s`;
 };
 
@@ -59,7 +62,7 @@ const LogCard: React.FC<{
 
     // 动态计算 Token
     useEffect(() => {
-        if (!expanded) return;
+        if (!expanded) {return;}
 
         const countTokens = async () => {
             try {
@@ -73,8 +76,8 @@ const LogCard: React.FC<{
                     const t = await WorldInfoService.countTokens(received.response);
                     setCalcRecvTokens(t);
                 }
-            } catch (e) {
-                console.warn('Failed to count tokens', e);
+            } catch (error) {
+                console.warn('Failed to count tokens', error);
             }
         };
         countTokens();

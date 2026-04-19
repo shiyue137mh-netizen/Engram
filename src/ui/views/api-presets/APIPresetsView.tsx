@@ -45,17 +45,17 @@ type WorldbookSubTabType = 'global';
 
 // 子 Tab 配置
 const MODEL_SUB_TABS: { id: ModelSubTabType; label: string; icon: React.ElementType }[] = [
-    { id: 'llm', label: 'LLM 预设', icon: Key },
-    { id: 'vector', label: '向量化', icon: Cpu },
-    { id: 'rerank', label: 'Rerank', icon: Layers },
+    { icon: Key, id: 'llm', label: 'LLM 预设' },
+    { icon: Cpu, id: 'vector', label: '向量化' },
+    { icon: Layers, id: 'rerank', label: 'Rerank' },
 ];
 
 // Tab 信息映射
 const TAB_INFO: Record<MainTabType, { title: string; subtitle: string }> = {
-    model: { title: '模型配置', subtitle: '管理 LLM、向量模型和重排序模型参数' },
-    prompt: { title: '提示词模板', subtitle: '管理系统提示词、剧情推进和自定义宏' },
-    regex: { title: '正则规则', subtitle: '配置基于正则的文本替换和处理规则' },
-    worldbook: { title: '世界书', subtitle: '管理世界观设定和通过关键词触发的条目' },
+    model: { subtitle: '管理 LLM、向量模型和重排序模型参数', title: '模型配置' },
+    prompt: { subtitle: '管理系统提示词、剧情推进和自定义宏', title: '提示词模板' },
+    regex: { subtitle: '配置基于正则的文本替换和处理规则', title: '正则规则' },
+    worldbook: { subtitle: '管理世界观设定和通过关键词触发的条目', title: '世界书' },
 };
 
 interface APIPresetsProps {
@@ -87,8 +87,8 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab, initialTabPa
             ? initialNestedTab as PromptSubTabType
             : 'templates'
     );  // V0.9.2
-    // const [worldbookSubTab, setWorldbookSubTab] = useState<WorldbookSubTabType>('global');
-    // const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+    // Const [worldbookSubTab, setWorldbookSubTab] = useState<WorldbookSubTabType>('global');
+    // Const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
 
     // V0.9.2: 编辑中的自定义宏
     const [editingMacroId, setEditingMacroId] = useState<string | null>(null);
@@ -195,12 +195,12 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab, initialTabPa
 
     // 聚合保存
     const save = async () => {
-        if (llmHasChanges) saveLLMSettings();
-        if (configHasChanges) saveConfig();
-        if (regexHasChanges) saveRegexRules();
-        if (worldbookHasChanges) saveWorldInfo();
+        if (llmHasChanges) {saveLLMSettings();}
+        if (configHasChanges) {saveConfig();}
+        if (regexHasChanges) {saveRegexRules();}
+        if (worldbookHasChanges) {saveWorldInfo();}
         // 简单提示
-        // alert('配置已保存'); // 可选：使用更好看的 toast
+        // Alert('配置已保存'); // 可选：使用更好看的 toast
     };
 
     const hasChanges = llmHasChanges || configHasChanges || regexHasChanges || worldbookHasChanges;
@@ -208,14 +208,14 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab, initialTabPa
     // 聚合 settings 对象以兼容旧代码解构（如果需要），或者直接替换下方 JSX 中的引用
     // 为了最小化 JSX 变动，我们重构 JSX 中的引用
     const settings = {
+        customMacros,
         llmPresets,
+        promptTemplates,
+        regexConfig,
+        rerankConfig,
         selectedPresetId,
         vectorConfig,
-        rerankConfig,
-        promptTemplates,
-        worldbookConfig,
-        regexConfig,
-        customMacros
+        worldbookConfig
     };
 
     // 移动端选择处理
@@ -553,11 +553,11 @@ export const APIPresets: React.FC<APIPresetsProps> = ({ initialTab, initialTabPa
 
                         <div className="max-w-2xl py-4 flex-1 overflow-y-auto custom-scrollbar">
                             <WorldbookConfigForm
-                                config={worldbookConfig || { enabled: false, includeGlobal: false, disabledWorldbooks: [] }}
+                                config={worldbookConfig || { disabledWorldbooks: [], enabled: false, includeGlobal: false }}
                                 onChange={updateWorldbookConfig}
                                 worldbookStructure={Object.fromEntries(
                                     Object.entries(worldbookStructure || {}).filter(([key]) => {
-                                        const scopes = worldbookScopes || { global: [], chat: [] };
+                                        const scopes = worldbookScopes || { chat: [], global: [] };
                                         return scopes.global.includes(key) || scopes.chat.includes(key);
                                     })
                                 )}

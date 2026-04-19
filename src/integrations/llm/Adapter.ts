@@ -85,7 +85,7 @@ class LLMAdapter {
      */
     async generate(request: LLMRequest): Promise<LLMResponse> {
         return new Promise((resolve, reject) => {
-            this.requestQueue.push({ request, resolve, reject });
+            this.requestQueue.push({ reject, request, resolve });
             this.processQueue();
         });
     }
@@ -104,8 +104,8 @@ class LLMAdapter {
         try {
             const result = await this.executeRequest(request);
             resolve(result);
-        } catch (e) {
-            reject(e);
+        } catch (error) {
+            reject(error);
         } finally {
             this.isExecuting = false;
             // 递归处理下一个请求
@@ -121,9 +121,9 @@ class LLMAdapter {
 
         if (!helper?.generateRaw && !helper?.generate) {
             return {
-                success: false,
                 content: '',
                 error: 'TavernHelper 不可用',
+                success: false,
             };
         }
 
@@ -145,14 +145,14 @@ class LLMAdapter {
 
             return await this.callTavernHelper(request, helper, customApiConfig, preset);
 
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
-            Logger.error(MODULE, '调用失败', e);
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            Logger.error(MODULE, '调用失败', error);
 
             return {
-                success: false,
                 content: '',
                 error: errorMsg,
+                success: false,
             };
         }
     }
@@ -170,13 +170,13 @@ class LLMAdapter {
     private extractPresetParameters(preset: LLMPreset): Record<string, any> {
         const config: Record<string, any> = {
             // 采样参数
-            temperature: preset.parameters?.temperature,
-            max_tokens: preset.parameters?.maxTokens,
-            top_p: preset.parameters?.topP,
-            top_k: preset.parameters?.topK,
             frequency_penalty: preset.parameters?.frequencyPenalty,
-            presence_penalty: preset.parameters?.presencePenalty,
             max_context: preset.parameters?.maxContext,
+            max_tokens: preset.parameters?.maxTokens,
+            presence_penalty: preset.parameters?.presencePenalty,
+            temperature: preset.parameters?.temperature,
+            top_k: preset.parameters?.topK,
+            top_p: preset.parameters?.topP,
         };
 
         // 移除 undefined 项，避免覆盖酒馆默认值
@@ -210,7 +210,7 @@ class LLMAdapter {
         // =========================================================================
         // Prompt Pre-processing (V1.0 Fix)
         // =========================================================================
-        let finalSystemPrompt = request.systemPrompt || '';
+        const finalSystemPrompt = request.systemPrompt || '';
         let finalUserPrompt = request.userPrompt || '';
 
         // Engram Pipeline (RegexProcessor)
@@ -243,24 +243,24 @@ class LLMAdapter {
             
             // 严格遵循：System -> User 顺序
             if (finalSystemPrompt) {
-                prompts.push({ role: 'system', content: finalSystemPrompt });
+                prompts.push({ content: finalSystemPrompt, role: 'system' });
             }
             
             // 直接将用户内容作为 user 角色推入，不再使用 'user_input' 占位符
             // 这样酒馆就不会在末尾自动追加多余的内容
-            prompts.push({ role: 'user', content: finalUserPrompt });
+            prompts.push({ content: finalUserPrompt, role: 'user' });
 
             content = await helper.generateRaw({
-                ordered_prompts: prompts,
                 custom_api: customApiConfig,
+                ordered_prompts: prompts,
                 ...generationOptions,
             });
         } else if (helper.generate) {
             content = await helper.generate({
-                user_input: finalUserPrompt,
-                system_prompt: finalSystemPrompt,
-                max_chat_history: 0,
                 custom_api: customApiConfig,
+                max_chat_history: 0,
+                system_prompt: finalSystemPrompt,
+                user_input: finalUserPrompt,
                 ...generationOptions,
             });
         } else {
@@ -274,11 +274,11 @@ class LLMAdapter {
         SettingsManager.incrementStatistic('totalTokens', estimatedPromptTokens + estimatedCompletionTokens);
 
         return {
-            success: true,
             content: content || '',
+            success: true,
             tokenUsage: {
-                prompt: estimatedPromptTokens,
                 completion: estimatedCompletionTokens,
+                prompt: estimatedPromptTokens,
                 total: estimatedPromptTokens + estimatedCompletionTokens
             }
         };
@@ -289,7 +289,7 @@ class LLMAdapter {
      */
     isAvailable(): boolean {
         const helper = getTavernHelper();
-        return !!(helper?.generate || helper?.generateRaw);
+        return Boolean(helper?.generate || helper?.generateRaw);
     }
 
     /**

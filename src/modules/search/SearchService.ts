@@ -23,10 +23,10 @@ class SearchServiceImpl {
     }
 
     async search(query: string): Promise<SearchResult[]> {
-        if (!query.trim()) return [];
+        if (!query.trim()) {return [];}
 
         const results = await Promise.all(this.adapters.map(a => a.search(query)));
-        return results.flat().sort((a, b) => (b.score || 0) - (a.score || 0));
+        return results.flat().toSorted((a, b) => (b.score || 0) - (a.score || 0));
     }
 }
 

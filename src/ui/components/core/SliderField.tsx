@@ -33,7 +33,7 @@ export const SliderField: React.FC<SliderFieldProps> = ({
 
             {/* 轨道填充 */}
             <div className="absolute left-0 top-1/2 h-1 rounded-full bg-primary"
-                style={{ width: `${percentage}%`, transform: 'translateY(-50%)' }}
+                style={{ transform: 'translateY(-50%)', width: `${percentage}%` }}
             />
 
             {/* Thumb - 纯 div 渲染 */}
@@ -51,15 +51,15 @@ export const SliderField: React.FC<SliderFieldProps> = ({
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
                 style={{
-                    position: 'absolute',
-                    inset: '0',
-                    width: '100%',
-                    height: '100%',
-                    opacity: 0,
                     cursor: 'pointer',
-                    zIndex: 10,
+                    height: '100%',
+                    inset: '0',
                     margin: 0,
+                    opacity: 0,
                     padding: 0,
+                    position: 'absolute',
+                    width: '100%',
+                    zIndex: 10,
                 }}
             />
         </div>

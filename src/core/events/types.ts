@@ -5,7 +5,8 @@
  * 用于模块间的松耦合通信
  */
 
-import { Observable, Subject, filter } from 'rxjs';
+import type { Observable} from 'rxjs';
+import { Subject, filter } from 'rxjs';
 
 // 事件类型定义
 export type EngramEventType =

@@ -1,5 +1,5 @@
 import { SettingsManager } from "@/config/settings";
-import { Logger, LogModule } from "@/core/logger";
+import { LogModule, Logger } from "@/core/logger";
 import { getSTContext } from '@/integrations/tavern';
 import { callPopup } from '@/integrations/tavern';
 import { WorldInfoService } from '@/integrations/tavern/worldbook';
@@ -14,7 +14,7 @@ export class CharacterDeleteService {
     private static isInitialized = false;
 
     static init() {
-        if (this.isInitialized) return;
+        if (this.isInitialized) {return;}
 
         try {
             const context = getSTContext();
@@ -25,28 +25,28 @@ export class CharacterDeleteService {
 
             // 监听角色删除事件
             if (context.event_types.CHARACTER_DELETED) {
-                // @ts-ignore
+                // @ts-expect-error
                 context.eventSource.on(context.event_types.CHARACTER_DELETED, this.onCharacterDeleted.bind(this));
                 Logger.debug(LogModule.DATA_CLEANUP, '监听 CHARACTER_DELETED 事件');
             }
 
             // 监听聊天删除事件
             if (context.event_types.CHAT_DELETED) {
-                // @ts-ignore
+                // @ts-expect-error
                 context.eventSource.on(context.event_types.CHAT_DELETED, this.onChatDeleted.bind(this));
                 Logger.debug(LogModule.DATA_CLEANUP, '监听 CHAT_DELETED 事件');
             }
 
             // 监听群聊删除事件
             if (context.event_types.GROUP_CHAT_DELETED) {
-                // @ts-ignore
+                // @ts-expect-error
                 context.eventSource.on(context.event_types.GROUP_CHAT_DELETED, this.onChatDeleted.bind(this));
                 Logger.debug(LogModule.DATA_CLEANUP, '监听 GROUP_CHAT_DELETED 事件');
             }
 
             this.isInitialized = true;
-        } catch (e) {
-            Logger.error(LogModule.DATA_CLEANUP, '初始化失败', e);
+        } catch (error) {
+            Logger.error(LogModule.DATA_CLEANUP, '初始化失败', error);
         }
     }
 
@@ -55,7 +55,7 @@ export class CharacterDeleteService {
      */
     private static async onCharacterDeleted(data: { id: number; character: any }) {
         const settings = SettingsManager.getSettings().linkedDeletion;
-        if (!settings?.enabled) return;
+        if (!settings?.enabled) {return;}
 
         Logger.debug(LogModule.DATA_CLEANUP, '检测到角色删除', data);
 
@@ -75,7 +75,7 @@ export class CharacterDeleteService {
                 const allIds = await listAllChatIds();
                 
                 // 逃逸正则字符，匹配前缀
-                const escapedName = characterName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const escapedName = characterName.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
                 const nameRegex = new RegExp(`^${escapedName}(\\s|-|_|$)`, 'i');
                 
                 matchedChatIds = allIds.filter(id => nameRegex.test(id));
@@ -83,8 +83,8 @@ export class CharacterDeleteService {
                 if (matchedChatIds.length > 0) {
                     Logger.info(LogModule.DATA_CLEANUP, `发现 ${matchedChatIds.length} 个关联聊天数据`, matchedChatIds);
                 }
-            } catch (e) {
-                Logger.error(LogModule.DATA_CLEANUP, '扫描关联聊天数据失败', e);
+            } catch (error) {
+                Logger.error(LogModule.DATA_CLEANUP, '扫描关联聊天数据失败', error);
             }
         }
 
@@ -142,8 +142,8 @@ export class CharacterDeleteService {
                     await deleteDatabase(chatId);
                     // 删除云端
                     await syncService.purge(chatId);
-                } catch (e) {
-                    Logger.error(LogModule.DATA_CLEANUP, `清理聊天数据失败: ${chatId}`, e);
+                } catch (error) {
+                    Logger.error(LogModule.DATA_CLEANUP, `清理聊天数据失败: ${chatId}`, error);
                 }
             }
             notificationService.success(`已清理 ${matchedChatIds.length} 个关联聊天数据`, 'Engram');
@@ -161,8 +161,8 @@ export class CharacterDeleteService {
         const allWorldbooks = await WorldInfoService.getWorldbookNames();
         const allWorldbooksSet = new Set(allWorldbooks);
 
-        return Array.from(candidates).filter(name => {
-            if (!allWorldbooksSet.has(name)) return false;
+        return [...candidates].filter(name => {
+            if (!allWorldbooksSet.has(name)) {return false;}
             return name.toLowerCase().includes('engram');
         });
     }
@@ -171,7 +171,7 @@ export class CharacterDeleteService {
      * 执行世界书删除 (内部逻辑提取)
      */
     private static async executeDeleteWorldbooks(characterName: string, booksToDelete: string[]) {
-        if (booksToDelete.length === 0) return;
+        if (booksToDelete.length === 0) {return;}
 
         let deletedCount = 0;
         for (const wbName of booksToDelete) {
@@ -179,8 +179,8 @@ export class CharacterDeleteService {
                 if (await WorldInfoService.deleteWorldbook(wbName)) {
                     deletedCount++;
                 }
-            } catch (e) {
-                Logger.error(LogModule.DATA_CLEANUP, `删除世界书 ${wbName} 失败`, e);
+            } catch (error) {
+                Logger.error(LogModule.DATA_CLEANUP, `删除世界书 ${wbName} 失败`, error);
             }
         }
 
@@ -195,7 +195,7 @@ export class CharacterDeleteService {
      */
     private static async onChatDeleted(chatId: string) {
         const settings = SettingsManager.getSettings().linkedDeletion;
-        if (!settings?.enabled) return;
+        if (!settings?.enabled) {return;}
 
         Logger.debug(LogModule.DATA_CLEANUP, '检测到聊天删除', { chatId });
 
@@ -208,13 +208,13 @@ export class CharacterDeleteService {
                 Logger.info(LogModule.DATA_CLEANUP, `已删除 IndexedDB: ${chatId}`);
                 notificationService.info('已清理关联的 Engram 数据库', 'Engram');
             }
-        } catch (e) {
-            Logger.error(LogModule.DATA_CLEANUP, `删除数据库失败: ${chatId}`, e);
+        } catch (error) {
+            Logger.error(LogModule.DATA_CLEANUP, `删除数据库失败: ${chatId}`, error);
         }
 
         // 2. 删除 Worldbook (旧逻辑 / 宏占位)
         // 仅在明确启用 deleteChatWorldbook 时执行，因为如果是共享世界书，可能会误删
-        if (!settings.deleteChatWorldbook) return;
+        if (!settings.deleteChatWorldbook) {return;}
 
         // 从 chatId 解析角色名
         // 常见格式: "CharName - 2024-1-1@12h30m" 或 "CharName_2024-1-1@12h30m"
@@ -231,8 +231,8 @@ export class CharacterDeleteService {
             const { syncService } = await import('@/data/sync/SyncService');
             await syncService.purge(chatId);
             Logger.debug(LogModule.DATA_CLEANUP, `已触发同步文件清理: ${chatId}`);
-        } catch (e) {
-            Logger.warn(LogModule.DATA_CLEANUP, `清理同步文件失败: ${chatId}`, e);
+        } catch (error) {
+            Logger.warn(LogModule.DATA_CLEANUP, `清理同步文件失败: ${chatId}`, error);
         }
 
         await this.deleteEngramWorldbooks(characterName, '聊天', settings.showConfirmation);
@@ -242,16 +242,16 @@ export class CharacterDeleteService {
      * 从 chatId 提取角色名
      */
     private static extractCharacterNameFromChatId(chatId: string): string | null {
-        if (!chatId) return null;
+        if (!chatId) {return null;}
 
         // 尝试多种分隔符模式
         // Pattern 1: "CharName - 2024-1-1@12h30m"
         let match = chatId.match(/^(.+?)\s*-\s*\d{4}/);
-        if (match) return match[1].trim();
+        if (match) {return match[1].trim();}
 
         // Pattern 2: "CharName_2024-1-1"
         match = chatId.match(/^(.+?)_\d{4}/);
-        if (match) return match[1].trim();
+        if (match) {return match[1].trim();}
 
         // Pattern 3: 没有日期后缀，整个就是名字
         // 但这种情况下我们不确定，返回 null 更安全
@@ -276,8 +276,8 @@ export class CharacterDeleteService {
         const allWorldbooks = await WorldInfoService.getWorldbookNames();
         const allWorldbooksSet = new Set(allWorldbooks);
 
-        const booksToDelete = Array.from(candidates).filter(name => {
-            if (!allWorldbooksSet.has(name)) return false;
+        const booksToDelete = [...candidates].filter(name => {
+            if (!allWorldbooksSet.has(name)) {return false;}
             const isEngramBook = name.toLowerCase().includes('engram');
             if (!isEngramBook) {
                 Logger.debug(LogModule.DATA_CLEANUP, `跳过非 Engram 世界书: ${name}`);
@@ -329,8 +329,8 @@ export class CharacterDeleteService {
                 } else {
                     failedBooks.push(wbName);
                 }
-            } catch (e) {
-                Logger.error(LogModule.DATA_CLEANUP, `删除世界书 ${wbName} 失败`, e);
+            } catch (error) {
+                Logger.error(LogModule.DATA_CLEANUP, `删除世界书 ${wbName} 失败`, error);
                 failedBooks.push(wbName);
             }
         }

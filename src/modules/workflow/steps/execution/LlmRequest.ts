@@ -1,5 +1,5 @@
-import { IStep, RetryConfig } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
+import type { IStep, RetryConfig } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
 import { llmAdapter } from '@/integrations/llm/Adapter';
 import { ModelLogger } from '@/core/logger/ModelLogger';
 import { getCurrentCharacter, getCurrentModel } from '@/integrations/tavern';
@@ -17,9 +17,9 @@ export class LlmRequest implements IStep {
         const customConfig = activePreset?.retryConfig;
         
         return {
-            maxAttempts: customConfig?.maxAttempts ?? 3,
-            delay: customConfig?.retryDelay ?? 2000,
             backoff: 'exponential',
+            delay: customConfig?.retryDelay ?? 2000,
+            maxAttempts: customConfig?.maxAttempts ?? 3,
             retryIf: (error: any) => {
                 const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
                 return msg.includes('429') ||
@@ -62,10 +62,10 @@ export class LlmRequest implements IStep {
 
             // 3. 记录接收日志
             ModelLogger.logReceive(logId, {
+                duration: Date.now() - startTime,
+                error: response.error,
                 response: response.content,
                 status: response.success ? 'success' : 'error',
-                error: response.error,
-                duration: Date.now() - startTime,
             });
 
             if (!response.success) {
@@ -81,16 +81,16 @@ export class LlmRequest implements IStep {
 
             Logger.debug('LlmRequest', 'LLM 请求成功', { duration: Date.now() - startTime });
 
-        } catch (e: any) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
-            const isCancelled = e.isCancellation || errorMsg === 'UserCancelled';
+        } catch (error: any) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            const isCancelled = error.isCancellation || errorMsg === 'UserCancelled';
 
             ModelLogger.logReceive(logId, {
                 status: isCancelled ? 'cancelled' : 'error',
                 error: isCancelled ? '用户手动取消' : errorMsg,
                 duration: Date.now() - startTime,
             });
-            throw e;
+            throw error;
         }
     }
 }

@@ -6,7 +6,7 @@ import { CurtainOverlay } from '@/ui/components/visual/CurtainOverlay';
 import { GlobalStyles } from '@/ui/styles/GlobalStyles';
 import { useConfigStore } from '@/state/configStore';
 import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -41,8 +41,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
             try {
                 const unread = await UpdateService.hasUnreadUpdate();
                 setHasUnreadUpdate(unread);
-            } catch (e) {
-                console.debug('[Engram] 检查更新失败', e);
+            } catch (error) {
+                console.debug('[Engram] 检查更新失败', error);
             }
         };
         checkUpdate();
@@ -124,8 +124,8 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                 <motion.div 
                     ref={contentRef}
                     className="flex w-full h-full"
-                    initial={enableAnimations ? { x: animationDir === 'left' ? '50%' : 0, y: animationDir === 'top' ? '50%' : 0, opacity: 0 } : false}
-                    animate={isContentVisible ? { x: 0, y: 0, opacity: 1 } : {}}
+                    initial={enableAnimations ? { opacity: 0, x: animationDir === 'left' ? '50%' : 0, y: animationDir === 'top' ? '50%' : 0 } : false}
+                    animate={isContentVisible ? { opacity: 1, x: 0, y: 0 } : {}}
                     transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
                     style={{ 
                         zIndex: 100, // 确保叠在大幕之上
@@ -180,7 +180,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                                         key={activeTab}
                                         initial={{ opacity: 0, y: 15 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -15, scale: 0.98 }}
+                                        exit={{ opacity: 0, scale: 0.98, y: -15 }}
                                         transition={{ duration: 0.3, ease: 'easeOut' }}
                                         className="flex-1 overflow-y-auto overflow-x-hidden pt-0 px-4 md:px-8 lg:px-12 scroll-smooth w-full h-full pb-8 md:pb-12 lg:pb-16"
                                     >

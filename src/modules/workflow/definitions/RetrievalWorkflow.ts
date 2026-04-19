@@ -1,4 +1,4 @@
-import { WorkflowDefinition } from '../core/WorkflowEngine';
+import type { WorkflowDefinition } from '../core/WorkflowEngine';
 import { BrainRecallStep } from '../steps/rag/BrainRecallStep';
 import { KeywordRetrieveStep } from '../steps/rag/KeywordRetrieveStep';
 import { RecordRecallLogStep } from '../steps/rag/RecordRecallLogStep';

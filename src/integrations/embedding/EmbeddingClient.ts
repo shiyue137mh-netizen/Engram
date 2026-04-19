@@ -4,10 +4,10 @@ import type { VectorConfig, VectorSource } from '@/config/types/rag';
  * 嵌入 API 响应 (OpenAI 格式)
  */
 interface OpenAIEmbeddingResponse {
-    data: Array<{
+    data: {
         embedding: number[];
         index: number;
-    }>;
+    }[];
     model: string;
     usage?: {
         prompt_tokens: number;
@@ -26,11 +26,11 @@ interface OllamaEmbeddingResponse {
  * 各 API 的默认端点
  */
 const DEFAULT_ENDPOINTS: Partial<Record<VectorSource, string>> = {
-    openai: 'https://api.openai.com/v1/embeddings',
-    ollama: 'http://localhost:11434/api/embeddings',
-    vllm: 'http://localhost:8000/v1/embeddings',
     cohere: 'https://api.cohere.ai/v1/embed',
     jina: 'https://api.jina.ai/v1/embeddings',
+    ollama: 'http://localhost:11434/api/embeddings',
+    openai: 'https://api.openai.com/v1/embeddings',
+    vllm: 'http://localhost:8000/v1/embeddings',
     voyage: 'https://api.voyageai.com/v1/embeddings',
 };
 
@@ -48,17 +48,21 @@ export class EmbeddingClient {
             case 'custom':
             case 'vllm':
             case 'jina':
-            case 'voyage':
+            case 'voyage': {
                 return this.callOpenAICompatible(text, config);
+            }
 
-            case 'ollama':
+            case 'ollama': {
                 return this.callOllama(text, config);
+            }
 
-            case 'cohere':
+            case 'cohere': {
                 return this.callCohere(text, config);
+            }
 
-            default:
+            default: {
                 throw new Error(`Unsupported vector source: ${config.source}`);
+            }
         }
     }
 
@@ -95,8 +99,8 @@ export class EmbeddingClient {
         }
 
         const body: Record<string, any> = {
-            model: config.model || 'text-embedding-3-small',
             input: text,
+            model: config.model || 'text-embedding-3-small',
         };
 
         // 可选: 指定维度 (OpenAI text-embedding-3 支持)
@@ -106,9 +110,9 @@ export class EmbeddingClient {
 
         try {
             const response = await fetch(endpoint, {
-                method: 'POST',
-                headers,
                 body: JSON.stringify(body),
+                headers,
+                method: 'POST',
             });
 
             if (!response.ok) {
@@ -123,12 +127,12 @@ export class EmbeddingClient {
             }
 
             return data.data[0].embedding;
-        } catch (e: any) {
+        } catch (error: any) {
             // 再次捕获以确保 URL 信息暴露
-            if (!e.message.includes('at http')) {
-                throw new Error(`Request to ${endpoint} failed: ${e.message}`);
+            if (!error.message.includes('at http')) {
+                throw new Error(`Request to ${endpoint} failed: ${error.message}`);
             }
-            throw e;
+            throw error;
         }
     }
 
@@ -161,9 +165,9 @@ export class EmbeddingClient {
         }
 
         const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(requestBody),
+            headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
         });
 
         if (!response.ok) {
@@ -194,16 +198,16 @@ export class EmbeddingClient {
         const endpoint = DEFAULT_ENDPOINTS.cohere!;
 
         const response = await fetch(endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${config.apiKey}`,
-            },
             body: JSON.stringify({
                 model: config.model || 'embed-multilingual-v3.0',
                 texts: [text],
                 input_type: 'search_document',
             }),
+            headers: {
+                'Authorization': `Bearer ${config.apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            method: 'POST',
         });
 
         if (!response.ok) {

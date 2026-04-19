@@ -1,13 +1,13 @@
-import { SettingsManager, type EngramSettings } from '@/config/settings';
+import { type EngramSettings, SettingsManager } from '@/config/settings';
 import {
-    DEFAULT_EMBEDDING_CONFIG,
-    getDefaultAPISettings,
     type CustomMacro,
+    DEFAULT_EMBEDDING_CONFIG,
     type EmbeddingConfig,
     type GlobalRegexConfig,
     type RecallConfig,
     type RerankConfig,
     type VectorConfig,
+    getDefaultAPISettings,
 } from '@/config/types/defaults';
 import type { EntityExtractConfig } from '@/config/types/memory';
 import { create } from 'zustand';
@@ -15,21 +15,21 @@ import { create } from 'zustand';
 // 采用 debounce，防止高频 UI 调整（如滑块）导致的存取风暴
 let saveTimeout: NodeJS.Timeout | null = null;
 const debouncedSave = (state: ConfigState) => {
-    if (saveTimeout) clearTimeout(saveTimeout);
+    if (saveTimeout) {clearTimeout(saveTimeout);}
     saveTimeout = setTimeout(() => {
         const currentSettings = SettingsManager.getSettings();
         
         // 我们需要把原本在 apiSettings 中的对象再装配进去
         const newApiSettings = {
-            ...(currentSettings.apiSettings || {}),
-            vectorConfig: state.vectorConfig,
-            rerankConfig: state.rerankConfig,
+            ...currentSettings.apiSettings,
+            customMacros: state.customMacros,
+            embeddingConfig: state.embeddingConfig,
+            enableAnimations: state.enableAnimations,
+            entityExtractConfig: state.entityExtractConfig,
             recallConfig: state.recallConfig,
             regexConfig: state.regexConfig,
-            entityExtractConfig: state.entityExtractConfig,
-            embeddingConfig: state.embeddingConfig,
-            customMacros: state.customMacros,
-            enableAnimations: state.enableAnimations,
+            rerankConfig: state.rerankConfig,
+            vectorConfig: state.vectorConfig,
         };
 
         // 直接更新 SettingsManager
@@ -94,41 +94,6 @@ const savedContext: any = globalSettings.apiSettings || {};
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
     // Init from SettingsManager
-    vectorConfig: savedContext.vectorConfig || defaults.vectorConfig!,
-    rerankConfig: savedContext.rerankConfig || defaults.rerankConfig!,
-    recallConfig: savedContext.recallConfig || defaults.recallConfig!,
-    regexConfig: savedContext.regexConfig || defaults.regexConfig!,
-    entityExtractConfig: savedContext.entityExtractConfig || defaults.entityExtractConfig || { enabled: false, trigger: 'floor', floorInterval: 10, keepRecentCount: 5 },
-    embeddingConfig: savedContext.embeddingConfig || defaults.embeddingConfig || DEFAULT_EMBEDDING_CONFIG,
-    customMacros: savedContext.customMacros || defaults.customMacros || [],
-    enableAnimations: savedContext.enableAnimations ?? defaults.enableAnimations ?? true,
-
-    summarizerConfig: globalSettings.summarizerConfig || {},
-    globalPreviewEnabled: globalSettings.globalPreviewEnabled ?? true,
-    preprocessingConfig: globalSettings.preprocessingConfig || null,
-    linkedDeletion: globalSettings.linkedDeletion || { enabled: false, deleteWorldbook: false, deleteChatWorldbook: false, deleteIndexedDB: false, showConfirmation: true },
-    glassSettings: globalSettings.glassSettings || { enabled: true, opacity: 0.3, blur: 10 },
-    syncConfig: globalSettings.syncConfig || { enabled: false, autoSync: true },
-
-    hasChanges: false,
-
-    updateConfig: (key, value) => {
-        set((state) => {
-            const nextValue = typeof value === 'function' ? (value as any)(state[key]) : value;
-            return { [key]: nextValue, hasChanges: true } as any;
-        });
-    },
-
-    updateVectorConfig: (config) => set({ vectorConfig: config, hasChanges: true }),
-    updateRerankConfig: (config) => set({ rerankConfig: config, hasChanges: true }),
-    updateRecallConfig: (config) => set({ recallConfig: config, hasChanges: true }),
-    updateRegexConfig: (config) => set({ regexConfig: config, hasChanges: true }),
-    updateEntityExtractConfig: (config) => set({ entityExtractConfig: config, hasChanges: true }),
-    updateEmbeddingConfig: (config) => set({ embeddingConfig: config, hasChanges: true }),
-    updateEnableAnimations: (enabled) => set({ enableAnimations: enabled, hasChanges: true }),
-
-    updateMultipleConfigs: (updates) => set({ ...updates, hasChanges: true }),
-
     addCustomMacro: () => set((state) => {
         const newMacro: CustomMacro = {
             id: `custom_${Date.now()}`,
@@ -139,27 +104,62 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         };
         return { customMacros: [...state.customMacros, newMacro], hasChanges: true };
     }),
-
-    updateCustomMacro: (id, updates) => set((state) => ({
-        customMacros: state.customMacros.map(m => m.id === id ? { ...m, ...updates } : m),
-        hasChanges: true
-    })),
-
+    customMacros: savedContext.customMacros || defaults.customMacros || [],
     deleteCustomMacro: (id) => set((state) => ({
         customMacros: state.customMacros.filter(m => m.id !== id),
         hasChanges: true
     })),
+    embeddingConfig: savedContext.embeddingConfig || defaults.embeddingConfig || DEFAULT_EMBEDDING_CONFIG,
+    enableAnimations: savedContext.enableAnimations ?? defaults.enableAnimations ?? true,
+    entityExtractConfig: savedContext.entityExtractConfig || defaults.entityExtractConfig || { enabled: false, trigger: 'floor', floorInterval: 10, keepRecentCount: 5 },
+    glassSettings: globalSettings.glassSettings || { enabled: true, opacity: 0.3, blur: 10 },
+    globalPreviewEnabled: globalSettings.globalPreviewEnabled ?? true,
 
-    toggleCustomMacro: (id) => set((state) => ({
-        customMacros: state.customMacros.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m),
-        hasChanges: true
-    })),
+    hasChanges: false,
+    linkedDeletion: globalSettings.linkedDeletion || { enabled: false, deleteWorldbook: false, deleteChatWorldbook: false, deleteIndexedDB: false, showConfirmation: true },
+    preprocessingConfig: globalSettings.preprocessingConfig || null,
+    recallConfig: savedContext.recallConfig || defaults.recallConfig!,
+    regexConfig: savedContext.regexConfig || defaults.regexConfig!,
+    rerankConfig: savedContext.rerankConfig || defaults.rerankConfig!,
 
     saveConfig: () => {
         const state = get();
         debouncedSave(state);
         set({ hasChanges: false });
-    }
+    },
+
+    summarizerConfig: globalSettings.summarizerConfig || {},
+
+    syncConfig: globalSettings.syncConfig || { enabled: false, autoSync: true },
+    toggleCustomMacro: (id) => set((state) => ({
+        customMacros: state.customMacros.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m),
+        hasChanges: true
+    })),
+    updateConfig: (key, value) => {
+        set((state) => {
+            const nextValue = typeof value === 'function' ? (value as any)(state[key]) : value;
+            return { [key]: nextValue, hasChanges: true } as any;
+        });
+    },
+    updateCustomMacro: (id, updates) => set((state) => ({
+        customMacros: state.customMacros.map(m => m.id === id ? { ...m, ...updates } : m),
+        hasChanges: true
+    })),
+    updateEmbeddingConfig: (config) => set({ embeddingConfig: config, hasChanges: true }),
+    updateEnableAnimations: (enabled) => set({ enableAnimations: enabled, hasChanges: true }),
+    updateEntityExtractConfig: (config) => set({ entityExtractConfig: config, hasChanges: true }),
+
+    updateMultipleConfigs: (updates) => set({ ...updates, hasChanges: true }),
+
+    updateRecallConfig: (config) => set({ recallConfig: config, hasChanges: true }),
+
+    updateRegexConfig: (config) => set({ regexConfig: config, hasChanges: true }),
+
+    updateRerankConfig: (config) => set({ rerankConfig: config, hasChanges: true }),
+
+    updateVectorConfig: (config) => set({ vectorConfig: config, hasChanges: true }),
+
+    vectorConfig: savedContext.vectorConfig || defaults.vectorConfig!
 }));
 
 // Setup auto-persistence via subscription

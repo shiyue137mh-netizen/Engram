@@ -1,8 +1,8 @@
 import React from 'react';
 import { useConfigStore } from "@/state/configStore";
 import { Switch } from "@/ui/components/core/Switch";
-import { Eye, ShieldCheck, Brain } from 'lucide-react';
-import { summarizerService, entityBuilder } from "@/modules/memory";
+import { Brain, Eye, ShieldCheck } from 'lucide-react';
+import { entityBuilder, summarizerService } from "@/modules/memory";
 import { preprocessor } from "@/modules/preprocessing";
 
 export const FeaturesTab: React.FC = () => {

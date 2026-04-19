@@ -35,13 +35,13 @@ export class RobustJsonParser {
         // 2. 尝试解析
         try {
             return JSON.parse(jsonString);
-        } catch (e) {
+        } catch {
             // 首次解析失败：尝试简单的自动修复
             const repaired = this.simpleRepair(jsonString);
             try {
                 return JSON.parse(repaired);
-            } catch (e2) {
-                console.error('[RobustJsonParser] 解析失败:', e2);
+            } catch (error) {
+                console.error('[RobustJsonParser] 解析失败:', error);
                 return null;
             }
         }
@@ -67,17 +67,17 @@ export class RobustJsonParser {
         const lastCloseBracket = text.lastIndexOf(']');
 
         // 比较哪个出现得更早且有效
-        let foundObject = (firstOpenBrace !== -1 && lastCloseBrace !== -1 && lastCloseBrace > firstOpenBrace);
-        let foundArray = (firstOpenBracket !== -1 && lastCloseBracket !== -1 && lastCloseBracket > firstOpenBracket);
+        const foundObject = (firstOpenBrace !== -1 && lastCloseBrace !== -1 && lastCloseBrace > firstOpenBrace);
+        const foundArray = (firstOpenBracket !== -1 && lastCloseBracket !== -1 && lastCloseBracket > firstOpenBracket);
 
         // 如果两者都存在，取最外层的（索引更小的）
         // 实际上很少混合，通常是二选一
         if (foundObject && foundArray) {
             if (firstOpenBrace < firstOpenBracket) {
                 return text.substring(firstOpenBrace, lastCloseBrace + 1);
-            } else {
-                return text.substring(firstOpenBracket, lastCloseBracket + 1);
             }
+                return text.substring(firstOpenBracket, lastCloseBracket + 1);
+            
         }
 
         if (foundObject) {
@@ -101,7 +101,7 @@ export class RobustJsonParser {
 
         // 1. 移除对象或数组尾部多余的逗号
         // 例如: "key": "value", } -> "key": "value" }
-        repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+        repaired = repaired.replaceAll(/,\s*([}\]])/g, '$1');
 
         return repaired;
     }

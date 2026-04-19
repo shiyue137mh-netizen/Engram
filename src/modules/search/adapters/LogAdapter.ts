@@ -1,5 +1,5 @@
-import { SearchAdapter, SearchResult } from '../SearchService';
-import { Terminal, AlertTriangle, Info, Bug } from 'lucide-react';
+import type { SearchAdapter, SearchResult } from '../SearchService';
+import { AlertTriangle, Bug, Info, Terminal } from 'lucide-react';
 
 export class LogAdapter implements SearchAdapter {
     async search(query: string): Promise<SearchResult[]> {
@@ -15,13 +15,13 @@ export class LogAdapter implements SearchAdapter {
     private getLogActions(): SearchResult[] {
         return [
             {
-                id: 'log-view-all',
-                type: 'log',
-                title: '查看完整日志 (DevLog)',
+                action: (nav) => nav('devlog'),
                 description: '打开开发者日志控制台',
                 icon: Terminal,
-                action: (nav) => nav('devlog'),
-                score: 9
+                id: 'log-view-all',
+                score: 9,
+                title: '查看完整日志 (DevLog)',
+                type: 'log'
             },
             {
                 id: 'log-errors',

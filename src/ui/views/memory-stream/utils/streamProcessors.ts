@@ -31,7 +31,7 @@ export function filterEvents(
         result = result.filter(e => activeIds.has(e.id));
     }
 
-    return result.sort((a, b) =>
+    return result.toSorted((a, b) =>
         sortOrder === 'asc' ? a.timestamp - b.timestamp : b.timestamp - a.timestamp
     );
 }
@@ -51,16 +51,16 @@ export function groupEvents(
         // 使用日期作为分组标准，让时间线更直观
         const date = new Date(event.timestamp);
         const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
-        const title = date.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' });
+        const title = date.toLocaleDateString('zh-CN', { day: 'numeric', month: 'long', year: 'numeric' });
 
         if (!groups.has(dateKey)) {
-            groups.set(dateKey, { title, events: [] });
+            groups.set(dateKey, { events: [], title });
         }
         groups.get(dateKey)!.events.push(event);
     });
 
     // 默认按日期排序
-    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+    const sortedKeys = [...groups.keys()].toSorted((a, b) => {
         const timeA = new Date(a).getTime();
         const timeB = new Date(b).getTime();
         return isAsc ? timeA - timeB : timeB - timeA;
@@ -72,10 +72,10 @@ export function groupEvents(
         group.events.sort((a, b) => isAsc ? a.timestamp - b.timestamp : b.timestamp - a.timestamp);
         
         return {
-            key: idx,
-            title: group.title,
             events: group.events,
+            key: idx,
             startIndex: 0,
+            title: group.title,
         };
     });
 }
@@ -101,12 +101,12 @@ export function filterEntities(
     pendingChanges: Map<string, Partial<EntityNode>>,
     searchQuery: string
 ): EntityNode[] {
-    let result = entities.map(e => {
+    const result = entities.map(e => {
         const pending = pendingChanges.get(e.id);
         return pending ? { ...e, ...pending } as EntityNode : e;
     });
 
-    if (!searchQuery.trim()) return result;
+    if (!searchQuery.trim()) {return result;}
 
     const q = searchQuery.toLowerCase();
     return result.filter(e =>
@@ -118,27 +118,35 @@ export function filterEntities(
 
 function getTypeLabel(type: string): string {
     switch ((type || 'unknown').toLowerCase()) {
-        case 'char': return '角色';
-        case 'loc': return '地点';
-        case 'item': return '物品';
-        case 'concept': return '概念';
-        default: return '其他';
+        case 'char': { return '角色';
+        }
+        case 'loc': { return '地点';
+        }
+        case 'item': { return '物品';
+        }
+        case 'concept': { return '概念';
+        }
+        default: { return '其他';
+        }
     }
 }
 
 function sortEntities(entities: EntityNode[], sortMode: EntitySortMode): EntityNode[] {
-    return [...entities].sort((a, b) => {
+    return [...entities].toSorted((a, b) => {
         const ta = a.last_updated_at || 0;
         const tb = b.last_updated_at || 0;
 
         switch (sortMode) {
-            case 'updated_asc':
+            case 'updated_asc': {
                 return ta - tb;
-            case 'name_asc':
+            }
+            case 'name_asc': {
                 return a.name.localeCompare(b.name, 'zh-CN');
+            }
             case 'updated_desc':
-            default:
+            default: {
                 return tb - ta;
+            }
         }
     });
 }
@@ -155,29 +163,29 @@ export function groupEntities(
 
     if (groupMode === 'none') {
         return [{
+            children: [{ key: 'all-items', title: '全部', entities: sorted }],
+            count: sorted.length,
             key: 'all',
             title: '全部实体',
-            count: sorted.length,
-            children: [{ key: 'all-items', title: '全部', entities: sorted }],
         }];
     }
 
     if (groupMode === 'archive') {
         const active = sorted.filter(e => !e.is_archived);
-        const archived = sorted.filter(e => !!e.is_archived);
+        const archived = sorted.filter(e => Boolean(e.is_archived));
 
         return [
             {
+                children: [{ key: 'active-items', title: '活跃', entities: active }],
+                count: active.length,
                 key: 'active',
                 title: '活跃实体',
-                count: active.length,
-                children: [{ key: 'active-items', title: '活跃', entities: active }],
             },
             {
+                children: [{ key: 'archived-items', title: '归档', entities: archived }],
+                count: archived.length,
                 key: 'archived',
                 title: '已归档实体',
-                count: archived.length,
-                children: [{ key: 'archived-items', title: '归档', entities: archived }],
             },
         ];
     }
@@ -187,16 +195,16 @@ export function groupEntities(
         .map(type => {
             const byType = sorted.filter(e => (e.type || 'unknown') === type);
             const active = byType.filter(e => !e.is_archived);
-            const archived = byType.filter(e => !!e.is_archived);
+            const archived = byType.filter(e => Boolean(e.is_archived));
 
             return {
-                key: `type-${type}`,
-                title: `${getTypeLabel(type)} (${type})`,
-                count: byType.length,
                 children: [
                     { key: `type-${type}-active`, title: '活跃', entities: active },
                     { key: `type-${type}-archived`, title: '归档', entities: archived },
                 ],
+                count: byType.length,
+                key: `type-${type}`,
+                title: `${getTypeLabel(type)} (${type})`,
             } as EntityGroup;
         })
         .filter(g => g.count > 0);

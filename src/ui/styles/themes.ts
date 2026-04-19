@@ -49,7 +49,6 @@ interface Theme {
 // 1. Nord (Dark)
 // ----------------------------------------------------------------------
 const nordTheme: Theme = {
-    name: 'Nord',
     colors: {
         background: '#2e3440',
         foreground: '#d8dee9',
@@ -86,6 +85,7 @@ const nordTheme: Theme = {
         sidebarBorder: '#3b4252',
         sidebarRing: '#88c0d0',
     },
+    name: 'Nord',
     variables: {
         radius: '0.3rem',
     }
@@ -95,7 +95,6 @@ const nordTheme: Theme = {
 // 2. Claude Dark (formerly Paper Dark)
 // ----------------------------------------------------------------------
 const claudeDarkTheme: Theme = {
-    name: 'Claude (Dark)',
     colors: {
         background: 'oklch(0.2679 0.0036 106.6427)',
         foreground: 'oklch(0.8074 0.0142 93.0137)',
@@ -132,6 +131,7 @@ const claudeDarkTheme: Theme = {
         sidebarBorder: 'oklch(0.7713 0.0169 99.0657 / 0.15)', // SidebarForeground / 0.15
         sidebarRing: 'oklch(0.6724 0.1308 38.7559)',
     },
+    name: 'Claude (Dark)',
     variables: {
         radius: '0.4rem',
     }
@@ -141,7 +141,6 @@ const claudeDarkTheme: Theme = {
 // 3. Twitter Dark (Black/Blue) - New
 // ----------------------------------------------------------------------
 const twitterDarkTheme: Theme = {
-    name: 'Twitter (Dark)',
     colors: {
         background: 'oklch(0 0 0)',
         foreground: 'oklch(0.9328 0.0025 228.7857)',
@@ -179,6 +178,7 @@ const twitterDarkTheme: Theme = {
         sidebarBorder: 'oklch(0.9328 0.0025 228.7857 / 0.15)', // SidebarForeground / 0.15
         sidebarRing: 'oklch(0.6818 0.1584 243.3540)',
     },
+    name: 'Twitter (Dark)',
     variables: {
         radius: '1.3rem',
     }
@@ -188,7 +188,6 @@ const twitterDarkTheme: Theme = {
 // 4. Tokyo Night (Dark)
 // ----------------------------------------------------------------------
 const tokyoNightTheme: Theme = {
-    name: 'Tokyo Night',
     colors: {
         background: '#1a1b26',
         foreground: '#a9b1d6',
@@ -225,6 +224,7 @@ const tokyoNightTheme: Theme = {
         sidebarBorder: '#414868',
         sidebarRing: '#7aa2f7',
     },
+    name: 'Tokyo Night',
     variables: {
         radius: '0.4rem',
     }
@@ -234,7 +234,6 @@ const tokyoNightTheme: Theme = {
 // 4.5 Tokyo Light
 // ----------------------------------------------------------------------
 const tokyoLightTheme: Theme = {
-    name: 'Tokyo Light',
     colors: {
         background: '#e6e7ed',
         foreground: '#343b58',
@@ -271,6 +270,7 @@ const tokyoLightTheme: Theme = {
         sidebarBorder: '#a3a5b2',
         sidebarRing: '#2959aa',
     },
+    name: 'Tokyo Light',
     variables: {
         radius: '0.4rem',
     }
@@ -280,7 +280,6 @@ const tokyoLightTheme: Theme = {
 // 5. Catppuccin Mocha - Modified (Mauve Text)
 // ----------------------------------------------------------------------
 const catppuccinTheme: Theme = {
-    name: 'Catppuccin Mocha',
     colors: {
         background: '#1e1e2e',
         // foreground: '#cdd6f4', // Old Text
@@ -328,6 +327,7 @@ const catppuccinTheme: Theme = {
         sidebarBorder: '#cba6f726', // Mauve with ~15% alpha
         sidebarRing: '#89b4fa',
     },
+    name: 'Catppuccin Mocha',
     variables: {
         radius: '0.5rem',
     }
@@ -337,7 +337,6 @@ const catppuccinTheme: Theme = {
 // 5.5 Catppuccin Latte
 // ----------------------------------------------------------------------
 const catppuccinLatteTheme: Theme = {
-    name: 'Catppuccin Latte',
     colors: {
         background: '#eff1f5',
         foreground: '#4c4f69',
@@ -374,6 +373,7 @@ const catppuccinLatteTheme: Theme = {
         sidebarBorder: '#bcc0cc',
         sidebarRing: '#8839ef',
     },
+    name: 'Catppuccin Latte',
     variables: {
         radius: '0.5rem',
     }
@@ -383,7 +383,6 @@ const catppuccinLatteTheme: Theme = {
 // 5.8 Everforest (Dark)
 // ----------------------------------------------------------------------
 const everforestTheme: Theme = {
-    name: 'Everforest',
     colors: {
         background: '#2d353b',
         foreground: '#d3c6aa',
@@ -420,6 +419,7 @@ const everforestTheme: Theme = {
         sidebarBorder: '#4f585e',
         sidebarRing: '#a7c080',
     },
+    name: 'Everforest',
     variables: {
         radius: '0.4rem',
     }
@@ -429,7 +429,6 @@ const everforestTheme: Theme = {
 // 6. SillyTavern Inherited Theme - 继承酒馆主题
 // ----------------------------------------------------------------------
 const sillyTavernTheme: Theme = {
-    name: 'SillyTavern (继承)',
     colors: {
         background: 'var(--SmartThemeBlurTintColor)',
         foreground: 'var(--SmartThemeBodyColor)',
@@ -466,6 +465,7 @@ const sillyTavernTheme: Theme = {
         sidebarBorder: 'var(--SmartThemeBorderColor)',
         sidebarRing: 'var(--SmartThemeQuoteColor)',
     },
+    name: 'SillyTavern (继承)',
     variables: {
         radius: '0.4rem',
     }
@@ -475,7 +475,6 @@ const sillyTavernTheme: Theme = {
 // 7. Glass (Frosted) - 毛玻璃主题
 // ----------------------------------------------------------------------
 const glassTheme: Theme = {
-    name: 'Glass (Frosted)',
     colors: {
         // 背景完全透明，但跟随透明度变化
         background: 'rgba(255, 255, 255, var(--glass-opacity, 0.1))',
@@ -524,6 +523,7 @@ const glassTheme: Theme = {
         sidebarBorder: 'rgba(15, 23, 42, 0.1)', // Lighter base
         sidebarRing: 'rgba(15, 23, 42, 0.4)',
     },
+    name: 'Glass (Frosted)',
     variables: {
         radius: '1rem',
     }

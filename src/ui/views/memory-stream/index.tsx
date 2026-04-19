@@ -21,13 +21,13 @@ import { EntityEditor } from './components/EntityEditor';
 import { EventEditor, type EventEditorHandle } from './components/EventEditor';
 
 const VIEW_TABS = [
-    { id: 'list', label: '列表', icon: <span className="i-lucide-list text-[14px]" /> },
-    { id: 'entities', label: '实体', icon: <span className="i-lucide-users text-[14px]" /> },
+    { icon: <span className="i-lucide-list text-[14px]" />, id: 'list', label: '列表' },
+    { icon: <span className="i-lucide-users text-[14px]" />, id: 'entities', label: '实体' },
 ];
 
 const TAB_INFO = {
-    list: { title: '列表视图', subtitle: '查看和管理记忆事件' },
-    entities: { title: '实体列表', subtitle: '查看和管理提取的实体' },
+    entities: { subtitle: '查看和管理提取的实体', title: '实体列表' },
+    list: { subtitle: '查看和管理记忆事件', title: '列表视图' },
 };
 
 interface MemoryStreamProps {

@@ -23,12 +23,12 @@ export async function checkTavernIntegration(): Promise<{
     const { WorldInfoService } = await import('../worldbook');
 
     const status = {
-        eventBus: EventBus.isAvailable(),
-        messageService: MessageService.isAvailable(),
-        worldInfoService: WorldInfoService.isAvailable(),
-        nativeTokenCount: await WorldInfoService.isNativeTokenCountAvailable(),
-        floorCount: MessageService.isAvailable() ? MessageService.getFloorCount() : null,
         characterName: MessageService.isAvailable() ? MessageService.getCurrentCharacterName() : null,
+        eventBus: EventBus.isAvailable(),
+        floorCount: MessageService.isAvailable() ? MessageService.getFloorCount() : null,
+        messageService: MessageService.isAvailable(),
+        nativeTokenCount: await WorldInfoService.isNativeTokenCountAvailable(),
+        worldInfoService: WorldInfoService.isAvailable(),
     };
 
     return status;

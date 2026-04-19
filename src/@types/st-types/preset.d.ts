@@ -1,4 +1,4 @@
-type Preset = {
+interface Preset {
   settings: {
     /** 最大上下文 token 数 */
     max_context: number;
@@ -64,9 +64,9 @@ type Preset = {
 
   /** 额外字段, 用于为预设绑定额外数据 */
   extensions: Record<string, any>;
-};
+}
 
-type PresetPrompt = {
+interface PresetPrompt {
   /**
    * 根据 id, 预设提示词分为以下三类:
    * - 普通提示词 (`isPresetNormalPrompt`): 预设界面上可以手动添加的提示词
@@ -109,7 +109,7 @@ type PresetPrompt = {
 
   /** 额外字段, 用于为预设提示词绑定额外数据 */
   extra?: Record<string, any>;
-};
+}
 type PresetNormalPrompt = SetRequired<{ id: string } & Omit<PresetPrompt, 'id'>, 'position' | 'content'>;
 type PresetSystemPrompt = SetRequired<
   { id: 'main' | 'nsfw' | 'jailbreak' | 'enhanceDefinitions' } & Omit<PresetPrompt, 'id'>,
@@ -219,10 +219,10 @@ declare function renamePreset(preset_name: Exclude<string, 'in_use'>, new_name: 
  */
 declare function getPreset(preset_name: LiteralUnion<'in_use', string>): Preset;
 
-type ReplacePresetOptions = {
+interface ReplacePresetOptions {
   /** 如果对 `'in_use'` 预设进行操作, 应该防抖渲染 (debounced) 还是立即渲染 (immediate)? 默认为性能更好的防抖渲染 */
   render?: 'debounced' | 'immediate';
-};
+}
 /**
  * 完全替换 `preset_name` 预设的内容为 `preset`
  *

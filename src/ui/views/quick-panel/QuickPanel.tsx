@@ -23,7 +23,7 @@ import type { PreprocessingConfig } from '@/modules/preprocessing/types';
 import { DEFAULT_PREPROCESSING_CONFIG } from '@/modules/preprocessing/types';
 import { Switch } from '@/ui/components/core/Switch';
 import { FloatingPanel } from '@/ui/components/overlay/FloatingPanel';
-import { AlertCircle, BrainCircuit, Clapperboard, FileCog, FolderOpen, Paintbrush, Search, Settings2, Wand2, type LucideIcon } from 'lucide-react';
+import { AlertCircle, BrainCircuit, Clapperboard, FileCog, FolderOpen, type LucideIcon, Paintbrush, Search, Settings2, Wand2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface QuickPanelProps {
@@ -32,14 +32,14 @@ interface QuickPanelProps {
 }
 
 const NAV_QUICK_LINKS = [
-    { id: 'memory-list', label: '记忆列表', description: '事件流与编辑', icon: FolderOpen, path: 'memory:list' },
-    { id: 'memory-entities', label: '实体列表', description: '实体管理视图', icon: BrainCircuit, path: 'memory:entities' },
-    { id: 'processing-summary', label: '摘要配置', description: '总结与精简参数', icon: FileCog, path: 'processing:summary' },
-    { id: 'processing-recall', label: '召回配置', description: 'RAG 检索参数', icon: Search, path: 'processing:recall' },
-    { id: 'presets-model', label: '模型配置', description: 'LLM / 向量 / Rerank', icon: FileCog, path: 'presets:model:llm' },
-    { id: 'presets-prompt', label: '提示词模板', description: '模板与自定义宏', icon: Wand2, path: 'presets:prompt:templates' },
-    { id: 'devlog-model', label: '模型日志', description: '查看 LLM 通信记录', icon: Clapperboard, path: 'devlog:model' },
-    { id: 'settings', label: '全局设置', description: '外观与全局选项', icon: Settings2, path: 'settings' },
+    { description: '事件流与编辑', icon: FolderOpen, id: 'memory-list', label: '记忆列表', path: 'memory:list' },
+    { description: '实体管理视图', icon: BrainCircuit, id: 'memory-entities', label: '实体列表', path: 'memory:entities' },
+    { description: '总结与精简参数', icon: FileCog, id: 'processing-summary', label: '摘要配置', path: 'processing:summary' },
+    { description: 'RAG 检索参数', icon: Search, id: 'processing-recall', label: '召回配置', path: 'processing:recall' },
+    { description: 'LLM / 向量 / Rerank', icon: FileCog, id: 'presets-model', label: '模型配置', path: 'presets:model:llm' },
+    { description: '模板与自定义宏', icon: Wand2, id: 'presets-prompt', label: '提示词模板', path: 'presets:prompt:templates' },
+    { description: '查看 LLM 通信记录', icon: Clapperboard, id: 'devlog-model', label: '模型日志', path: 'devlog:model' },
+    { description: '外观与全局选项', icon: Settings2, id: 'settings', label: '全局设置', path: 'settings' },
 ] as const;
 
 export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
@@ -59,26 +59,24 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
 
     // 内置预处理模板的专属图标映射
     const BUILTIN_ICON_MAP: Record<string, LucideIcon> = {
-        builtin_query_enhance: Search,
-        builtin_plot_director: Clapperboard,
-        builtin_description_enhance: Paintbrush,
         builtin_agentic_recall: BrainCircuit,
+        builtin_description_enhance: Paintbrush,
+        builtin_plot_director: Clapperboard,
+        builtin_query_enhance: Search,
     };
 
-    const availableModes = useMemo(() => {
-        return templates
+    const availableModes = useMemo(() => templates
             .filter((t: any) => t.category === 'preprocessing')
             .map((t: any) => ({
                 id: t.id,
                 name: t.name,
                 description: t.userPromptTemplate.slice(0, 30).replace(/\n/g, ' ') + '...',
                 icon: BUILTIN_ICON_MAP[t.id] || Wand2,
-            }));
-    }, [templates]);
+            })), [templates]);
 
     // 使用事件订阅替代轮询同步配置机制
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen) {return;}
 
         const syncData = () => {
             // 1. Preprocessing Config
@@ -134,7 +132,7 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
         Logger.debug('QuickPanel', '切换预处理模式', { templateId });
 
         // 1. 更新 Preprocessor Config
-        const newPreConfig = { ...config, templateId: templateId, enabled: true };
+        const newPreConfig = { ...config, templateId, enabled: true };
         setConfig(newPreConfig);
         SettingsManager.set('preprocessingConfig', newPreConfig);
 
@@ -164,10 +162,10 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
 
     const quickNavItems = useMemo(() => {
         const primaryItems = NAV_ITEMS.filter(item => item.id !== 'dashboard').map(item => ({
-            id: item.id,
-            label: item.label,
             description: '打开对应主页面',
             icon: item.icon,
+            id: item.id,
+            label: item.label,
             path: item.path.replace(/^\//, ''),
         }));
 
@@ -316,9 +314,9 @@ export function QuickPanel({ isOpen, onClose }: QuickPanelProps) {
                             }}
                         >
                             {(recallConfig?.usePreprocessing ?? config.enabled)
-                                ? availableModes.find(m => m.id === config.templateId)?.name
+                                ? (availableModes.find(m => m.id === config.templateId)?.name
                                     ? `已启用 · ${availableModes.find(m => m.id === config.templateId)?.name}`
-                                    : '已启用 · 未知模板'
+                                    : '已启用 · 未知模板')
                                 : '预处理已禁用'}
                         </div>
                     </>

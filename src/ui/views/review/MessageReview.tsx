@@ -1,4 +1,4 @@
-import { type AgenticRecall } from '@/modules/preprocessing/types';
+import type { AgenticRecall } from '@/modules/preprocessing/types';
 import { BrainCircuit, FileText, Search } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 

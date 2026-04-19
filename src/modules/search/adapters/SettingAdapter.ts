@@ -1,5 +1,5 @@
-import { SearchAdapter, SearchResult } from '../SearchService';
-import { Settings, Sliders, Key, Database, Cpu, MessageSquare } from 'lucide-react';
+import type { SearchAdapter, SearchResult } from '../SearchService';
+import { Cpu, Database, Key, MessageSquare, Settings, Sliders } from 'lucide-react';
 
 export class SettingAdapter implements SearchAdapter {
     async search(query: string): Promise<SearchResult[]> {
@@ -24,35 +24,35 @@ export class SettingAdapter implements SearchAdapter {
                 score: 8
             },
             {
-                id: 'setting-model',
-                type: 'setting',
-                title: '切换模型 (Model)',
+                action: (nav) => nav('/api'),
                 description: '更改当前使用的 LLM 模型',
                 icon: Cpu,
-                action: (nav) => nav('/api'),
+                id: 'setting-model',
                 keywords: ['model', 'llm', 'change', 'switch'],
-                score: 8
+                score: 8,
+                title: '切换模型 (Model)',
+                type: 'setting'
             },
             // Parameters
             {
-                id: 'setting-temperature',
-                type: 'setting',
-                title: '调整温度 (Temperature)',
+                action: (nav) => nav('/api'),
                 description: '控制生成的随机性',
                 icon: Sliders,
-                action: (nav) => nav('/api'),
+                id: 'setting-temperature',
                 keywords: ['temp', 'temperature', 'random', 'creativity'],
-                score: 7
+                score: 7,
+                title: '调整温度 (Temperature)',
+                type: 'setting'
             },
             {
-                id: 'setting-top-p',
-                type: 'setting',
-                title: '调整 Top P',
+                action: (nav) => nav('/api'),
                 description: '核采样参数',
                 icon: Sliders,
-                action: (nav) => nav('/api'),
+                id: 'setting-top-p',
                 keywords: ['top', 'p', 'nucleus', 'sampling'],
-                score: 7
+                score: 7,
+                title: '调整 Top P',
+                type: 'setting'
             },
             // Vector/RAG
             {
@@ -61,7 +61,7 @@ export class SettingAdapter implements SearchAdapter {
                 title: '向量化配置 (Vectorization)',
                 description: '管理向量模型和存储',
                 icon: Database,
-                action: (nav) => nav('/processing'), // processing:vectorization ideally
+                action: (nav) => nav('/processing'), // Processing:vectorization ideally
                 keywords: ['vector', 'embedding', 'db', 'store'],
                 score: 7
             },
@@ -71,7 +71,7 @@ export class SettingAdapter implements SearchAdapter {
                 title: '召回设置 (Recall)',
                 description: '调整 RAG 召回参数和模式',
                 icon: MessageSquare,
-                action: (nav) => nav('/processing'), // processing:recall
+                action: (nav) => nav('/processing'), // Processing:recall
                 keywords: ['recall', 'rag', 'retrieval', 'search'],
                 score: 7
             }

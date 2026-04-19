@@ -1,4 +1,4 @@
-import { WorkflowDefinition } from '../core/WorkflowEngine';
+import type { WorkflowDefinition } from '../core/WorkflowEngine';
 import {
     BuildPrompt,
     CleanRegex,

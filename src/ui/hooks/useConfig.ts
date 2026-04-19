@@ -1,5 +1,5 @@
 /**
- * useConfig - 通用配置管理 Hook (代理 useConfigStore)
+ * UseConfig - 通用配置管理 Hook (代理 useConfigStore)
  *
  * 管理 Vector, Rerank, Recall, Preprocessing, CustomMacro 等配置
  * V1.0: 迁移至 Zustand 全局共享状态，彻底消除挂载时的数据孤岛与保存闭包陷阱。
@@ -14,7 +14,7 @@ import type {
     RerankConfig,
     VectorConfig,
 } from '@/config/types/defaults';
-import { EntityExtractConfig } from '@/config/types/memory';
+import type { EntityExtractConfig } from '@/config/types/memory';
 import { useConfigStore } from '@/state/configStore';
 
 export interface UseConfigReturn {
@@ -61,31 +61,31 @@ export function useConfig(): UseConfigReturn {
     const store = useConfigStore();
 
     return {
-        vectorConfig: store.vectorConfig,
-        rerankConfig: store.rerankConfig,
+        addCustomMacro: store.addCustomMacro,
+        customMacros: store.customMacros,
+        deleteCustomMacro: store.deleteCustomMacro,
+        embeddingConfig: store.embeddingConfig,
+        enableAnimations: store.enableAnimations,
+        entityExtractConfig: store.entityExtractConfig,
+        hasChanges: store.hasChanges,
         recallConfig: store.recallConfig,
         regexConfig: store.regexConfig,
-        entityExtractConfig: store.entityExtractConfig,
-        embeddingConfig: store.embeddingConfig,
-        customMacros: store.customMacros,
-        enableAnimations: store.enableAnimations,
-        hasChanges: store.hasChanges,
 
-        updateVectorConfig: store.updateVectorConfig,
-        updateRerankConfig: store.updateRerankConfig,
-        updateRecallConfig: store.updateRecallConfig,
-        updateRegexConfig: store.updateRegexConfig,
-        updateEntityExtractConfig: store.updateEntityExtractConfig,
+        rerankConfig: store.rerankConfig,
+        saveConfig: store.saveConfig,
+        toggleCustomMacro: store.toggleCustomMacro,
+        updateCustomMacro: store.updateCustomMacro,
         updateEmbeddingConfig: store.updateEmbeddingConfig,
         updateEnableAnimations: store.updateEnableAnimations,
+        updateEntityExtractConfig: store.updateEntityExtractConfig,
 
         updateMultipleConfigs: store.updateMultipleConfigs,
 
-        addCustomMacro: store.addCustomMacro,
-        updateCustomMacro: store.updateCustomMacro,
-        deleteCustomMacro: store.deleteCustomMacro,
-        toggleCustomMacro: store.toggleCustomMacro,
+        updateRecallConfig: store.updateRecallConfig,
+        updateRegexConfig: store.updateRegexConfig,
+        updateRerankConfig: store.updateRerankConfig,
+        updateVectorConfig: store.updateVectorConfig,
 
-        saveConfig: store.saveConfig,
+        vectorConfig: store.vectorConfig,
     };
 }

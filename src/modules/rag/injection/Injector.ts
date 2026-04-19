@@ -12,8 +12,8 @@
 
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
-import { Logger, LogModule } from '@/core/logger';
-import { EventBus, getCurrentChatId, getSTContext, MacroService, TavernEventType } from '@/integrations/tavern';
+import { LogModule, Logger } from '@/core/logger';
+import { EventBus, MacroService, TavernEventType, getCurrentChatId, getSTContext } from '@/integrations/tavern';
 import { preprocessor } from '@/modules/preprocessing';
 import { retriever } from '@/modules/rag/retrieval/Retriever';
 import { regexProcessor } from "@/modules/workflow/steps/processing/RegexProcessor";
@@ -39,7 +39,7 @@ class Injector {
      * Initialize the Injector
      */
     public init() {
-        if (this.isInitialized) return;
+        if (this.isInitialized) {return;}
 
         Logger.info(LogModule.RAG_INJECT, '开始初始化 V0.8 预处理注入器...');
         console.log('[Injector] Starting initialization...');
@@ -49,7 +49,7 @@ class Injector {
         EventBus.on(
             TavernEventType.GENERATION_AFTER_COMMANDS,
             async (type: any, params: any, dryRun: any) => {
-                console.log('[Injector] 🎯 GENERATION_AFTER_COMMANDS triggered', { type, dryRun });
+                console.log('[Injector] 🎯 GENERATION_AFTER_COMMANDS triggered', { dryRun, type });
                 Logger.debug(LogModule.RAG_INJECT, '捕获 GENERATION_AFTER_COMMANDS', { type });
 
                 // 重要！必须 await 处理，才能阻塞酒馆的生成流程
@@ -62,8 +62,8 @@ class Injector {
             Logger.debug(LogModule.RAG_INJECT, '捕获到 CHAT_CHANGED 事件');
             this.isProcessing = false;
             this.cacheInvalid = false; // 切换聊天时重置缓存状态
-            MacroService.refreshCache().catch(e => {
-                Logger.warn(LogModule.RAG_INJECT, '聊天切换时刷新缓存失败', e);
+            MacroService.refreshCache().catch(error => {
+                Logger.warn(LogModule.RAG_INJECT, '聊天切换时刷新缓存失败', error);
             });
         });
 
@@ -93,20 +93,20 @@ class Injector {
         dryRun: boolean
     ): Promise<void> {
         try {
-            // dryRun 模式是预览/计算 token，不需要预处理
+            // DryRun 模式是预览/计算 token，不需要预处理
             if (dryRun) {
                 Logger.debug(LogModule.RAG_INJECT, 'dryRun 模式，跳过');
                 return;
             }
 
             // V0.9.5: 改进的跳过逻辑
-            // quiet/impersonate 始终跳过
+            // Quiet/impersonate 始终跳过
             if (type === 'quiet' || type === 'impersonate') {
                 Logger.debug(LogModule.RAG_INJECT, `跳过 ${type} 类型生成`);
                 return;
             }
 
-            // regenerate/swipe 时检查缓存是否失效
+            // Regenerate/swipe 时检查缓存是否失效
             if (type === 'regenerate' || type === 'swipe') {
                 if (!this.cacheInvalid) {
                     Logger.debug(LogModule.RAG_INJECT, `${type} 使用召回缓存，跳过重新召回`);
@@ -158,7 +158,7 @@ class Injector {
             // 找到最后一条用户消息
             // 如果最新消息不是用户消息（例如是系统消息、Thinking消息等），则跳过处理，
             // 严禁往前查找，否则会导致注入到上一轮对话中。
-            const chat = context.chat;
+            const {chat} = context;
             const lastMessageIndex = chat.length - 1;
             const lastMessage = chat[lastMessageIndex];
 
@@ -168,7 +168,7 @@ class Injector {
 
             if (lastMessage && lastMessage.is_user) {
                 // V0.9.12 Fix: Check duplication on retry
-                // @ts-ignore
+                // @ts-expect-error
                 if (lastMessage._engram_processed) {
                     Logger.debug(LogModule.RAG_INJECT, '消息已标记为已处理 (Prevent Re-entry)', {
                         index: lastMessageIndex
@@ -178,12 +178,12 @@ class Injector {
                 userInput = lastMessage.mes;
             } else {
                 // [Strategy 2] Fallback: 尝试读取输入框
-                const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+                const textarea = document.querySelector('#send_textarea') as HTMLTextAreaElement;
                 if (textarea && textarea.value && textarea.value.trim().length > 0) {
                     userInput = textarea.value;
                     targetSource = 'textarea';
                     Logger.info(LogModule.RAG_INJECT, '最新消息未入列，使用 Textarea 作为输入源 (Strategy 2)', {
-                        preview: userInput.substring(0, 50)
+                        preview: userInput.slice(0, 50)
                     });
                 } else {
                     Logger.debug(LogModule.RAG_INJECT, '最新消息不是用户消息且输入框为空，跳过预处理', {
@@ -217,8 +217,8 @@ class Injector {
             // 合并日志：仅记录关键信息
             Logger.debug(LogModule.RAG_INJECT, '秋青子开始处理召回', {
                 inputLength: userInput.length,
-                recall: recallConfig.enabled,
                 preprocess: recallConfig.usePreprocessing && preprocessorConfig.enabled,
+                recall: recallConfig.enabled,
             });
             // V1.4.1 BUILD: 0717
 
@@ -230,7 +230,7 @@ class Injector {
             if (recallConfig.usePreprocessing && preprocessorConfig.enabled && !preprocessorConfig.autoTrigger) {
                 Logger.debug(LogModule.RAG_INJECT, '预处理 autoTrigger 未开启');
                 // 如果召回也没开启（且不是关键词模式），直接返回
-                if (!shouldTriggerRecall) return;
+                if (!shouldTriggerRecall) {return;}
             }
 
             if (!shouldTriggerRecall && !(recallConfig.usePreprocessing && preprocessorConfig.enabled)) {
@@ -243,13 +243,13 @@ class Injector {
             this.cacheInvalid = false; // 重置缓存失效标记
             params._engram_processed = true; // 标记 Params 已处理
             if (lastMessage) {
-                // @ts-ignore
+                // @ts-expect-error
                 lastMessage._engram_processed = true; // 标记消息对象已处理 (参考脚本.js)
             }
             // 开始处理（不再重复记录，上面已经有 info 了）
 
             let finalOutput = userInput;
-            let queries: string[] = [];
+            const queries: string[] = [];
             let preprocessResult: import('@/modules/preprocessing/types').PreprocessingResult | null = null;
 
             try {
@@ -284,8 +284,8 @@ class Injector {
                         } else {
                             Logger.warn(LogModule.RAG_INJECT, '预处理未返回有效结果，使用原始输入');
                         }
-                    } catch (err) {
-                        Logger.warn(LogModule.RAG_INJECT, '⚠️ 预处理失败，降级为普通模式', err);
+                    } catch (error) {
+                        Logger.warn(LogModule.RAG_INJECT, '⚠️ 预处理失败，降级为普通模式', error);
                         // 降级：不中断，继续后续 RAG
                     }
                 }
@@ -314,8 +314,8 @@ class Injector {
                                 } else {
                                     Logger.warn(LogModule.RAG_INJECT, 'Agentic RAG 无有效结果，尝试降级');
                                 }
-                            } catch (agenticErr) {
-                                Logger.warn(LogModule.RAG_INJECT, 'Agentic RAG 失败，降级到传统检索', agenticErr);
+                            } catch (error) {
+                                Logger.warn(LogModule.RAG_INJECT, 'Agentic RAG 失败，降级到传统检索', error);
                             }
                         }
 
@@ -330,8 +330,8 @@ class Injector {
 
                             if (recallResult.nodes.length > 0 || (recallResult.recalledEntities && recallResult.recalledEntities.length > 0)) {
                                 Logger.success(LogModule.RAG_INJECT, '召回完成', {
-                                    nodeCount: recallResult.nodes.length,
-                                    entityCount: recallResult.recalledEntities?.length ?? 0
+                                    entityCount: recallResult.recalledEntities?.length ?? 0,
+                                    nodeCount: recallResult.nodes.length
                                 });
                                 await MacroService.refreshCacheWithNodes(recallResult.nodes);
                                 SettingsManager.incrementStatistic('totalRagInjections', 1);
@@ -339,8 +339,8 @@ class Injector {
                                 Logger.debug(LogModule.RAG_INJECT, '召回无结果');
                             }
                         }
-                    } catch (e) {
-                        Logger.error(LogModule.RAG_INJECT, 'RAG 召回失败', e);
+                    } catch (error) {
+                        Logger.error(LogModule.RAG_INJECT, 'RAG 召回失败', error);
                     }
                 }
 
@@ -357,41 +357,41 @@ class Injector {
 
                         // 触发消息更新事件刷新 UI
                         try {
-                            const eventSource = context.eventSource;
+                            const {eventSource} = context;
                             const eventTypes = context.event_types;
                             if (eventSource && eventTypes?.MESSAGE_UPDATED) {
                                 eventSource.emit(eventTypes.MESSAGE_UPDATED, lastMessageIndex);
                                 Logger.debug(LogModule.RAG_INJECT, '已触发 MESSAGE_UPDATED 事件');
                             }
-                        } catch (e) {
-                            Logger.warn(LogModule.RAG_INJECT, '触发 MESSAGE_UPDATED 失败', e);
+                        } catch (error) {
+                            Logger.warn(LogModule.RAG_INJECT, '触发 MESSAGE_UPDATED 失败', error);
                         }
 
                         // 同步清空输入框 (仅当输入框内容仍为旧内容时)
                         try {
-                            const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+                            const textarea = document.querySelector('#send_textarea') as HTMLTextAreaElement;
                             if (textarea && textarea.value === userInput) {
                                 textarea.value = '';
                                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
                             }
-                        } catch (e) { }
+                        } catch {}
 
                     } else if (targetSource === 'textarea') {
                         // 策略2：修改输入框内容，并尝试修改 params.prompt
                         Logger.debug(LogModule.RAG_INJECT, '回写到 Textarea');
                         try {
-                            const textarea = document.getElementById('send_textarea') as HTMLTextAreaElement;
+                            const textarea = document.querySelector('#send_textarea') as HTMLTextAreaElement;
                             if (textarea) {
                                 textarea.value = finalOutput;
                                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
                             }
                             // 尝试修改本次生成的 prompt (如果 params 可写)
                             if (params) {
-                                // @ts-ignore
+                                // @ts-expect-error
                                 params.prompt = finalOutput;
                             }
-                        } catch (e) {
-                            Logger.warn(LogModule.RAG_INJECT, '回写 Textarea 失败', e);
+                        } catch (error) {
+                            Logger.warn(LogModule.RAG_INJECT, '回写 Textarea 失败', error);
                         }
                     }
                 }
@@ -403,13 +403,13 @@ class Injector {
                 }, 1000);
             }
 
-        } catch (e: any) {
+        } catch (error: any) {
             this.isProcessing = false;
             Logger.error(LogModule.RAG_INJECT, 'handleGenerationAfterCommands 失败', {
-                message: e?.message || e,
-                stack: e?.stack
+                message: error?.message || error,
+                stack: error?.stack
             });
-            console.error('[Injector] Error:', e);
+            console.error('[Injector] Error:', error);
         }
     }
 

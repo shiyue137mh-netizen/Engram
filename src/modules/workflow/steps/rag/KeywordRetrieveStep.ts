@@ -1,11 +1,11 @@
 import { SettingsManager } from '@/config/settings';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { tryGetDbForChat } from '@/data/db';
 import { getCurrentChatId } from '@/integrations/tavern';
 import { matchEvent, scanEntities } from '@/modules/memory/EntityScanner';
-import { ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 const MODULE = 'KeywordRetrieveStep';
 
@@ -31,12 +31,12 @@ export class KeywordRetrieveStep implements IStep {
             // 简单的回退处理：取最近的 5 段话
             const lines = history.split('\n\n');
             const recent = lines.slice(-5).join('\n\n');
-            if (recent) scanParts.push(recent);
+            if (recent) {scanParts.push(recent);}
         }
 
         // 2. 当前意图与原文
-        if (query) scanParts.push(query);
-        if (textInput && textInput !== query) scanParts.push(textInput);
+        if (query) {scanParts.push(query);}
+        if (textInput && textInput !== query) {scanParts.push(textInput);}
 
         // 3. LLM 建议的专家词 (增益)
         if (unifiedQueries && unifiedQueries.length > 0) {
@@ -44,7 +44,7 @@ export class KeywordRetrieveStep implements IStep {
         }
 
         // 去重合并
-        const textToScan = Array.from(new Set(scanParts.filter(Boolean))).join('\n\n');
+        const textToScan = [...new Set(scanParts.filter(Boolean))].join('\n\n');
 
         if (!textToScan) {
             Logger.debug(LogModule.RAG_INJECT, '没有提供扫描上下文，跳过关键词检索');
@@ -54,10 +54,10 @@ export class KeywordRetrieveStep implements IStep {
         }
 
         const chatId = getCurrentChatId();
-        if (!chatId) return;
+        if (!chatId) {return;}
 
         const db = tryGetDbForChat(chatId);
-        if (!db) return;
+        if (!db) {return;}
 
         const startTime = Date.now();
         const apiSettings = SettingsManager.get('apiSettings');
@@ -73,17 +73,17 @@ export class KeywordRetrieveStep implements IStep {
                 hasArchivedEvents = count > 0;
             } else {
                 // 回退逻辑
-                const count = await db.events.toCollection().filter(e => !!e.is_archived).limit(1).count();
+                const count = await db.events.toCollection().filter(e => Boolean(e.is_archived)).limit(1).count();
                 hasArchivedEvents = count > 0;
             }
-        } catch (err) {
-            Logger.warn(MODULE, '无法检查归档事件状态，默认尝试扫描', err);
+        } catch (error) {
+            Logger.warn(MODULE, '无法检查归档事件状态，默认尝试扫描', error);
             hasArchivedEvents = true;
         }
 
         // 1. 获取全量数据进行缓存 (P1 Fix: 内存优化，只拉取一次)
         const allEntities = await db.entities.toArray();
-        const entityIndex = allEntities.map(e => ({ id: e.id, name: e.name, aliases: e.aliases }));
+        const entityIndex = allEntities.map(e => ({ aliases: e.aliases, id: e.id, name: e.name }));
 
         // 预构建实体名 -> 实体 Map 以便快速查找 (缓存给后续多跳联想使用)
         const entryMap = new Map<string, any>();
@@ -107,7 +107,7 @@ export class KeywordRetrieveStep implements IStep {
             ?? 30;
 
         let hitEntities: any[] = [];
-        let hitEvents: any[] = [];
+        const hitEvents: any[] = [];
 
         // 2. 执行关键词扫描
         Logger.debug(LogModule.RAG_INJECT, `扫描文本预览: ${textToScan.slice(0, 50)}...`);
@@ -131,7 +131,7 @@ export class KeywordRetrieveStep implements IStep {
         // 事件仅在配置开启且有归档事件时扫描 (P0 Fix: 守卫下沉)
         if (recallConfig?.useKeywordRecall !== false && recallConfig?.enableEventKeyword !== false) {
             if (hasArchivedEvents) {
-                const scannedCount = { total: 0, archived: 0, matched: 0 };
+                const scannedCount = { archived: 0, matched: 0, total: 0 };
                 await db.events.toCollection().each(event => {
                     scannedCount.total += 1;
 
@@ -154,10 +154,10 @@ export class KeywordRetrieveStep implements IStep {
 
                 Logger.debug(LogModule.RAG_INJECT, '事件关键词扫描完成', {
                     eventTopK,
-                    scannedTotal: scannedCount.total,
-                    scannedArchived: scannedCount.archived,
-                    matched: scannedCount.matched,
                     kept: hitEvents.length,
+                    matched: scannedCount.matched,
+                    scannedArchived: scannedCount.archived,
+                    scannedTotal: scannedCount.total,
                 });
             } else {
                 Logger.info(LogModule.RAG_INJECT, '事件关键词扫描跳过：当前无归档事件');
@@ -176,7 +176,7 @@ export class KeywordRetrieveStep implements IStep {
         }));
 
         // 4. 将命中的实体 ID 转储，并执行关系多跳 (Relation Multi-Hop)
-        const keywordEntityMap = new Map<string, number>(); // id -> score
+        const keywordEntityMap = new Map<string, number>(); // Id -> score
 
         // 4.1. 初始命中实体 (第一跳)
         for (const entity of hitEntities) {
@@ -190,7 +190,7 @@ export class KeywordRetrieveStep implements IStep {
 
         for (const seedEntity of hitEntities) {
             const relations = seedEntity.profile?.relations as Record<string, any> | undefined;
-            if (!relations) continue;
+            if (!relations) {continue;}
 
             const seedScore = keywordEntityMap.get(seedEntity.id) || 0;
             const hopScore = seedScore * hopAttenuation;
@@ -210,7 +210,7 @@ export class KeywordRetrieveStep implements IStep {
             }
         }
 
-        const keywordEntityIds = Array.from(keywordEntityMap.entries()).map(([id, score]) => ({ id, score }));
+        const keywordEntityIds = [...keywordEntityMap.entries()].map(([id, score]) => ({ id, score }));
 
         context.data.keywordCandidates = keywordCandidates;
         context.data.keywordEntityIds = keywordEntityIds;

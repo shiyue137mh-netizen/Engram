@@ -34,8 +34,8 @@ function ScoreDots({ score }: { score: number }) {
 
     // 动态决定颜色层级
     const activeColor = score >= 0.8 ? 'bg-emphasis'
-        : score >= 0.5 ? 'bg-value'
-            : 'bg-label';
+        : (score >= 0.5 ? 'bg-value'
+            : 'bg-label');
 
     return (
         <div className="flex gap-0.5">
@@ -53,7 +53,7 @@ function ScoreDots({ score }: { score: number }) {
  * 嵌入状态指示器
  */
 function EmbeddingBadge({ isEmbedded }: { isEmbedded: boolean }) {
-    if (!isEmbedded) return null;
+    if (!isEmbedded) {return null;}
 
     return (
         <span
@@ -73,7 +73,7 @@ function MetaLine({ event }: { event: EventNode }) {
     const kv = event.structured_kv;
     // 不再合并为一个字符串，而是保留语义信息单独渲染
     const hasData = kv.time_anchor || kv.location || (kv.role && kv.role.length > 0);
-    if (!hasData) return null;
+    if (!hasData) {return null;}
 
     const locStr = Array.isArray(kv.location) ? kv.location.join(', ') : String(kv.location || '');
 
@@ -151,12 +151,12 @@ export const EventCard: React.FC<EventCardProps> = ({
                         {event.is_embedded && (
                             <Zap size={10} className="text-label" />
                         )}
-                        <span className={`text-xs ${event.significance_score >= 0.8 ? 'text-emphasis' : event.significance_score >= 0.5 ? 'text-value' : 'text-label'}`}>
+                        <span className={`text-xs ${event.significance_score >= 0.8 ? 'text-emphasis' : (event.significance_score >= 0.5 ? 'text-value' : 'text-label')}`}>
                             {event.significance_score.toFixed(1)}
                         </span>
                     </div>
                     <p className="text-sm text-foreground truncate mt-1">
-                        {summaryText.substring(0, 50)}...
+                        {summaryText.slice(0, 50)}...
                     </p>
                 </div>
 
@@ -201,9 +201,9 @@ export const EventCard: React.FC<EventCardProps> = ({
                 transition-all duration-150 relative overflow-hidden
                 ${isSelected
                     ? 'border border-primary bg-transparent shadow-sm'
-                    : isActive
+                    : (isActive
                         ? 'border border-value/50 bg-value/5 hover:border-value'
-                        : 'border border-transparent hover:border-border/50 hover:bg-muted/10'
+                        : 'border border-transparent hover:border-border/50 hover:bg-muted/10')
                 }
                 ${className}
             `}

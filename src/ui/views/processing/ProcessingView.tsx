@@ -5,11 +5,12 @@
  * 类似 APIPresetsView 的架构设计
  */
 import React, { useEffect, useState } from 'react';
-import { FileText, Database, Layers, Network, ScrollText, BookOpen, Search, Save } from 'lucide-react';
-import { Tab } from "@/ui/components/layout/TabPills";
+import { BookOpen, Database, FileText, Layers, Network, Save, ScrollText, Search } from 'lucide-react';
+import type { Tab } from "@/ui/components/layout/TabPills";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { Divider } from "@/ui/components/layout/Divider";
-import { QuickLinks, QuickLink } from '@/ui/components/layout/QuickLinks';
+import type { QuickLink } from '@/ui/components/layout/QuickLinks';
+import { QuickLinks } from '@/ui/components/layout/QuickLinks';
 import { PageTitle } from "@/ui/components/display/PageTitle";
 import { useConfig } from '@/ui/hooks/useConfig';
 import { useSummarizerConfig } from '@/ui/hooks/useSummarizerConfig';
@@ -24,17 +25,17 @@ type ProcessingTab = 'summary' | 'vectorization' | 'recall' | 'entity' | 'batch'
 
 // 主 Tab 配置 - V0.9.6: 添加批量处理
 const MAIN_TABS: Tab[] = [
-    { id: 'summary', label: '记忆摘要', icon: <FileText size={16} /> },
-    { id: 'entity', label: '实体提取', icon: <Network size={16} /> },
-    { id: 'vectorization', label: '向量化', icon: <Database size={16} /> },
-    { id: 'recall', label: '召回配置', icon: <Search size={16} /> },
-    { id: 'batch', label: '批量处理', icon: <Layers size={16} /> },
+    { icon: <FileText size={16} />, id: 'summary', label: '记忆摘要' },
+    { icon: <Network size={16} />, id: 'entity', label: '实体提取' },
+    { icon: <Database size={16} />, id: 'vectorization', label: '向量化' },
+    { icon: <Search size={16} />, id: 'recall', label: '召回配置' },
+    { icon: <Layers size={16} />, id: 'batch', label: '批量处理' },
 ];
 
 // 快速跳转链接配置（使用 page:subtab 格式精确跳转）
 const QUICK_LINKS: QuickLink[] = [
-    { id: 'devlog', label: '模型日志', icon: ScrollText, linkTo: 'devlog:model' },
-    { id: 'presets', label: '提示词模板', icon: BookOpen, linkTo: 'presets:prompt' },
+    { icon: ScrollText, id: 'devlog', label: '模型日志', linkTo: 'devlog:model' },
+    { icon: BookOpen, id: 'presets', label: '提示词模板', linkTo: 'presets:prompt' },
 ];
 
 interface ProcessingViewProps {
@@ -48,11 +49,11 @@ interface TabInfo {
 }
 
 const TAB_INFO: Record<ProcessingTab, TabInfo> = {
-    summary: { title: '记忆摘要', subtitle: '查看和管理自动生成的剧情摘要' },
-    vectorization: { title: '向量化', subtitle: '管理记忆事件的向量嵌入状态' },
-    recall: { title: '召回配置', subtitle: '配置 RAG 召回策略和参数' },
-    entity: { title: '实体提取', subtitle: '配置实体提取规则和提取结果' },
-    batch: { title: '批量处理', subtitle: '批量处理历史消息和外部文本导入' },
+    batch: { subtitle: '批量处理历史消息和外部文本导入', title: '批量处理' },
+    entity: { subtitle: '配置实体提取规则和提取结果', title: '实体提取' },
+    recall: { subtitle: '配置 RAG 召回策略和参数', title: '召回配置' },
+    summary: { subtitle: '查看和管理自动生成的剧情摘要', title: '记忆摘要' },
+    vectorization: { subtitle: '管理记忆事件的向量嵌入状态', title: '向量化' },
 };
 
 export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) => {
@@ -85,10 +86,10 @@ export const ProcessingView: React.FC<ProcessingViewProps> = ({ onNavigate }) =>
 
     // Unified Save Handler
     const handleSave = async () => {
-        if (configHasChanges) saveConfig();
-        if (summarizerHasChanges) await saveSummarizerConfig();
+        if (configHasChanges) {saveConfig();}
+        if (summarizerHasChanges) {await saveSummarizerConfig();}
         // Optional: Toast notification here
-        // alert('配置已保存');
+        // Alert('配置已保存');
     };
 
     const hasChanges = configHasChanges || summarizerHasChanges;

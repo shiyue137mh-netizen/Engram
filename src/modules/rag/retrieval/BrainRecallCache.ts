@@ -8,7 +8,7 @@
 
 import { DEFAULT_BRAIN_RECALL_CONFIG } from '@/config/types/defaults';
 import type { BrainRecallConfig } from '@/config/types/rag';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 
 const MODULE = 'BrainRecallCache';
 
@@ -52,7 +52,7 @@ export interface RecallCandidate {
 }
 
 export class BrainRecallCache {
-    private shortTermMemory: Map<string, MemorySlot> = new Map();
+    private shortTermMemory = new Map<string, MemorySlot>();
     private currentRound: number = 0;
     private config: BrainRecallConfig = DEFAULT_BRAIN_RECALL_CONFIG;
 
@@ -87,18 +87,18 @@ export class BrainRecallCache {
     process(candidates: RecallCandidate[]): MemorySlot[] {
         if (!this.config.enabled) {
             return candidates.slice(0, this.config.workingLimit).map(c => ({
-                id: c.id,
-                label: c.label || c.id,
                 category: c.category || 'event',
+                consecutiveWorkingCount: 1,
                 embeddingStrength: c.embeddingScore,
-                rerankStrength: c.rerankScore || 0,
+                embeddingVector: c.embeddingVector,
                 finalScore: c.embeddingScore * 0.4 + (c.rerankScore || 0) * 0.6,
                 firstRound: this.currentRound,
+                id: c.id,
+                label: c.label || c.id,
                 lastRound: this.currentRound,
                 recallCount: 1,
-                consecutiveWorkingCount: 1,
+                rerankStrength: c.rerankScore || 0,
                 tier: 'working' as const,
-                embeddingVector: c.embeddingVector,
             }));
         }
 
@@ -116,10 +116,10 @@ export class BrainRecallCache {
             if (candidateIds.has(id)) {
                 // 再次召回
                 const candidate = candidateMap.get(id)!;
-                if (candidate.embeddingVector) slot.embeddingVector = candidate.embeddingVector;
+                if (candidate.embeddingVector) {slot.embeddingVector = candidate.embeddingVector;}
 
                 // V1.3.4: 更新 Label (防止名字变了)
-                if (candidate.label) slot.label = candidate.label;
+                if (candidate.label) {slot.label = candidate.label;}
 
                 this.reinforceSlot(slot, candidate);
 
@@ -237,7 +237,7 @@ export class BrainRecallCache {
         const effectiveStrength = Math.max(clampedRerank, slot.embeddingStrength * 0.8);
 
         // V1.4: 降低 Bias (0.35 -> 0.20)，让更多记忆存活
-        const bias = 0.20;
+        const bias = 0.2;
 
         const z = (effectiveStrength - bias) / temp;
         // 修复 V1.4.5: sigmoid 内部不应再次除以 temp，否则会导致 z 被过度放大 (z/temp)
@@ -255,9 +255,9 @@ export class BrainRecallCache {
 
         // 🐛 P3 Bugfix: 移除原有的 evict，将超限淘汰逻辑与 enforceLimit 直接合并
         const overflow = this.shortTermMemory.size - limit;
-        const sorted = Array.from(this.shortTermMemory.values())
+        const sorted = [...this.shortTermMemory.values()]
             .filter(slot => slot.firstRound !== this.currentRound) // 保护新人
-            .sort((a, b) => a.finalScore - b.finalScore);
+            .toSorted((a, b) => a.finalScore - b.finalScore);
 
         for (let i = 0; i < overflow && i < sorted.length; i++) {
             this.shortTermMemory.delete(sorted[i].id);
@@ -278,7 +278,7 @@ export class BrainRecallCache {
         const entityLimit = this.config.entityWorkingLimit ?? Math.max(0, totalLimit - eventLimit);
 
         // 1. 计算排序分数
-        const scoredPool = Array.from(this.shortTermMemory.values()).map(slot => {
+        const scoredPool = [...this.shortTermMemory.values()].map(slot => {
             // Newcomer Boost (只在第一轮生效)
             const boost = (slot.firstRound === this.currentRound) ? newcomerBoost : 0;
 
@@ -299,9 +299,9 @@ export class BrainRecallCache {
 
         for (const { slot } of scoredPool) {
             if (slot.category === 'entity') {
-                if (entities.length < entityLimit) entities.push(slot);
+                if (entities.length < entityLimit) {entities.push(slot);}
             } else {
-                if (events.length < eventLimit) events.push(slot);
+                if (events.length < eventLimit) {events.push(slot);}
             }
 
             if (events.length >= eventLimit && entities.length >= entityLimit) {
@@ -314,8 +314,8 @@ export class BrainRecallCache {
         if (selected.length < totalLimit) {
             const selectedIds = new Set(selected.map(s => s.id));
             for (const { slot } of scoredPool) {
-                if (selected.length >= totalLimit) break;
-                if (selectedIds.has(slot.id)) continue;
+                if (selected.length >= totalLimit) {break;}
+                if (selectedIds.has(slot.id)) {continue;}
                 selected.push(slot);
                 selectedIds.add(slot.id);
             }
@@ -344,8 +344,8 @@ export class BrainRecallCache {
     }
 
     private shouldTriggerDecayBomb(candidates: RecallCandidate[]): boolean {
-        if (this.shortTermMemory.size === 0) return false;
-        if (candidates.length === 0) return false;
+        if (this.shortTermMemory.size === 0) {return false;}
+        if (candidates.length === 0) {return false;}
 
         const candidateIds = new Set(candidates.map(c => c.id));
         let overlapCount = 0;
@@ -363,11 +363,11 @@ export class BrainRecallCache {
             }
         }
 
-        if (overlapCount === 0) return true;
+        if (overlapCount === 0) {return true;}
 
         const avgBase = totalBaseStrength / overlapCount;
         const avgCurrent = totalCurrentStrength / overlapCount;
-        if (avgBase < 0.01) return false;
+        if (avgBase < 0.01) {return false;}
 
         return (avgCurrent / avgBase) < this.config.contextSwitchThreshold;
     }
@@ -389,8 +389,8 @@ export class BrainRecallCache {
     }
 
     getShortTermSnapshot(): MemorySlot[] {
-        return Array.from(this.shortTermMemory.values())
-            .sort((a, b) => b.finalScore - a.finalScore);
+        return [...this.shortTermMemory.values()]
+            .toSorted((a, b) => b.finalScore - a.finalScore);
     }
 
     /**

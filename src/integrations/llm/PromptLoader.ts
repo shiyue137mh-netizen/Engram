@@ -1,6 +1,6 @@
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import type { PromptTemplate } from '@/config/types/prompt';
-// @ts-ignore
+// @ts-expect-error
 const promptFiles = import.meta.glob('./prompts/*.yaml', { eager: true, query: '?raw' });
 import loadYaml from 'js-yaml';
 
@@ -16,13 +16,13 @@ export class PromptLoader {
      * 初始化加载
      */
     public static init() {
-        if (this.initialized) return;
+        if (this.initialized) {return;}
 
         const loadedTemplates: PromptTemplate[] = [];
 
         for (const path in promptFiles) {
             try {
-                // @ts-ignore
+                // @ts-expect-error
                 const rawContent = promptFiles[path].default;
                 const parsed = loadYaml.load(rawContent) as Record<string, any>;
 
@@ -33,20 +33,20 @@ export class PromptLoader {
                 }
 
                 loadedTemplates.push({
-                    id: parsed.id,
-                    name: parsed.name,
-                    category: parsed.category || 'other',
-                    enabled: parsed.enabled ?? false,
-                    isBuiltIn: true,
                     boundPresetId: null,
-                    systemPrompt: parsed.systemPrompt || '',
-                    userPromptTemplate: parsed.userPromptTemplate || '',
-                    injectionMode: parsed.injectionMode,
+                    category: parsed.category || 'other',
                     createdAt: Date.now(),
+                    enabled: parsed.enabled ?? false,
+                    id: parsed.id,
+                    injectionMode: parsed.injectionMode,
+                    isBuiltIn: true,
+                    name: parsed.name,
+                    systemPrompt: parsed.systemPrompt || '',
                     updatedAt: Date.now(),
+                    userPromptTemplate: parsed.userPromptTemplate || '',
                 });
-            } catch (e) {
-                Logger.error(LogModule.LLM, `Failed to load prompt template from ${path}`, e);
+            } catch (error) {
+                Logger.error(LogModule.LLM, `Failed to load prompt template from ${path}`, error);
             }
         }
 

@@ -27,7 +27,7 @@ export class WorldBookSlotService {
      * 确保存在唯一的宏槽位条目
      */
     static async init(): Promise<void> {
-        if (this.isInitialized) return;
+        if (this.isInitialized) {return;}
 
         try {
             const worldbookName = await WorldbookEngramService.getOrCreateWorldbook();
@@ -41,8 +41,8 @@ export class WorldBookSlotService {
 
             if (existingEntry) {
                 Logger.debug(MODULE, '宏槽位条目已存在', {
-                    uid: existingEntry.uid,
-                    name: existingEntry.name
+                    name: existingEntry.name,
+                    uid: existingEntry.uid
                 });
                 this.isInitialized = true;
                 return;
@@ -57,29 +57,29 @@ export class WorldBookSlotService {
              * - content: 包含 {{engramSummaries}} 宏，运行时动态替换
              */
             const success = await createEntry(worldbookName, {
-                name: SLOT_ENTRY_NAME,
-                content: '{{engramEntityStates}}\n{{engramSummaries}}',
-                keys: [SLOT_ENTRY_KEY],
                 constant: true,
-                enabled: true,
-                position: 'at_depth',
-                role: 'system',
+                content: '{{engramEntityStates}}\n{{engramSummaries}}',
                 depth: 999,
-                order: 9000,  // 固定 order
+                enabled: true,
+                keys: [SLOT_ENTRY_KEY],
+                name: SLOT_ENTRY_NAME,
+                order: 9000,
+                position: 'at_depth',
+                role: 'system',  // 固定 order
             });
 
             if (success) {
                 Logger.success(MODULE, '宏槽位条目已创建', {
-                    worldbook: worldbookName,
-                    name: SLOT_ENTRY_NAME
+                    name: SLOT_ENTRY_NAME,
+                    worldbook: worldbookName
                 });
                 this.isInitialized = true;
             } else {
                 Logger.error(MODULE, '创建宏槽位条目失败');
             }
 
-        } catch (e) {
-            Logger.error(MODULE, '初始化失败', e);
+        } catch (error) {
+            Logger.error(MODULE, '初始化失败', error);
         }
     }
 

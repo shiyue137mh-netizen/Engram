@@ -7,9 +7,10 @@
  */
 
 import { Logger } from '@/core/logger';
-import {
+import type {
     RegexRule,
-    RegexScope,
+    RegexScope} from '@/config/types/data_processing';
+import {
     DEFAULT_REGEX_RULES,
     REGEX_SCOPE_OPTIONS
 } from '@/config/types/data_processing';
@@ -25,8 +26,8 @@ export { REGEX_SCOPE_OPTIONS, DEFAULT_REGEX_RULES };
  */
 export class RegexProcessor {
     private rules: RegexRule[] = [];
-    private ruleRegexCache: Map<string, RegExp> = new Map();
-    private tagRegexCache: Map<string, RegExp> = new Map();
+    private ruleRegexCache = new Map<string, RegExp>();
+    private tagRegexCache = new Map<string, RegExp>();
 
     constructor(rules?: RegexRule[]) {
         this.setRules(rules || [...DEFAULT_REGEX_RULES]);
@@ -47,8 +48,8 @@ export class RegexProcessor {
             const regex = new RegExp(rule.pattern, rule.flags);
             this.ruleRegexCache.set(cacheKey, regex);
             return regex;
-        } catch (e) {
-            Logger.warn(MODULE, `Invalid regex pattern for rule "${rule.name}":`, e);
+        } catch (error) {
+            Logger.warn(MODULE, `Invalid regex pattern for rule "${rule.name}":`, error);
             return null;
         }
     }
@@ -62,7 +63,7 @@ export class RegexProcessor {
         let result = text;
 
         for (const rule of this.rules) {
-            if (!rule.enabled) continue;
+            if (!rule.enabled) {continue;}
 
             // 如果指定了 scope，只应用匹配的规则
             if (scope && rule.scope !== scope && rule.scope !== 'both') {
@@ -73,8 +74,8 @@ export class RegexProcessor {
             if (regex) {
                 try {
                     result = result.replace(regex, rule.replacement);
-                } catch (e) {
-                    Logger.warn(MODULE, `Rule "${rule.name}" execution failed:`, e);
+                } catch (error) {
+                    Logger.warn(MODULE, `Rule "${rule.name}" execution failed:`, error);
                 }
             }
         }
@@ -90,8 +91,8 @@ export class RegexProcessor {
         if (regex) {
             try {
                 return text.replace(regex, rule.replacement);
-            } catch (e) {
-                Logger.warn(MODULE, `Rule execution failed:`, e);
+            } catch (error) {
+                Logger.warn(MODULE, `Rule execution failed:`, error);
             }
         }
         return text;
@@ -104,10 +105,10 @@ export class RegexProcessor {
         try {
             new RegExp(pattern, flags);
             return { valid: true };
-        } catch (e) {
+        } catch (error) {
             return {
                 valid: false,
-                error: e instanceof Error ? e.message : '无效的正则表达式',
+                error: error instanceof Error ? error.message : '无效的正则表达式',
             };
         }
     }
@@ -140,7 +141,7 @@ export class RegexProcessor {
      */
     updateRule(id: string, updates: Partial<RegexRule>): void {
         const index = this.rules.findIndex(r => r.id === id);
-        if (index >= 0) {
+        if (index !== -1) {
             this.rules[index] = { ...this.rules[index], ...updates };
             // 简单策略：清除整个缓存，或者保留 key。
             // 由于 key 包含 content，旧 key 会自动失效残留，不影响正确性但占内存。
@@ -213,8 +214,8 @@ export class RegexProcessor {
             const regex = this.getCachedTagRegex(tagName, 'capture');
             const match = text.match(regex);
             return match?.[1]?.trim() || null;
-        } catch (e) {
-            Logger.warn(MODULE, `Failed to capture tag: ${tagName}`, e);
+        } catch (error) {
+            Logger.warn(MODULE, `Failed to capture tag: ${tagName}`, error);
             return null;
         }
     }
@@ -228,8 +229,8 @@ export class RegexProcessor {
         try {
             const regex = this.getCachedTagRegex(tagName, 'remove');
             return text.replace(regex, '').trim();
-        } catch (e) {
-            Logger.warn(MODULE, `Failed to remove tag: ${tagName}`, e);
+        } catch (error) {
+            Logger.warn(MODULE, `Failed to remove tag: ${tagName}`, error);
             return text;
         }
     }

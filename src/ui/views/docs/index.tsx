@@ -5,7 +5,7 @@
  * 使用 LayoutTabs (Portal 到 Header) 实现无框流体设计
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { LayoutTabs } from '@/ui/components/layout/LayoutTabs';
 import { DOCS } from '@/docs';
@@ -34,7 +34,7 @@ export const DocsView: React.FC<DocsViewProps> = ({ initialTab }) => {
 
     // 过滤文档（简单关键词匹配）
     const filteredDocs = useMemo(() => {
-        if (!searchQuery.trim()) return DOCS;
+        if (!searchQuery.trim()) {return DOCS;}
         const query = searchQuery.toLowerCase();
         return DOCS.filter(doc =>
             doc.label.toLowerCase().includes(query) ||
@@ -45,9 +45,9 @@ export const DocsView: React.FC<DocsViewProps> = ({ initialTab }) => {
     // 转换为 TabPills 格式
     const tabs: Tab[] = useMemo(() =>
         filteredDocs.map(doc => ({
+            icon: <doc.icon size={14} />,
             id: doc.id,
             label: doc.label,
-            icon: <doc.icon size={14} />,
         })),
         [filteredDocs]
     );

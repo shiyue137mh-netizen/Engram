@@ -1,13 +1,13 @@
-import { WorkflowDefinition } from '../core/WorkflowEngine';
+import type { WorkflowDefinition } from '../core/WorkflowEngine';
 import {
+    ApplyTrim,
+    BuildPrompt,
+    CleanRegex,
     FetchEventsToTrim,
     FormatTrimInput,
-    BuildPrompt,
     LlmRequest,
-    CleanRegex,
-    StopGeneration,
     ParseJson,
-    ApplyTrim
+    StopGeneration
 } from '../steps';
 
 export const createTrimmerWorkflow = (): WorkflowDefinition => ({

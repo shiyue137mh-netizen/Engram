@@ -11,7 +11,7 @@ import { DEFAULT_ENTITY_CONFIG } from '@/config/types/defaults';
 import type { EntityExtractConfig } from '@/config/types/memory';
 import { EventBus } from '@/core/events';
 import { eventWatcher } from '@/core/events/EventWatcher';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { chatManager } from '@/data/ChatManager';
 import type { EntityNode } from '@/data/types/graph';
 import { MacroService } from '@/integrations/tavern';
@@ -101,8 +101,8 @@ export class EntityBuilder {
                 Logger.info(LogModule.MEMORY_ENTITY, '楼层回溯状态对齐完成', {
                     last_extracted_floor: currentFloor,
                 });
-            } catch (e) {
-                Logger.error(LogModule.MEMORY_ENTITY, '楼层回溯状态对齐失败', { error: e });
+            } catch (error) {
+                Logger.error(LogModule.MEMORY_ENTITY, '楼层回溯状态对齐失败', { error: error });
             }
             return;
         }
@@ -127,9 +127,9 @@ export class EntityBuilder {
             // P0 修复：自动触发也要保证 range 不倒挂
             if (startFloor > currentFloor) {
                 Logger.warn(LogModule.MEMORY_ENTITY, '自动提取起始楼层大于当前楼层，已执行反倒挂修正', {
-                    startFloor,
                     currentFloor,
                     lastSummarized,
+                    startFloor,
                 });
                 startFloor = currentFloor;
             }
@@ -137,17 +137,17 @@ export class EntityBuilder {
             const range: [number, number] = [startFloor, currentFloor];
 
             // Trigger extraction (non-blocking)
-            this.extractByRange(range, false).catch(err => {
-                Logger.error(LogModule.MEMORY_ENTITY, 'Auto-extraction failed', { error: err });
+            this.extractByRange(range, false).catch(error => {
+                Logger.error(LogModule.MEMORY_ENTITY, 'Auto-extraction failed', { error: error });
             });
             return;
         }
 
         Logger.debug(LogModule.MEMORY_ENTITY, '本轮未满足自动提取触发条件', {
             currentFloor,
+            floorInterval: this.config.floorInterval,
             lastExtracted,
             pendingFloors,
-            floorInterval: this.config.floorInterval,
         });
     }
 
@@ -238,8 +238,6 @@ export class EntityBuilder {
             }
 
             const contextPromise = WorkflowEngine.run(createEntityWorkflow(), {
-                trigger: manual ? 'manual' : 'auto',
-                signal,
                 config: {
                     dryRun,
                     previewEnabled,
@@ -248,13 +246,15 @@ export class EntityBuilder {
                     category: 'entity_extraction', // V1.0.8: Explicitly pass category for FetchContext to find default template
                 },
                 input: {
-                    range: range || [floor, floor],
-                    chatHistory
-                }
+                    chatHistory,
+                    range: range || [floor, floor]
+                },
+                signal,
+                trigger: manual ? 'manual' : 'auto'
             });
 
             const context = await contextPromise;
-            if (runningToast) notificationService.remove(runningToast);
+            if (runningToast) {notificationService.remove(runningToast);}
 
             const result = context.output; // From SaveEntity
 
@@ -263,10 +263,10 @@ export class EntityBuilder {
                 await chatManager.updateState({ last_extracted_floor: finalFloor });
 
                 Logger.success(LogModule.MEMORY_ENTITY, '实体提取完成', {
+                    duration: Date.now() - startTime,
                     floor,
                     newCount: result?.newEntities?.length || 0,
                     updatedCount: result?.updatedEntities?.length || 0,
-                    duration: Date.now() - startTime,
                 });
 
                 if (manual) {
@@ -287,8 +287,8 @@ export class EntityBuilder {
                     updatedCount: result?.updatedEntities?.length || 0
                 });
                 this.pendingReviewResult = {
-                    success: true,
                     newEntities: result?.newEntities || [],
+                    success: true,
                     updatedEntities: result?.updatedEntities || []
                 };
 
@@ -299,13 +299,13 @@ export class EntityBuilder {
             }
 
             return {
-                success: true,
                 newEntities: result?.newEntities || [],
+                success: true,
                 updatedEntities: result?.updatedEntities || []
             };
 
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
             
             if (errorMsg === 'UserCancelled') {
                 Logger.info(LogModule.MEMORY_ENTITY, '实体提取已被用户取消');
@@ -321,9 +321,9 @@ export class EntityBuilder {
             // Fix P3: 抛出事件以供其他模块感知和处理
             EventBus.emit({
                 type: 'WORKFLOW_FAILED',
-                payload: { workflowName: 'EntityWorkflow', error: e }
+                payload: { workflowName: 'EntityWorkflow', error: error }
             });
-            return { success: false, newEntities: [], updatedEntities: [], error: errorMsg };
+            return { error: errorMsg, newEntities: [], success: false, updatedEntities: [] };
         } finally {
             this.isExtracting = false;
         }
@@ -393,11 +393,11 @@ export class EntityBuilder {
             // 批量保存新增实体
             if (newEntities.length > 0) {
                 const entitiesToSave = newEntities.map(entity => ({
-                    name: entity.name,
-                    type: entity.type,
-                    description: entity.description,
                     aliases: entity.aliases || [],
+                    description: entity.description,
+                    name: entity.name,
                     profile: (entity.profile || {}) as Record<string, unknown>,
+                    type: entity.type,
                 }));
                 await store.saveEntities(entitiesToSave);
                 SettingsManager.incrementStatistic('totalEntities', newEntities.length);
@@ -408,15 +408,13 @@ export class EntityBuilder {
                 const chunkSize = 50; // 每批最大并发更新量
                 for (let i = 0; i < updatedEntities.length; i += chunkSize) {
                     const chunk = updatedEntities.slice(i, i + chunkSize);
-                    await Promise.all(chunk.map(entity => {
-                        return store.updateEntity(entity.id, {
+                    await Promise.all(chunk.map(entity => store.updateEntity(entity.id, {
                             profile: entity.profile,
                             aliases: entity.aliases,
                             description: entity.description,
                             name: entity.name,
                             type: entity.type
-                        });
-                    }));
+                        })));
                 }
             }
 
@@ -452,7 +450,7 @@ export class EntityBuilder {
             const isEnabled = this.config.autoArchive ?? true;
             const limit = this.config.archiveLimit ?? 50;
 
-            if (!isEnabled) return;
+            if (!isEnabled) {return;}
 
             const allEntities = await store.getAllEntities();
 
@@ -466,7 +464,7 @@ export class EntityBuilder {
             // 过滤掉已锁定的实体 (锁定的实体获得“免死金牌”)
             const candidates = activeEntities
                 .filter(e => !e.is_locked)
-                .sort((a, b) => (a.last_updated_at || 0) - (b.last_updated_at || 0));
+                .toSorted((a, b) => (a.last_updated_at || 0) - (b.last_updated_at || 0));
 
             const overLimit = activeEntities.length - limit;
             const toArchive = candidates.slice(0, overLimit);
@@ -479,7 +477,7 @@ export class EntityBuilder {
                 await store.archiveEntities(ids);
 
                 // V1.4.3: 广播事件，通知 UI (如 EntityConfigPanel) 刷新状态
-                EventBus.emit({ type: 'ENTITY_ARCHIVED', payload: { archivedIds: ids } });
+                EventBus.emit({ payload: { archivedIds: ids }, type: 'ENTITY_ARCHIVED' });
             }
         } catch (error) {
             Logger.error(LogModule.MEMORY_ENTITY, '执行实体自动归档失败', { error });
@@ -490,7 +488,7 @@ export class EntityBuilder {
      * 实体消歧：检查新实体是否与已有实体重复
      * 已迁移至 SaveEntity Step
      */
-    // private resolveEntity(...) {}
+    // Private resolveEntity(...) {}
 
     /**
      * 获取状态 (UI 适配)
@@ -508,13 +506,13 @@ export class EntityBuilder {
         const archivedCount = entities.filter(e => e.is_archived).length;
 
         return {
-            enabled: this.config.enabled,
-            trigger: this.config.trigger,
-            floorInterval: this.config.floorInterval,
-            lastExtractedFloor: state.last_extracted_floor,
-            entityCount: entities.length,
             archivedCount,
+            enabled: this.config.enabled,
+            entityCount: entities.length,
+            floorInterval: this.config.floorInterval,
             isExtracting: this.isExtracting,
+            lastExtractedFloor: state.last_extracted_floor,
+            trigger: this.config.trigger,
         };
     }
 }

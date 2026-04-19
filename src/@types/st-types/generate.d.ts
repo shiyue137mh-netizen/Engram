@@ -1,7 +1,7 @@
 /**
  * 自定义API配置
  */
-type CustomApiConfig = {
+interface CustomApiConfig {
   /** 自定义API地址 */
   apiurl: string;
   /** API密钥 */
@@ -20,9 +20,9 @@ type CustomApiConfig = {
   /** 存在惩罚 */
   presence_penalty?: number;
   top_p?: number;
-};
+}
 
-type GenerateConfig = {
+interface GenerateConfig {
   /** 用户输入 */
   user_input?: string;
 
@@ -67,9 +67,9 @@ type GenerateConfig = {
    * 可以并发生成，并可以通过stopGenerateById停止特定生成，不设置默认生成uuid，在发送的事件中也会返回该id
    */
   generation_id?: string;
-};
+}
 
-type GenerateRawConfig = {
+interface GenerateRawConfig {
   /**
    * 用户输入.
    *
@@ -125,15 +125,15 @@ type GenerateRawConfig = {
    * 可以并发生成，并可以通过stopGenerateById停止特定生成，不设置默认生成uuid，在发送的事件中也会返回该id
    */
   generation_id?: string;
-};
+}
 
-type RolePrompt = {
+interface RolePrompt {
   role: 'system' | 'assistant' | 'user';
   content: string;
   image?: File | string | (File | string)[];
-};
+}
 
-type Overrides = {
+interface Overrides {
   world_info_before?: string;
   persona_description?: string;
   char_description?: string;
@@ -153,7 +153,7 @@ type Overrides = {
     author_note?: string;
     prompts?: RolePrompt[];
   };
-};
+}
 
 /**
  * 预设为内置提示词设置的默认顺序

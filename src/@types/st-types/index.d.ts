@@ -4,7 +4,7 @@ interface Window {
    * 你也可以在酒馆页面按 f12, 在控制台中输入 `window.TavernHelper` 来查看当前酒馆助手所提供的接口
    */
   TavernHelper: {
-    // audio
+    // Audio
     readonly playAudio: typeof playAudio;
     readonly pauseAudio: typeof pauseAudio;
     readonly getAudioList: typeof getAudioList;
@@ -13,24 +13,24 @@ interface Window {
     readonly getAudioSettings: typeof getAudioSettings;
     readonly setAudioSettings: typeof setAudioSettings;
 
-    // builtin
+    // Builtin
     readonly builtin: typeof builtin;
 
-    // character
+    // Character
     readonly Character: typeof Character;
 
-    // chat_message
+    // Chat_message
     readonly getChatMessages: typeof getChatMessages;
     readonly setChatMessages: typeof setChatMessages;
     readonly createChatMessages: typeof createChatMessages;
     readonly deleteChatMessages: typeof deleteChatMessages;
     readonly rotateChatMessages: typeof rotateChatMessages;
 
-    // displayed_message
+    // Displayed_message
     readonly formatAsDisplayedMessage: typeof formatAsDisplayedMessage;
     readonly retrieveDisplayedMessage: typeof retrieveDisplayedMessage;
 
-    // extension
+    // Extension
     readonly isAdmin: typeof isAdmin;
     readonly getExtensionType: typeof getExtensionType;
     readonly getExtensionStatus: typeof getExtensionInstallationInfo;
@@ -40,27 +40,27 @@ interface Window {
     readonly reinstallExtension: typeof reinstallExtension;
     readonly updateExtension: typeof updateExtension;
 
-    // generate
+    // Generate
     readonly builtin_prompt_default_order: typeof builtin_prompt_default_order;
     readonly generate: typeof generate;
     readonly generateRaw: typeof generateRaw;
 
-    // global
+    // Global
     readonly initializeGlobal: typeof initializeGlobal;
     readonly waitGlobalInitialized: typeof waitGlobalInitialized;
 
-    // import_raw
+    // Import_raw
     readonly importRawCharacter: typeof importRawCharacter;
     readonly importRawChat: typeof importRawChat;
     readonly importRawPreset: typeof importRawPreset;
     readonly importRawWorldbook: typeof importRawWorldbook;
     readonly importRawTavernRegex: typeof importRawTavernRegex;
 
-    // inject
+    // Inject
     readonly injectPrompts: typeof injectPrompts;
     readonly uninjectPrompts: typeof uninjectPrompts;
 
-    // lorebook_entry
+    // Lorebook_entry
     readonly getLorebookEntries: typeof getLorebookEntries;
     readonly replaceLorebookEntries: typeof replaceLorebookEntries;
     readonly updatelorebookEntriesWith: typeof updateLorebookEntriesWith;
@@ -68,7 +68,7 @@ interface Window {
     readonly createLorebookEntries: typeof createLorebookEntries;
     readonly deleteLorebookEntries: typeof deleteLorebookEntries;
 
-    // lorebook
+    // Lorebook
     readonly getLorebookSettings: typeof getLorebookSettings;
     readonly setLorebookSettings: typeof setLorebookSettings;
     readonly getLorebooks: typeof getLorebooks;
@@ -79,10 +79,10 @@ interface Window {
     readonly getCurrentCharPrimaryLorebook: typeof getCurrentCharPrimaryLorebook;
     readonly getOrCreateChatLorebook: typeof getOrCreateChatLorebook;
 
-    // macrolike
+    // Macrolike
     readonly registerMacroLike: typeof registerMacroLike;
 
-    // preset
+    // Preset
     readonly isPresetNormalPrompt: typeof isPresetNormalPrompt;
     readonly isPresetSystemPrompt: typeof isPresetSystemPrompt;
     readonly isPresetPlaceholderPrompt: typeof isPresetPlaceholderPrompt;
@@ -99,33 +99,33 @@ interface Window {
     readonly updatePresetWith: typeof updatePresetWith;
     readonly setPreset: typeof setPreset;
 
-    // raw_character
+    // Raw_character
     readonly RawCharacter: typeof RawCharacter;
     readonly getCharData: typeof getCharData;
     readonly getCharAvatarPath: typeof getCharAvatarPath;
     readonly getChatHistoryBrief: typeof getChatHistoryBrief;
     readonly getChatHistoryDetail: typeof getChatHistoryDetail;
 
-    // script
+    // Script
     readonly getAllEnabledScriptButtons: typeof getAllEnabledScriptButtons;
 
-    // slash
+    // Slash
     readonly triggerSlash: typeof triggerSlash;
 
-    // tavern_regex
+    // Tavern_regex
     readonly formatAsTavernRegexedString: typeof formatAsTavernRegexedString;
     readonly isCharacterTavernRegexesEnabled: typeof isCharacterTavernRegexesEnabled;
     readonly getTavernRegexes: typeof getTavernRegexes;
     readonly replaceTavernRegexes: typeof replaceTavernRegexes;
     readonly updateTavernRegexesWith: typeof updateTavernRegexesWith;
 
-    // util
+    // Util
     readonly substitudeMacros: typeof substitudeMacros;
     readonly getLastMessageId: typeof getLastMessageId;
     readonly errorCatched: typeof errorCatched;
     readonly getMessageId: typeof getMessageId;
 
-    // variables
+    // Variables
     readonly getVariables: typeof getVariables;
     readonly replaceVariables: typeof replaceVariables;
     readonly updateVariablesWith: typeof updateVariablesWith;
@@ -133,12 +133,12 @@ interface Window {
     readonly insertVariables: typeof insertVariables;
     readonly deleteVariable: typeof deleteVariable;
 
-    // version
+    // Version
     readonly getTavernHelperVersion: typeof getTavernHelperVersion;
     readonly getTavernHelperExtensionId: typeof getTavernHelperExtensionId;
     readonly getTavernVersion: typeof getTavernVersion;
 
-    // worldbook
+    // Worldbook
     readonly getWorldbookNames: typeof getWorldbookNames;
     readonly getGlobalWorldbookNames: typeof getGlobalWorldbookNames;
     readonly rebindGlobalWorldbooks: typeof rebindGlobalWorldbooks;

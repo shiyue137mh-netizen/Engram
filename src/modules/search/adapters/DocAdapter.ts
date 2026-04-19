@@ -3,14 +3,14 @@
  * V0.9.11
  */
 
-import { SearchAdapter, SearchResult } from '../SearchService';
+import type { SearchAdapter, SearchResult } from '../SearchService';
 import { DOCS } from '@/docs';
 import { BookOpen } from 'lucide-react';
 
 export class DocAdapter implements SearchAdapter {
     async search(query: string): Promise<SearchResult[]> {
         const lowerQuery = query.toLowerCase().trim();
-        if (!lowerQuery) return [];
+        if (!lowerQuery) {return [];}
 
         return DOCS.filter(doc =>
             doc.label.toLowerCase().includes(lowerQuery) ||

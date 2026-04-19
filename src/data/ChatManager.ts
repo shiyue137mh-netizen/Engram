@@ -6,8 +6,8 @@
  */
 
 import { Logger } from '@/core/logger';
-import { getDbForChat, type ChatDatabase, type ChatMeta } from './db';
-import { getCurrentChatId, getCurrentCharacter } from '@/integrations/tavern';
+import { type ChatDatabase, type ChatMeta, getDbForChat } from './db';
+import { getCurrentCharacter, getCurrentChatId } from '@/integrations/tavern';
 import { DEFAULT_SCOPE_STATE, type ScopeState } from './types/graph';
 
 /** Meta 表中的状态 key */
@@ -59,7 +59,7 @@ class ChatManager {
      */
     async getState(): Promise<ScopeState> {
         const db = this.getCurrentDb();
-        if (!db) return DEFAULT_SCOPE_STATE;
+        if (!db) {return DEFAULT_SCOPE_STATE;}
 
         try {
             const meta = await db.meta.get(STATE_KEY);
@@ -67,8 +67,8 @@ class ChatManager {
                 return { ...DEFAULT_SCOPE_STATE, ...(meta.value as ScopeState) };
             }
             return DEFAULT_SCOPE_STATE;
-        } catch (e) {
-            Logger.error(MODULE, '获取状态失败:', e);
+        } catch (error) {
+            Logger.error(MODULE, '获取状态失败:', error);
             return DEFAULT_SCOPE_STATE;
         }
     }
@@ -78,14 +78,14 @@ class ChatManager {
      */
     async updateState(partialState: Partial<ScopeState>): Promise<void> {
         const db = this.getCurrentDb();
-        if (!db) return;
+        if (!db) {return;}
 
         try {
             const currentState = await this.getState();
             const newState = { ...currentState, ...partialState };
             await db.meta.put({ key: STATE_KEY, value: newState });
-        } catch (e) {
-            Logger.error(MODULE, '更新状态失败:', e);
+        } catch (error) {
+            Logger.error(MODULE, '更新状态失败:', error);
         }
     }
 
@@ -94,7 +94,7 @@ class ChatManager {
      */
     async saveCharacterName(): Promise<void> {
         const db = this.getCurrentDb();
-        if (!db) return;
+        if (!db) {return;}
 
         const name = this.getCharacterName();
         await db.meta.put({ key: CHARACTER_KEY, value: name });
@@ -105,7 +105,7 @@ class ChatManager {
      */
     async getSavedCharacterName(): Promise<string> {
         const db = this.getCurrentDb();
-        if (!db) return 'Unknown';
+        if (!db) {return 'Unknown';}
 
         const meta = await db.meta.get(CHARACTER_KEY);
         return (meta?.value as string) || 'Unknown';
@@ -116,7 +116,7 @@ class ChatManager {
      */
     async resetState(): Promise<void> {
         const db = this.getCurrentDb();
-        if (!db) return;
+        if (!db) {return;}
 
         await db.meta.put({ key: STATE_KEY, value: DEFAULT_SCOPE_STATE });
     }

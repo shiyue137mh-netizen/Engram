@@ -4,7 +4,7 @@
  * V0.8.5: 用于合并 Embedding 相似度分数和 Rerank 分数
  */
 
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import type { EventNode } from '@/data/types/graph';
 
 
@@ -70,9 +70,9 @@ function calculateHybridScore(
     const baseScore = Math.max(embeddingScore ?? 0, keywordScore ?? 0);
 
     // 如果只有一个分数，直接返回
-    if (baseScore === 0 && rerankScore == null) return 0;
-    if (baseScore === 0) return rerankScore ?? 0;
-    if (rerankScore == null) return baseScore;
+    if (baseScore === 0 && rerankScore == null) {return 0;}
+    if (baseScore === 0) {return rerankScore ?? 0;}
+    if (rerankScore == null) {return baseScore;}
 
     // 混合分数 = 基础分 (Embedding/Keyword) + Rerank 分数
     // 这样做可以更直观地反映多路召回的累加贡献
@@ -86,7 +86,7 @@ function calculateHybridScore(
  * @returns 归一化后的分数数组
  */
 function normalizeScores(scores: number[]): number[] {
-    if (scores.length === 0) return [];
+    if (scores.length === 0) {return [];}
 
     const min = Math.min(...scores);
     const max = Math.max(...scores);
@@ -125,9 +125,9 @@ export function scoreAndSort(
     scored.sort((a, b) => (b.hybridScore ?? 0) - (a.hybridScore ?? 0));
 
     Logger.debug(LogModule.RAG_INJECT, '混合打分完成', {
+        alpha,
         candidateCount: scored.length,
         topScore: scored[0]?.hybridScore,
-        alpha,
     });
 
     return scored;
@@ -158,7 +158,7 @@ export function mergeResults(
     }
 
     // 转换为数组并计算混合分数
-    const candidates = Array.from(embeddingResults.values());
+    const candidates = [...embeddingResults.values()];
     return scoreAndSort(candidates, alpha);
 }
 

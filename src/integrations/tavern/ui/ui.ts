@@ -57,7 +57,7 @@ function injectQuickPanelButton(): boolean {
     button.className = 'fa-solid fa-layer-group interactable';
     button.tabIndex = 0;
     button.title = 'Engram 快捷面板';
-    button.setAttribute('data-i18n', '[title]Engram Quick Panel');
+    button.dataset.i18n = '[title]Engram Quick Panel';
 
     // 点击打开快捷面板
     button.addEventListener('click', handleQuickPanelClick);
@@ -75,7 +75,7 @@ function injectQuickPanelButton(): boolean {
     `;
 
     // 直接 append 到 leftSendForm
-    leftSendForm.appendChild(button);
+    leftSendForm.append(button);
 
     isInjected = true;
 
@@ -174,19 +174,19 @@ export function mountGlobalOverlay(): void {
     }
 
     const overlayId = ENGRAM_GLOBAL_OVERLAY_ID;
-    let overlay = document.getElementById(overlayId);
+    let overlay = document.querySelector(`#${overlayId}`);
 
     // 如果已存在但未挂载，则复用
     if (!overlay) {
         overlay = document.createElement('div');
         overlay.id = overlayId;
         overlay.className = 'pointer-events-none fixed inset-0 z-[11000] engram-app-root'; // 极高层级，不妨碍交互
-        document.body.appendChild(overlay);
+        document.body.append(overlay);
     }
 
     // 挂载
     if (!globalRoot) {
-        globalRoot = globalRenderer(overlay, () => { }); // global overlay usually doesn't need onClose
+        globalRoot = globalRenderer(overlay, () => {}); // global overlay usually doesn't need onClose
     }
 }
 
@@ -212,16 +212,16 @@ export function createTopBarButton(): void {
     icon.id = 'engram-drawer-icon';
     icon.className = 'drawer-icon fa-solid fa-e fa-fw closedIcon';
     icon.title = 'Engram - 记忆操作系统';
-    icon.setAttribute('data-i18n', '[title]Engram - Memory OS');
+    icon.dataset.i18n = '[title]Engram - Memory OS';
     icon.addEventListener('click', toggleMainPanel);
 
-    toggle.appendChild(icon);
-    drawer.appendChild(toggle);
+    toggle.append(icon);
+    drawer.append(toggle);
 
     if (wiButton) {
         holder.insertBefore(drawer, wiButton);
     } else {
-        holder.appendChild(drawer);
+        holder.append(drawer);
     }
 }
 
@@ -234,7 +234,7 @@ export function openMainPanel(): void {
     }
 
     panelElement = createMainPanel();
-    document.body.appendChild(panelElement);
+    document.body.append(panelElement);
     panelVisible = true;
 }
 
@@ -291,18 +291,18 @@ function createMainPanel(): HTMLElement {
     closeBtn.title = '关闭 (Ctrl+Shift+E)';
     const closeIcon = document.createElement('i');
     closeIcon.className = 'fa-solid fa-times';
-    closeBtn.appendChild(closeIcon);
+    closeBtn.append(closeIcon);
     closeBtn.addEventListener('click', toggleMainPanel);
 
-    header.appendChild(title);
-    header.appendChild(closeBtn);
+    header.append(title);
+    header.append(closeBtn);
 
     const content = document.createElement('div');
     content.id = `${ENGRAM_PANEL_ID}-content`;
     content.className = 'flex-1 overflow-auto p-5';
 
-    panel.appendChild(header);
-    panel.appendChild(content);
+    panel.append(header);
+    panel.append(content);
 
     if (reactRenderer) {
         reactRoot = reactRenderer(panel, toggleMainPanel);
@@ -329,11 +329,11 @@ function createMainPanel(): HTMLElement {
  * @param inputValue 输入框默认值
  */
 export async function callPopup(content: string, type: 'text' | 'confirm' | 'input' = 'text', inputValue: string = ''): Promise<any> {
-    // @ts-ignore
+    // @ts-expect-error
     if (window.callPopup) {
-        // @ts-ignore
+        // @ts-expect-error
         return window.callPopup(content, type, inputValue);
     }
     console.warn('[Engram] callPopup not available');
-    return Promise.resolve(type === 'confirm' ? true : null);
+    return type === 'confirm' ? true : null;
 }

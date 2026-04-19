@@ -22,7 +22,7 @@ import {
 import { WorldbookEngramService } from './engram';
 import { WorldbookMetricsService } from './metrics';
 import { WorldbookScannerService } from './scanner';
-import {
+import type {
     CreateWorldInfoEntryParams,
     WorldInfoEntry,
     WorldInfoTokenStats,
@@ -122,7 +122,7 @@ export class WorldInfoService {
      */
     static async getWorldbookStructure() {
         const helper = getTavernHelper();
-        if (!helper) return {};
+        if (!helper) {return {};}
 
         const allWorldbooks = helper.getWorldbookNames?.() || [];
         let charWorldbooks: string[] = [];
@@ -138,7 +138,7 @@ export class WorldInfoService {
                 }
             }
         }
-        const targetBooks = Array.from(new Set([...allWorldbooks, ...charWorldbooks])).sort();
+        const targetBooks = [...new Set([...allWorldbooks, ...charWorldbooks])].toSorted();
 
         const structure: Record<string, any[]> = {};
 
@@ -146,14 +146,14 @@ export class WorldInfoService {
             try {
                 const entries = await getEntries(book);
                 structure[book] = entries.map(e => ({
-                    uid: e.uid,
-                    name: e.name,
-                    keys: e.keys,
-                    constant: e.constant,
                     comment: e.comment || '',
-                    content: e.content?.substring(0, 50) + '...'
+                    constant: e.constant,
+                    content: e.content?.substring(0, 50) + '...',
+                    keys: e.keys,
+                    name: e.name,
+                    uid: e.uid
                 }));
-            } catch (e) {
+            } catch {
                 structure[book] = [];
             }
         }

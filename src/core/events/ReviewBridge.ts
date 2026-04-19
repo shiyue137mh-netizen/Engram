@@ -7,7 +7,7 @@ export interface ReviewRequest {
     id: string; // V1.3.1: Unique ID for multi-tab support
     title: string;
     description: string;
-    content: string; // fallback text
+    content: string; // Fallback text
     type?: 'text' | 'json' | 'entity' | 'summary'; // V1.2
     data?: any; // Structured data for specialized views
     actions?: ReviewAction[];
@@ -35,14 +35,14 @@ class ReviewService {
         return new Promise((resolve) => {
             const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
             EventBus.emit(TavernEventType.ENGRAM_REQUEST_REVIEW, {
-                id,
-                title,
-                description,
-                content,
                 actions,
-                type,
+                content,
                 data,
+                description,
+                id,
                 onResult: (result) => resolve(result),
+                title,
+                type,
             } as ReviewRequest);
         });
     }

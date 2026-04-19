@@ -1,15 +1,15 @@
 /**
- * useDashboardData - Dashboard 数据聚合 Hook
+ * UseDashboardData - Dashboard 数据聚合 Hook
  *
  * V0.9.5: 提供 Dashboard 所需的所有数据
  * - System Health: 连接状态、待处理进度
  * - Memory Stats: 事件/实体统计
  * - Feature Status: 功能开关状态
  */
-import { SettingsManager, type EngramSettings } from '@/config/settings';
+import { type EngramSettings, SettingsManager } from '@/config/settings';
 import { DEFAULT_BRAIN_RECALL_CONFIG, getDefaultAPISettings } from '@/config/types/defaults';
-import { Logger, LogModule } from '@/core/logger';
-import { getSTContext, MacroService, getCurrentChatId } from '@/integrations/tavern';
+import { LogModule, Logger } from '@/core/logger';
+import { MacroService, getCurrentChatId, getSTContext } from '@/integrations/tavern';
 import { summarizerService } from '@/modules/memory';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
 import { useConfigStore } from '@/state/configStore';
@@ -76,48 +76,48 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 } {
     const [isLoading, setIsLoading] = useState(true);
     const [system, setSystem] = useState<SystemHealth>({
-        isConnected: false,
         characterName: 'Unknown',
         currentFloor: 0,
+        floorInterval: 10,
+        isConnected: false,
+        isSummarizing: false,
         lastSummarizedFloor: 0,
         pendingFloors: 0,
-        floorInterval: 10,
-        isSummarizing: false,
     });
     const [memory, setMemory] = useState<MemoryStats>({
-        eventCount: 0,
-        entityCount: 0,
-        entityByType: {},
-        archivedCount: 0,
         activeCount: 0,
+        archivedCount: 0,
+        entityByType: {},
+        entityCount: 0,
         estimatedTokens: 0,
+        eventCount: 0,
     });
     const [features, setFeatures] = useState<FeatureStatus>({
-        summarizer: true,
-        entity: false,
         embedding: false,
-        recall: true,
+        entity: false,
         preprocessing: false,
+        recall: true,
+        summarizer: true,
     });
     const [brainStats, setBrainStats] = useState<BrainStats>({
         shortTermCount: 0,
         shortTermLimit: 0,
+        topItems: [],
         workingCount: 0,
-        workingLimit: 0,
-        topItems: []
+        workingLimit: 0
     });
     const [contextStats, setContextStats] = useState<ContextStats>({
-        injectedLength: 0,
-        estimatedTokens: 0
+        estimatedTokens: 0,
+        injectedLength: 0
     });
     const [globalStats, setGlobalStats] = useState<EngramSettings['statistics']>({
-        firstUseAt: null,
         activeDays: [],
-        totalTokens: 0,
-        totalLlmCalls: 0,
-        totalEvents: 0,
+        firstUseAt: null,
         totalEntities: 0,
+        totalEvents: 0,
+        totalLlmCalls: 0,
         totalRagInjections: 0,
+        totalTokens: 0,
     });
 
     const isMounted = useRef(true);
@@ -132,33 +132,33 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         const summarizerStatus = summarizerService.getStatus();
         const summarizerConfig = SettingsManager.get('summarizerConfig') || {};
 
-        if (!isMounted.current) return;
+        if (!isMounted.current) {return;}
         setSystem({
-            isConnected: !!stContext,
             characterName: stContext?.name2 || 'Unknown',
             currentFloor: summarizerStatus.currentFloor,
+            floorInterval: summarizerConfig.floorInterval || 10,
+            isConnected: !!stContext,
+            isSummarizing: summarizerStatus.isSummarizing,
             lastSummarizedFloor: summarizerStatus.lastSummarizedFloor,
             pendingFloors: summarizerStatus.pendingFloors,
-            floorInterval: summarizerConfig.floorInterval || 10,
-            isSummarizing: summarizerStatus.isSummarizing,
         });
     }, []);
 
     const fetchGlobalStats = useCallback(() => {
         const currentStats = SettingsManager.get('statistics') || {
-            firstUseAt: null, activeDays: [], totalTokens: 0, totalLlmCalls: 0, totalEvents: 0, totalEntities: 0, totalRagInjections: 0
+            activeDays: [], firstUseAt: null, totalEntities: 0, totalEvents: 0, totalLlmCalls: 0, totalRagInjections: 0, totalTokens: 0
         };
-        if (!isMounted.current) return;
+        if (!isMounted.current) {return;}
         setGlobalStats(currentStats as EngramSettings['statistics']);
     }, []);
 
     const fetchMemoryStats = useCallback(async () => {
         const chatId = getCurrentChatId();
-        if (!chatId) return;
+        if (!chatId) {return;}
 
         const dbModule = await import('@/data/db');
         const db = dbModule.tryGetDbForChat(chatId);
-        if (!db) return;
+        if (!db) {return;}
 
         const metaMod = await db.meta.get('lastModified');
         const currentMod = (metaMod?.value as number) || 0;
@@ -175,7 +175,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 entityByType[t] = (entityByType[t] || 0) + 1;
             });
 
-            const archivedCount = await db.events.filter(e => !!e.is_archived).count();
+            const archivedCount = await db.events.filter(e => Boolean(e.is_archived)).count();
 
             const sampleEvents = await db.events.limit(100).toArray();
             const avgLen = sampleEvents.length > 0 
@@ -183,14 +183,14 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 : 0;
             const estimatedTokens = Math.ceil((avgLen * eventCount) / 4);
 
-            if (!isMounted.current) return;
+            if (!isMounted.current) {return;}
             setMemory({
-                eventCount,
-                entityCount,
-                entityByType,
-                archivedCount,
                 activeCount: eventCount - archivedCount,
+                archivedCount,
+                entityByType,
+                entityCount,
                 estimatedTokens,
+                eventCount,
             });
             lastDbModified.current = currentMod;
         }
@@ -205,13 +205,13 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
         const recallConfig = apiSettings?.recallConfig ?? defaults.recallConfig;
         const preprocessingConfig = SettingsManager.get('preprocessingConfig') as { enabled?: boolean } | undefined;
 
-        if (!isMounted.current) return;
+        if (!isMounted.current) {return;}
         setFeatures({
-            summarizer: currentSummarizerConfig.enabled !== false,
-            entity: !!entityConfig?.enabled,
             embedding: !!embeddingConfig?.enabled,
-            recall: recallConfig?.enabled !== false,
+            entity: !!entityConfig?.enabled,
             preprocessing: !!preprocessingConfig?.enabled,
+            recall: recallConfig?.enabled !== false,
+            summarizer: currentSummarizerConfig.enabled !== false,
         });
     }, []);
 
@@ -230,29 +230,29 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 
             const contextText = MacroService.getSummaries();
 
-            if (!isMounted.current) return;
+            if (!isMounted.current) {return;}
             setBrainStats({
                 shortTermCount: snapshot.length,
                 shortTermLimit: brainConfig.shortTermLimit,
+                topItems: topActiveItems,
                 workingCount: workingItems.length,
-                workingLimit: brainConfig.workingLimit,
-                topItems: topActiveItems
+                workingLimit: brainConfig.workingLimit
             });
 
             setContextStats({
-                injectedLength: contextText.length,
-                estimatedTokens: Math.ceil(contextText.length / 4)
+                estimatedTokens: Math.ceil(contextText.length / 4),
+                injectedLength: contextText.length
             });
 
-        } catch (e) {
-            Logger.warn(LogModule.DASHBOARD, '加载 Brain Stats 失败', e);
+        } catch (error) {
+            Logger.warn(LogModule.DASHBOARD, '加载 Brain Stats 失败', error);
             if (isMounted.current) {
                 setBrainStats({
                     shortTermCount: 0,
                     shortTermLimit: 0,
+                    topItems: [],
                     workingCount: 0,
-                    workingLimit: 0,
-                    topItems: []
+                    workingLimit: 0
                 });
             }
         }
@@ -267,10 +267,10 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
             await fetchFeatureStatus();
             fetchBrainStats();
 
-            if (isMounted.current) setIsLoading(false);
+            if (isMounted.current) {setIsLoading(false);}
         } catch (error) {
             Logger.error(LogModule.DASHBOARD, '刷新 Dashboard 数据失败', { error });
-            if (isMounted.current) setIsLoading(false);
+            if (isMounted.current) {setIsLoading(false);}
         }
     }, [fetchSystemHealth, fetchGlobalStats, fetchMemoryStats, fetchFeatureStatus, fetchBrainStats]);
 
@@ -345,7 +345,7 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                 SettingsManager.set('apiSettings', {
                     ...latestApi,
                     recallConfig: {
-                        ...(latestApi.recallConfig || {}),
+                        ...latestApi.recallConfig,
                         usePreprocessing: nextVal,
                     }
                 } as any);
@@ -355,14 +355,15 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                         enabled: nextVal,
                     } as any,
                     recallConfig: {
-                        ...(latestApi.recallConfig || {}),
+                        ...latestApi.recallConfig,
                         usePreprocessing: nextVal,
                     } as any
                 });
                 break;
             }
-            default:
+            default: {
                 return;
+            }
         }
 
         // 3. 同步更新 UI state（纯函数，无副作用）
@@ -388,10 +389,10 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 
         // 动态调整轮询帧率：活动时高频查询，放到后台时降低查询频率
         const scheduleTimer = () => {
-            if (timerRef.current) clearInterval(timerRef.current);
+            if (timerRef.current) {clearInterval(timerRef.current);}
             const currentInterval = isTabActive ? refreshInterval : refreshInterval * 5; // 后台延长 5 倍间隙
             timerRef.current = setInterval(() => {
-                if (isMounted.current) refreshRef.current();
+                if (isMounted.current) {refreshRef.current();}
             }, currentInterval);
         };
 
@@ -408,20 +409,20 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
 
         return () => {
             isMounted.current = false;
-            if (timerRef.current) clearInterval(timerRef.current);
+            if (timerRef.current) {clearInterval(timerRef.current);}
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [refreshInterval]);
 
     return {
-        system,
-        memory,
-        features,
         brainStats,
         contextStats,
+        features,
         globalStats,
         isLoading,
-        toggleFeature,
+        memory,
         refresh,
+        system,
+        toggleFeature,
     };
 }

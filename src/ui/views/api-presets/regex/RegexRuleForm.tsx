@@ -11,10 +11,10 @@ interface RegexRuleFormProps {
 }
 
 const FLAGS_OPTIONS = [
-    { value: 'g', label: '全局匹配', description: '匹配所有结果' },
-    { value: 'i', label: '忽略大小写', description: '不区分大小写' },
-    { value: 'm', label: '多行模式', description: '^$ 匹配每行' },
-    { value: 's', label: '点号匹配换行', description: '. 匹配换行符' },
+    { description: '匹配所有结果', label: '全局匹配', value: 'g' },
+    { description: '不区分大小写', label: '忽略大小写', value: 'i' },
+    { description: '^$ 匹配每行', label: '多行模式', value: 'm' },
+    { description: '. 匹配换行符', label: '点号匹配换行', value: 's' },
 ];
 
 export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) => {
@@ -41,9 +41,9 @@ export const RegexRuleForm: React.FC<RegexRuleFormProps> = ({ rule, onChange }) 
     }, [testInput, rule, validation.valid]);
 
     const handleFlagToggle = (flag: string) => {
-        const currentFlags = rule.flags.split('');
+        const currentFlags = [...rule.flags];
         const index = currentFlags.indexOf(flag);
-        if (index >= 0) {
+        if (index !== -1) {
             currentFlags.splice(index, 1);
         } else {
             currentFlags.push(flag);

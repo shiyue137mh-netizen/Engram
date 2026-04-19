@@ -20,25 +20,30 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo
 function getEntityTextTypeColor(type: string): string {
     switch (type.toLowerCase()) {
         case 'char':
-        case 'character':
+        case 'character': {
             return 'text-emphasis';
+        }
         case 'loc':
-        case 'location':
+        case 'location': {
             return 'text-value';
-        case 'item':
+        }
+        case 'item': {
             return 'text-label';
-        case 'concept':
+        }
+        case 'concept': {
             return 'text-heading';
-        default:
+        }
+        default: {
             return 'text-foreground';
+        }
     }
 }
 
 // 类型别名简化
-type EntityEditorHandle = {
+interface EntityEditorHandle {
     save: () => void;
     isDirty: () => boolean;
-};
+}
 
 interface EntityEditorProps {
     entity: EntityNode | null;
@@ -49,11 +54,11 @@ interface EntityEditorProps {
 }
 
 const ENTITY_TYPES: { value: string; label: string }[] = [
-    { value: 'char', label: '角色 (Character)' },
-    { value: 'loc', label: '地点 (Location)' },
-    { value: 'item', label: '物品 (Item)' },
-    { value: 'concept', label: '概念 (Concept)' },
-    { value: 'unknown', label: '其他 (Unknown)' },
+    { label: '角色 (Character)', value: 'char' },
+    { label: '地点 (Location)', value: 'loc' },
+    { label: '物品 (Item)', value: 'item' },
+    { label: '概念 (Concept)', value: 'concept' },
+    { label: '其他 (Unknown)', value: 'unknown' },
 ];
 
 const inputStyle: React.CSSProperties = {
@@ -61,11 +66,11 @@ const inputStyle: React.CSSProperties = {
     border: 'none',
     borderBottom: '1px solid var(--border)',
     borderRadius: 0,
+    color: 'var(--foreground, inherit)',
+    fontSize: '14px',
     outline: 'none',
     padding: '8px 0',
-    fontSize: '14px',
     width: '100%',
-    color: 'var(--foreground, inherit)',
 };
 
 export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
@@ -90,9 +95,7 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     const isMountedRef = useRef(true);
     const timeoutRef = useRef<number | null>(null);
 
-    useEffect(() => {
-        return () => { isMountedRef.current = false; };
-    }, []);
+    useEffect(() => () => { isMountedRef.current = false; }, []);
 
     // Load data
     useEffect(() => {
@@ -110,13 +113,13 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
 
     // Sync Helper
     const syncToParent = useCallback(() => {
-        if (!entity || jsonError) return;
+        if (!entity || jsonError) {return;}
 
         let parsedProfile = {};
         try {
             parsedProfile = JSON.parse(profileJson);
-        } catch (e) {
-            console.error('JSON Parse Error during sync', e);
+        } catch (error) {
+            console.error('JSON Parse Error during sync', error);
             // 🐛 P0 Bugfix: 如果 JSON 有语法错误，直接阻断提交，绝不使用 `{}` 覆盖原数据
             return;
         }
@@ -134,8 +137,8 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
 
     // Expose Handle
     useImperativeHandle(ref, () => ({
-        save: syncToParent,
-        isDirty: () => isDirty
+        isDirty: () => isDirty,
+        save: syncToParent
     }), [syncToParent, isDirty]);
 
     // Handlers
@@ -148,19 +151,17 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
                 try {
                     JSON.parse(val);
                     setJsonError(null);
-                } catch (e: any) {
-                    setJsonError(e.message);
+                } catch (error: any) {
+                    setJsonError(error.message);
                 }
             }, 300),
         []
     );
 
     // 清理防抖
-    useEffect(() => {
-        return () => {
+    useEffect(() => () => {
             handleJsonChangeDebounced.cancel();
-        };
-    }, [handleJsonChangeDebounced]);
+        }, [handleJsonChangeDebounced]);
 
     const handleJsonChange = (val: string) => {
         // 先局部更新 UI 输入框视图（可以用非受控或直接存一个 immediate state）
@@ -172,7 +173,7 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     };
 
     const handleBlur = () => {
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (timeoutRef.current) {clearTimeout(timeoutRef.current);}
         timeoutRef.current = window.setTimeout(() => {
             if (isMountedRef.current && isDirty && !jsonError) {
                 syncToParent();
@@ -181,14 +182,14 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
     };
 
     const handleGenerateDesc = () => {
-        if (jsonError || !entity) return;
+        if (jsonError || !entity) {return;}
         try {
             const profileObj = JSON.parse(profileJson);
 
             // V1.2.9: Simple YAML structure
             // Format:
             // 实体名称
-            // profile:
+            // Profile:
             //   (indented content)
             // Note: type is already indicated by XML tag <character_state> etc.
 
@@ -211,7 +212,7 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
             // V1.2.9 FIX: Only send incremental updates to avoid stale closure overwriting
             onSave?.(entity.id, { description: newDesc, profile: profileObj });
 
-        } catch (e) {
+        } catch {
             alert('Profile JSON 格式错误，无法生成描述');
         }
     };

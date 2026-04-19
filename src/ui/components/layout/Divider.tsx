@@ -20,10 +20,10 @@ interface DividerProps {
 }
 
 const spacingClasses = {
+    lg: 'my-6',
+    md: 'my-4',
     none: '',
     sm: 'my-2',
-    md: 'my-4',
-    lg: 'my-6',
 };
 
 /**

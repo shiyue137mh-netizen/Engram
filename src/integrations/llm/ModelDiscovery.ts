@@ -34,28 +34,34 @@ export interface FetchModelsConfig {
 }
 
 export class ModelService {
-    private static readonly DEFAULT_TIMEOUT = 10000; // 10秒
+    private static readonly DEFAULT_TIMEOUT = 10_000; // 10秒
 
     /**
      * 通用入口：根据 API 类型获取模型列表
      */
     static async fetchModels(type: ModelAPIType, config: FetchModelsConfig): Promise<ModelInfo[]> {
         switch (type) {
-            case 'openai':
+            case 'openai': {
                 return this.fetchOpenAIModels(config);
-            case 'ollama':
+            }
+            case 'ollama': {
                 return this.fetchOllamaModels(config);
-            case 'vllm':
+            }
+            case 'vllm': {
                 return this.fetchVLLMModels(config);
-            case 'cohere':
+            }
+            case 'cohere': {
                 return this.fetchCohereModels(config);
+            }
             case 'jina':
-            case 'voyage':
+            case 'voyage': {
                 // 这些服务通常不提供模型列表 API，返回预设列表
                 return this.getPresetModels(type);
-            default:
+            }
+            default: {
                 Logger.warn(MODULE, `Unknown API type: ${type}`);
                 return [];
+            }
         }
     }
 
@@ -73,13 +79,13 @@ export class ModelService {
             // V1.5: 使用酒馆后端代理获取模型列表，解决 CORS 问题
             // 我们利用 OpenAI 源的 reverse_proxy 逻辑通过后端转发
             const proxyResponse = await fetch('/api/backends/chat-completions/status', {
-                method: 'POST',
-                headers: getRequestHeaders(),
                 body: JSON.stringify({
                     chat_completion_source: 'openai',
                     reverse_proxy: apiUrl,
                     proxy_password: apiKey
                 }),
+                headers: getRequestHeaders(),
+                method: 'POST',
                 signal: controller.signal,
             });
 
@@ -101,7 +107,7 @@ export class ModelService {
             }));
 
             Logger.info(MODULE, `Fetched ${models.length} models through Backend Proxy`);
-            return models.sort((a, b) => a.id.localeCompare(b.id));
+            return models.toSorted((a, b) => a.id.localeCompare(b.id));
 
         } catch (error: any) {
             if (error.name === 'AbortError') {
@@ -178,11 +184,11 @@ export class ModelService {
             const timeoutId = setTimeout(() => controller.abort(), timeout);
 
             const response = await fetch('https://api.cohere.ai/v1/models', {
-                method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json',
                 },
+                method: 'GET',
                 signal: controller.signal,
             });
 
@@ -196,9 +202,9 @@ export class ModelService {
             const models: ModelInfo[] = (data.models || [])
                 .filter((m: any) => m.endpoints?.includes('embed'))
                 .map((m: any) => ({
+                    contextLength: m.context_length,
                     id: m.name,
                     name: m.name,
-                    contextLength: m.context_length,
                 }));
 
             Logger.info(MODULE, `Fetched ${models.length} embed models from Cohere`);
@@ -227,17 +233,17 @@ export class ModelService {
                 { id: 'jina-embeddings-v2-base-zh', name: 'Jina Embeddings v2 Base ZH' },
                 { id: 'jina-colbert-v2', name: 'Jina ColBERT v2' },
             ],
+            openai: [
+                { id: 'text-embedding-3-large', name: 'Text Embedding 3 Large' },
+                { id: 'text-embedding-3-small', name: 'Text Embedding 3 Small' },
+                { id: 'text-embedding-ada-002', name: 'Text Embedding Ada 002' },
+            ],
             voyage: [
                 { id: 'voyage-3', name: 'Voyage 3' },
                 { id: 'voyage-3-lite', name: 'Voyage 3 Lite' },
                 { id: 'voyage-large-2', name: 'Voyage Large 2' },
                 { id: 'voyage-code-2', name: 'Voyage Code 2' },
                 { id: 'voyage-multilingual-2', name: 'Voyage Multilingual 2' },
-            ],
-            openai: [
-                { id: 'text-embedding-3-large', name: 'Text Embedding 3 Large' },
-                { id: 'text-embedding-3-small', name: 'Text Embedding 3 Small' },
-                { id: 'text-embedding-ada-002', name: 'Text Embedding Ada 002' },
             ],
         };
 

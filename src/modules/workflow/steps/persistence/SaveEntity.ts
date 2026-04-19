@@ -1,22 +1,23 @@
 import { Logger } from '@/core/logger';
 import { RobustJsonParser } from '@/core/utils/JsonParser';
-import { EntityNode, EntityType } from '@/data/types/graph';
+import type { EntityNode} from '@/data/types/graph';
+import { EntityType } from '@/data/types/graph';
 import { useMemoryStore } from '@/state/memoryStore';
 import * as jsonpatch from 'fast-json-patch';
 import * as yaml from 'js-yaml';
 import { z } from 'zod';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 // V1.3: 统一 JSON Patch 格式
 // 新实体: { op: "add", path: "/entities/{name}", value: {...} }
 // 更新:   { op: "replace/add/remove", path: "/entities/{name}/profile/{key}", value: ... }
 
 const PatchOpSchema = z.object({
+    from: z.string().optional(),
     op: z.enum(['add', 'replace', 'remove', 'copy', 'move', 'test']),
     path: z.string(),
-    value: z.any().optional(),
-    from: z.string().optional()
+    value: z.any().optional()
 });
 
 const UnifiedPatchSchema = z.object({
@@ -25,10 +26,10 @@ const UnifiedPatchSchema = z.object({
 
 // 向后兼容的 Legacy Schema
 const LegacyEntitySchema = z.object({
-    name: z.string(),
-    type: z.string(),
     aliases: z.array(z.string()).optional(),
+    name: z.string(),
     profile: z.record(z.string(), z.unknown()).optional(),
+    type: z.string(),
 });
 
 const LegacyPatchSchema = z.object({
@@ -71,7 +72,7 @@ export class SaveEntity implements IStep {
             sourceContent = context.output;
         }
 
-        if (!sourceContent) return;
+        if (!sourceContent) {return;}
 
         const newEntities: EntityNode[] = [];
         const updatedEntities: EntityNode[] = [];
@@ -144,7 +145,7 @@ export class SaveEntity implements IStep {
             for (const entity of data.newEntities) {
                 if (!isDryRun) {
                     // 如果有 ID 且不是临时 ID，可能是误传，但通常 newEntities 在 dryRun 时会有 temp ID
-                    // saveEntity 会生成新 ID 或者是覆盖？ store.saveEntity 通常负责创建
+                    // SaveEntity 会生成新 ID 或者是覆盖？ store.saveEntity 通常负责创建
                     // 为了安全，重新构建对象，去除临时 ID
                     const { id, ...entityData } = entity;
                     const saved = await store.saveEntity(entityData);
@@ -162,10 +163,10 @@ export class SaveEntity implements IStep {
                     if (entity.id && !entity.id.startsWith('temp-')) {
                         const description = this.profileToYaml(entity.name, entity.type || 'unknown', entity.profile || {});
                         await store.updateEntity(entity.id, {
-                            profile: entity.profile,
                             aliases: entity.aliases,
                             description,
                             name: entity.name,
+                            profile: entity.profile,
                             type: entity.type
                         });
                         outUpdatedEntities.push(entity);
@@ -199,7 +200,7 @@ export class SaveEntity implements IStep {
 
         for (const patch of patches) {
             const match = patch.path.match(/^\/entities\/([^/]+)/);
-            if (!match) continue;
+            if (!match) {continue;}
 
             const entityName = decodeURIComponent(match[1]);
             if (!patchesByEntity.has(entityName)) {
@@ -240,7 +241,7 @@ export class SaveEntity implements IStep {
     private resolveEntityIdentity(entityName: string, existingEntities: EntityNode[]): EntityNode | undefined {
         // 1. 精确匹配名称优先
         const exactMatch = existingEntities.find(e => e.name === entityName);
-        if (exactMatch) return exactMatch;
+        if (exactMatch) {return exactMatch;}
 
         // 2. 别名匹配（可能冲突）
         const aliasMatches = existingEntities.filter(e => e.aliases?.includes(entityName));
@@ -255,11 +256,11 @@ export class SaveEntity implements IStep {
 
     private async createNewEntity(entityName: string, value: any, store: ReturnType<typeof useMemoryStore.getState>, isDryRun: boolean, newEntities: EntityNode[]) {
         const entity: any = {
-            name: entityName,
-            type: (value?.type as EntityType) || EntityType.Unknown,
             aliases: value?.aliases || [],
+            description: this.profileToYaml(entityName, value?.type || 'unknown', value?.profile || {}),
+            name: entityName,
             profile: value?.profile || {},
-            description: this.profileToYaml(entityName, value?.type || 'unknown', value?.profile || {})
+            type: (value?.type as EntityType) || EntityType.Unknown
         };
 
         if (!isDryRun) {
@@ -273,9 +274,9 @@ export class SaveEntity implements IStep {
 
     private convertRootAddToPatches(entityName: string, value: any, entityPatches: any[]) {
         if (value && typeof value === 'object') {
-            if (value.profile) entityPatches.push({ op: 'add', path: `/entities/${entityName}/profile`, value: value.profile });
-            if (value.type) entityPatches.push({ op: 'replace', path: `/entities/${entityName}/type`, value: value.type });
-            if (value.aliases) entityPatches.push({ op: 'add', path: `/entities/${entityName}/aliases`, value: value.aliases });
+            if (value.profile) {entityPatches.push({ op: 'add', path: `/entities/${entityName}/profile`, value: value.profile });}
+            if (value.type) {entityPatches.push({ op: 'replace', path: `/entities/${entityName}/type`, value: value.type });}
+            if (value.aliases) {entityPatches.push({ op: 'add', path: `/entities/${entityName}/aliases`, value: value.aliases });}
         }
     }
 
@@ -301,19 +302,19 @@ export class SaveEntity implements IStep {
                 if (!isDryRun) {
                     const description = this.profileToYaml(targetDoc.name, targetDoc.type, targetDoc.profile || {});
                     await store.updateEntity(existing.id, {
-                        profile: targetDoc.profile,
                         aliases: targetDoc.aliases,
                         description,
                         name: targetDoc.name,
+                        profile: targetDoc.profile,
                         type: targetDoc.type
                     });
                     updatedEntities.push(targetDoc);
                 } else {
                     const diffs = relativeOps.map(op => {
-                        let oldValue: any = undefined;
+                        let oldValue;
                         try {
-                            if (op.op === 'replace' || op.op === 'remove') oldValue = jsonpatch.getValueByPointer(existing, op.path);
-                        } catch (e) { /* ignore */ }
+                            if (op.op === 'replace' || op.op === 'remove') {oldValue = jsonpatch.getValueByPointer(existing, op.path);}
+                        } catch { /* Ignore */ }
                         return { ...op, oldValue };
                     });
                     targetDoc.description = this.profileToYaml(targetDoc.name, targetDoc.type, targetDoc.profile || {});
@@ -321,8 +322,8 @@ export class SaveEntity implements IStep {
                     updatedEntities.push(targetDoc);
                 }
             }
-        } catch (e) {
-            Logger.warn('SaveEntity', `Patch failed for ${entityName}`, e);
+        } catch (error) {
+            Logger.warn('SaveEntity', `Patch failed for ${entityName}`, error);
         }
     }
 
@@ -330,14 +331,14 @@ export class SaveEntity implements IStep {
         const relativeOps = [];
         for (const p of entityPatches) {
             const isRoot = p.path === `/entities/${entityName}`;
-            if (isRoot && p.op === 'add') continue; 
+            if (isRoot && p.op === 'add') {continue;} 
 
             if (isRoot && (p.op === 'replace' || p.op === 'test')) {
                 if (p.value && typeof p.value === 'object') {
                     const val = p.value as any;
-                    if (val.profile) relativeOps.push({ op: p.op, path: '/profile', value: val.profile });
-                    if (val.type) relativeOps.push({ op: p.op, path: '/type', value: val.type });
-                    if (val.aliases) relativeOps.push({ op: p.op, path: '/aliases', value: val.aliases });
+                    if (val.profile) {relativeOps.push({ op: p.op, path: '/profile', value: val.profile });}
+                    if (val.type) {relativeOps.push({ op: p.op, path: '/type', value: val.type });}
+                    if (val.aliases) {relativeOps.push({ op: p.op, path: '/aliases', value: val.aliases });}
                 }
                 continue;
             }
@@ -389,14 +390,14 @@ export class SaveEntity implements IStep {
         if (data.entities) {
             for (const extracted of data.entities) {
                 const exists = existingEntities.find(e => e.name === extracted.name || e.aliases?.includes(extracted.name));
-                if (exists) continue;
+                if (exists) {continue;}
 
                 const entity: any = {
-                    name: extracted.name,
-                    type: (extracted.type as EntityType) || EntityType.Unknown,
                     aliases: extracted.aliases || [],
+                    description: this.profileToYaml(extracted.name, extracted.type, extracted.profile || {}),
+                    name: extracted.name,
                     profile: extracted.profile || {},
-                    description: this.profileToYaml(extracted.name, extracted.type, extracted.profile || {})
+                    type: (extracted.type as EntityType) || EntityType.Unknown
                 };
 
                 if (!isDryRun) {
@@ -417,7 +418,7 @@ export class SaveEntity implements IStep {
                     continue;
                 }
                 const target = existingEntities.find(e => e.name === patch.name || e.id === patch.name);
-                if (!target) continue;
+                if (!target) {continue;}
 
                 try {
                     const targetDoc = JSON.parse(JSON.stringify(target));
@@ -426,29 +427,29 @@ export class SaveEntity implements IStep {
                     if (!isDryRun) {
                         const description = this.profileToYaml(targetDoc.name, targetDoc.type, targetDoc.profile || {});
                         await store.updateEntity(target.id, {
-                            profile: targetDoc.profile,
                             aliases: targetDoc.aliases,
                             description,
                             name: targetDoc.name,
+                            profile: targetDoc.profile,
                             type: targetDoc.type
                         });
                         updatedEntities.push(targetDoc);
                     } else {
                         // DryRun: Attach diffs with old/new values
                         const diffs = patch.ops.map(op => {
-                            let oldValue: any = undefined;
+                            let oldValue;
                             try {
                                 if (op.op === 'replace' || op.op === 'remove') {
                                     oldValue = jsonpatch.getValueByPointer(target, op.path); // Note: use 'target' (original) here
                                 }
-                            } catch (e) { /* ignore */ }
+                            } catch { /* Ignore */ }
                             return { ...op, oldValue };
                         });
                         (targetDoc as any)._diff = diffs;
                         updatedEntities.push(targetDoc);
                     }
-                } catch (e) {
-                    Logger.warn('SaveEntity', `Patch failed for ${patch.name}`, e);
+                } catch (error) {
+                    Logger.warn('SaveEntity', `Patch failed for ${patch.name}`, error);
                 }
             }
         }
@@ -464,8 +465,8 @@ export class SaveEntity implements IStep {
                 sortKeys: false,
             });
             return `${name}\n${yamlContent.trim()}`;
-        } catch (e) {
-            Logger.warn('SaveEntity', 'YAML Dump failed', e);
+        } catch (error) {
+            Logger.warn('SaveEntity', 'YAML Dump failed', error);
             return `${name} (${type})\n${JSON.stringify(profile, null, 2)}`;
         }
     }
@@ -478,7 +479,7 @@ export class SaveEntity implements IStep {
     private findUniquePath(obj: any, targetKey: string, currentPath: string = ''): string[] {
         let results: string[] = [];
 
-        if (!obj || typeof obj !== 'object') return [];
+        if (!obj || typeof obj !== 'object') {return [];}
 
         for (const key of Object.keys(obj)) {
             const newPath = currentPath ? `${currentPath}/${key}` : key;

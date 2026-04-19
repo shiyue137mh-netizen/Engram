@@ -26,8 +26,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     description,
     action,
     className = '',
-}) => {
-    return (
+}) => (
         <div className={`flex flex-col items-center justify-center p-8 text-muted-foreground gap-4 h-full min-h-[200px] animate-in fade-in duration-300 ${className}`}>
             <div className="p-4 bg-muted/30 rounded-full">
                 <Icon size={48} className="opacity-20 text-foreground" />
@@ -47,4 +46,3 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
             )}
         </div>
     );
-};

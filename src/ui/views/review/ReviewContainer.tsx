@@ -1,4 +1,4 @@
-import { ReviewAction, ReviewRequest } from '@/core/events/ReviewBridge';
+import type { ReviewAction, ReviewRequest } from '@/core/events/ReviewBridge';
 import { EventBus, TavernEventType } from '@/integrations/tavern'; // EventBus is from events.ts
 import { ModernButton as Button } from '@/ui/components/core/Button';
 import { AlertTriangle, ArrowDownToLine, Check, Layers, Minus, RefreshCw, RotateCcw, X } from 'lucide-react';
@@ -171,11 +171,11 @@ export const ReviewContainer: React.FC = () => {
             (payload: unknown) => {
                 const req = payload as ReviewRequest;
                 // Ensure ID exists (fallback for old callers though we updated Bridge)
-                if (!req.id) req.id = Date.now().toString();
+                if (!req.id) {req.id = Date.now().toString();}
 
                 setRequests(prev => {
                     const exists = prev.find(r => r.id === req.id);
-                    if (exists) return prev;
+                    if (exists) {return prev;}
                     return [...prev, req];
                 });
 
@@ -202,7 +202,7 @@ export const ReviewContainer: React.FC = () => {
     const handleRestore = () => setIsMinimized(false);
 
     // Render Logic
-    if (requests.length === 0) return null;
+    if (requests.length === 0) {return null;}
 
     // Minimized Badge
     if (isMinimized) {

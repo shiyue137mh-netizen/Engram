@@ -3,7 +3,8 @@
  * 输入预处理系统类型定义
  */
 
-import { DEFAULT_PREPROCESSING_CONFIG, PreprocessingConfig } from '@/config/types/data_processing';
+import type { PreprocessingConfig } from '@/config/types/data_processing';
+import { DEFAULT_PREPROCESSING_CONFIG } from '@/config/types/data_processing';
 
 // 重新导出以便模块内其他文件使用
 export { DEFAULT_PREPROCESSING_CONFIG };

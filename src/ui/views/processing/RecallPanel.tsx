@@ -11,7 +11,7 @@ interface RecallPanelProps {
 
 import { scanEntities, scanEvents } from '@/modules/memory/EntityScanner';
 import { preprocessor } from '@/modules/preprocessing';
-import { type AgenticRecall } from '@/modules/preprocessing/types';
+import type { AgenticRecall } from '@/modules/preprocessing/types';
 import { retriever } from '@/modules/rag/retrieval/Retriever';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
@@ -68,7 +68,7 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
 
     /** 统一处理预览测试：前置确认 -> 调取大模型 / 向量检索引擎 -> 弹出 Modal (统一样式) */
     const handlePreviewTest = async () => {
-        if (!testQuery.trim() || isTesting) return;
+        if (!testQuery.trim() || isTesting) {return;}
 
         // 向用户提供明确的 Token 扣费警告
         // V1.4: 如果仅启用了关键词召回 (0 消耗)，则跳过确认
@@ -76,7 +76,7 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
 
         if (!isZeroCost) {
             const userAgreed = window.confirm('召回预览将马上调用远端模型（大语言模型或 Embedding/Rerank 模型）来生成结果，这会产生 Token 消耗，请确认是否继续？');
-            if (!userAgreed) return;
+            if (!userAgreed) {return;}
         }
 
         setIsTesting(true);
@@ -114,15 +114,15 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
                 // 把检索返回的带分数的 candidate 元素组装为相同的结构格式供 Modal 消费
                 const pseudoRecalls: AgenticRecall[] = candidates.map(c => ({
                     id: c.id,
-                    score: c.hybridScore ?? c.rerankScore ?? c.embeddingScore ?? 0,
-                    reason: c.rerankScore != null ? 'Rerank 优化命中' : '向量检索 (TopK) 命中'
+                    reason: c.rerankScore != null ? 'Rerank 优化命中' : '向量检索 (TopK) 命中',
+                    score: c.hybridScore ?? c.rerankScore ?? c.embeddingScore ?? 0
                 }));
 
                 setCurrentRecalls(pseudoRecalls);
                 setCurrentEntities(recalledEntities);
                 setIsModalOpen(true);
             }
-        } catch (error) {
+        } catch {
             notificationService.error('召回预览执行失败，请查阅控制台报错', 'RAG');
         } finally {
             setIsTesting(false);
@@ -290,14 +290,14 @@ export const RecallPanel: React.FC<RecallPanelProps> = ({
                         setIsTesting(true);
                         // 确认后，通过提供明确的 ID 数组强制触发最终的内容装配与记录，绕过额外的无谓检索
                         const searchResult = await retriever.agenticSearch(newRecalls, {
-                            mode: isAgenticMode ? 'agentic' : 'hybrid',
-                            isManualTest: true // 显式标记为手动测试，跳过日志和 Brain 状态变更
+                            isManualTest: true,
+                            mode: isAgenticMode ? 'agentic' : 'hybrid' // 显式标记为手动测试，跳过日志和 Brain 状态变更
                         });
                         notificationService.success(
                             `预览确认完成! 强一致性注入 ${searchResult.nodes?.length ?? 0} 条事件，请查看日志`,
                             'RAG'
                         );
-                    } catch (error) {
+                    } catch {
                         notificationService.error('确认后重新执行内容装配失败', 'RAG');
                     } finally {
                         setIsTesting(false);

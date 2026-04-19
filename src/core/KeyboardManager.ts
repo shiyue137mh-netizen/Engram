@@ -28,7 +28,7 @@ interface RegisteredShortcut {
 const MODULE = 'KeyboardManager';
 
 class KeyboardManager {
-    private shortcuts: Map<string, RegisteredShortcut> = new Map();
+    private shortcuts = new Map<string, RegisteredShortcut>();
     private isEnabled = false;
     private boundKeydownHandler: (e: KeyboardEvent) => void;
 
@@ -75,20 +75,20 @@ class KeyboardManager {
      * 移除所有挂载的事件监听器
      */
     stop(): void {
-        if (!this.isEnabled) return;
+        if (!this.isEnabled) {return;}
 
         try {
             const parentDoc = window.parent?.document;
             if (parentDoc && parentDoc !== document) {
                 parentDoc.removeEventListener('keydown', this.boundKeydownHandler, true);
             }
-        } catch (error) {
+        } catch {
             // 忽略访问错误
         }
 
         try {
             document.removeEventListener('keydown', this.boundKeydownHandler, true);
-        } catch (error) {
+        } catch {
             // 忽略错误
         }
 
@@ -101,18 +101,18 @@ class KeyboardManager {
      */
     register(config: ShortcutConfig): void {
         const shortcutKey = this.generateShortcutKey(config.key, {
+            alt: config.alt,
             ctrl: config.ctrl,
             shift: config.shift,
-            alt: config.alt,
         });
 
         this.shortcuts.set(shortcutKey, {
-            key: config.key.toLowerCase(),
-            ctrl: config.ctrl || false,
-            shift: config.shift || false,
             alt: config.alt || false,
             callback: config.callback,
+            ctrl: config.ctrl || false,
             description: config.description,
+            key: config.key.toLowerCase(),
+            shift: config.shift || false,
         });
 
         Logger.debug(MODULE, `已注册快捷键: ${shortcutKey} (${config.description})`);
@@ -133,9 +133,9 @@ class KeyboardManager {
      * 获取当前所有活动的快捷键列表
      */
     getRegisteredShortcuts(): { key: string; description: string }[] {
-        return Array.from(this.shortcuts.entries()).map(([key, config]) => ({
-            key,
+        return [...this.shortcuts.entries()].map(([key, config]) => ({
             description: config.description,
+            key,
         }));
     }
 
@@ -145,9 +145,9 @@ class KeyboardManager {
      */
     private generateShortcutKey(key: string, options: { ctrl?: boolean; shift?: boolean; alt?: boolean }): string {
         const parts: string[] = [];
-        if (options.ctrl) parts.push('ctrl');
-        if (options.shift) parts.push('shift');
-        if (options.alt) parts.push('alt');
+        if (options.ctrl) {parts.push('ctrl');}
+        if (options.shift) {parts.push('shift');}
+        if (options.alt) {parts.push('alt');}
         parts.push(key.toLowerCase());
         return parts.join('+');
     }
@@ -155,7 +155,7 @@ class KeyboardManager {
     /**
      * 键盘事件处理核心逻辑
      */
-    private lastTriggerTime: Map<string, number> = new Map(); // Phase 3: 记录各按键上次触发时间
+    private lastTriggerTime = new Map<string, number>(); // Phase 3: 记录各按键上次触发时间
     private THROTTLE_DELAY = 500; // 500ms 内禁止连续触发同一快捷键
 
     private handleKeydown(event: KeyboardEvent): void {
@@ -200,9 +200,9 @@ class KeyboardManager {
      * 检测焦点是否在输入控件上
      */
     private isTyping(element: Element | null): boolean {
-        if (!element) return false;
+        if (!element) {return false;}
 
-        const tagName = element.tagName;
+        const {tagName} = element;
 
         // 标准输入元素
         if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
@@ -215,7 +215,7 @@ class KeyboardManager {
         }
 
         // SillyTavern 特定的输入区域
-        const id = element.id;
+        const {id} = element;
         if (id === 'send_textarea' || id === 'prompt-input') {
             return true;
         }
@@ -249,27 +249,27 @@ export interface KeyboardShortcutCallbacks {
 export function setupKeyboardShortcuts(callbacks: KeyboardShortcutCallbacks): void {
     // Ctrl+Shift+E: 切换主面板
     keyboardManager.register({
-        key: 'e',
-        ctrl: true,
-        shift: true,
         callback: callbacks.toggleMainPanel,
+        ctrl: true,
         description: 'Ctrl+Shift+E - 切换主面板',
+        key: 'e',
+        shift: true,
     });
 
     // Ctrl+Q: 切换快捷面板 (Quick Panel)
     keyboardManager.register({
-        key: 'q',
-        ctrl: true,
         callback: callbacks.toggleQuickPanel,
+        ctrl: true,
         description: 'Ctrl+Q - 切换快捷面板',
+        key: 'q',
     });
 
     // Ctrl+K: 打开命令面板 (Command Palette)
     keyboardManager.register({
-        key: 'k',
-        ctrl: true,
         callback: callbacks.openCommandPalette,
+        ctrl: true,
         description: 'Ctrl+K - 打开命令面板',
+        key: 'k',
     });
 
     // 启动服务

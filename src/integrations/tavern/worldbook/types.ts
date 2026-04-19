@@ -83,5 +83,5 @@ export interface WorldInfoEntry {
 export interface WorldInfoTokenStats {
     totalTokens: number;
     entryCount: number;
-    entries: Array<{ name: string; tokens: number }>;
+    entries: { name: string; tokens: number }[];
 }

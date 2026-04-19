@@ -12,8 +12,8 @@ import React, { useEffect, useRef, useState } from 'react';
 // 视觉配置
 const COLORS = {
     bg: '#000000',
-    primary: '#FFFFFF',
-    grid: '#111111'
+    grid: '#111111',
+    primary: '#FFFFFF'
 };
 
 interface WelcomeAnimationProps {
@@ -37,24 +37,24 @@ export const WelcomeAnimation: React.FC<WelcomeAnimationProps> = ({ onComplete }
         script.src = "https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js";
         script.async = true;
         script.onload = () => setGsapLoaded(true);
-        document.body.appendChild(script);
+        document.body.append(script);
     }, []);
 
     // 核心动画序列
     const runAnimation = () => {
-        if (!gsapLoaded || !graphLogoRef.current) return;
-        const gsap = (window as any).gsap;
+        if (!gsapLoaded || !graphLogoRef.current) {return;}
+        const {gsap} = (window as any);
 
         // 初始化状态
         const logoPath = graphLogoRef.current;
         const logoLen = logoPath.getTotalLength();
 
         gsap.set(logoPath, {
-            strokeDasharray: logoLen,
-            strokeDashoffset: logoLen,
-            stroke: COLORS.primary,
             fillOpacity: 0,
             opacity: 1,
+            stroke: COLORS.primary,
+            strokeDasharray: logoLen,
+            strokeDashoffset: logoLen,
             strokeWidth: 2
         });
 
@@ -63,36 +63,36 @@ export const WelcomeAnimation: React.FC<WelcomeAnimationProps> = ({ onComplete }
             gsap.set(textPaths, { opacity: 0, y: 10 });
         }
 
-        gsap.set(graphContainerRef.current, { scale: 1, opacity: 1 });
+        gsap.set(graphContainerRef.current, { opacity: 1, scale: 1 });
         gsap.set(containerRef.current, { opacity: 1 });
 
         const tl = gsap.timeline({
             onComplete: () => {
                 // 动画完成后淡出并关闭
                 gsap.to(containerRef.current, {
-                    opacity: 0,
                     duration: 0.8,
                     ease: "power2.out",
-                    onComplete: onComplete
+                    onComplete: onComplete,
+                    opacity: 0
                 });
             }
         });
 
         // Phase 1: 路径描边
         tl.to(logoPath, {
-            strokeDashoffset: 0,
             duration: 2.5,
-            ease: "power2.inOut"
+            ease: "power2.inOut",
+            strokeDashoffset: 0
         });
 
         // Phase 2: 文字浮现
         if (textPaths) {
             tl.to(textPaths, {
-                opacity: 1,
-                y: 0,
                 duration: 1.2,
+                ease: "power3.out",
+                opacity: 1,
                 stagger: 0.08,
-                ease: "power3.out"
+                y: 0
             }, "-=0.8");
         }
 

@@ -1,5 +1,5 @@
-import { IStep } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
 import { useMemoryStore } from '@/state/memoryStore';
 import { Logger } from '@/core/logger';
 
@@ -12,9 +12,9 @@ export class FetchExistingEntities implements IStep {
 
         // 简化实体信息，用于 Prompt 上下文
         const simplified = entities.map(e => ({
+            aliases: e.aliases || [],
             name: e.name,
-            type: e.type,
-            aliases: e.aliases || []
+            type: e.type
         }));
 
         // 存入 Input 供 BuildPrompt 使用

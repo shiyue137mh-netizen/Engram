@@ -1,9 +1,10 @@
 /**
- * useRegexRules - 正则替换规则管理
+ * UseRegexRules - 正则替换规则管理
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { RegexRule, DEFAULT_REGEX_RULES } from '@/modules/workflow/steps';
+import { useCallback, useEffect, useState } from 'react';
+import type { RegexRule} from '@/modules/workflow/steps';
+import { DEFAULT_REGEX_RULES } from '@/modules/workflow/steps';
 import { SettingsManager } from "@/config/settings";
 
 export interface UseRegexRulesReturn {
@@ -40,14 +41,14 @@ export function useRegexRules(): UseRegexRulesReturn {
 
     const addRule = useCallback(() => {
         const newRule: RegexRule = {
+            description: '',
+            enabled: true,
+            flags: 'gi',
             id: `rule_${Date.now()}`,
             name: '新规则',
             pattern: '',
             replacement: '',
-            enabled: true,
-            flags: 'gi',
             scope: 'both',
-            description: '',
         };
         setRegexRules(prev => [...prev, newRule]);
         setEditingRule(newRule);
@@ -55,7 +56,7 @@ export function useRegexRules(): UseRegexRulesReturn {
     }, []);
 
     const updateRule = useCallback((updates: Partial<RegexRule>) => {
-        if (!editingRule) return;
+        if (!editingRule) {return;}
         const updated = { ...editingRule, ...updates };
         setEditingRule(updated);
         setRegexRules(prev => prev.map(r => r.id === updated.id ? updated : r));
@@ -95,16 +96,16 @@ export function useRegexRules(): UseRegexRulesReturn {
     }, [regexRules]);
 
     return {
-        regexRules,
+        addRule,
+        deleteRule,
         editingRule,
         hasChanges,
-        selectRule,
-        addRule,
-        updateRule,
-        toggleRule,
-        deleteRule,
-        resetRules,
+        regexRules,
         reorderRules,
+        resetRules,
         saveRegexRules,
+        selectRule,
+        toggleRule,
+        updateRule,
     };
 }

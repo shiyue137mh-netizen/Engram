@@ -1,11 +1,11 @@
 import { SettingsManager } from '@/config/settings';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { generateShortUUID } from '@/core/utils';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { WorkflowEngine } from '@/modules/workflow/core/WorkflowEngine';
 import { SaveEvent } from '@/modules/workflow/steps/persistence/SaveEvent';
 import { ParseJson } from '@/modules/workflow/steps/processing/ParseJson';
-import { BatchTask, IBatchTaskHandler } from '../types';
+import type { BatchTask, IBatchTaskHandler } from '../types';
 import { BatchUtils } from '@/modules/batch/utils/BatchUtils';
 
 /** 外部导入模式 */
@@ -28,22 +28,22 @@ export class ImportTextTask implements IBatchTaskHandler {
     constructor(
         private text: string,
         private config: ImportConfig
-    ) { }
+    ) {}
 
     /**
      * 第一步：分片并预估需要创建的 Task 数
      */
     async estimate(): Promise<BatchTask[]> {
         const chunks = BatchUtils.chunkText(this.text, this.config.chunkSize, this.config.overlapSize);
-        if (chunks.length === 0) return [];
+        if (chunks.length === 0) {return [];}
 
         // 我们对于 Import 这个行为，就只构建一个宏观级的任务单元
         const mainTask: BatchTask = {
             id: generateShortUUID('imp_'),
-            type: 'import',
-            status: 'pending',
             name: `导入外部文本 (${chunks.length} 个片段)`,
             progress: { current: 0, total: chunks.length },
+            status: 'pending',
+            type: 'import',
         };
 
         return [mainTask];
@@ -77,7 +77,7 @@ export class ImportTextTask implements IBatchTaskHandler {
                 if (this.config.mode === 'detailed') {
                     // V0.9.7: 调用 LLM 生成结构化摘要
                     const llmResult = await BatchUtils.summarizeChunk(chunk, i);
-                    if (checkStopSignal()) return;
+                    if (checkStopSignal()) {return;}
 
                     if (llmResult) {
                         // 使用 Workflow Engine 解析 JSON 并存储
@@ -87,19 +87,19 @@ export class ImportTextTask implements IBatchTaskHandler {
                                 steps: [new ParseJson(), new SaveEvent()]
                             },
                             {
-                                llmResponse: {
-                                    content: llmResult,
-                                    success: true,
-                                    tokenUsage: 0
-                                },
                                 input: {
                                     isImport: true, // 增加标识放在 input 里
                                     // 模拟 range，用于 SaveEvent 记录 source_range
                                     range: [i, i]
+                                },
+                                llmResponse: {
+                                    content: llmResult,
+                                    success: true,
+                                    tokenUsage: 0
                                 }
                             }
                         );
-                        if (checkStopSignal()) return;
+                        if (checkStopSignal()) {return;}
 
                         if (Array.isArray(savedEvents) && savedEvents.length > 0) {
                             // Pipeline 已处理存储，只需嵌入
@@ -117,18 +117,18 @@ export class ImportTextTask implements IBatchTaskHandler {
                             try {
                                 const { createEntityWorkflow } = await import('@/modules/workflow/definitions/EntityWorkflow');
                                 await WorkflowEngine.run(createEntityWorkflow(), {
-                                    trigger: 'auto',
                                     config: {
-                                        previewEnabled: false,
+                                        category: 'entity_extraction',
                                         dryRun: false,
                                         logType: 'entity_extraction',
-                                        category: 'entity_extraction'
+                                        previewEnabled: false
                                     },
                                     input: {
                                         isImport: true,
                                         chatHistory: chunk, // 原文分块
                                         range: [i, i]
-                                    }
+                                    },
+                                    trigger: 'auto'
                                 });
                             } catch (entError: any) {
                                 Logger.error(LogModule.BATCH, `分块 ${i} 实体提取异常`, { error: entError.message });
@@ -170,19 +170,19 @@ export class ImportTextTask implements IBatchTaskHandler {
                         parsedData: {
                             events: [
                                 {
-                                    summary: chunk,
-                                    time_anchor: new Date().toISOString(),
-                                    role: ['(import)'],
-                                    location: ['(import)'],
+                                    causality: '',
                                     event: '(import)',
+                                    location: ['(import)'],
                                     logic: [],
-                                    causality: ''
+                                    role: ['(import)'],
+                                    summary: chunk,
+                                    time_anchor: new Date().toISOString()
                                 }
                             ]
                         }
                     }
                 );
-                if (checkStopSignal()) return;
+                if (checkStopSignal()) {return;}
 
                 if (Array.isArray(fallbackEvents) && fallbackEvents.length > 0) {
                     const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
@@ -195,8 +195,8 @@ export class ImportTextTask implements IBatchTaskHandler {
                     success++;
                 }
 
-            } catch (e: any) {
-                Logger.error(LogModule.BATCH, `处理分块 ${i} 失败`, { error: e.message });
+            } catch (error: any) {
+                Logger.error(LogModule.BATCH, `处理分块 ${i} 失败`, { error: error.message });
                 // We keep moving even if a chunk falls through, but we update UI
             }
 

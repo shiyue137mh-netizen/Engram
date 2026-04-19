@@ -1,12 +1,12 @@
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { tryGetDbForChat } from '@/data/db';
 import { getCurrentChatId } from '@/integrations/tavern';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
-import { type ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
-import { JobContext } from '../../core/JobContext';
-import { IStep, RetryConfig } from '../../core/Step';
+import type { ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep, RetryConfig } from '../../core/Step';
 
 export class VectorRetrieveStep implements IStep {
     name = 'VectorRetrieveStep';
@@ -15,9 +15,9 @@ export class VectorRetrieveStep implements IStep {
         const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
         const customConfig = vectorConfig?.retryConfig;
         return {
-            maxAttempts: customConfig?.maxAttempts ?? 3,
-            delay: customConfig?.retryDelay ?? 2000,
             backoff: 'exponential',
+            delay: customConfig?.retryDelay ?? 2000,
+            maxAttempts: customConfig?.maxAttempts ?? 3,
             retryIf: (error: any) => {
                 const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
                 return msg.includes('429') ||
@@ -70,7 +70,7 @@ export class VectorRetrieveStep implements IStep {
         try {
             // V1.4.1 Fix: 在嵌入前配置 Embedding 服务，防止 "config not set" 错误
             const vectorConfig = SettingsManager.get('apiSettings')?.vectorConfig;
-            Logger.debug(LogModule.RAG_RETRIEVE, 'VectorRetrieveStep: 准备设置配置', { hasConfig: !!vectorConfig });
+            Logger.debug(LogModule.RAG_RETRIEVE, 'VectorRetrieveStep: 准备设置配置', { hasConfig: Boolean(vectorConfig) });
             if (vectorConfig) {
                 embeddingService.setConfig(vectorConfig);
                 Logger.debug(LogModule.RAG_RETRIEVE, 'VectorRetrieveStep: 配置已设置');
@@ -86,23 +86,23 @@ export class VectorRetrieveStep implements IStep {
 
             // P2 Fix: 使用字符级安全的截断方式，防止 Emoji/多字节字符截断损坏
             const maxLength = isFallbackFromChat ? 300 : 500;
-            const searchQuery = Array.from(rawQuery).length > maxLength
-                ? Array.from(rawQuery).slice(0, maxLength).join('') + "..."
+            const searchQuery = [...rawQuery].length > maxLength
+                ? [...rawQuery].slice(0, maxLength).join('') + "..."
                 : rawQuery;
 
-            if (Array.from(rawQuery).length > maxLength) {
+            if ([...rawQuery].length > maxLength) {
                 Logger.debug(LogModule.RAG_RETRIEVE, `VectorRetrieveStep: 查询过长，已裁剪至 ${maxLength} 字符`, {
-                    originalLength: rawQuery.length,
-                    isFallback: isFallbackFromChat
+                    isFallback: isFallbackFromChat,
+                    originalLength: rawQuery.length
                 });
             }
 
             queryVector = await embeddingService.embed(searchQuery);
-        } catch (e: any) {
-            Logger.warn(LogModule.RAG_RETRIEVE, '生成查询向量失败', { error: e.message });
+        } catch (error: any) {
+            Logger.warn(LogModule.RAG_RETRIEVE, '生成查询向量失败', { error: error.message });
             // P2 Update: 为了让 WorkflowEngine 触发重试逻辑，这里需要向上抛出而不是静默吞没
             // 如果所有的重试都失败了，WorkflowEngine 会中断整个 Workflow，这比悄悄生成低质量回复更好
-            throw e;
+            throw error;
         }
 
         // 计算相似度（流式维护 TopK，避免全量事件入内存）
@@ -127,10 +127,10 @@ export class VectorRetrieveStep implements IStep {
 
             matchedEvents += 1;
             const candidate: ScoredEvent = {
-                id: event.id,
-                summary: event.summary,
                 embeddingScore: similarity,
+                id: event.id,
                 node: event,
+                summary: event.summary,
             };
 
             if (candidates.length < topK) {
@@ -139,7 +139,7 @@ export class VectorRetrieveStep implements IStep {
                 return;
             }
 
-            const tailScore = candidates[candidates.length - 1]?.embeddingScore || 0;
+            const tailScore = candidates.at(-1)?.embeddingScore || 0;
             if (similarity <= tailScore) {
                 return;
             }
@@ -156,11 +156,11 @@ export class VectorRetrieveStep implements IStep {
 
         Logger.debug(LogModule.RAG_INJECT, '向量检索完成', {
             candidateCount: context.data.candidates.length,
-            scannedEvents,
             embeddedEvents,
             matchedEvents,
-            topK,
+            scannedEvents,
             threshold,
+            topK,
         });
     }
 }

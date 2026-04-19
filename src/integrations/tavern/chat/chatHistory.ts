@@ -12,10 +12,10 @@ export class ChatHistoryHelper {
      */
     static getChatHistory(floorRange?: [number, number]): string {
         try {
-            // @ts-ignore
+            // @ts-expect-error
             const context = window.SillyTavern?.getContext?.();
-            // @ts-ignore
-            const TavernHelper = window.TavernHelper;
+            // @ts-expect-error
+            const {TavernHelper} = window;
 
             if (context?.chat && Array.isArray(context.chat)) {
                 let messages: any[] = [];
@@ -26,17 +26,17 @@ export class ChatHistoryHelper {
                     // 鲁棒性保护：确保 start 至少为 1，防止 slice(-1) 错误
                     const effectiveStart = Math.max(1, start);
                     
-                    // slice(start, end) end 是不包含的 (exclusive)，但我们需要包含 end 楼层。
-                    // floor 1 对应 index 0。
+                    // Slice(start, end) end 是不包含的 (exclusive)，但我们需要包含 end 楼层。
+                    // Floor 1 对应 index 0。
                     const sliceStart = effectiveStart - 1;
                     const sliceEnd = end;
                     messages = context.chat.slice(sliceStart, sliceEnd);
                     Logger.info('ChatHistoryHelper', 'getChatHistory 调试信息', {
-                        inputRange: floorRange,
                         calcSlice: [sliceStart, sliceEnd],
                         chatLen: context.chat.length,
+                        firstMsgIndex: context.chat.indexOf(messages[0]),
                         firstMsgSummary: messages[0]?.mes?.substring(0, 20) || 'undefined',
-                        firstMsgIndex: context.chat.indexOf(messages[0])
+                        inputRange: floorRange
                     });
                 } else {
                     // 默认模式：智能增量 (Last Summarized -> End)
@@ -45,22 +45,22 @@ export class ChatHistoryHelper {
 
                     if (lastFloor > 0) {
                         // 如果有上次总结的记录，从下一层开始获取
-                        // lastFloor 是 index + 1 (1-based)
-                        // slice(lastFloor) 刚好是从 lastFloor (index) 开始，即 floor lastFloor + 1
+                        // LastFloor 是 index + 1 (1-based)
+                        // Slice(lastFloor) 刚好是从 lastFloor (index) 开始，即 floor lastFloor + 1
                         messages = context.chat.slice(lastFloor);
                         Logger.debug('ChatHistoryHelper', 'getChatHistory (Smart Incremental)', {
-                            lastSummarizedFloor: lastFloor,
-                            count: messages.length
+                            count: messages.length,
+                            lastSummarizedFloor: lastFloor
                         });
                     } else {
                         // Fallback: 最近 N 条
                         const limit = this.getDynamicChatHistoryLimit();
                         messages = context.chat.slice(-limit);
-                        Logger.debug('ChatHistoryHelper', 'getChatHistory (Recent Fallback)', { limit, count: messages.length });
+                        Logger.debug('ChatHistoryHelper', 'getChatHistory (Recent Fallback)', { count: messages.length, limit });
                     }
                 }
 
-                if (messages.length === 0) return '';
+                if (messages.length === 0) {return '';}
 
                 return messages.map((m: any, index: number) => {
                     // 鲁棒的 content 获取
@@ -69,15 +69,15 @@ export class ChatHistoryHelper {
 
                     // 1. 酒馆原生正则清洗
                     // V0.9.9: 增加详细调试日志
-                    const hasTavernHelper = !!TavernHelper;
+                    const hasTavernHelper = Boolean(TavernHelper);
                     const hasFormatFunc = typeof TavernHelper?.formatAsTavernRegexedString === 'function';
 
                     // 只在第一条消息输出一次诊断信息
                     if (index === 0) {
                         Logger.debug('ChatHistoryHelper', 'TavernHelper 诊断', {
-                            hasTavernHelper,
+                            availableMethods: TavernHelper ? Object.keys(TavernHelper).slice(0, 10) : [],
                             hasFormatFunc,
-                            availableMethods: TavernHelper ? Object.keys(TavernHelper).slice(0, 10) : []
+                            hasTavernHelper
                         });
                     }
 
@@ -86,8 +86,8 @@ export class ChatHistoryHelper {
                             const prev = content;
 
                             // JS-Slash-Runner 正确签名：
-                            // formatAsTavernRegexedString(text, source, destination, option?)
-                            // destination='prompt' 对应“仅格式提示词”链路。
+                            // FormatAsTavernRegexedString(text, source, destination, option?)
+                            // Destination='prompt' 对应“仅格式提示词”链路。
                             try {
                                 content = TavernHelper.formatAsTavernRegexedString(
                                     content,
@@ -107,25 +107,25 @@ export class ChatHistoryHelper {
                             const didChange = prev !== content;
                             if (index === 0) {
                                 Logger.debug('ChatHistoryHelper', 'TavernHelper 正则结果', {
+                                    afterLength: content.length,
                                     didChange,
                                     prevLength: prev.length,
-                                    afterLength: content.length,
                                 });
                             }
 
                             if (!content && prev) {
                                 if (index === 0) {
-                                    Logger.debug('ChatHistoryHelper', 'TavernHelper stripped content empty! (Recovered)', { prev, content });
+                                    Logger.debug('ChatHistoryHelper', 'TavernHelper stripped content empty! (Recovered)', { content, prev });
                                 }
                                 content = prev; // 兜底恢复
                             }
-                        } catch (err) {
-                            Logger.warn('ChatHistoryHelper', '酒馆原生正则清洗失败', err);
+                        } catch (error) {
+                            Logger.warn('ChatHistoryHelper', '酒馆原生正则清洗失败', error);
                         }
                     } else if (index === 0) {
                         Logger.warn('ChatHistoryHelper', 'TavernHelper.formatAsTavernRegexedString 不可用', {
-                            hasTavernHelper,
-                            hasFormatFunc
+                            hasFormatFunc,
+                            hasTavernHelper
                         });
                     }
 
@@ -134,16 +134,16 @@ export class ChatHistoryHelper {
                     content = regexProcessor.process(content, 'both');
 
                     if (!content && preRegex) {
-                        Logger.warn('ChatHistoryHelper', 'RegexProcessor 清洗后内容为空!', { preRegex, content });
+                        Logger.warn('ChatHistoryHelper', 'RegexProcessor 清洗后内容为空!', { content, preRegex });
                     }
 
                     // 仅记录第一条和最后一条消息的处理情况以供调试
                     if (index === 0 || index === messages.length - 1) {
                         Logger.debug('ChatHistoryHelper', '消息处理详情', {
                             index,
-                            original: originalContent.substring(0, 50),
-                            step1_tavern: preRegex.substring(0, 50),
-                            step2_regex: content.substring(0, 50)
+                            original: originalContent.slice(0, 50),
+                            step1_tavern: preRegex.slice(0, 50),
+                            step2_regex: content.slice(0, 50)
                         });
                     }
 
@@ -153,8 +153,8 @@ export class ChatHistoryHelper {
             }
             Logger.warn('ChatHistoryHelper', 'Context chat is empty or invalid');
             return '';
-        } catch (e) {
-            Logger.debug('ChatHistoryHelper', '获取对话历史失败', e);
+        } catch (error) {
+            Logger.debug('ChatHistoryHelper', '获取对话历史失败', error);
             return '';
         }
     }
@@ -164,13 +164,13 @@ export class ChatHistoryHelper {
      */
     static getCurrentMessageCount(): number {
         try {
-            // @ts-ignore
+            // @ts-expect-error
             const context = window.SillyTavern?.getContext?.();
             if (context?.chat && Array.isArray(context.chat)) {
                 return context.chat.length;
             }
             return 0;
-        } catch (e) {
+        } catch {
             return 0;
         }
     }
@@ -189,10 +189,10 @@ export class ChatHistoryHelper {
             // 原因：间隔 20，缓冲 10 时，第 11~20 层可能还没被总结但也不在缓冲区内
             // 使用 floorInterval 确保完整覆盖可能出现在上下文中的内容
             const limit = Math.max(1, floorInterval);
-            Logger.debug('ChatHistoryHelper', '动态计算 chatHistory limit (FloorInterval)', { floorInterval, bufferSize, limit });
+            Logger.debug('ChatHistoryHelper', '动态计算 chatHistory limit (FloorInterval)', { bufferSize, floorInterval, limit });
             return limit;
-        } catch (e) {
-            Logger.warn('ChatHistoryHelper', '动态计算 limit 失败，使用默认值 20', e);
+        } catch (error) {
+            Logger.warn('ChatHistoryHelper', '动态计算 limit 失败，使用默认值 20', error);
             return 20; // 默认 floorInterval
         }
     }

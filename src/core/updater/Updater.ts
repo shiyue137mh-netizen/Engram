@@ -15,9 +15,9 @@ declare const __COMMIT_HASH__: string;
 
 /** GitHub 仓库配置 */
 const REPO_CONFIG = {
+    branch: 'master',
     owner: 'shiyue137mh-netizen',
-    repo: 'Engram',
-    branch: 'master', 
+    repo: 'Engram', 
 };
 
 /** 当前开发版本 */
@@ -42,8 +42,8 @@ function compareVersions(a: string, b: string): number {
     for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
         const numA = partsA[i] || 0;
         const numB = partsB[i] || 0;
-        if (numA > numB) return 1;
-        if (numA < numB) return -1;
+        if (numA > numB) {return 1;}
+        if (numA < numB) {return -1;}
     }
     return 0;
 }
@@ -70,11 +70,11 @@ export class UpdateService {
      * 获取真实的本地哈希 (从酒馆后端获取)
      */
     static async getRealLocalHash(): Promise<string> {
-        if (cachedRealLocalHash) return cachedRealLocalHash;
+        if (cachedRealLocalHash) {return cachedRealLocalHash;}
 
         const tavernStatus = await this.getTavernGitStatus();
         if (tavernStatus?.currentCommitHash) {
-            cachedRealLocalHash = tavernStatus.currentCommitHash.substring(0, 7);
+            cachedRealLocalHash = tavernStatus.currentCommitHash.slice(0, 7);
             return cachedRealLocalHash;
         }
 
@@ -95,7 +95,7 @@ export class UpdateService {
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                cachedLatestHash = data.sha?.substring(0, 7) || null;
+                cachedLatestHash = data.sha?.slice(0, 7) || null;
                 return cachedLatestHash;
             }
         } catch {
@@ -111,15 +111,15 @@ export class UpdateService {
         try {
             // 1. 获取真实的扩展名 (如果是第一次)
             const extensionName = await this.getRealExtensionName();
-            if (!extensionName) return null;
+            if (!extensionName) {return null;}
 
             const response = await fetch('/api/extensions/version', {
-                method: 'POST',
-                headers: getRequestHeaders(),
                 body: JSON.stringify({ 
                     extensionName: extensionName, 
                     global: false 
                 }),
+                headers: getRequestHeaders(),
+                method: 'POST',
             });
             if (response.ok) {
                 return await response.json();
@@ -135,13 +135,13 @@ export class UpdateService {
      * 解决开发环境 (Engram_project) 与生产环境 (Engram) 名称不一的问题
      */
     static async getRealExtensionName(): Promise<string | null> {
-        if (cachedRealExtensionName) return cachedRealExtensionName;
+        if (cachedRealExtensionName) {return cachedRealExtensionName;}
 
         try {
             const response = await fetch('/api/extensions/discover', {
                 headers: getRequestHeaders()
             });
-            if (!response.ok) return null;
+            if (!response.ok) {return null;}
 
             const extensions: { name: string; type: string }[] = await response.json();
             
@@ -159,12 +159,12 @@ export class UpdateService {
             if (found) {
                 // 处理可能包含 'third-party/' 前缀的情况
                 const parts = found.name.split(/[/\\]/);
-                cachedRealExtensionName = parts[parts.length - 1];
+                cachedRealExtensionName = parts.at(-1);
                 console.debug('[Engram] 自动识别扩展标识:', cachedRealExtensionName);
                 return cachedRealExtensionName;
             }
-        } catch (e) {
-            console.warn('[Engram] 自动识别目录名失败', e);
+        } catch (error) {
+            console.warn('[Engram] 自动识别目录名失败', error);
         }
 
         // 默认兜底
@@ -249,8 +249,8 @@ export class UpdateService {
 
             cachedChangelog = await response.text();
             return cachedChangelog;
-        } catch (e) {
-            console.error('[Engram] UpdateService: 获取更新日志异常', e);
+        } catch (error) {
+            console.error('[Engram] UpdateService: 获取更新日志异常', error);
             notificationService.error('获取更新日志异常', '更新检测');
             return null;
         }
@@ -277,8 +277,8 @@ export class UpdateService {
         try {
             SettingsManager.set('lastReadVersion', targetMark);
             console.debug('[Engram] UpdateService: 已标记已读', targetMark);
-        } catch (e) {
-            console.error('[Engram] UpdateService: 标记失败', e);
+        } catch (error) {
+            console.error('[Engram] UpdateService: 标记失败', error);
         }
     }
 
@@ -287,7 +287,7 @@ export class UpdateService {
      */
     static async hasUnreadUpdate(): Promise<boolean> {
         const hasUpdate = await this.hasUpdate();
-        if (!hasUpdate) return false;
+        if (!hasUpdate) {return false;}
 
         const latestVersion = await this.getLatestVersion() || CURRENT_VERSION;
         const latestHash = await this.getLatestHash() || await this.getRealLocalHash();

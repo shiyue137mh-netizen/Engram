@@ -2,7 +2,7 @@ import { SettingsManager } from '@/config/settings';
 import type { EntityNode, EventNode } from '@/data/types/graph';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
-import { useMemoryStore, getCurrentDb } from '@/state/memoryStore';
+import { getCurrentDb, useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
 import { filterEntities, filterEvents, groupEntities, groupEvents } from '@/ui/views/memory-stream/utils/streamProcessors';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -87,12 +87,12 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
         setIsLoading(true);
         try {
             const allEvents = await store.getAllEvents();
-            setEvents(allEvents.sort((a, b) => a.timestamp - b.timestamp));
+            setEvents(allEvents.toSorted((a, b) => a.timestamp - b.timestamp));
 
             const snapshot = brainRecallCache.getShortTermSnapshot();
             setActiveIds(new Set(snapshot.map(s => s.id)));
-        } catch (e) {
-            console.error('[MemoryStream] Failed to load events:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Failed to load events:', error);
         } finally {
             setIsLoading(false);
         }
@@ -103,8 +103,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
         try {
             const allEntities = await store.getAllEntities();
             setEntities(allEntities);
-        } catch (e) {
-            console.error('[MemoryStream] Failed to load entities:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Failed to load entities:', error);
         }
     }, [store.getAllEntities]);
 
@@ -118,13 +118,9 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
     // 派生状态 (Derived State)
     // ==========================================
 
-    const filteredEvents = useMemo(() => {
-        return filterEvents(events, pendingChanges, debouncedSearchQuery, showActiveOnly, activeIds, sortOrder);
-    }, [events, pendingChanges, debouncedSearchQuery, showActiveOnly, activeIds, sortOrder]);
+    const filteredEvents = useMemo(() => filterEvents(events, pendingChanges, debouncedSearchQuery, showActiveOnly, activeIds, sortOrder), [events, pendingChanges, debouncedSearchQuery, showActiveOnly, activeIds, sortOrder]);
 
-    const groupedEvents = useMemo(() => {
-        return groupEvents(filteredEvents, sortOrder);
-    }, [filteredEvents, sortOrder]);
+    const groupedEvents = useMemo(() => groupEvents(filteredEvents, sortOrder), [filteredEvents, sortOrder]);
 
     const groupStartIndices = useMemo(() => {
         const indices: number[] = [];
@@ -136,17 +132,13 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
         return indices;
     }, [groupedEvents]);
 
-    const filteredEntities = useMemo(() => {
-        return filterEntities(entities, pendingEntityChanges, debouncedSearchQuery);
-    }, [entities, pendingEntityChanges, debouncedSearchQuery]);
+    const filteredEntities = useMemo(() => filterEntities(entities, pendingEntityChanges, debouncedSearchQuery), [entities, pendingEntityChanges, debouncedSearchQuery]);
 
-    const groupedEntities = useMemo(() => {
-        return groupEntities(filteredEntities, entitySortMode, entityGroupMode);
-    }, [filteredEntities, entitySortMode, entityGroupMode]);
+    const groupedEntities = useMemo(() => groupEntities(filteredEntities, entitySortMode, entityGroupMode), [filteredEntities, entitySortMode, entityGroupMode]);
 
     const selectedEvent = useMemo(() => {
         const event = events.find(e => e.id === selectedId);
-        if (!event) return null;
+        if (!event) {return null;}
         const pending = pendingChanges.get(event.id);
         if (pending) {
             return { ...event, ...pending } as EventNode;
@@ -156,7 +148,7 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
 
     const selectedEntity = useMemo(() => {
         const entity = entities.find(e => e.id === selectedId);
-        if (!entity) return null;
+        if (!entity) {return null;}
         const pending = pendingEntityChanges.get(entity.id);
         if (pending) {
             return { ...entity, ...pending } as EntityNode;
@@ -177,8 +169,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
     const handleCheck = useCallback((id: string, checked: boolean) => {
         setCheckedIds(prev => {
             const newSet = new Set(prev);
-            if (checked) newSet.add(id);
-            else newSet.delete(id);
+            if (checked) {newSet.add(id);}
+            else {newSet.delete(id);}
             return newSet;
         });
     }, []);
@@ -231,8 +223,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             await MacroService.refreshEngramCache();
 
             notificationService.success(isArchived ? '实体已归档' : '实体已恢复活跃', 'MemoryStream');
-        } catch (e) {
-            console.error('[MemoryStream] Archive toggle failed:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Archive toggle failed:', error);
             notificationService.error('调整归档状态失败', 'MemoryStream');
         }
     }, [store.updateEntity]);
@@ -242,8 +234,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             await store.toggleEntityLock(id);
             setEntities(prev => prev.map(e => e.id === id ? { ...e, is_locked: isLocked } : e));
             notificationService.success(isLocked ? '实体已锁定' : '实体已解锁', 'MemoryStream');
-        } catch (e) {
-            console.error('[MemoryStream] Entity lock toggle failed:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Entity lock toggle failed:', error);
             notificationService.error('调整锁定状态失败', 'MemoryStream');
         }
     }, [store.toggleEntityLock]);
@@ -253,8 +245,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             await store.toggleEventLock(id);
             setEvents(prev => prev.map(e => e.id === id ? { ...e, is_locked: isLocked } : e));
             notificationService.success(isLocked ? '事件已锁定' : '事件已解锁', 'MemoryStream');
-        } catch (e) {
-            console.error('[MemoryStream] Event lock toggle failed:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Event lock toggle failed:', error);
             notificationService.error('调整锁定状态失败', 'MemoryStream');
         }
     }, [store.toggleEventLock]);
@@ -264,18 +256,18 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             await store.updateEvent(id, { is_archived: isArchived });
             setEvents(prev => prev.map(e => e.id === id ? { ...e, is_archived: isArchived } : e));
             notificationService.success(isArchived ? '事件已归档' : '事件已从归档恢复', 'MemoryStream');
-        } catch (e) {
-            console.error('[MemoryStream] Event archive toggle failed:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Event archive toggle failed:', error);
             notificationService.error('调整归档状态失败', 'MemoryStream');
         }
     }, [store.updateEvent]);
 
     const handleBatchSave = useCallback(async () => {
-        if (pendingChanges.size === 0 && pendingEntityChanges.size === 0) return;
+        if (pendingChanges.size === 0 && pendingEntityChanges.size === 0) {return;}
 
         try {
-            const eventUpdates = Array.from(pendingChanges.entries()).map(([id, updates]) => ({ id, updates }));
-            const entityUpdates = Array.from(pendingEntityChanges.entries()).map(([id, updates]) => ({ id, updates }));
+            const eventUpdates = [...pendingChanges.entries()].map(([id, updates]) => ({ id, updates }));
+            const entityUpdates = [...pendingEntityChanges.entries()].map(([id, updates]) => ({ id, updates }));
 
             // 批量执行，减少数据库事务开销
             await Promise.all([
@@ -293,8 +285,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             setPendingChanges(new Map());
             setPendingEntityChanges(new Map());
 
-        } catch (e) {
-            console.error('[MemoryStream] Batch save failed:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Batch save failed:', error);
             notificationService.error('保存过程中发生严重错误', 'MemoryStream');
         }
     }, [pendingChanges, pendingEntityChanges, store.updateEvents, store.updateEntities, loadEvents, loadEntities]);
@@ -321,18 +313,18 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             setSelectedId(null);
             setViewMode('browse');
             notificationService.success('删除成功', 'MemoryStream');
-        } catch (e: any) {
-            notificationService.error('删除失败: ' + (e.message || '未知错误'), 'MemoryStream');
+        } catch (error: any) {
+            notificationService.error('删除失败: ' + (error.message || '未知错误'), 'MemoryStream');
         }
     }, [viewTab, store.deleteEntity, store.deleteEvents]);
 
     const handleBatchDelete = useCallback(async () => {
-        if (checkedIds.size === 0) return;
-        if (!confirm(`确定删除选中的 ${checkedIds.size} 个项目吗？`)) return;
+        if (checkedIds.size === 0) {return;}
+        if (!confirm(`确定删除选中的 ${checkedIds.size} 个项目吗？`)) {return;}
 
         try {
             if (viewTab === 'entities') {
-                const ids = Array.from(checkedIds);
+                const ids = [...checkedIds];
                 await store.deleteEntities(ids);
                 setEntities(prev => prev.filter(e => !checkedIds.has(e.id)));
                 setPendingEntityChanges(prev => {
@@ -341,7 +333,7 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
                     return newMap;
                 });
             } else {
-                await store.deleteEvents(Array.from(checkedIds));
+                await store.deleteEvents([...checkedIds]);
                 setEvents(prev => prev.filter(e => !checkedIds.has(e.id)));
                 setPendingChanges(prev => {
                     const newMap = new Map(prev);
@@ -351,8 +343,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             }
             setCheckedIds(new Set());
             notificationService.success(`成功删除 ${checkedIds.size} 条记录`, 'MemoryStream');
-        } catch (e: any) {
-            notificationService.error('批量删除失败: ' + (e.message || '未知错误'), 'MemoryStream');
+        } catch (error: any) {
+            notificationService.error('批量删除失败: ' + (error.message || '未知错误'), 'MemoryStream');
         }
     }, [checkedIds, viewTab, store.deleteEntities, store.deleteEvents]);
 
@@ -365,7 +357,7 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             return;
         }
 
-        if (!confirm('确定要重新嵌入所有事件吗？这将清除现有嵌入并重新生成。')) return;
+        if (!confirm('确定要重新嵌入所有事件吗？这将清除现有嵌入并重新生成。')) {return;}
 
         setIsReembedding(true);
         try {
@@ -381,9 +373,9 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
 
             await loadEvents();
             notificationService.success('重嵌完工！', 'MemoryStream');
-        } catch (e: any) {
-            console.error('[MemoryStream] Reembed failed:', e);
-            notificationService.error('重嵌失败: ' + (e.message || '未知错误'), 'MemoryStream');
+        } catch (error: any) {
+            console.error('[MemoryStream] Reembed failed:', error);
+            notificationService.error('重嵌失败: ' + (error.message || '未知错误'), 'MemoryStream');
         } finally {
             setIsReembedding(false);
         }
@@ -396,45 +388,45 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
     const handleCreateEvent = useCallback(async () => {
         try {
             const newEvent = await store.saveEvent({
-                summary: '',
-                structured_kv: {
-                    time_anchor: '',
-                    role: [],
-                    location: [],
-                    event: '',
-                    logic: [],
-                    causality: '',
-                },
-                is_embedded: false,
                 is_archived: false,
-                significance_score: 0.5,
+                is_embedded: false,
                 level: 0,
-                source_range: { start_index: 0, end_index: 0 },
+                significance_score: 0.5,
+                source_range: { end_index: 0, start_index: 0 },
+                structured_kv: {
+                    causality: '',
+                    event: '',
+                    location: [],
+                    logic: [],
+                    role: [],
+                    time_anchor: '',
+                },
+                summary: '',
             });
             await loadEvents();
             setSelectedId(newEvent.id);
             setViewMode('edit');
             notificationService.success('已创建新事件，请编辑', 'MemoryStream');
-        } catch (e: any) {
-            notificationService.error('创建事件失败: ' + (e.message || '未知错误'), 'MemoryStream');
+        } catch (error: any) {
+            notificationService.error('创建事件失败: ' + (error.message || '未知错误'), 'MemoryStream');
         }
     }, [store.saveEvent, loadEvents]);
 
     const handleCreateEntity = useCallback(async () => {
         try {
             const newEntity = await store.saveEntity({
-                name: '新实体',
-                type: 'unknown' as any,
                 aliases: [],
                 description: '',
+                name: '新实体',
                 profile: {},
+                type: 'unknown' as any,
             });
             await loadEntities();
             setSelectedId(newEntity.id);
             setViewMode('edit');
             notificationService.success('已创建新实体，请编辑', 'MemoryStream');
-        } catch (e: any) {
-            notificationService.error('创建实体失败: ' + (e.message || '未知错误'), 'MemoryStream');
+        } catch (error: any) {
+            notificationService.error('创建实体失败: ' + (error.message || '未知错误'), 'MemoryStream');
         }
     }, [store.saveEntity, loadEntities]);
 
@@ -447,7 +439,7 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
         try {
             const Dexie = (await import('dexie')).default;
             const names = await Dexie.getDatabaseNames();
-            // @ts-ignore
+            // @ts-expect-error
             const currentDbName = getCurrentDb()?.name || '';
             const engramDbs = names.filter(n => n.startsWith('Engram_') && n !== currentDbName);
             setAvailableDbs(engramDbs);
@@ -455,8 +447,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
                 setSelectedDbToImport(engramDbs[0]);
             }
             setShowImportModal(true);
-        } catch (e) {
-            console.error('[MemoryStream] Failed to get database names:', e);
+        } catch (error) {
+            console.error('[MemoryStream] Failed to get database names:', error);
             notificationService.error('获取历史数据库列表失败', 'MemoryStream');
         }
     }, [hasChanges]);
@@ -466,7 +458,7 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             notificationService.warning('请选择要导入的数据库', 'MemoryStream');
             return;
         }
-        if (!confirm(`确定要将 [${selectedDbToImport}] 的数据合并到当前聊天吗？这不会影响被合并的源数据库。`)) return;
+        if (!confirm(`确定要将 [${selectedDbToImport}] 的数据合并到当前聊天吗？这不会影响被合并的源数据库。`)) {return;}
 
         try {
             setIsLoading(true);
@@ -475,9 +467,9 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             notificationService.success(`导入成功！事件 ${res.events} 条, 实体 ${res.entities} 条。`, 'MemoryStream');
             await loadEvents();
             await loadEntities();
-        } catch (e: any) {
-            console.error('[MemoryStream] Import failed:', e);
-            notificationService.error('导入失败: ' + (e.message || '未知错误'), 'MemoryStream');
+        } catch (error: any) {
+            console.error('[MemoryStream] Import failed:', error);
+            notificationService.error('导入失败: ' + (error.message || '未知错误'), 'MemoryStream');
         } finally {
             setIsLoading(false);
         }

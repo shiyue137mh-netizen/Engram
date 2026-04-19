@@ -1,4 +1,4 @@
-import { AgenticRecall } from '@/modules/preprocessing/types';
+import type { AgenticRecall } from '@/modules/preprocessing/types';
 import { useMemoryStore } from '@/state/memoryStore';
 import { SimpleModal } from '@/ui/components/feedback/SimpleModal';
 import { CheckSquare, Database, MessageSquare, Search, Square } from 'lucide-react';
@@ -53,13 +53,13 @@ export const RecallDecisionModal: React.FC<RecallDecisionModalProps> = ({
                 summary: event?.summary || '(事件未找到)',
                 type: event?.type || 'unknown'
             };
-        }).sort((a, b) => b.score - a.score); // 降序
+        }).toSorted((a, b) => b.score - a.score); // 降序
 
         // 未激活事件 (支持文本过滤)
         const inactive = allEvents
             .filter(e => !activeIds.has(e.id))
             .filter(e => {
-                if (!searchQuery) return true;
+                if (!searchQuery) {return true;}
                 const lowerQ = searchQuery.toLowerCase();
                 return e.summary.toLowerCase().includes(lowerQ) ||
                     e.type.toLowerCase().includes(lowerQ);
@@ -81,7 +81,7 @@ export const RecallDecisionModal: React.FC<RecallDecisionModalProps> = ({
         // 如果原本未激活，现在变为激活，给个默认理由
         setEditedRecalls(prev => [
             ...prev,
-            { id: eventId, score: defaultScore, reason: '用户手动追加召回' }
+            { id: eventId, reason: '用户手动追加召回', score: defaultScore }
         ]);
     };
 
@@ -161,7 +161,7 @@ export const RecallDecisionModal: React.FC<RecallDecisionModalProps> = ({
                                             min="0" max="1" step="0.1"
                                             className="w-14 bg-transparent border-none border-b border-border/50 text-value text-right font-mono text-sm p-0 focus:ring-0 focus:border-primary transition-colors hover:border-muted-foreground"
                                             value={evt.score}
-                                            onChange={(e) => handleUpdateScore(evt.id, parseFloat(e.target.value) || 0)}
+                                            onChange={(e) => handleUpdateScore(evt.id, Number.parseFloat(e.target.value) || 0)}
                                         />
                                     </div>
                                 </div>
@@ -271,7 +271,7 @@ export const RecallDecisionModal: React.FC<RecallDecisionModalProps> = ({
                                                 className="w-10 bg-transparent border-none border-b border-border/50 text-value text-right font-mono text-xs p-0 focus:ring-0 focus:border-primary transition-colors"
                                                 onKeyDown={(e) => {
                                                     if (e.key === 'Enter') {
-                                                        const val = parseFloat((e.target as HTMLInputElement).value) || 0.5;
+                                                        const val = Number.parseFloat((e.target as HTMLInputElement).value) || 0.5;
                                                         handleToggleInactive(evt.id, val);
                                                     }
                                                 }}

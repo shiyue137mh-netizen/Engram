@@ -50,13 +50,13 @@ export const ALL_MODULES = Object.values(LogModule);
  * 按域分组（供 UI 分组下拉菜单使用）
  */
 const MODULE_GROUPS: Record<string, LogModule[]> = {
-    'System': [LogModule.SYSTEM, LogModule.EVENTS],
-    'Memory': [LogModule.MEMORY_SUMMARY, LogModule.MEMORY_ENTITY, LogModule.MEMORY_TRIM],
-    'RAG': [LogModule.RAG_EMBED, LogModule.RAG_RETRIEVE, LogModule.RAG_RERANK, LogModule.RAG_INJECT, LogModule.RAG_CACHE],
-    'Preprocess': [LogModule.PREPROCESS],
     'Batch': [LogModule.BATCH],
     'Data': [LogModule.DATA_SYNC, LogModule.DATA_CLEANUP, LogModule.DATA_DB],
     'Integration': [LogModule.TAVERN, LogModule.LLM],
+    'Memory': [LogModule.MEMORY_SUMMARY, LogModule.MEMORY_ENTITY, LogModule.MEMORY_TRIM],
+    'Preprocess': [LogModule.PREPROCESS],
+    'RAG': [LogModule.RAG_EMBED, LogModule.RAG_RETRIEVE, LogModule.RAG_RERANK, LogModule.RAG_INJECT, LogModule.RAG_CACHE],
+    'System': [LogModule.SYSTEM, LogModule.EVENTS],
 };
 
 /**

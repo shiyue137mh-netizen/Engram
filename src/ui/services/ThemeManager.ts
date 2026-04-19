@@ -1,6 +1,7 @@
 import { SettingsManager } from '@/config/settings';
 import { Logger } from '@/core/logger';
-import { ThemeName, themes } from '../styles/themes';
+import type { ThemeName} from '../styles/themes';
+import { themes } from '../styles/themes';
 
 /**
  * ThemeManager - 全局主题管理器
@@ -66,7 +67,7 @@ export class ThemeManager {
      */
     private static injectStyles() {
         const cssId = 'engram-styles';
-        if (document.getElementById(cssId)) return;
+        if (document.querySelector(`#${cssId}`)) {return;}
 
         const link = document.createElement('link');
         link.id = cssId;
@@ -75,7 +76,7 @@ export class ThemeManager {
         // 注意：这里假设 dist/style.css 路径是相对于 index.html 的
         // 添加时间戳防止缓存
         link.href = `scripts/extensions/Engram_project/dist/style.css?v=${Date.now()}`;
-        document.head.appendChild(link);
+        document.head.append(link);
     }
 
     /**
@@ -83,7 +84,7 @@ export class ThemeManager {
      */
     private static applyThemeVariables(themeName: ThemeName) {
         const themeConfig = themes[themeName];
-        if (!themeConfig) return;
+        if (!themeConfig) {return;}
 
         const root = document.documentElement;
 
@@ -108,10 +109,10 @@ export class ThemeManager {
         const transparencyPercent = Math.round((1 - opacity) * 100);
 
         // Keys that should be transparentized (backgrounds/borders only, NOT text colors)
-        const transparentKeys = [
+        const transparentKeys = new Set([
             'background', 'card', 'popover', 'sidebar',
             'secondary', 'muted', 'input', 'border', 'sidebarBorder'
-        ];
+        ]);
 
         Object.entries(themeConfig.colors).forEach(([key, value]) => {
             // camelCase -> kebab-case (e.g., cardForeground -> --card-foreground)
@@ -121,7 +122,7 @@ export class ThemeManager {
 
             let finalValue = value;
 
-            if (shouldApplyTransparency && transparentKeys.includes(key)) {
+            if (shouldApplyTransparency && transparentKeys.has(key)) {
                 // Use color-mix to inject transparency dynamically
 
                 // Border Resistance Logic:
@@ -146,14 +147,10 @@ export class ThemeManager {
 
         // 3. Toggle dark mode class
         const isDark = !['tokyoLight', 'catppuccinLatte'].includes(themeName);
-        if (isDark) {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
+        root.classList.toggle('dark', isDark);
 
         // 4. Inject Glass Settings
-        const glassSettings = SettingsManager.getSettings().glassSettings;
+        const {glassSettings} = SettingsManager.getSettings();
         if (glassSettings && glassSettings.enabled) {
             setVar('--glass-opacity', glassSettings.opacity.toString());
             setVar('--glass-blur', `${glassSettings.blur}px`);

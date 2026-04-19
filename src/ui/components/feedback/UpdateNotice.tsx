@@ -45,14 +45,11 @@ async function getExtensionInfo(): Promise<{ name: string; type: 'global' | 'loc
         // 3. 检查路径结尾 (如 third-party/Engram)
         const targetNames = ['Engram', 'Engram_project'];
 
-        const found = extensions.find(ext => {
-            // 检查是否包含关键字
-            return targetNames.some(target =>
+        const found = extensions.find(ext => targetNames.some(target =>
                 ext.name === target ||
                 ext.name.endsWith('/' + target) ||
                 ext.name.endsWith('\\' + target) // Windows path safety
-            );
-        });
+            ));
 
         if (found) {
             console.debug('[Engram] 找到扩展:', found.name, '类型:', found.type);
@@ -64,8 +61,8 @@ async function getExtensionInfo(): Promise<{ name: string; type: 'global' | 'loc
 
         console.warn('[Engram] 未找到扩展, 将尝试默认配置');
         return null;
-    } catch (e) {
-        console.warn('[Engram] 获取扩展类型失败', e);
+    } catch (error) {
+        console.warn('[Engram] 获取扩展类型失败', error);
         return null;
     }
 }
@@ -85,7 +82,7 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
         let extensionName = extInit?.name || EXTENSION_ID;
         if (extensionName) {
             const parts = extensionName.split(/[/\\]/);
-            extensionName = parts[parts.length - 1];
+            extensionName = parts.at(-1);
         }
 
         const isGlobal = extInit?.type === 'global' || extInit?.type === 'system'; 
@@ -93,37 +90,37 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
         console.debug('[Engram] 准备更新扩展:', extensionName, '| global:', isGlobal);
 
         const response = await fetch('/api/extensions/update', {
-            method: 'POST',
-            headers: {
-                ...headers,
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({
                 extensionName: extensionName,
                 global: isGlobal,
             }),
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json',
+            },
+            method: 'POST',
         });
 
         if (!response.ok) {
             const text = await response.text();
             console.error('[Engram] 更新失败:', response.status, text);
-            return { success: false, message: text || response.statusText };
+            return { message: text || response.statusText, success: false };
         }
 
         const data = await response.json();
 
         if (data.isUpToDate) {
-            return { success: true, message: '扩展已是最新版本', isUpToDate: true };
+            return { isUpToDate: true, message: '扩展已是最新版本', success: true };
         }
 
         return {
-            success: true,
+            isUpToDate: false,
             message: `更新成功！新版本: ${data.shortCommitHash || 'latest'}`,
-            isUpToDate: false
+            success: true
         };
     } catch (error) {
         console.error('[Engram] 更新失败:', error);
-        return { success: false, message: String(error) };
+        return { message: String(error), success: false };
     }
 }
 
@@ -160,8 +157,8 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
             setLatestHash(hash);
             setChangelog(log);
             setHasUpdate(update);
-        } catch (e) {
-            console.error('[Engram] 加载更新信息失败', e);
+        } catch (error) {
+            console.error('[Engram] 加载更新信息失败', error);
         } finally {
             setIsLoading(false);
         }
@@ -218,7 +215,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
         loadUpdateInfo();
     };
 
-    if (!isOpen) return null;
+    if (!isOpen) {return null;}
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -303,9 +300,9 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                                     p-3 rounded-lg text-sm
                                     ${updateMessage.includes('成功')
                                         ? 'bg-green-500/10 text-green-600 border border-green-500/20'
-                                        : updateMessage.includes('失败') || updateMessage.includes('出错')
+                                        : (updateMessage.includes('失败') || updateMessage.includes('出错')
                                             ? 'bg-red-500/10 text-red-600 border border-red-500/20'
-                                            : 'bg-muted/30 text-muted-foreground'}
+                                            : 'bg-muted/30 text-muted-foreground')}
                                 `}>
                                     {updateMessage}
                                 </div>
@@ -366,7 +363,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                                 <Loader2 size={14} className="animate-spin" />
                                 更新中...
                             </>
-                        ) : hasUpdate ? (
+                        ) : (hasUpdate ? (
                             <>
                                 <Download size={14} />
                                 立即更新
@@ -376,7 +373,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
                                 <RefreshCw size={14} />
                                 重新拉取
                             </>
-                        )}
+                        ))}
                     </button>
                 </div>
             </div>

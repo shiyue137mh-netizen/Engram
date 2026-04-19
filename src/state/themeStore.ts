@@ -5,7 +5,7 @@
  */
 
 import { ThemeManager } from '@/ui/services/ThemeManager';
-import { ThemeName } from '@/ui/styles/themes';
+import type { ThemeName } from '@/ui/styles/themes';
 import { create } from 'zustand';
 
 interface ThemeState {
@@ -32,9 +32,7 @@ interface ThemeState {
  * ```
  */
 export const useThemeStore = create<ThemeState>((set) => ({
-    theme: ThemeManager.getTheme(),
     isDarkMode: !['tokyoLight', 'catppuccinLatte'].includes(ThemeManager.getTheme()),
-
     setTheme: (theme) => {
         ThemeManager.setTheme(theme);
         set({
@@ -42,4 +40,6 @@ export const useThemeStore = create<ThemeState>((set) => ({
             isDarkMode: !['tokyoLight', 'catppuccinLatte'].includes(theme)
         });
     },
+
+    theme: ThemeManager.getTheme(),
 }));

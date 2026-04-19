@@ -1,4 +1,4 @@
-type InjectionPrompt = {
+interface InjectionPrompt {
   id: string;
   /**
    * 要注入的位置
@@ -15,12 +15,12 @@ type InjectionPrompt = {
   filter?: (() => boolean) | (() => Promise<boolean>);
   /** 是否作为欲扫描文本, 加入世界书绿灯条目扫描文本中; 默认为任意 */
   should_scan?: boolean;
-};
+}
 
-type injectPromptsOptions = {
+interface injectPromptsOptions {
   /** 是否只在下一次请求生成中有效; 默认为 false */
   once?: boolean;
-};
+}
 
 /**
  * 注入提示词

@@ -1,12 +1,12 @@
 import { SettingsManager } from '@/config/settings';
 import { Logger } from '@/core/logger';
-import { EventNode } from '@/data/types/graph';
+import type { EventNode } from '@/data/types/graph';
 import { MacroService } from '@/integrations/tavern';
 import { embeddingService } from '@/modules/rag';
 import { useMemoryStore } from '@/state/memoryStore';
 import { notificationService } from '@/ui/services/NotificationService';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 export class ApplyTrim implements IStep {
     name = 'ApplyTrim';
@@ -35,14 +35,14 @@ export class ApplyTrim implements IStep {
         const newEvent = await store.saveEvent({
             summary: parsed.events.map((e: any) => e.summary).join('\n\n'), // 如果有多个，合并 summary? 或者只取第一个
             structured_kv: {
-                time_anchor: firstParsed.meta.time_anchor || '',
-                role: this.mergeArrays(eventsToMerge.map(e => e.structured_kv.role)),
+                causality: 'Chain',
+                event: '精简合并',
                 location: Array.isArray(firstParsed.meta.location)
                     ? firstParsed.meta.location as string[]
                     : [firstParsed.meta.location].filter((x: any) => Boolean(x)),
-                event: '精简合并',
                 logic: this.mergeArrays(eventsToMerge.map(e => e.structured_kv.logic)),
-                causality: 'Chain'
+                role: this.mergeArrays(eventsToMerge.map(e => e.structured_kv.role)),
+                time_anchor: firstParsed.meta.time_anchor || ''
             },
             significance_score: Math.max(...eventsToMerge.map(e => e.significance_score)),
             level: 1,  // 标记为二层精简
@@ -51,15 +51,15 @@ export class ApplyTrim implements IStep {
             // V1.5: 时空归一化核心，抢占它所有子节点中最老的一个时间点并再提前 1 毫秒，确立绝对统领排序位置
             timestamp: Math.min(...eventsToMerge.map(e => e.timestamp)) - 1,
             source_range: {
-                start_index: Math.min(...eventsToMerge.map(e => e.source_range?.start_index ?? 0)),
-                end_index: Math.max(...eventsToMerge.map(e => e.source_range?.end_index ?? 0))
+                end_index: Math.max(...eventsToMerge.map(e => e.source_range?.end_index ?? 0)),
+                start_index: Math.min(...eventsToMerge.map(e => e.source_range?.start_index ?? 0))
             }
         });
 
         // 2. 联动嵌入 (Trim Linkage)
         const sourceEventIds = eventsToMerge.map(e => e.id);
         const settings = SettingsManager.get('apiSettings');
-        // @ts-ignore
+        // @ts-expect-error
         const embeddingConfig = settings?.embeddingConfig;
 
         if (embeddingConfig?.enabled && embeddingConfig.trigger === 'with_trim') {
@@ -91,8 +91,8 @@ export class ApplyTrim implements IStep {
         });
 
         context.output = {
-            newEvent,
             deletedCount: 0,
+            newEvent,
             sourceEventIds
         };
     }
@@ -104,6 +104,6 @@ export class ApplyTrim implements IStep {
                 set.add(item);
             }
         }
-        return Array.from(set);
+        return [...set];
     }
 }

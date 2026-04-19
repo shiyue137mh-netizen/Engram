@@ -4,7 +4,7 @@ import { Switch } from "@/ui/components/core/Switch";
 import { useMemoryStore } from "@/state/memoryStore";
 import { getCurrentChatId } from "@/integrations/tavern";
 import { RefreshCw, Trash2 } from 'lucide-react';
-import { Logger, LogModule } from "@/core/logger";
+import { LogModule, Logger } from "@/core/logger";
 
 // V1.4.6 Extracted imported components
 import { SyncSection } from '../components/SyncSection';
@@ -33,8 +33,8 @@ export const DataTab: React.FC = () => {
                     await memoryStore.clearChatDatabase();
                     alert('重置成功');
                     forceUpdate({});
-                } catch (e) {
-                    alert('重置失败: ' + e);
+                } catch (error) {
+                    alert('重置失败: ' + error);
                 }
             }
         }
@@ -53,8 +53,8 @@ export const DataTab: React.FC = () => {
                     await memoryStore.deleteChatDatabase();
                     alert('删除成功');
                     forceUpdate({});
-                } catch (e) {
-                    alert('删除失败: ' + e);
+                } catch (error) {
+                    alert('删除失败: ' + error);
                 }
             }
         }

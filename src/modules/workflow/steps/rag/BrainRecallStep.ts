@@ -1,20 +1,20 @@
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_BRAIN_RECALL_CONFIG, DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
 import type { BrainRecallConfig, RecallConfig } from '@/config/types/rag';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { tryGetDbForChat } from '@/data/db';
 import { getCurrentChatId } from '@/integrations/tavern';
-import { brainRecallCache, type RecallCandidate } from '@/modules/rag/retrieval/BrainRecallCache';
+import { type RecallCandidate, brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
 import type { ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 export class BrainRecallStep implements IStep {
     name = 'BrainRecallStep';
 
     async execute(context: JobContext): Promise<void> {
         context.data = context.data || {};
-        let candidates: ScoredEvent[] = context.data.candidates || [];
+        const candidates: ScoredEvent[] = context.data.candidates || [];
         const config: RecallConfig = context.data.recallConfig || SettingsManager.get('apiSettings')?.recallConfig || DEFAULT_RECALL_CONFIG;
         const brainConfig: BrainRecallConfig = config.brainRecall || DEFAULT_BRAIN_RECALL_CONFIG;
         const keywordEntityIds: { id: string, score: number }[] = context.data.keywordEntityIds || [];
@@ -40,28 +40,28 @@ export class BrainRecallStep implements IStep {
                 .map(ke => {
                     const entity = entityMap.get(ke.id)!;
                     return {
-                        id: entity.id,
-                        label: entity.name,
                         category: 'entity',
                         embeddingScore: 1.0,
+                        id: entity.id,
+                        label: entity.name,
                         rerankScore: 1.0,
                     };
                 });
 
             // 2. 转换普通事件候选
             const mappedCandidates: RecallCandidate[] = candidates.map(c => {
-                let rerankScore = c.rerankScore;
+                let {rerankScore} = c;
                 if (rerankScore === undefined && config.useRerank) {
                     const baseScore = typeof c.embeddingScore === 'number' ? c.embeddingScore : 0;
                     rerankScore = Math.min(0.8, baseScore);
                 }
 
                 return {
+                    embeddingScore: c.embeddingScore || 0,
+                    embeddingVector: c.node?.embedding,
                     id: c.id,
                     label: c.node?.structured_kv?.event || (c.summary ? c.summary.slice(0, 10) : 'event'),
-                    embeddingScore: c.embeddingScore || 0,
                     rerankScore: rerankScore,
-                    embeddingVector: c.node?.embedding,
                 };
             });
 
@@ -85,8 +85,8 @@ export class BrainRecallStep implements IStep {
                     
                     return {
                         ...original,
-                        hybridScore: Math.min(0.99, originalScore * brainBoost),
-                        _brainIntensity: slot.finalScore // 保留原始强度用于可能的调试
+                        _brainIntensity: slot.finalScore,
+                        hybridScore: Math.min(0.99, originalScore * brainBoost) // 保留原始强度用于可能的调试
                     };
                 });
 
@@ -102,7 +102,7 @@ export class BrainRecallStep implements IStep {
                     const entity = entityMap.get(ke.id)!;
                     const brainSlot = brainResults.find(s => s.id === entity.id);
                     const floor = 0.35;
-                    const raw = ke.score || 1.0;
+                    const raw = ke.score || 1;
                     const clamped = Math.max(floor, Math.min(0.9, raw));
 
                     return {
@@ -114,8 +114,8 @@ export class BrainRecallStep implements IStep {
             context.data.recalledEntities = recalledEntities;
 
             Logger.debug(LogModule.RAG_INJECT, '类脑召回已应用', {
-                eventOutput: context.data.candidates.length,
                 entityOutput: recalledEntities.length,
+                eventOutput: context.data.candidates.length,
                 isWorkingMemory: brainResults.length
             });
         } else {
@@ -124,7 +124,7 @@ export class BrainRecallStep implements IStep {
                 .filter(ke => entityMap.has(ke.id))
                 .map(ke => ({
                     ...entityMap.get(ke.id)!,
-                    _recallWeight: ke.score || 1.0
+                    _recallWeight: ke.score || 1
                 }));
 
             Logger.debug(LogModule.RAG_INJECT, '类脑引擎未开启，执行关键词实体直通', {

@@ -2,8 +2,8 @@ import { reviewService } from '@/core/events/ReviewBridge';
 import { Logger } from '@/core/logger';
 import { WorldInfoService } from '@/integrations/tavern/worldbook';
 import { notificationService } from '@/ui/services/NotificationService';
-import { JobContext } from '../../core/JobContext';
-import { IStep, StepResult } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep, StepResult } from '../../core/Step';
 
 interface UserReviewConfig {
     title: string;
@@ -14,13 +14,13 @@ interface UserReviewConfig {
 export class UserReview implements IStep {
     name = 'UserReview';
 
-    constructor(private config: UserReviewConfig) { }
+    constructor(private config: UserReviewConfig) {}
 
     async execute(context: JobContext): Promise<StepResult> {
         // V1.0.5: 调试日志
         Logger.debug('UserReview', 'previewEnabled check', {
-            previewEnabled: context.config.previewEnabled,
-            configKeys: Object.keys(context.config)
+            configKeys: Object.keys(context.config),
+            previewEnabled: context.config.previewEnabled
         });
 
         // 检查配置是否启用预览
@@ -76,8 +76,8 @@ export class UserReview implements IStep {
                         if (parsed?.recalls && Array.isArray(parsed.recalls)) {
                             reviewData.agenticRecalls = parsed.recalls;
                         }
-                    } catch (e) {
-                        Logger.warn('UserReview', '解析 recall_decision 供审阅失败', e);
+                    } catch (error) {
+                        Logger.warn('UserReview', '解析 recall_decision 供审阅失败', error);
                     }
                 }
             }
@@ -112,7 +112,7 @@ export class UserReview implements IStep {
                 context.input.feedback = '';
                 // V1.3.2: 显式清除输出缓存，防止流程跳回后若 LLM 未生成新内容，SaveEntity 错误读取上一轮的 ProcessedResult
                 this.clearContextOutput(context);
-                return { action: 'jump', targetStep: 'BuildPrompt', reason: 'User reroll' };
+                return { action: 'jump', reason: 'User reroll', targetStep: 'BuildPrompt' };
             }
 
             if (result.action === 'reject') {
@@ -121,7 +121,7 @@ export class UserReview implements IStep {
                 context.input.previousOutput = contentToReview;
                 // V1.3.2: 显式清除输出缓存
                 this.clearContextOutput(context);
-                return { action: 'jump', targetStep: 'BuildPrompt', reason: 'User rejected' };
+                return { action: 'jump', reason: 'User rejected', targetStep: 'BuildPrompt' };
             }
 
             if (result.action === 'cancel') {
@@ -160,10 +160,10 @@ export class UserReview implements IStep {
             Logger.info('UserReview', '用户确认修订');
             return { action: 'next' };
 
-        } catch (e) {
+        } catch {
             Logger.warn('UserReview', '用户取消操作');
             notificationService.info('已取消操作', '操作取消');
-            throw new Error('UserCancelled');
+            throw new Error('UserCancelled', { cause: e });
         }
     }
     private clearContextOutput(context: JobContext) {

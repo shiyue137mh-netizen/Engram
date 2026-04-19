@@ -1,6 +1,7 @@
-import { Logger, LogModule } from '@/core/logger';
-import { getSTContext, getRequestHeaders } from '@/integrations/tavern';
-import { ChatDatabase, ChatDataDump, getDbForChat, exportChatData, importChatData } from '@/data/db';
+import { LogModule, Logger } from '@/core/logger';
+import { getRequestHeaders, getSTContext } from '@/integrations/tavern';
+import type { ChatDataDump} from '@/data/db';
+import { ChatDatabase, getDbForChat, exportChatData, importChatData } from '@/data/db';
 import { debounce } from 'lodash';
 import { SettingsManager } from '@/config/settings';
 import { notificationService } from '@/ui/services/NotificationService';
@@ -12,7 +13,7 @@ const SYNC_FILE_EXT = '.json';
 
 class SyncService {
     private static instance: SyncService;
-    private debouncedUploads: Map<string, () => void> = new Map();
+    private debouncedUploads = new Map<string, () => void>();
     private isImporting: boolean = false; // 导入锁，防止导入时触发上传
 
     public get isImportingState(): boolean {
@@ -76,7 +77,7 @@ class SyncService {
      */
     private getSyncFileName(chatId: string): string {
         // 简单清理 chatId，虽然通常已经是安全的
-        const safeChatId = chatId.replace(/[^a-zA-Z0-9_-]/g, '_');
+        const safeChatId = chatId.replaceAll(/[^a-zA-Z0-9_-]/g, '_');
         return `${SYNC_FILE_PREFIX}${safeChatId}${SYNC_FILE_EXT}`;
     }
 
@@ -113,15 +114,15 @@ class SyncService {
                     return;
                 }
 
-                this.upload(chatId).catch(err => {
-                    Logger.error(MODULE, `Auto-upload failed for ${chatId}`, err);
+                this.upload(chatId).catch(error => {
+                    Logger.error(MODULE, `Auto-upload failed for ${chatId}`, error);
                 });
             }, DEBOUNCE_DELAY);
             this.debouncedUploads.set(chatId, uploadFn);
         }
 
         const fn = this.debouncedUploads.get(chatId);
-        if (fn) fn();
+        if (fn) {fn();}
     }
 
     /**
@@ -179,17 +180,17 @@ class SyncService {
             for (let i = 0; i < 3; i++) {
                 try {
                     response = await fetch('/api/files/upload', {
-                        method: 'POST',
-                        headers: getRequestHeaders(),
                         body: JSON.stringify({
                             name: fileName,
                             data: base64Data
-                        })
+                        }),
+                        headers: getRequestHeaders(),
+                        method: 'POST'
                     });
-                    if (response.ok) break;
+                    if (response.ok) {break;}
                     Logger.warn(MODULE, `Upload attempt ${i + 1} failed, retrying...`);
-                } catch (e) {
-                    if (i === 2) throw e;
+                } catch (error) {
+                    if (i === 2) throw error;
                     await new Promise(r => setTimeout(r, 1000 * (i + 1))); // 指数退避
                 }
             }
@@ -214,13 +215,13 @@ class SyncService {
         try {
             const fileName = this.getSyncFileName(chatId);
             await fetch('/api/files/delete', {
-                method: 'POST',
-                headers: getRequestHeaders(),
                 body: JSON.stringify({
                     path: fileName // files API 直接接收文件名作为 path (当不需要子目录时)
-                })
+                }),
+                headers: getRequestHeaders(),
+                method: 'POST'
             });
-        } catch (e) {
+        } catch {
             // Ignore purge errors
         }
     }
@@ -238,7 +239,7 @@ class SyncService {
             // 由于我们需要 meta 信息，且通常文件不会极大，直接 GET
             const response = await fetch(url);
 
-            if (!response.ok) return { exists: false, timestamp: 0 };
+            if (!response.ok) {return { exists: false, timestamp: 0 };}
 
             // P1 Fix: 放弃直接 response.json() 把整个几 MB 甚至几十 MB 吃进内存
             // 改为流式读取 Buffer 首部，提取 meta.lastModified 后即刻 abort
@@ -257,7 +258,7 @@ class SyncService {
             
             while (true) {
                 const { done, value } = await reader.read();
-                if (done) break;
+                if (done) {break;}
                 
                 chunkStr += decoder.decode(value, { stream: true });
                 
@@ -268,13 +269,13 @@ class SyncService {
                     reader.cancel();
                     return {
                         exists: true,
-                        timestamp: parseInt(match[1], 10)
+                        timestamp: Number.parseInt(match[1], 10)
                     };
                 }
                 
                 // 为了防止极端情况下 meta 不在最前面，但也不会找太久
                 // 仅扫描前 100KB (粗略判断)，如果在 100KB 内没找到也 abort 以保安全
-                if (chunkStr.length > 102400) {
+                if (chunkStr.length > 102_400) {
                     reader.cancel();
                     break;
                 }
@@ -282,7 +283,7 @@ class SyncService {
 
             return { exists: false, timestamp: 0 };
 
-        } catch (error) {
+        } catch {
             // 404 等错误也会进这里
             return { exists: false, timestamp: 0 };
         }
@@ -318,7 +319,7 @@ class SyncService {
             const db = await getDbForChat(chatId);
             await importChatData(db, dump);
 
-            // importChatData 应该包含了从服务端来的 meta（其中包含 lastModified）
+            // ImportChatData 应该包含了从服务端来的 meta（其中包含 lastModified）
             // 因此不需要手动 patch 时间戳，数据库状态应当完全与远程一致
             // 如果远程文件是旧版本的（没有 lastModified），则再次上传时会补上
 
@@ -345,10 +346,10 @@ class SyncService {
      */
     public async autoSyncDownload(chatId: string): Promise<void> {
         const config = SettingsManager.getSettings().syncConfig;
-        if (!config?.enabled || !config?.autoSync) return;
+        if (!config?.enabled || !config?.autoSync) {return;}
 
         const remoteStatus = await this.getRemoteStatus(chatId);
-        if (!remoteStatus.exists) return;
+        if (!remoteStatus.exists) {return;}
 
         // 检查本地时间
         // 检查本地时间 (lastModified)
@@ -396,10 +397,10 @@ class SyncService {
             Logger.info(MODULE, `Remote is newer (${remoteStatus.timestamp} > ${localTs}), downloading...`);
             const result = await this.download(chatId);
             return result === 'success' ? 'downloaded' : 'error';
-        } else {
+        }
             // 本地更新，等待 debounce 上传
             return 'synced';
-        }
+        
     }
 }
 

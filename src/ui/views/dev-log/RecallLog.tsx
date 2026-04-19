@@ -27,19 +27,17 @@ import type { RecallLogEntry, RecallResultItem } from './types';
 const DESKTOP_BREAKPOINT = 768;
 
 /** 格式化时间 */
-const formatTime = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleTimeString('zh-CN', {
+const formatTime = (timestamp: number): string => new Date(timestamp).toLocaleTimeString('zh-CN', {
         hour12: false,
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
     });
-};
 
 /** 格式化耗时 */
 const formatDuration = (ms?: number): string => {
-    if (ms === undefined) return '-';
-    if (ms < 1000) return `${ms}ms`;
+    if (ms === undefined) {return '-';}
+    if (ms < 1000) {return `${ms}ms`;}
     return `${(ms / 1000).toFixed(1)}s`;
 };
 
@@ -51,8 +49,7 @@ interface LogListItemProps {
     onSelect: () => void;
 }
 
-const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }) => {
-    return (
+const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }) => (
         <motion.div
             layout
             initial={{ opacity: 0, x: -20 }}
@@ -103,7 +100,6 @@ const LogListItem: React.FC<LogListItemProps> = ({ entry, isSelected, onSelect }
             </div>
         </motion.div>
     );
-};
 
 // ==================== 详情面板组件 ====================
 
@@ -145,7 +141,7 @@ const ResultItem: React.FC<{ item: RecallResultItem }> = ({ item }) => {
             className={`
                 border-b border-border/30 py-3 px-4 cursor-pointer
                 hover:bg-muted/10 transition-colors
-                ${item.isReranked ? 'bg-purple-500/5' : item.isTopK ? 'bg-blue-500/5' : ''}
+                ${item.isReranked ? 'bg-purple-500/5' : (item.isTopK ? 'bg-blue-500/5' : '')}
             `}
             onClick={() => setExpanded(!expanded)}
         >
@@ -219,7 +215,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
 
     // 过滤和排序结果
     const displayedResults = useMemo(() => {
-        if (!entry) return [];
+        if (!entry) {return [];}
 
         let results = [...entry.results];
 
@@ -242,13 +238,17 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
         results.sort((a, b) => {
             const getScore = (item: RecallResultItem) => {
                 switch (sortMode) {
-                    case 'embedding': return item.embeddingScore;
-                    case 'keyword': return item.keywordScore ?? 0;
-                    case 'rerank': return item.rerankScore ?? 0;
-                    case 'hybrid':
+                    case 'embedding': { return item.embeddingScore;
+                    }
+                    case 'keyword': { return item.keywordScore ?? 0;
+                    }
+                    case 'rerank': { return item.rerankScore ?? 0;
+                    }
+                    case 'hybrid': {
                         return item.hybridScore ?? (
                             Math.max(item.embeddingScore, item.keywordScore ?? 0)
                         );
+                    }
                 }
             };
             return getScore(b) - getScore(a);
@@ -284,11 +284,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                 <div className="flex items-center gap-2 mb-2">
                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${entry.mode === 'agentic'
                         ? 'bg-amber-500/20 text-amber-400'
-                        : entry.mode === 'hybrid'
+                        : (entry.mode === 'hybrid'
                             ? 'bg-purple-500/20 text-purple-400'
-                            : 'bg-blue-500/20 text-blue-400'
+                            : 'bg-blue-500/20 text-blue-400')
                         }`}>
-                        {entry.mode === 'agentic' ? 'Agentic 召回' : entry.mode === 'hybrid' ? '混合召回' : '向量召回'}
+                        {entry.mode === 'agentic' ? 'Agentic 召回' : (entry.mode === 'hybrid' ? '混合召回' : '向量召回')}
                     </span>
                     <span className="text-xs text-muted-foreground">{formatTime(entry.timestamp)}</span>
                 </div>
@@ -402,7 +402,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ entry, isFullScreen, onClose 
                                 }`}
                             onClick={() => setViewMode(mode)}
                         >
-                            {mode === 'all' ? '全部' : mode === 'topK' ? 'TopK' : 'Reranked'}
+                            {mode === 'all' ? '全部' : (mode === 'topK' ? 'TopK' : 'Reranked')}
                         </button>
                     ))}
                 </div>
@@ -489,9 +489,7 @@ export const RecallLog: React.FC = () => {
     }, []);
 
     // 选中的日志
-    const selectedEntry = useMemo(() => {
-        return logs.find(l => l.id === selectedId) || null;
-    }, [logs, selectedId]);
+    const selectedEntry = useMemo(() => logs.find(l => l.id === selectedId) || null, [logs, selectedId]);
 
     // 选择日志
     const handleSelect = (id: string) => {

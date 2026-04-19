@@ -1,7 +1,7 @@
-type MacroLikeContext = {
+interface MacroLikeContext {
   message_id?: number;
   role?: 'user' | 'assistant' | 'system';
-};
+}
 
 /**
  * 注册一个新的助手宏

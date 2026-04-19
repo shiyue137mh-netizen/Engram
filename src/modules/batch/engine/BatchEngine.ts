@@ -1,4 +1,4 @@
-import { BatchProgressCallback, BatchQueue, IBatchTaskHandler } from '../types';
+import type { BatchProgressCallback, BatchQueue, IBatchTaskHandler } from '../types';
 import { Logger } from '@/core/logger';
 /**
  * 核心调度引擎
@@ -6,14 +6,14 @@ import { Logger } from '@/core/logger';
  */
 export class BatchEngine {
     private queue: BatchQueue = {
-        tasks: [],
-        isRunning: false,
-        isPaused: false,
         currentTaskIndex: 0,
+        isPaused: false,
+        isRunning: false,
         overallProgress: { current: 0, total: 0 },
+        tasks: [],
     };
 
-    private listeners: Set<BatchProgressCallback> = new Set();
+    private listeners = new Set<BatchProgressCallback>();
     private stopSignal = false;
     private lastNotifyTime = 0;
     // 节流时间阈值 (ms)
@@ -57,8 +57,8 @@ export class BatchEngine {
         // 广播真正不可变的队列状态副本（深层解构 tasks 和 overallProgress）
         const snapshot: BatchQueue = {
             ...this.queue,
-            tasks: [...this.queue.tasks],
             overallProgress: { ...this.queue.overallProgress },
+            tasks: [...this.queue.tasks],
         };
         for (const listener of this.listeners) {
             listener(snapshot);
@@ -69,7 +69,7 @@ export class BatchEngine {
      * 暴露给任务的进度更新接口
      */
     public updateTaskProgress(taskIndex: number, currentProgress: number): void {
-        if (taskIndex < 0 || taskIndex >= this.queue.tasks.length) return;
+        if (taskIndex < 0 || taskIndex >= this.queue.tasks.length) {return;}
 
         // 同步当前的活动任务下标，以便内部抛出异常时能够正确打标
         this.queue.currentTaskIndex = taskIndex;
@@ -77,11 +77,11 @@ export class BatchEngine {
         // P1 Fix: 解构更新单个 task 元素
         this.queue.tasks[taskIndex] = {
             ...this.queue.tasks[taskIndex],
-            status: 'running',
             progress: {
                 ...this.queue.tasks[taskIndex].progress,
                 current: currentProgress
-            }
+            },
+            status: 'running'
         };
         // P1 Fix: 更新数组引用，确保 React 能检测到变化
         this.queue.tasks = [...this.queue.tasks];
@@ -104,8 +104,8 @@ export class BatchEngine {
     public getQueueState(): BatchQueue {
         return {
             ...this.queue,
-            tasks: [...this.queue.tasks],
             overallProgress: { ...this.queue.overallProgress },
+            tasks: [...this.queue.tasks],
         };
     }
 
@@ -125,9 +125,7 @@ export class BatchEngine {
     /**
      * 提供一个检测停止信号的方法闭包，供上层任务切片使用
      */
-    private checkStopSignal = (): boolean => {
-        return this.stopSignal;
-    };
+    private checkStopSignal = (): boolean => this.stopSignal;
 
     /**
      * 将预装配的 Task 投入执行列队
@@ -197,7 +195,7 @@ export class BatchEngine {
             if (!this.stopSignal) {
                 // 标记所有未出错的任务为 done
                 this.queue.tasks.forEach(task => {
-                    if (task.status !== 'error') task.status = 'done';
+                    if (task.status !== 'error') {task.status = 'done';}
                 });
             }
         } catch (error) {
@@ -211,9 +209,9 @@ export class BatchEngine {
                 // 显式捕获 Error cause 附加到日志，方便 Debug 追踪深层调用链
                 if (error instanceof Error) {
                     Logger.error('BatchEngine', `[${currentTask.id}] 任务失败链路追踪:`, {
+                         cause: error.cause,
                          message: error.message,
-                         stack: error.stack,
-                         cause: error.cause
+                         stack: error.stack
                     });
                 }
             }
@@ -231,7 +229,7 @@ export class BatchEngine {
      * 暂停任务
      */
     pause(): void {
-        if (!this.queue.isRunning || this.queue.isPaused) return;
+        if (!this.queue.isRunning || this.queue.isPaused) {return;}
         this.queue.isPaused = true;
         this.pausePromise = new Promise<void>(resolve => {
             this.pauseResolve = resolve;
@@ -243,7 +241,7 @@ export class BatchEngine {
      * 恢复/继续任务
      */
     resume(): void {
-        if (!this.queue.isRunning || !this.queue.isPaused) return;
+        if (!this.queue.isRunning || !this.queue.isPaused) {return;}
         this.queue.isPaused = false;
         if (this.pauseResolve) {
             this.pauseResolve();

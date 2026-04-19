@@ -1,16 +1,16 @@
-type Audio = {
+interface Audio {
   /** 标题 */
   title: string;
   /** 音频的网络链接 */
   url: string;
-};
+}
 
-type AudioWithOptionalTitle = {
+interface AudioWithOptionalTitle {
   /** 标题 */
   title?: string;
   /** 音频的网络链接 */
   url: string;
-};
+}
 
 /**
  * 播放给定的音频; 如果该音频没在播放列表中, 则会加入到播放列表.
@@ -59,7 +59,7 @@ declare function replaceAudioList(type: 'bgm' | 'ambient', audio_list: AudioWith
  */
 declare function appendAudioList(type: 'bgm' | 'ambient', audio_list: AudioWithOptionalTitle[]): void;
 
-type AudioSettings = {
+interface AudioSettings {
   /** 是否启用 */
   enabled: boolean;
   /**
@@ -74,7 +74,7 @@ type AudioSettings = {
   muted: boolean;
   /** 当前音量 (0-100) */
   volume: number;
-};
+}
 
 /**
  * 获取音频设置

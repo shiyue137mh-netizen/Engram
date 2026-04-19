@@ -1,8 +1,9 @@
 import { COMMANDS } from '@/constants/commands';
-import { NAV_ITEMS, NavItem } from '@/constants/navigation';
+import type { NavItem } from '@/constants/navigation';
+import { NAV_ITEMS } from '@/constants/navigation';
 import { useThemeStore } from '@/state/themeStore';
 import { Moon, Palette, Sun } from 'lucide-react';
-import { SearchAdapter, SearchResult } from '../SearchService';
+import type { SearchAdapter, SearchResult } from '../SearchService';
 
 export class CommandAdapter implements SearchAdapter {
     async search(query: string): Promise<SearchResult[]> {
@@ -25,19 +26,19 @@ export class CommandAdapter implements SearchAdapter {
 
         // 2. Extra Manual Commands (Deep links, etc.)
         // We filter out any that might duplicate NAV_ITEMS if IDs collide,
-        // but here we assume COMMANDS contains "extra" things.
+        // But here we assume COMMANDS contains "extra" things.
         const manualResults: SearchResult[] = COMMANDS.filter(cmd =>
             cmd.label.toLowerCase().includes(lowerQuery) ||
             cmd.description?.toLowerCase().includes(lowerQuery) ||
             cmd.keywords.some(k => k.toLowerCase().includes(lowerQuery))
         ).map(cmd => ({
-            id: cmd.id,
-            type: 'command' as const,
-            title: cmd.label,
+            action: cmd.action,
             description: cmd.description,
             icon: cmd.icon,
-            action: cmd.action,
+            id: cmd.id,
             score: 9,
+            title: cmd.label,
+            type: 'command' as const,
         }));
 
         // 3. Theme Commands (Dynamic)
@@ -50,58 +51,58 @@ export class CommandAdapter implements SearchAdapter {
     }
 
     private getThemeCommands(): SearchResult[] {
-        const setTheme = useThemeStore.getState().setTheme;
+        const {setTheme} = useThemeStore.getState();
 
         return [
             {
-                id: 'theme-tokyo-light',
-                type: 'command' as const,
-                title: '主题: Tokyo Light',
+                action: () => setTheme('tokyoLight'),
                 description: '清爽明亮的浅色风格',
                 icon: Sun,
-                action: () => setTheme('tokyoLight'),
+                id: 'theme-tokyo-light',
                 keywords: ['theme', 'light', 'white', 'tokyo', 'paper', '主题'],
-                score: 5
+                score: 5,
+                title: '主题: Tokyo Light',
+                type: 'command' as const
             },
             {
-                id: 'theme-twitter-dark',
-                type: 'command' as const,
-                title: '主题: Twitter Dark',
+                action: () => setTheme('twitterDark'),
                 description: '纯黑、高对比度的推特深色风格',
                 icon: Moon,
-                action: () => setTheme('twitterDark'),
+                id: 'theme-twitter-dark',
                 keywords: ['theme', 'dark', 'black', 'twitter', 'blue', '主题'],
-                score: 5
+                score: 5,
+                title: '主题: Twitter Dark',
+                type: 'command' as const
             },
             {
-                id: 'theme-claude-dark',
-                type: 'command' as const,
-                title: '主题: Claude Dark',
+                action: () => setTheme('claudeDark'),
                 description: '深色纸感风格',
                 icon: Moon,
-                action: () => setTheme('claudeDark'),
+                id: 'theme-claude-dark',
                 keywords: ['theme', 'dark', 'claude', 'paper', '主题'],
-                score: 5
+                score: 5,
+                title: '主题: Claude Dark',
+                type: 'command' as const
             },
             {
-                id: 'theme-catppuccin',
-                type: 'command' as const,
-                title: '主题: Catppuccin Mocha',
+                action: () => setTheme('catppuccin'),
                 description: '柔和的粉彩深色主题',
                 icon: Palette,
-                action: () => setTheme('catppuccin'),
+                id: 'theme-catppuccin',
                 keywords: ['theme', 'dark', 'catppuccin', 'mocha', '主题'],
-                score: 5
+                score: 5,
+                title: '主题: Catppuccin Mocha',
+                type: 'command' as const
             },
             {
-                id: 'theme-everforest',
-                type: 'command' as const,
-                title: '主题: Everforest',
+                action: () => setTheme('everforest'),
                 description: '护眼的绿色森林风格',
                 icon: Palette,
-                action: () => setTheme('everforest'),
+                id: 'theme-everforest',
                 keywords: ['theme', 'dark', 'everforest', 'green', 'wood', '主题'],
-                score: 5
+                score: 5,
+                title: '主题: Everforest',
+                type: 'command' as const
             }
         ];
     }

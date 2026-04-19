@@ -2,7 +2,8 @@
  * 向量化配置表单
  */
 import type { VectorConfig, VectorSource } from '@/config/types/rag';
-import { ModelAPIType, ModelInfo, ModelService } from '@/integrations/llm/ModelDiscovery';
+import type { ModelAPIType, ModelInfo} from '@/integrations/llm/ModelDiscovery';
+import { ModelService } from '@/integrations/llm/ModelDiscovery';
 import { FormSection, SearchableSelectField, SelectField, TextField } from '@/ui/components/form/FormComponents';
 import { AlertCircle, AlertTriangle, Loader2, RefreshCw } from 'lucide-react';
 import React, { useState } from 'react';
@@ -12,7 +13,7 @@ import React, { useState } from 'react';
  * 部署诊断组件 (针对 Failed to fetch 常见错误进行实时提示)
  */
 const DeploymentDiagnostics: React.FC<{ url: string }> = ({ url }) => {
-    if (!url) return null;
+    if (!url) {return null;}
 
     const isHttpsPage = window.location.protocol === 'https:';
     const isHttpUrl = url.startsWith('http:');
@@ -24,24 +25,24 @@ const DeploymentDiagnostics: React.FC<{ url: string }> = ({ url }) => {
     // 1. 混合内容拦截检测 (HTTPS -> HTTP)
     if (isHttpsPage && isHttpUrl) {
         alerts.push({
-            type: 'error',
+            content: '当前酒馆为 HTTPS 环境，无法直接请求 HTTP 接口。请配置 HTTPS 或使用 Nginx 同源代理。',
             icon: <AlertCircle size={14} className="text-destructive" />,
             title: '混合内容屏蔽 (Mixed Content)',
-            content: '当前酒馆为 HTTPS 环境，无法直接请求 HTTP 接口。请配置 HTTPS 或使用 Nginx 同源代理。'
+            type: 'error'
         });
     }
 
     // 2. 本地回路检测 (远程访问填了 127.0.0.1)
     if (isLocalhostUrl && !isLocalhostPage) {
         alerts.push({
-            type: 'warning',
+            content: '127.0.0.1 指向的是你的电脑而非服务器。远程访问时请填写服务器的公网或局域网 IP。',
             icon: <AlertTriangle size={14} className="text-warning" />,
             title: '获取者身份冲突',
-            content: '127.0.0.1 指向的是你的电脑而非服务器。远程访问时请填写服务器的公网或局域网 IP。'
+            type: 'warning'
         });
     }
 
-    if (alerts.length === 0) return null;
+    if (alerts.length === 0) {return null;}
 
     return (
         <div className="mt-2 space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -68,30 +69,30 @@ interface VectorConfigFormProps {
 
 // 向量源选项
 const VECTOR_SOURCE_OPTIONS: { value: VectorSource; label: string }[] = [
-    { value: 'custom', label: '自定义 (OpenAI 兼容)' },
-    { value: 'transformers', label: 'Transformers (本地)' },
-    { value: 'openai', label: 'OpenAI Embeddings' },
-    { value: 'ollama', label: 'Ollama' },
-    { value: 'vllm', label: 'vLLM' },
-    { value: 'cohere', label: 'Cohere' },
-    { value: 'jina', label: 'Jina AI' },
-    { value: 'voyage', label: 'Voyage AI' },
+    { label: '自定义 (OpenAI 兼容)', value: 'custom' },
+    { label: 'Transformers (本地)', value: 'transformers' },
+    { label: 'OpenAI Embeddings', value: 'openai' },
+    { label: 'Ollama', value: 'ollama' },
+    { label: 'vLLM', value: 'vllm' },
+    { label: 'Cohere', value: 'cohere' },
+    { label: 'Jina AI', value: 'jina' },
+    { label: 'Voyage AI', value: 'voyage' },
 ];
 
 // 各向量源的默认/推荐模型
 const DEFAULT_MODELS: Record<VectorSource, string> = {
-    custom: 'text-embedding-3-small',
-    transformers: 'Xenova/all-MiniLM-L6-v2',
-    openai: 'text-embedding-3-small',
-    ollama: 'nomic-embed-text',
-    vllm: 'BAAI/bge-m3',
     cohere: 'embed-multilingual-v3.0',
+    custom: 'text-embedding-3-small',
     jina: 'jina-embeddings-v3',
+    ollama: 'nomic-embed-text',
+    openai: 'text-embedding-3-small',
+    transformers: 'Xenova/all-MiniLM-L6-v2',
+    vllm: 'BAAI/bge-m3',
     voyage: 'voyage-large-2',
 };
 
 // 需要 API URL 的源
-const NEEDS_API_URL: VectorSource[] = ['custom', 'ollama', 'vllm'];
+const NEEDS_API_URL: VectorSource[] = new Set(['custom', 'ollama', 'vllm']);
 // 需要 API Key 的源
 const NEEDS_API_KEY: VectorSource[] = ['custom', 'openai', 'cohere', 'jina', 'voyage'];
 
@@ -107,12 +108,12 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
         updateConfig({
             source,
             model: DEFAULT_MODELS[source],
-            apiUrl: NEEDS_API_URL.includes(source) ? config.apiUrl : undefined,
+            apiUrl: NEEDS_API_URL.has(source) ? config.apiUrl : undefined,
             apiKey: NEEDS_API_KEY.includes(source) ? config.apiKey : undefined,
         });
     };
 
-    const needsUrl = NEEDS_API_URL.includes(config.source);
+    const needsUrl = NEEDS_API_URL.has(config.source);
     const needsKey = NEEDS_API_KEY.includes(config.source);
 
     // 模型列表状态
@@ -127,10 +128,10 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
 
         try {
             let models: ModelInfo[] = [];
-            const fetchConfig = { apiUrl: config.apiUrl || '', apiKey: config.apiKey };
+            const fetchConfig = { apiKey: config.apiKey, apiUrl: config.apiUrl || '' };
 
             switch (config.source) {
-                case 'custom':
+                case 'custom': {
                     // custom 使用 OpenAI 兼容 API
                     if (!config.apiUrl) {
                         setModelError('请先填写 API URL');
@@ -138,29 +139,34 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                     }
                     models = await ModelService.fetchOpenAIModels(fetchConfig);
                     break;
-                case 'ollama':
+                }
+                case 'ollama': {
                     if (!config.apiUrl) {
                         setModelError('请先填写 API URL');
                         return;
                     }
                     models = await ModelService.fetchOllamaModels(fetchConfig);
                     break;
-                case 'vllm':
+                }
+                case 'vllm': {
                     if (!config.apiUrl) {
                         setModelError('请先填写 API URL');
                         return;
                     }
                     models = await ModelService.fetchVLLMModels(fetchConfig);
                     break;
+                }
                 case 'openai':
                 case 'cohere':
                 case 'jina':
-                case 'voyage':
+                case 'voyage': {
                     // 这些使用预设列表
                     models = ModelService.getPresetModels(config.source as ModelAPIType);
                     break;
-                default:
+                }
+                default: {
                     models = [];
+                }
             }
 
             setModelList(models);
@@ -219,20 +225,20 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                                 border: 'none',
                                 borderBottom: '1px solid var(--border)',
                                 borderRadius: 0,
-                                padding: '8px 0',
-                                fontSize: '14px',
-                                width: '100%',
                                 color: 'var(--foreground)',
+                                fontSize: '14px',
                                 outline: 'none',
+                                padding: '8px 0',
+                                width: '100%',
                             }}
                             className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
                         />
                         <p className="text-[10px] text-muted-foreground/70 break-all">
                             {config.source === 'ollama'
                                 ? '填写 base URL 即可，会自动拼接 /api/embeddings'
-                                : (config.autoSuffix !== false && config.apiUrl)
+                                : ((config.autoSuffix !== false && config.apiUrl)
                                     ? `完整 URL: ${config.apiUrl.replace(/\/+$/, '')}/embeddings`
-                                    : '输入 base URL (如 http://xxx/v1)，将自动添加 /embeddings 后缀'
+                                    : '输入 base URL (如 http://xxx/v1)，将自动添加 /embeddings 后缀')
                             }
                         </p>
                         {/* 部署诊断组件 (针对 Failed to fetch 错误) */}
@@ -260,7 +266,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                                     label="模型名称"
                                     value={config.model || ''}
                                     onChange={(value) => updateConfig({ model: value })}
-                                    options={modelList.map(m => ({ value: m.id, label: m.name || m.id }))}
+                                    options={modelList.map(m => ({ label: m.name || m.id, value: m.id }))}
                                     placeholder="选择模型"
                                     emptyText="未找到可用模型"
                                 />
@@ -305,7 +311,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                     label="向量维度"
                     value={config.dimensions?.toString() || ''}
                     onChange={(value) => {
-                        const num = parseInt(value, 10);
+                        const num = Number.parseInt(value, 10);
                         updateConfig({ dimensions: isNaN(num) ? undefined : num });
                     }}
                     placeholder="自动"
@@ -317,7 +323,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                     type="number"
                     value={config.retryConfig?.maxAttempts?.toString() ?? ''}
                     onChange={(value) => {
-                        const num = parseInt(value, 10);
+                        const num = Number.parseInt(value, 10);
                         updateConfig({ retryConfig: { ...config.retryConfig, maxAttempts: isNaN(num) ? 3 : num, retryDelay: config.retryConfig?.retryDelay ?? 2000 } });
                     }}
                     placeholder="3"
@@ -329,7 +335,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                     type="number"
                     value={config.retryConfig?.retryDelay?.toString() ?? ''}
                     onChange={(value) => {
-                        const num = parseInt(value, 10);
+                        const num = Number.parseInt(value, 10);
                         updateConfig({ retryConfig: { ...config.retryConfig, maxAttempts: config.retryConfig?.maxAttempts ?? 3, retryDelay: isNaN(num) ? 2000 : num } });
                     }}
                     placeholder="2000"

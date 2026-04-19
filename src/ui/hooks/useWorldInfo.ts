@@ -1,7 +1,7 @@
 import { SettingsManager } from "@/config/settings";
 import type { EngramAPISettings, WorldbookConfig, WorldbookConfigProfile } from '@/config/types/defaults';
 import { getDefaultAPISettings } from '@/config/types/defaults';
-import { getTavernHelper, WorldInfoService } from '@/integrations/tavern/worldbook';
+import { WorldInfoService, getTavernHelper } from '@/integrations/tavern/worldbook';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface UseWorldInfoReturn {
@@ -33,7 +33,7 @@ export function useWorldInfo(): UseWorldInfoReturn {
     const [currentCharWorldbook, setCurrentCharWorldbook] = useState<string | null>(null);
     const [worldbookConfig, setWorldbookConfig] = useState<WorldbookConfig | undefined>(SettingsManager.get('apiSettings')?.worldbookConfig || getDefaultAPISettings().worldbookConfig);
     const [worldbookProfiles, setWorldbookProfiles] = useState<WorldbookConfigProfile[]>(SettingsManager.get('apiSettings')?.worldbookProfiles || []);
-    const [worldbookScopes, setWorldbookScopes] = useState<{ global: string[]; chat: string[]; installed: string[] }>({ global: [], chat: [], installed: [] });
+    const [worldbookScopes, setWorldbookScopes] = useState<{ global: string[]; chat: string[]; installed: string[] }>({ chat: [], global: [], installed: [] });
     const [hasChanges, setHasChanges] = useState(false);
 
     const loadWorldbookState = useCallback(async () => {
@@ -116,14 +116,14 @@ export function useWorldInfo(): UseWorldInfoReturn {
         const newWorldbookConfig = {
             ...currentSettings.worldbookConfig,
             ...worldbookConfig,
-            disabledWorldbooks: disabledWorldbooks,
-            disabledEntries: disabledEntries
+            disabledWorldbooks,
+            disabledEntries
         };
 
         SettingsManager.set('apiSettings', {
             ...currentSettings,
             worldbookConfig: newWorldbookConfig,
-            worldbookProfiles: worldbookProfiles
+            worldbookProfiles
         });
 
         // 角色世界书的本地状态废弃，统一写入上述全局 config
@@ -131,21 +131,21 @@ export function useWorldInfo(): UseWorldInfoReturn {
     }, [disabledWorldbooks, disabledEntries, currentCharWorldbook, worldbookConfig, worldbookProfiles]);
 
     return {
-        worldbookStructure,
+        addProfile,
+        currentCharWorldbook,
+        deleteProfile,
         disabledEntries,
         disabledWorldbooks,
-        currentCharWorldbook,
+        hasChanges,
+        refreshWorldbooks: loadWorldbookState,
+        saveWorldInfo,
+        toggleEntry,
+        toggleWorldbook,
+        updateProfile,
+        updateWorldbookConfig,
         worldbookConfig,
         worldbookProfiles,
         worldbookScopes,
-        toggleWorldbook,
-        toggleEntry,
-        updateWorldbookConfig,
-        addProfile,
-        updateProfile,
-        deleteProfile,
-        refreshWorldbooks: loadWorldbookState,
-        saveWorldInfo,
-        hasChanges,
+        worldbookStructure,
     };
 }

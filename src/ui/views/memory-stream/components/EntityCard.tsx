@@ -15,17 +15,22 @@ import React from 'react';
 function getEntityTypeColor(type: string): string {
     switch (type.toLowerCase()) {
         case 'char':
-        case 'character':
+        case 'character': {
             return 'text-emphasis bg-emphasis/10 border-emphasis/20';
+        }
         case 'loc':
-        case 'location':
+        case 'location': {
             return 'text-value bg-value/10 border-value/20';
-        case 'item':
+        }
+        case 'item': {
             return 'text-label bg-label/10 border-label/20';
-        case 'concept':
+        }
+        case 'concept': {
             return 'text-heading bg-heading/10 border-heading/20';
-        default:
+        }
+        default: {
             return 'text-meta bg-muted/10 border-border';
+        }
     }
 }
 

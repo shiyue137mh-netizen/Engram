@@ -9,7 +9,7 @@
  */
 
 import { SettingsManager } from '@/config/settings';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { notificationService } from '@/ui/services/NotificationService';
 import type { PreprocessingConfig, PreprocessingResult } from './types';
 import { DEFAULT_PREPROCESSING_CONFIG } from './types';
@@ -24,7 +24,7 @@ class Preprocessor {
     private static instance: Preprocessor;
     private cancelRequested = false;
 
-    private constructor() { }
+    private constructor() {}
 
     // ... (rest of class)
 
@@ -57,11 +57,11 @@ class Preprocessor {
         // 只在启用时记录开始日志（避免未启用时也刷日志）
         if (!config.enabled) {
             return {
-                success: true,
                 output: null,
+                processingTime: 0,
                 query: null,
                 rawOutput: '',
-                processingTime: 0,
+                success: true,
             };
         }
 
@@ -84,15 +84,15 @@ class Preprocessor {
             const { createPreprocessWorkflow } = await import('@/modules/workflow/definitions/PreprocessWorkflow');
 
             const context = await WorkflowEngine.run(createPreprocessWorkflow(), {
-                trigger: 'auto',
                 config: {
+                    logType: 'query',
                     previewEnabled: (SettingsManager.get('globalPreviewEnabled') ?? true) && (config.preview ?? true),
-                    templateId: config.templateId,
-                    logType: 'query' // Log as 'query' type for ModelLogger
+                    templateId: config.templateId // Log as 'query' type for ModelLogger
                 },
                 input: {
                     text: userInput
-                }
+                },
+                trigger: 'auto'
             });
 
             // Handle Skip to Injection
@@ -129,7 +129,7 @@ class Preprocessor {
             }
 
             // Construct Result (Normal Flow)
-            const output = context.output; // From UserReview -> ExtractTags -> output tag
+            const {output} = context; // From UserReview -> ExtractTags -> output tag
             const query = context.extractedTags?.query || null;
             const rawOutput = context.llmResponse?.content || '';
 
@@ -146,8 +146,8 @@ class Preprocessor {
                             count: agenticRecalls!.length,
                         });
                     }
-                } catch (parseErr) {
-                    Logger.warn(LogModule.PREPROCESS, 'recall_decision JSON 解析失败', parseErr);
+                } catch (error) {
+                    Logger.warn(LogModule.PREPROCESS, 'recall_decision JSON 解析失败', error);
                 }
             }
 
@@ -157,41 +157,41 @@ class Preprocessor {
                 processingTime,
             });
 
-            // notificationService.success('预处理完成', 'Engram'); // Reduced noise
+            // NotificationService.success('预处理完成', 'Engram'); // Reduced noise
 
             return {
-                success: true,
+                agenticRecalls,
                 output: output,
+                processingTime,
                 query: query,
                 rawOutput: rawOutput,
-                agenticRecalls,
-                processingTime,
+                success: true,
             };
 
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : '未知错误';
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : '未知错误';
 
             if (errorMsg === 'UserCancelled' || this.cancelRequested) {
                 Logger.debug(LogModule.PREPROCESS, '预处理已取消');
                 return {
-                    success: false,
+                    error: '用户取消',
                     output: null,
+                    processingTime: Date.now() - startTime,
                     query: null,
                     rawOutput: '',
-                    processingTime: Date.now() - startTime,
-                    error: '用户取消',
+                    success: false,
                 };
             }
 
             Logger.error(LogModule.PREPROCESS, '预处理失败', { error: errorMsg });
             notificationService.error(`预处理失败: ${errorMsg}`, 'Engram');
             return {
-                success: false,
+                error: errorMsg,
                 output: null,
+                processingTime: Date.now() - startTime,
                 query: null,
                 rawOutput: '',
-                processingTime: Date.now() - startTime,
-                error: errorMsg,
+                success: false,
             };
         } finally {
             // 移除运行中通知

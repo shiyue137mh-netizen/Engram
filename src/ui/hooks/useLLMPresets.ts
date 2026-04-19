@@ -1,5 +1,5 @@
 /**
- * useLLMPresets - LLM 预设与提示词模板管理
+ * UseLLMPresets - LLM 预设与提示词模板管理
  */
 
 import { SettingsManager } from '@/config/settings';
@@ -74,7 +74,6 @@ export function useLLMPresets(): UseLLMPresetsReturn {
             setSettings({
                 ...defaultSettings,
                 ...savedAPISettings,
-                selectedPresetId: savedAPISettings.selectedPresetId || defaultSettings.selectedPresetId,
                 llmPresets: savedAPISettings.llmPresets?.length > 0
                     ? savedAPISettings.llmPresets
                     : defaultSettings.llmPresets,
@@ -82,6 +81,7 @@ export function useLLMPresets(): UseLLMPresetsReturn {
                     defaultSettings.promptTemplates,
                     savedAPISettings.promptTemplates || []
                 ),
+                selectedPresetId: savedAPISettings.selectedPresetId || defaultSettings.selectedPresetId,
             });
         }
     }, []);
@@ -116,10 +116,10 @@ export function useLLMPresets(): UseLLMPresetsReturn {
     const copyPreset = useCallback((preset: LLMPreset) => {
         const copy: LLMPreset = {
             ...preset,
-            id: `preset_${Date.now()}`,
-            name: `${preset.name} (副本)`,
-            isDefault: false,
             createdAt: Date.now(),
+            id: `preset_${Date.now()}`,
+            isDefault: false,
+            name: `${preset.name} (副本)`,
             updatedAt: Date.now(),
         };
         setSettings(prev => ({ ...prev, llmPresets: [...prev.llmPresets, copy] }));
@@ -127,7 +127,7 @@ export function useLLMPresets(): UseLLMPresetsReturn {
     }, []);
 
     const deletePreset = useCallback((preset: LLMPreset) => {
-        if (preset.isDefault) return;
+        if (preset.isDefault) {return;}
         setSettings(prev => ({
             ...prev,
             llmPresets: prev.llmPresets.filter(p => p.id !== preset.id),
@@ -159,7 +159,7 @@ export function useLLMPresets(): UseLLMPresetsReturn {
     }, []);
 
     const deleteTemplate = useCallback((template: PromptTemplate) => {
-        if (template.isBuiltIn) return;
+        if (template.isBuiltIn) {return;}
         setSettings(prev => ({
             ...prev,
             promptTemplates: prev.promptTemplates.filter(t => t.id !== template.id),
@@ -208,29 +208,29 @@ export function useLLMPresets(): UseLLMPresetsReturn {
         SettingsManager.set('apiSettings', {
             ...currentSettings,
             llmPresets: settings.llmPresets,
-            selectedPresetId: settings.selectedPresetId,
             promptTemplates: settings.promptTemplates,
+            selectedPresetId: settings.selectedPresetId,
         } as any);
         setHasChanges(false);
     }, [settings]);
 
     return {
-        llmPresets: settings.llmPresets,
-        selectedPresetId: settings.selectedPresetId,
-        promptTemplates: settings.promptTemplates,
+        addPreset,
+        addTemplate,
+        copyPreset,
+        deletePreset,
+        deleteTemplate,
         editingPreset,
         editingTemplate,
         hasChanges,
-        selectPreset,
-        addPreset,
-        updatePreset,
-        copyPreset,
-        deletePreset,
-        selectTemplate,
-        addTemplate,
-        updateTemplate,
-        deleteTemplate,
+        llmPresets: settings.llmPresets,
+        promptTemplates: settings.promptTemplates,
         resetAllTemplates,
         saveLLMSettings,
+        selectPreset,
+        selectTemplate,
+        selectedPresetId: settings.selectedPresetId,
+        updatePreset,
+        updateTemplate,
     };
 }

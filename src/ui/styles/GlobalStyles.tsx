@@ -5,7 +5,7 @@ import { useEffect } from 'react';
  */
 const injectFontLinks = () => {
   // 检查是否已注入
-  if (document.getElementById('engram-font-preload')) return;
+  if (document.querySelector('#engram-font-preload')) {return;}
 
   const fonts = [
     'https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap',
@@ -18,14 +18,14 @@ const injectFontLinks = () => {
     preload.rel = 'preload';
     preload.as = 'style';
     preload.href = href;
-    if (index === 0) preload.id = 'engram-font-preload';
-    document.head.appendChild(preload);
+    if (index === 0) {preload.id = 'engram-font-preload';}
+    document.head.append(preload);
 
     // 创建实际的 stylesheet link
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = href;
-    document.head.appendChild(link);
+    document.head.append(link);
   });
 };
 
@@ -36,8 +36,8 @@ export const GlobalStyles = () => {
 
     // Phase 3 Fix: 清理函数，防止重复挂载或热重载时无限累积
     return () => {
-      const preload = document.getElementById('engram-font-preload');
-      if (preload) preload.remove();
+      const preload = document.querySelector('#engram-font-preload');
+      if (preload) {preload.remove();}
       // 这里不对 href 为 https://fonts.googleapis.com 的 link 做直接移除，
       // 因为它们一般只加载一次全局复用，频繁增删反倒影响宿主的字体解析，
       // 此处主要为了防止同 ID 重复冗余。

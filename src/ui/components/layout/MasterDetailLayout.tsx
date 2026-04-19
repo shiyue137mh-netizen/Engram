@@ -54,7 +54,7 @@ export const MasterDetailLayout: React.FC<MasterDetailLayoutProps> = ({
         return (
             <MobileFullscreenForm
                 title={mobileDetailTitle}
-                onClose={onMobileDetailClose || (() => { })}
+                onClose={onMobileDetailClose || (() => {})}
                 actions={mobileDetailActions}
             >
                 {detail}
@@ -78,10 +78,10 @@ export const MasterDetailLayout: React.FC<MasterDetailLayoutProps> = ({
                     layout={enableAnimations}
                     initial={false}
                     animate={{
-                        width: isMobile ? '100%' : listWidth,
-                        minWidth: isMobile ? 'auto' : '240px'
+                        minWidth: isMobile ? 'auto' : '240px',
+                        width: isMobile ? '100%' : listWidth
                     }}
-                    transition={enableAnimations ? { type: "spring", bounce: 0.1, duration: 0.4 } : { duration: 0 }}
+                    transition={enableAnimations ? { bounce: 0.1, duration: 0.4, type: "spring" } : { duration: 0 }}
                     className={`
                         flex flex-col min-h-0 shrink-0
                         ${isMobile ? 'w-full' : 'border-r border-border/50 pr-4'}
@@ -101,8 +101,8 @@ export const MasterDetailLayout: React.FC<MasterDetailLayoutProps> = ({
                                         key="detail-pane"
                                         initial={{ opacity: 0, x: 20 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 20, position: 'absolute', right: 0 }}
-                                        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+                                        exit={{ opacity: 0, position: 'absolute', right: 0, x: 20 }}
+                                        transition={{ bounce: 0, duration: 0.4, type: "spring" }}
                                         className="flex-1 flex flex-col min-h-0 min-w-0"
                                     >
                                         {detail}

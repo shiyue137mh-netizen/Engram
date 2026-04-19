@@ -1,8 +1,8 @@
 import { Logger } from '@/core/logger';
-import { getCurrentCharacter, getCurrentChat, MacroService } from '@/integrations/tavern';
+import { MacroService, getCurrentCharacter, getCurrentChat } from '@/integrations/tavern';
 import { WorldInfoService } from '@/integrations/tavern/worldbook';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 export class FetchContext implements IStep {
     name = 'FetchContext';
@@ -18,12 +18,12 @@ export class FetchContext implements IStep {
             context.input.charPersona = charAny.personality || charAny.description || '';
 
         }
-        // @ts-ignore
+        // @ts-expect-error
         const stContext = window.SillyTavern?.getContext?.();
         if (stContext) {
             context.input.userName = stContext.name1 || 'User';
             // 显式注入人设描述，确保 BuildPrompt 不需要回退到宏系统
-            // @ts-ignore
+            // @ts-expect-error
             context.input.userPersona = window.power_user?.persona_description || stContext.powerUserSettings?.persona_description || '';
         }
 
@@ -32,10 +32,10 @@ export class FetchContext implements IStep {
         // 如果未传入 range，则回退到 MacroService 的默认逻辑（通常是获取最近的 N 条消息）。
         const range = context.input.range as [number, number] | undefined;
         Logger.debug('FetchContext', '开始获取聊天记录', {
+            currentStep: context.metadata.currentStep,
             range: range ?? null,
             trigger: context.trigger,
             workflowId: context.id,
-            currentStep: context.metadata.currentStep,
         });
 
         // 调用 History 助手获取格式化后的文本
@@ -62,7 +62,7 @@ export class FetchContext implements IStep {
         // V1.2.8: 使用 extraWorldbooks 替代 profileId
         const extraWorldbooks = (context.input.extraWorldbooks as string[] | undefined) || [];
         let wiContent = '';
-        let useCustomScan = false;
+        const useCustomScan = false;
 
         // 如果有额外世界书配置，或者为了确保过滤 [Engram]，我们使用自定义扫描
         // V1.2.9: 总是使用自定义逻辑以完全控制过滤
@@ -83,8 +83,8 @@ export class FetchContext implements IStep {
             const { PromptLoader } = await import('@/integrations/llm/PromptLoader');
 
             // 确定 templateId (逻辑同 BuildPrompt)
-            let templateId = context.config.templateId;
-            const category = context.config.category;
+            let {templateId} = context.config;
+            const {category} = context.config;
 
             if (!templateId && category) {
                 // 简单查找该分类下启用的模板
@@ -111,8 +111,8 @@ export class FetchContext implements IStep {
                     extraBooks = [...extraBooks, ...template.extraWorldbooks];
                 }
             }
-        } catch (e) {
-            Logger.warn('FetchContext', '获取模板绑定世界书失败', e);
+        } catch (error) {
+            Logger.warn('FetchContext', '获取模板绑定世界书失败', error);
         }
 
         // 2. 合并并去重
@@ -122,11 +122,11 @@ export class FetchContext implements IStep {
         const worldbooksToScan = allBooks.filter((name: string) => !name.startsWith('[Engram]'));
 
         Logger.debug('FetchContext', '世界书扫描列表', {
-            global: globalBooks.length,
             char: charBooks.length,
             extra: extraBooks.length,
-            totalFilter: worldbooksToScan.length,
-            list: worldbooksToScan
+            global: globalBooks.length,
+            list: worldbooksToScan,
+            totalFilter: worldbooksToScan.length
         });
 
         // 4. 获取扫描文本
@@ -134,7 +134,7 @@ export class FetchContext implements IStep {
         if (range) {
             const chat = getCurrentChat();
             if (chat && Array.isArray(chat)) {
-                // range is 1-based
+                // Range is 1-based
                 const msgs = chat.slice(Math.max(0, range[0] - 1), range[1]);
                 scanText = msgs.map((m: any) => m.mes || '').join('\n');
             }
@@ -190,8 +190,8 @@ export class FetchContext implements IStep {
 
         Logger.debug('FetchContext', '上下文获取完成', {
             historyLen: history?.length || 0,
-            wiLen: wiContent.length,
-            summaryLen: summaryContent.length
+            summaryLen: summaryContent.length,
+            wiLen: wiContent.length
         });
     }
 }

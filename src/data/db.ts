@@ -5,8 +5,9 @@
  * Each chat_id gets its own isolated IndexedDB database.
  */
 
-import Dexie, { Table } from 'dexie';
-import { EntityNode, EventNode } from './types/graph';
+import type { Table } from 'dexie';
+import Dexie from 'dexie';
+import type { EntityNode, EventNode } from './types/graph';
 
 /**
  * 每个聊天的元数据存储
@@ -73,7 +74,7 @@ export class ChatDatabase extends Dexie {
         }
 
         // 如果已经有一个在排队了，直接跳过 (500ms 窗口防抖)
-        if (this.lastUpdateTimer) return;
+        if (this.lastUpdateTimer) {return;}
 
         this.lastUpdateTimer = setTimeout(() => {
             this.lastUpdateTimer = null;
@@ -90,8 +91,8 @@ export class ChatDatabase extends Dexie {
                     await this.meta.put({ key: 'lastModified', value: Date.now() });
                     // 调度同步 (SyncService 内部已有防抖)
                     syncService.scheduleUpload(this.chatId);
-                } catch (err) {
-                    Logger.error(MODULE, '异步更新 lastModified 失败', err);
+                } catch (error) {
+                    Logger.error(MODULE, '异步更新 lastModified 失败', error);
                 }
             });
         }, 500);
@@ -118,7 +119,7 @@ export async function exportChatData(db: ChatDatabase): Promise<ChatDataDump> {
     
     // V1.4.6 Optimization: 将 meta 放在最前面，这样 JSON.stringify 出来的字符串中，
     // 元数据会出现在文件头部。这让 SyncService 的流式正则解析能瞬间命中并切断连接，节省 99% 的带宽喵！
-    return { meta, events, entities };
+    return { entities, events, meta };
 }
 
 /**
@@ -248,8 +249,8 @@ export async function getDatabaseStats(chatId: string): Promise<DatabaseStats> {
             chatId,
             lastUpdateTime: lastModifiedMeta ? Number(lastModifiedMeta.value) : 0
         };
-    } catch (e) {
-        Logger.error(MODULE, `Failed to get stats for chat ${chatId}`, e);
+    } catch (error) {
+        Logger.error(MODULE, `Failed to get stats for chat ${chatId}`, error);
         return { chatId, lastUpdateTime: 0 };
     }
 }

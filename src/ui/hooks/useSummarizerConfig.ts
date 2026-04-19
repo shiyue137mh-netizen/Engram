@@ -1,9 +1,9 @@
 /**
- * useSummarizerConfig - 摘要和精简配置管理 Hook
+ * UseSummarizerConfig - 摘要和精简配置管理 Hook
  *
  * 管理 summarizerConfig (自动总结) 和 trimConfig (精简)
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SettingsManager } from "@/config/settings";
 import { DEFAULT_TRIM_CONFIG } from '@/config/types/defaults';
 import type { TrimConfig } from '@/config/types/memory';
@@ -18,9 +18,9 @@ interface SummarizerSettings {
 
 const DEFAULT_SUMMARIZER_SETTINGS: SummarizerSettings = {
     autoEnabled: true,
-    floorInterval: 10,
-    bufferSize: 3,
     autoHide: false,
+    bufferSize: 3,
+    floorInterval: 10,
 };
 
 export interface UseSummarizerConfigReturn {
@@ -52,9 +52,9 @@ export function useSummarizerConfig(): UseSummarizerConfigReturn {
             const config = summarizerService.getConfig();
             setSummarizerSettings({
                 autoEnabled: config.enabled,
-                floorInterval: config.floorInterval,
+                autoHide: config.autoHide || false,
                 bufferSize: config.bufferSize || 3,
-                autoHide: config.autoHide || false
+                floorInterval: config.floorInterval
             });
 
             // 加载 Trim Config
@@ -62,8 +62,8 @@ export function useSummarizerConfig(): UseSummarizerConfigReturn {
             if (savedTrimConfig) {
                 setTrimConfig({ ...DEFAULT_TRIM_CONFIG, ...savedTrimConfig });
             }
-        } catch (e) {
-            console.error('Failed to load summarizer config:', e);
+        } catch (error) {
+            console.error('Failed to load summarizer config:', error);
         }
     };
 
@@ -87,10 +87,10 @@ export function useSummarizerConfig(): UseSummarizerConfigReturn {
             // 1. 保存 Summarizer Service 配置
             const { summarizerService } = await import('@/modules/memory');
             summarizerService.updateConfig({
-                enabled: summarizerSettings.autoEnabled,
-                floorInterval: summarizerSettings.floorInterval,
+                autoHide: summarizerSettings.autoHide,
                 bufferSize: summarizerSettings.bufferSize,
-                autoHide: summarizerSettings.autoHide
+                enabled: summarizerSettings.autoEnabled,
+                floorInterval: summarizerSettings.floorInterval
             });
 
             // 2. 保存 Trim Config 到 SettingsManager
@@ -101,17 +101,17 @@ export function useSummarizerConfig(): UseSummarizerConfigReturn {
             eventTrimmer.updateConfig(trimConfig);
 
             setHasChanges(false);
-        } catch (e) {
-            console.error('Failed to save summarizer config:', e);
+        } catch (error) {
+            console.error('Failed to save summarizer config:', error);
         }
     }, [summarizerSettings, trimConfig]);
 
     return {
+        hasChanges,
+        saveSummarizerConfig,
         summarizerSettings,
         trimConfig,
         updateSummarizerSettings,
-        updateTrimConfig,
-        saveSummarizerConfig,
-        hasChanges
+        updateTrimConfig
     };
 }

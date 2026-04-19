@@ -1,5 +1,6 @@
 import { Logger } from '@/core/logger';
-import { getSTContext, STMessage } from '../core/context';
+import type { STMessage } from '../core/context';
+import { getSTContext } from '../core/context';
 
 const MODULE = 'TavernChat';
 
@@ -13,9 +14,9 @@ export async function hideMessageRange(start: number, end: number): Promise<void
         const command = `/hide ${start}-${end}`;
         
         // 优先使用官方扩展支持的斜杠指令触发器（高兼容性）
-        // @ts-ignore
+        // @ts-expect-error
         if (typeof window.TavernHelper?.triggerSlash === 'function') {
-            // @ts-ignore
+            // @ts-expect-error
             window.TavernHelper.triggerSlash(command);
             Logger.debug(MODULE, `Slash command execution: ${command}`);
         } else {
@@ -37,13 +38,13 @@ export async function hideMessageRange(start: number, end: number): Promise<void
                     await scriptModule.saveChat();
                     Logger.debug(MODULE, `Chat explicitly saved after hiding range: ${start}-${end}`);
                 }
-            } catch (e) {
-                Logger.warn(MODULE, 'Failed to explicitly save chat after hiding.', e);
+            } catch (error) {
+                Logger.warn(MODULE, 'Failed to explicitly save chat after hiding.', error);
             }
         }, 800);
 
-    } catch (e) {
-        Logger.error(MODULE, 'Failed to hide messages:', e);
+    } catch (error) {
+        Logger.error(MODULE, 'Failed to hide messages:', error);
     }
 }
 
@@ -56,7 +57,7 @@ export async function hideMessageRange(start: number, end: number): Promise<void
 export async function injectMessage(role: 'user' | 'char', content: string, name?: string): Promise<void> {
     try {
         const ctx = getSTContext();
-        if (!ctx) throw new Error('ST Context unavailable');
+        if (!ctx) {throw new Error('ST Context unavailable');}
 
         const senderName = name || (role === 'user' ? ctx.name1 : ctx.name2);
 
@@ -68,7 +69,7 @@ export async function injectMessage(role: 'user' | 'char', content: string, name
         const chatsModule = await import(/* @vite-ignore */ chatsPath);
         const scriptModule = await import(/* @vite-ignore */ scriptPath);
 
-        if (!ctx.chat) throw new Error('Chat array unavailable');
+        if (!ctx.chat) {throw new Error('Chat array unavailable');}
 
         const newMessage: STMessage = {
             name: senderName,
@@ -76,7 +77,7 @@ export async function injectMessage(role: 'user' | 'char', content: string, name
             is_system: false,
             send_date: Date.now(),
             mes: content,
-            // @ts-ignore
+            // @ts-expect-error
             force_avatar: role === 'char' ? scriptModule.characters[ctx.characterId]?.avatar : undefined
         };
 
@@ -93,9 +94,9 @@ export async function injectMessage(role: 'user' | 'char', content: string, name
             await scriptModule.reloadCurrentChat();
         }
 
-        Logger.info(MODULE, '已注入消息', { role, length: content.length });
-    } catch (e) {
-        Logger.error(MODULE, 'Failed to inject message:', e);
-        throw e;
+        Logger.info(MODULE, '已注入消息', { length: content.length, role });
+    } catch (error) {
+        Logger.error(MODULE, 'Failed to inject message:', error);
+        throw error;
     }
 }

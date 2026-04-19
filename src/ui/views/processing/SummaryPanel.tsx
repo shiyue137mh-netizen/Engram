@@ -10,7 +10,7 @@
 import type { TrimConfig, TrimTriggerType } from '@/config/types/memory';
 import { AlertCircle, Calculator, CheckCircle2, Hash, Pause, Play, RefreshCw, Scissors } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-// import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService'; // V0.7 Deprecated
+// Import { TrimmerConfig, DEFAULT_TRIMMER_CONFIG } from '@/services/summarizer/TrimmerService'; // V0.7 Deprecated
 
 import type { TrimmerStatus } from "@/modules/memory";
 import { SliderField } from '@/ui/components/core/SliderField';
@@ -38,8 +38,8 @@ interface SummaryPanelProps {
 }
 
 const TRIGGER_OPTIONS: { id: TrimTriggerType; label: string; icon: React.ElementType }[] = [
-    { id: 'token', label: 'Token 数', icon: Calculator },
-    { id: 'count', label: '活跃事件数', icon: Hash },
+    { icon: Calculator, id: 'token', label: 'Token 数' },
+    { icon: Hash, id: 'count', label: '活跃事件数' },
 ];
 
 export const SummaryPanel: React.FC<SummaryPanelProps> = ({
@@ -93,8 +93,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             setEditSummarizedFloor(currentStatus.lastSummarizedFloor);
             setEditExtractedFloor(entityStatus.lastExtractedFloor || 0);
 
-        } catch (e) {
-            console.error('加载 Summarizer 状态失败:', e);
+        } catch (error) {
+            console.error('加载 Summarizer 状态失败:', error);
         }
     };
 
@@ -106,8 +106,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             import('@/ui/services/NotificationService').then(({ notificationService }) => {
                 notificationService.success(`总结指针已更新至 ${editSummarizedFloor}`, 'Engram');
             });
-        } catch (e) {
-            console.error('修改总结指针失败:', e);
+        } catch (error) {
+            console.error('修改总结指针失败:', error);
         }
     };
 
@@ -119,8 +119,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             import('@/ui/services/NotificationService').then(({ notificationService }) => {
                 notificationService.success(`提取指针已更新至 ${editExtractedFloor}`, 'Engram');
             });
-        } catch (e) {
-            console.error('修改提取指针失败:', e);
+        } catch (error) {
+            console.error('修改提取指针失败:', error);
         }
     };
 
@@ -129,8 +129,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             const { summarizerService } = await import('@/modules/memory');
             summarizerService.start();
             await loadStatus();
-        } catch (e) {
-            console.error('启动失败:', e);
+        } catch (error) {
+            console.error('启动失败:', error);
         }
     };
 
@@ -139,8 +139,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             const { summarizerService } = await import('@/modules/memory');
             summarizerService.stop();
             await loadStatus();
-        } catch (e) {
-            console.error('停止失败:', e);
+        } catch (error) {
+            console.error('停止失败:', error);
         }
     };
 
@@ -150,8 +150,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             const { summarizerService } = await import('@/modules/memory');
             await summarizerService.triggerSummary(true);
             await loadStatus();
-        } catch (e) {
-            console.error('触发失败:', e);
+        } catch (error) {
+            console.error('触发失败:', error);
         } finally {
             setLoading(false);
         }
@@ -159,7 +159,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
 
     // 重置进度功能
     const handleReset = async () => {
-        if (!confirm('确定要重置总结进度吗？这会导致扫描所有历史消息。')) return;
+        if (!confirm('确定要重置总结进度吗？这会导致扫描所有历史消息。')) {return;}
         setLoading(true);
         try {
             const { summarizerService } = await import('@/modules/memory');
@@ -167,8 +167,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             // 理想情况下应该在 service 中暴露 reset 方法
             await summarizerService.setLastSummarizedFloor(0);
             await loadStatus();
-        } catch (e) {
-            console.error('重置失败:', e);
+        } catch (error) {
+            console.error('重置失败:', error);
         } finally {
             setLoading(false);
         }
@@ -184,7 +184,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
         onTrimConfigChange(newConfig);
     };
 
-    // enabled 开关切换
+    // Enabled 开关切换
     const handleTrimEnabledChange = async () => {
         const newConfig = { ...trimConfig, enabled: !trimConfig.enabled };
         onTrimConfigChange(newConfig);
@@ -200,8 +200,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             const { eventTrimmer } = await import('@/modules/memory/EventTrimmer');
             await eventTrimmer.trim(true);
             await loadStatus();
-        } catch (e) {
-            console.error('精简失败:', e);
+        } catch (error) {
+            console.error('精简失败:', error);
         } finally {
             setTrimLoading(false);
         }
@@ -210,9 +210,12 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
     // 获取当前阈值配置
     const getCurrentLimit = () => {
         switch (trimConfig.trigger) {
-            case 'token': return { value: trimConfig.tokenLimit ?? 10240, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
-            case 'count': return { value: trimConfig.countLimit ?? 5, min: 2, max: 20, step: 1, label: '次数上限' };
-            default: return { value: 10240, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
+            case 'token': { return { value: trimConfig.tokenLimit ?? 10240, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
+            }
+            case 'count': { return { value: trimConfig.countLimit ?? 5, min: 2, max: 20, step: 1, label: '次数上限' };
+            }
+            default: { return { value: 10240, min: 1024, max: 100000, step: 1024, label: 'Token 上限' };
+            }
         }
     };
 

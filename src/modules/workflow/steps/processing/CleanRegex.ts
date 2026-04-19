@@ -1,12 +1,12 @@
-import { IStep } from '../../core/Step';
-import { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
 import { regexProcessor } from './RegexProcessor';
 import { Logger } from '@/core/logger';
 
 export class CleanRegex implements IStep {
     name = 'CleanRegex';
 
-    constructor(private type: 'input' | 'output' | 'both' = 'output') { }
+    constructor(private type: 'input' | 'output' | 'both' = 'output') {}
 
     async execute(context: JobContext): Promise<void> {
         const input = context.llmResponse?.content;

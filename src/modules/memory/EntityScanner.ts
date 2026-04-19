@@ -1,5 +1,5 @@
 import { Logger } from '@/core/logger';
-import { EntityNode, EventNode } from '@/data/types/graph';
+import type { EntityNode, EventNode } from '@/data/types/graph';
 
 const MODULE = 'EntityScanner';
 
@@ -8,13 +8,13 @@ const MODULE = 'EntityScanner';
  */
 function parseRegexFromString(input: string): RegExp | null {
     try {
-        // @ts-ignore - 尝试从全局获取，SillyTavern 导出了这个方法
+        // @ts-expect-error - 尝试从全局获取，SillyTavern 导出了这个方法
         if (typeof window.parseRegexFromString === 'function') {
-            // @ts-ignore
+            // @ts-expect-error
             return window.parseRegexFromString(input);
         }
-    } catch (e) {
-        Logger.warn(MODULE, '无法获取酒馆原生 parseRegexFromString，降级为普通正则', e);
+    } catch (error) {
+        Logger.warn(MODULE, '无法获取酒馆原生 parseRegexFromString，降级为普通正则', error);
     }
 
     // 降级方案：简单的斜杠包裹正则解析
@@ -22,7 +22,7 @@ function parseRegexFromString(input: string): RegExp | null {
     if (match) {
         try {
             return new RegExp(match[1], match[2] || 'i');
-        } catch (e) {
+        } catch {
             return null;
         }
     }
@@ -33,7 +33,7 @@ function parseRegexFromString(input: string): RegExp | null {
  * 匹配函数，尽可能复刻酒馆的 matchKeys 逻辑
  */
 export function matchKey(text: string, keyword: string): boolean {
-    if (!keyword || !text) return false;
+    if (!keyword || !text) {return false;}
 
     // 1. 尝试正则匹配
     const regex = parseRegexFromString(keyword);
@@ -73,7 +73,7 @@ export function scanEntities(text: string, entities: EntityNode[]): EntityNode[]
                         break;
                     }
                 }
-                if (hit) break;
+                if (hit) {break;}
             }
         }
 
@@ -86,7 +86,7 @@ export function scanEntities(text: string, entities: EntityNode[]): EntityNode[]
 }
 
 export function matchEvent(text: string, event: EventNode): boolean {
-    if (!text || !event) return false;
+    if (!text || !event) {return false;}
 
     // 扫描角色
     if (Array.isArray(event.structured_kv.role)) {

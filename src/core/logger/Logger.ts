@@ -8,9 +8,11 @@
 import { generateShortUUID } from '@/core/utils';
 import { Subject } from 'rxjs';
 import manifest from '../../../manifest.json';
-import { EngramEvent, EventBus } from '../events';
+import type { EngramEvent} from '../events';
+import { EventBus } from '../events';
 import type { LogModule } from './LogModule';
-import { DEFAULT_LOGGER_CONFIG, LogEntry, LoggerConfig, LogLevel } from './types';
+import type { LogEntry, LoggerConfig} from './types';
+import { DEFAULT_LOGGER_CONFIG, LogLevel } from './types';
 
 // 日志流 Subject (RxJS)
 const logSubject = new Subject<LogEntry>();
@@ -38,15 +40,15 @@ function formatTime(timestamp: number): string {
  * 执行过滤、缓存和广播
  */
 function writeLog(level: LogLevel, module: string, message: string, data?: unknown): void {
-    if (level < config.minLevel) return;
+    if (level < config.minLevel) {return;}
 
     const entry: LogEntry = {
-        id: generateShortUUID('log_'),
-        timestamp: Date.now(),
-        level,
-        module,
-        message,
         data,
+        id: generateShortUUID('log_'),
+        level,
+        message,
+        module,
+        timestamp: Date.now(),
     };
 
     // 添加到内存缓存
@@ -68,14 +70,14 @@ function writeLog(level: LogLevel, module: string, message: string, data?: unkno
 function setupEventBusListener(): void {
     EventBus.subscribe((event: EngramEvent) => {
         const levelMap: Record<string, LogLevel> = {
-            INGESTION_START: LogLevel.INFO,
-            INGESTION_COMPLETE: LogLevel.SUCCESS,
-            ENTITY_CREATED: LogLevel.INFO,
-            MEMORY_STORED: LogLevel.SUCCESS,
-            RETRIEVAL_START: LogLevel.DEBUG,
-            RETRIEVAL_COMPLETE: LogLevel.SUCCESS,
             CHAT_CHANGED: LogLevel.INFO,
+            ENTITY_CREATED: LogLevel.INFO,
+            INGESTION_COMPLETE: LogLevel.SUCCESS,
+            INGESTION_START: LogLevel.INFO,
+            MEMORY_STORED: LogLevel.SUCCESS,
             MESSAGE_RECEIVED: LogLevel.DEBUG,
+            RETRIEVAL_COMPLETE: LogLevel.SUCCESS,
+            RETRIEVAL_START: LogLevel.DEBUG,
         };
 
         const level = levelMap[event.type] ?? LogLevel.DEBUG;
@@ -203,7 +205,7 @@ export const Logger = {
                         .map((line) => `    ${line}`)
                         .join('\n');
                     md += `${dataStr}\n`;
-                } catch (e) {
+                } catch {
                     md += `    [Data serialization failed]\n`;
                 }
             }
@@ -220,7 +222,7 @@ export const Logger = {
     getExportFilename(): string {
         const now = new Date();
         const dateStr = now.toISOString().slice(0, 10);
-        const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '');
+        const timeStr = now.toTimeString().slice(0, 8).replaceAll(/:/g, '');
         return `engram_log_${dateStr}_${timeStr}.md`;
     },
 };

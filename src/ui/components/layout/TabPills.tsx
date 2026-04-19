@@ -63,7 +63,7 @@ export const TabPills: React.FC<TabPillsProps> = ({ tabs, activeTab, onChange, s
                                 <motion.div
                                     layoutId="active-tab-indicator"
                                     className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary shadow-[0_0_8px_var(--primary)] z-10"
-                                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                    transition={{ damping: 30, stiffness: 500, type: "spring" }}
                                 />
                             ) : (
                                 <div className="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-primary z-10" />

@@ -42,18 +42,14 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
         setExpandedBooks(newSet);
     };
 
-    const isWorldbookDisabled = (name: string) => {
-        return config.disabledWorldbooks?.includes(name) || false;
-    };
+    const isWorldbookDisabled = (name: string) => config.disabledWorldbooks?.includes(name) || false;
 
-    const isEntryDisabled = (book: string, uid: number) => {
-        return disabledEntries[book]?.includes(uid) || false;
-    };
+    const isEntryDisabled = (book: string, uid: number) => disabledEntries[book]?.includes(uid) || false;
 
     // 过滤和排序处理
     const worldbooks = Object.keys(worldbookStructure)
         .filter(book => !book.startsWith('[Engram]'))
-        .sort();
+        .toSorted();
     const filteredWorldbooks = worldbooks.filter(book =>
         book.toLowerCase().includes(filterText.toLowerCase()) ||
         worldbookStructure[book].some((e: any) =>
@@ -178,21 +174,21 @@ export const WorldbookConfigForm: React.FC<WorldbookConfigFormProps> = ({
                                                                         <div
                                                                             className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${entry.disabled
                                                                                 ? 'bg-muted-foreground/50'
-                                                                                : entry.constant
+                                                                                : (entry.constant
                                                                                     ? 'bg-primary'
-                                                                                    : 'bg-emerald-500'
+                                                                                    : 'bg-emerald-500')
                                                                                 }`}
                                                                             title={
                                                                                 entry.disabled
                                                                                     ? "已禁用 (世界书原设定)"
-                                                                                    : entry.constant
+                                                                                    : (entry.constant
                                                                                         ? "常驻 (Constant) 🔵"
-                                                                                        : "条件触发 (Selective) 🟢"
+                                                                                        : "条件触发 (Selective) 🟢")
                                                                             }
                                                                         />
 
                                                                         {/* 条目名称 - 添加 truncate 防止溢出 */}
-                                                                        <span className={`text-sm font-medium truncate max-w-full ${isEntryItemDisabled ? 'text-muted-foreground line-through' : entry.disabled ? 'text-muted-foreground' : 'text-foreground'}`}>
+                                                                        <span className={`text-sm font-medium truncate max-w-full ${isEntryItemDisabled ? 'text-muted-foreground line-through' : (entry.disabled ? 'text-muted-foreground' : 'text-foreground')}`}>
                                                                             {entry.name || `条目 #${entry.uid}`}
                                                                         </span>
 

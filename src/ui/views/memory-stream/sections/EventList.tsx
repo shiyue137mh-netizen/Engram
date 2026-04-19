@@ -47,8 +47,7 @@ export const EventList: React.FC<EventListProps> = ({
     onToggleLock,
     onArchive,
     onDelete,
-}) => {
-    return (
+}) => (
         <div className="flex flex-col min-h-0 h-full w-full">
             {/* 搜索框 */}
             {viewMode === 'browse' && (
@@ -170,4 +169,3 @@ export const EventList: React.FC<EventListProps> = ({
             </div>
         </div>
     );
-};

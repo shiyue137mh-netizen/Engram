@@ -1,7 +1,7 @@
 import { Logger } from '@/core/logger';
 import { RobustJsonParser } from '@/core/utils/JsonParser';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 export class ParseJson implements IStep {
     name = 'ParseJson';

@@ -1,5 +1,5 @@
 import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { llmAdapter } from '@/integrations/llm/Adapter';
 
 export class BatchUtils {
@@ -19,7 +19,7 @@ export class BatchUtils {
             const end = Math.min(start + chunkSize, text.length);
             chunks.push(text.slice(start, end));
             start = end - overlapSize;
-            if (start >= text.length - overlapSize) break;
+            if (start >= text.length - overlapSize) {break;}
         }
         return chunks;
     }
@@ -48,14 +48,14 @@ export class BatchUtils {
 
         // 3. 执行宏替换 (逻辑同步 BuildPrompt)
         const variables: Record<string, string> = {
-            '{{userInput}}': chunk,
             '{{chatHistory}}': MacroService.getChatHistory(),
             '{{engramSummaries}}': MacroService.getSummaries(),
+            '{{userInput}}': chunk,
             '{{worldbookContext}}': MacroService.getWorldbookContext(),
         };
 
         for (const [key, value] of Object.entries(variables)) {
-            const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            const regex = new RegExp(key.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`), 'g');
             systemPrompt = systemPrompt.replace(regex, value);
             userPromptTemplate = userPromptTemplate.replace(regex, value);
         }

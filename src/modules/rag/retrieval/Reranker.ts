@@ -7,7 +7,7 @@
 
 import { SettingsManager } from '@/config/settings';
 import type { RerankConfig } from '@/config/types/rag';
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 
 // ==================== 类型定义 ====================
 
@@ -34,7 +34,7 @@ interface RerankAPIResponse {
 class RerankService {
     private static instance: RerankService;
 
-    private constructor() { }
+    private constructor() {}
 
     static getInstance(): RerankService {
         if (!RerankService.instance) {
@@ -56,7 +56,7 @@ class RerankService {
      */
     isEnabled(): boolean {
         const config = this.getConfig();
-        return !!(config?.enabled && config.url && config.model);
+        return Boolean(config?.enabled && config.url && config.model);
     }
 
     private isReranking = false;
@@ -78,7 +78,7 @@ class RerankService {
         }
 
         if (!config.url || !config.model) {
-            Logger.warn(LogModule.RAG_RERANK, 'Rerank 配置不完整', { url: config.url, model: config.model });
+            Logger.warn(LogModule.RAG_RERANK, 'Rerank 配置不完整', { model: config.model, url: config.url });
             return documents.map((_, i) => ({ index: i, relevance_score: 0 }));
         }
 
@@ -111,27 +111,27 @@ class RerankService {
             }
 
             Logger.debug(LogModule.RAG_RERANK, '调用 Rerank API', {
+                documentCount: documents.length,
                 endpoint,
                 model: config.model,
                 queryLength: query.length,
-                documentCount: documents.length,
             });
 
             const startTime = Date.now();
             const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(config.apiKey && {
-                        'Authorization': `Bearer ${config.apiKey}`
-                    })
-                },
                 body: JSON.stringify({
                     model: config.model,
                     query,
                     documents,
                     top_n: config.topN || 5,
                 }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(config.apiKey && {
+                        'Authorization': `Bearer ${config.apiKey}`
+                    })
+                },
+                method: 'POST',
             });
 
             if (!response.ok) {
@@ -152,20 +152,20 @@ class RerankService {
             const passingCount = scores.filter(s => s >= 0.5).length; // 假设 0.5 为及格线
 
             Logger.info(LogModule.RAG_RERANK, 'Rerank 完成', {
+                avgScore: avgScore.toFixed(4),
+                latency: `${latency}ms`,
+                passingCount,
                 resultCount: results.length,
                 topScore: topScore.toFixed(4),
-                avgScore: avgScore.toFixed(4),
-                passingCount,
-                latency: `${latency}ms`,
             });
 
             // 如果最高分太低，进行警告并记录，方便调试
             if (topScore < 0.3 && results.length > 0) {
-                Logger.warn(LogModule.RAG_RERANK, '警告：Rerank 最高分极低', { topScore, query: query.slice(0, 50) });
+                Logger.warn(LogModule.RAG_RERANK, '警告：Rerank 最高分极低', { query: query.slice(0, 50), topScore });
             }
 
             // 按相关性降序排列
-            return results.sort((a, b) => b.relevance_score - a.relevance_score);
+            return results.toSorted((a, b) => b.relevance_score - a.relevance_score);
 
         } catch (error) {
             const errorMsg = error instanceof Error ? error.message : '未知错误';

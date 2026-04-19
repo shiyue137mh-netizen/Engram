@@ -24,7 +24,7 @@ export type VectorSource =
     | 'transformers'  // 本地 transformers
     | 'openai'        // OpenAI Embeddings API
     | 'ollama'        // Ollama
-    | 'vllm'          // vLLM
+    | 'vllm'          // VLLM
     | 'cohere'        // Cohere
     | 'jina'          // Jina AI
     | 'voyage'        // Voyage AI

@@ -32,22 +32,28 @@ interface DashboardProps {
 
 const getLevelClass = (level: number) => {
     switch (level) {
-        case 0: return 'text-muted-foreground';
-        case 1: return 'text-primary';
-        case 2: return 'text-green-400';
-        case 3: return 'text-yellow-400';
-        case 4: return 'text-red-400';
-        default: return 'text-primary';
+        case 0: { return 'text-muted-foreground';
+        }
+        case 1: { return 'text-primary';
+        }
+        case 2: { return 'text-green-400';
+        }
+        case 3: { return 'text-yellow-400';
+        }
+        case 4: { return 'text-red-400';
+        }
+        default: { return 'text-primary';
+        }
     }
 };
 
 // 功能开关配置
 const FEATURE_CONFIG = [
-    { key: 'summarizer' as const, label: '自动总结', desc: '楼层触发剧情摘要', icon: Brain },
-    { key: 'entity' as const, label: '实体提取', desc: '提取角色/地点关系', icon: Sparkles },
-    { key: 'embedding' as const, label: '语义向量', desc: '事件向量化嵌入', icon: Search },
-    { key: 'recall' as const, label: 'RAG 召回', desc: '记忆语义检索', icon: Search },
-    { key: 'preprocessing' as const, label: '输入预处理', desc: 'Query 增强/剧情编排', icon: Wand2 },
+    { desc: '楼层触发剧情摘要', icon: Brain, key: 'summarizer' as const, label: '自动总结' },
+    { desc: '提取角色/地点关系', icon: Sparkles, key: 'entity' as const, label: '实体提取' },
+    { desc: '事件向量化嵌入', icon: Search, key: 'embedding' as const, label: '语义向量' },
+    { desc: '记忆语义检索', icon: Search, key: 'recall' as const, label: 'RAG 召回' },
+    { desc: 'Query 增强/剧情编排', icon: Wand2, key: 'preprocessing' as const, label: '输入预处理' },
 ];
 
 // 快速入口：从 NAV_ITEMS 过滤，排除仪表盘自身
@@ -87,10 +93,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         return () => {
             isMounted.current = false;
             unsubscribe();
-            if (throttleTimer) clearTimeout(throttleTimer);
+            if (throttleTimer) {clearTimeout(throttleTimer);}
             // P0 Fix: 组件卸载前如果还能更新状态才 flush，并且如果已经卸载就跳过
             // 但是实际上如果在卸载流程中，不应该再去 setState 了。由于 React 18 的 StrictMode 或正常卸载，
-            // unmount 时 setState 会报警告。所以既然已经是 unmount 了，UI 也看不到了，直接丢弃 pendingLogs 即可。
+            // Unmount 时 setState 会报警告。所以既然已经是 unmount 了，UI 也看不到了，直接丢弃 pendingLogs 即可。
         };
     }, []);
 

@@ -1,4 +1,4 @@
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { generateShortUUID } from '@/core/utils';
 import { chatManager } from '@/data/ChatManager';
 import { MacroService } from '@/integrations/tavern';
@@ -7,7 +7,7 @@ import { entityBuilder } from '@/modules/memory/EntityExtractor';
 import { eventTrimmer } from '@/modules/memory/EventTrimmer';
 import { embeddingService } from '@/modules/rag/embedding/EmbeddingService';
 import { notificationService } from '@/ui/services/NotificationService';
-import { BatchTask, BatchTaskType, IBatchTaskHandler } from '../types';
+import type { BatchTask, BatchTaskType, IBatchTaskHandler } from '../types';
 
 /**
  * 同步补全历史聊天记录的长程任务处理器
@@ -33,7 +33,7 @@ export class HistoryTask implements IBatchTaskHandler {
 
         // 我们需要重新拉取各个模块最新的状态以得到 currentFloor
         const state = await chatManager.getState();
-        // @ts-ignore
+        // @ts-expect-error
         const currentFloor = state.current_floor || MacroService.getCurrentMessageCount() || 0;
 
         const summarizerConfig = summarizerService.getConfig();
@@ -66,44 +66,44 @@ export class HistoryTask implements IBatchTaskHandler {
 
         if (summaryTasksCount > 0) {
             tasks.push({
+                floorRange: { end: targetEnd, start: this.startFloor },
                 id: generateShortUUID('sum_'),
-                type: 'summary',
-                status: 'pending',
                 progress: { current: 0, total: summaryTasksCount },
-                floorRange: { start: this.startFloor, end: targetEnd }
+                status: 'pending',
+                type: 'summary'
             });
         }
         if (entityTasksCount > 0) {
             tasks.push({
+                floorRange: { end: targetEnd, start: this.startFloor },
                 id: generateShortUUID('ent_'),
-                type: 'entity',
-                status: 'pending',
                 progress: { current: 0, total: entityTasksCount },
-                floorRange: { start: this.startFloor, end: targetEnd }
+                status: 'pending',
+                type: 'entity'
             });
         }
         if (archiveTasksCount > 0) {
             tasks.push({
                 id: generateShortUUID('arc_'),
-                type: 'archive',
-                status: 'pending',
                 progress: { current: 0, total: 1 },
+                status: 'pending',
+                type: 'archive',
             });
         }
         if (trimTasksCount > 0) {
             tasks.push({
                 id: generateShortUUID('trm_'),
-                type: 'trim',
+                progress: { current: 0, total: trimTasksCount },
                 status: 'pending',
-                progress: { current: 0, total: trimTasksCount }
+                type: 'trim'
             });
         }
         if (embedTasksCount > 0) {
             tasks.push({
                 id: generateShortUUID('emb_'),
-                type: 'embed',
+                progress: { current: 0, total: embedTasksCount },
                 status: 'pending',
-                progress: { current: 0, total: embedTasksCount } // total is abstract here
+                type: 'embed' // Total is abstract here
             });
         }
 
@@ -120,33 +120,39 @@ export class HistoryTask implements IBatchTaskHandler {
     ): AsyncGenerator<void, void, unknown> {
 
         for (let taskIndex = 0; taskIndex < tasks.length; taskIndex++) {
-            if (checkStopSignal()) return;
+            if (checkStopSignal()) {return;}
 
             const task = tasks[taskIndex];
 
             try {
                 switch (task.type) {
-                    case 'summary':
+                    case 'summary': {
                         yield* this.executeSummary(task, taskIndex, checkStopSignal, updateContext);
                         break;
-                    case 'entity':
+                    }
+                    case 'entity': {
                         yield* this.executeEntity(task, taskIndex, checkStopSignal, updateContext);
                         break;
-                    case 'archive':
+                    }
+                    case 'archive': {
                         yield* this.executeArchive(task, taskIndex, checkStopSignal, updateContext);
                         break;
-                    case 'trim':
+                    }
+                    case 'trim': {
                         yield* this.executeTrim(task, taskIndex, checkStopSignal, updateContext);
                         break;
-                    case 'embed':
+                    }
+                    case 'embed': {
                         yield* this.executeEmbed(task, taskIndex, checkStopSignal, updateContext);
                         break;
-                    default:
+                    }
+                    default: {
                         Logger.warn(LogModule.BATCH, `未知的任务类型: ${task.type}`);
+                    }
                 }
-            } catch (e: any) {
-                Logger.error(LogModule.BATCH, `任务 ${task.type} 执行失败`, { error: e.message });
-                throw e; // 重复抛出给 Engine 捕获从而标记 Error
+            } catch (error: any) {
+                Logger.error(LogModule.BATCH, `任务 ${task.type} 执行失败`, { error: error.message });
+                throw error; // 重复抛出给 Engine 捕获从而标记 Error
             }
         }
     }
@@ -159,7 +165,7 @@ export class HistoryTask implements IBatchTaskHandler {
         checkStopSignal: () => boolean,
         updateProgress: (t: number, c: number) => void
     ) {
-        if (!task.floorRange) return;
+        if (!task.floorRange) {return;}
 
         const summaryInterval = summarizerService.getConfig().floorInterval || 10;
         let processedFloors = 0;
@@ -169,24 +175,24 @@ export class HistoryTask implements IBatchTaskHandler {
 
         // 我们改为基于当前任务定义的范围进行循环，而不是全局状态
         while (processedFloors < totalToProcess) {
-            if (checkStopSignal()) return;
+            if (checkStopSignal()) {return;}
 
             // 计算当前这一切片的范围
             // 考虑基准点：当前已处理 + 起始点
             const currentSliceStart = startBase + processedFloors;
             const currentSliceEnd = Math.min(task.floorRange.end, currentSliceStart + summaryInterval - 1);
 
-            if (currentSliceStart > currentSliceEnd) break;
+            if (currentSliceStart > currentSliceEnd) {break;}
 
             try {
                 // 核心修改：向 triggerSummary 传递明确的 range
                 const res = await summarizerService.triggerSummary(true, [currentSliceStart, currentSliceEnd]);
-                if (checkStopSignal()) return;
+                if (checkStopSignal()) {return;}
 
                 // 无论成功与否，我们都推进 processedFloors，因为逻辑已外置
                 processedFloors += (currentSliceEnd - currentSliceStart + 1);
-            } catch (err: any) {
-                Logger.error(LogModule.BATCH, `Summary Failed at range ${currentSliceStart}-${currentSliceEnd}`, { error: err.message });
+            } catch (error: any) {
+                Logger.error(LogModule.BATCH, `Summary Failed at range ${currentSliceStart}-${currentSliceEnd}`, { error: error.message });
                 processedFloors += summaryInterval; // 跳过此分片
             }
 
@@ -202,19 +208,19 @@ export class HistoryTask implements IBatchTaskHandler {
         checkStopSignal: () => boolean,
         updateProgress: (t: number, c: number) => void
     ) {
-        if (!task.floorRange) return;
+        if (!task.floorRange) {return;}
 
         const entityInterval = entityBuilder.getConfig().floorInterval || 50;
         let processedFloors = 0;
 
         while (processedFloors < task.floorRange.end - task.floorRange.start) {
-            if (checkStopSignal()) return;
+            if (checkStopSignal()) {return;}
 
             const startBase = task.floorRange.start;
             const currentSliceStart = startBase + processedFloors;
             const currentSliceEnd = Math.min(task.floorRange.end, currentSliceStart + entityInterval - 1);
 
-            if (currentSliceStart > currentSliceEnd) break;
+            if (currentSliceStart > currentSliceEnd) {break;}
 
             try {
                 // 核心修改：明确传递 range，不再依赖内部 auto-delta
@@ -222,8 +228,8 @@ export class HistoryTask implements IBatchTaskHandler {
                 if (res && !res.success) {
                     Logger.warn(LogModule.BATCH, `Entity extract failed for range ${currentSliceStart}-${currentSliceEnd}`, { error: res.error });
                 }
-            } catch (err: any) {
-                Logger.error(LogModule.BATCH, `Entity extract exception for range ${currentSliceStart}-${currentSliceEnd}`, { error: err.message });
+            } catch (error: any) {
+                Logger.error(LogModule.BATCH, `Entity extract exception for range ${currentSliceStart}-${currentSliceEnd}`, { error: error.message });
             }
 
             processedFloors += (currentSliceEnd - currentSliceStart + 1);
@@ -239,14 +245,14 @@ export class HistoryTask implements IBatchTaskHandler {
         updateProgress: (t: number, c: number) => void
     ) {
         for (let i = 0; i < task.progress.total; i++) {
-            if (checkStopSignal()) return;
+            if (checkStopSignal()) {return;}
             try {
                 const res = await eventTrimmer.trim(true);
                 if (res === null) {
                     Logger.warn(LogModule.BATCH, 'Trim skipped or returned null');
                 }
-            } catch (err: any) {
-                Logger.error(LogModule.BATCH, 'Trim failed', { error: err.message });
+            } catch (error: any) {
+                Logger.error(LogModule.BATCH, 'Trim failed', { error: error.message });
             }
             yield; // 释放控制权
             updateProgress(taskIndex, i + 1);
@@ -259,7 +265,7 @@ export class HistoryTask implements IBatchTaskHandler {
         checkStopSignal: () => boolean,
         updateProgress: (t: number, c: number) => void
     ) {
-        if (checkStopSignal()) return;
+        if (checkStopSignal()) {return;}
         const res = await embeddingService.embedUnprocessedEvents((current, total) => {
             // 适配 Embed 自身的回调，反演更新给批处理 Engine
             updateProgress(taskIndex, Math.min(task.progress.total, Math.ceil((current / total) * task.progress.total)));
@@ -278,7 +284,7 @@ export class HistoryTask implements IBatchTaskHandler {
         checkStopSignal: () => boolean,
         updateProgress: (t: number, c: number) => void
     ) {
-        if (checkStopSignal()) return;
+        if (checkStopSignal()) {return;}
 
         // V1.0 架构中 LevelManager 可能不再以类存在或需要更换方案
         // 目前暂不实现后台自动按 Level 层级归档，预留至检索张 Workflow 升级阶段

@@ -81,8 +81,8 @@ export function getSTContext(): STContext | null {
     try {
         const ctx = window.SillyTavern?.getContext?.();
         return ctx || null;
-    } catch (e) {
-        Logger.warn(MODULE, '无法获取 ST 上下文', e);
+    } catch (error) {
+        Logger.warn(MODULE, '无法获取 ST 上下文', error);
         return null;
     }
 }
@@ -108,10 +108,10 @@ export function getCurrentChatId(): string | null {
  */
 export function getCurrentCharacter(): { name: string; id: number } | null {
     const ctx = getSTContext();
-    if (!ctx) return null;
+    if (!ctx) {return null;}
     return {
-        name: ctx.name2,
         id: ctx.characterId,
+        name: ctx.name2,
     };
 }
 

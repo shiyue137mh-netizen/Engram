@@ -3,7 +3,7 @@
  * V0.9.2: 右侧详情页编辑（类似提示词模板）
  */
 import React from 'react';
-import { TextField, FormSection } from '@/ui/components/form/FormComponents';
+import { FormSection, TextField } from '@/ui/components/form/FormComponents';
 import type { CustomMacro } from '@/config/types/prompt';
 
 interface CustomMacroFormProps {
@@ -14,8 +14,7 @@ interface CustomMacroFormProps {
 export const CustomMacroForm: React.FC<CustomMacroFormProps> = ({
     macro,
     onChange,
-}) => {
-    return (
+}) => (
         <div className="flex flex-col gap-4">
             {/* 基本信息 */}
             <FormSection title="基本信息">
@@ -51,5 +50,4 @@ export const CustomMacroForm: React.FC<CustomMacroFormProps> = ({
             </div>
         </div>
     );
-};
 

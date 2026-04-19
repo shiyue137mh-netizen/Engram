@@ -16,8 +16,7 @@ const Header: React.FC<HeaderProps> = ({
     isMobile, // Deprecated prop, handled by CSS
     onClose,
     onNavigate,
-}) => {
-    return (
+}) => (
         <header className="h-10 flex items-center justify-between px-4 bg-transparent z-50 transition-all duration-300 w-full flex-shrink-0">
             {/* Left: Logo & Mobile Toggle */}
             <div className="flex items-center gap-3 w-16 md:w-64">
@@ -56,6 +55,5 @@ const Header: React.FC<HeaderProps> = ({
             </div>
         </header>
     );
-};
 
 export default Header;

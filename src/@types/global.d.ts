@@ -33,7 +33,7 @@ declare global {
         selected_model?: string;
 
         /**
-         * jQuery (由 SillyTavern 提供)
+         * JQuery (由 SillyTavern 提供)
          */
         jQuery: JQuery;
         $: JQuery;
@@ -68,7 +68,7 @@ declare global {
 }
 
 // 确保这是一个模块
-export { };
+
 
 // Vite ?raw 导入声明
 declare module '*.md?raw' {

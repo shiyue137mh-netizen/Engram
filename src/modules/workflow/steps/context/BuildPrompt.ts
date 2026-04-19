@@ -2,8 +2,8 @@ import { getBuiltInTemplateByCategory } from '@/config/types/defaults';
 import { Logger } from '@/core/logger';
 import { PromptLoader } from '@/integrations/llm/PromptLoader';
 import { getCurrentChatId } from '@/integrations/tavern';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 interface BuildPromptConfig {
     templateId?: string;       // 指定模板 ID
@@ -14,7 +14,7 @@ interface BuildPromptConfig {
 export class BuildPrompt implements IStep {
     name = 'BuildPrompt';
 
-    constructor(private config: BuildPromptConfig) { }
+    constructor(private config: BuildPromptConfig) {}
 
     async execute(context: JobContext): Promise<void> {
         // 1. 确定模板
@@ -41,7 +41,7 @@ export class BuildPrompt implements IStep {
         allTemplates.forEach(t => templateMap.set(t.id, t));
 
         // 3. Convert back to array
-        const mergedTemplates = Array.from(templateMap.values());
+        const mergedTemplates = [...templateMap.values()];
 
         let template;
         if (templateId) {
@@ -85,7 +85,7 @@ export class BuildPrompt implements IStep {
         };
 
         // 3. 初始替换 (处理 input 相关的本地变量)
-        let systemPrompt = template.systemPrompt;
+        let {systemPrompt} = template;
         let userPrompt = template.userPromptTemplate;
 
         // V0.9.x: 动态附加反馈模板 (硬编码)
@@ -106,7 +106,7 @@ export class BuildPrompt implements IStep {
         for (const [key, value] of Object.entries(variables)) {
             // 简单字符串替换 (全局)
             // 注意: key 应该包含 {{}}，或者我们在 replace 时加上
-            const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+            const regex = new RegExp(key.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`), 'g');
             systemPrompt = systemPrompt.replace(regex, value);
             userPrompt = userPrompt.replace(regex, value);
         }
@@ -130,9 +130,9 @@ export class BuildPrompt implements IStep {
                 const names: string[] = [];
                 for (const ke of context.data.keywordEntityIds) {
                     const ent = await db.entities.get(ke.id);
-                    if (ent) names.push(ent.name);
+                    if (ent) {names.push(ent.name);}
                 }
-                if (names.length > 0) hitEntitiesSummary = names.join(', ');
+                if (names.length > 0) {hitEntitiesSummary = names.join(', ');}
             }
         }
 
@@ -164,23 +164,23 @@ export class BuildPrompt implements IStep {
         // 保存结果之前，调用酒馆原生宏替换 (处理 {{time}}, {{date}}, {{user}} 等标准宏)
         // 注意：我们必须先做上面的手动替换，因为 {{chatHistory}} 等变量在 Batch 模式下是特定的，不能用全局宏
         try {
-            // @ts-ignore
+            // @ts-expect-error
             const stContext = window.SillyTavern?.getContext?.() as any;
             const substituteParams = stContext?.substituteParams;
             if (typeof substituteParams === 'function') {
                 systemPrompt = substituteParams(systemPrompt);
                 userPrompt = substituteParams(userPrompt);
             }
-        } catch (e) {
-            Logger.warn('BuildPrompt', '酒馆原生宏替换失败', e);
+        } catch (error) {
+            Logger.warn('BuildPrompt', '酒馆原生宏替换失败', error);
         }
 
         // 保存结果到 Context
         context.prompt = {
+            presetId: template.boundPresetId,
             system: systemPrompt,
-            user: userPrompt,
             templateId: template.id,
-            presetId: template.boundPresetId
+            user: userPrompt
         };
 
         Logger.debug('BuildPrompt', `Prompt 构建完成 (Template: ${template.name})`, {

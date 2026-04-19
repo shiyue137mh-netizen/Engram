@@ -46,12 +46,12 @@ function convertMessage(msg: STMessage, index: number): TavernMessage {
     }
 
     return {
-        id: index,
-        role,
         content: msg.mes || '',
-        name: msg.name || '',
+        id: index,
         isHidden: msg.is_hidden ?? false,
+        name: msg.name || '',
         raw: msg,
+        role,
     };
 }
 
@@ -121,7 +121,7 @@ export class MessageService {
      */
     static getLastMessage(options: GetMessagesOptions = {}): TavernMessage | null {
         const messages = this.getAllMessages(options);
-        return messages.length > 0 ? messages[messages.length - 1] : null;
+        return messages.length > 0 ? messages.at(-1) : null;
     }
 
     /**

@@ -21,7 +21,7 @@ interface QuickLinksProps {
 }
 
 export const QuickLinks: React.FC<QuickLinksProps> = ({ links, onNavigate, className = '' }) => {
-    if (links.length === 0) return null;
+    if (links.length === 0) {return null;}
 
     return (
         <div className={`hidden sm:flex items-center gap-4 ${className}`}>

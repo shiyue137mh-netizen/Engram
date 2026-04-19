@@ -1,6 +1,6 @@
 import { generateShortUUID } from '@/core/utils';
 import type { EntityNode } from '@/data/types/graph';
-import { StateCreator } from 'zustand';
+import type { StateCreator } from 'zustand';
 import { getCurrentDb, tryGetCurrentDb } from './coreSlice';
 
 export interface EntityState {
@@ -19,104 +19,28 @@ export interface EntityState {
 }
 
 export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, get) => ({
-    getAllEntities: async () => {
+    archiveEntities: async (entityIds: string[]) => {
+        if (entityIds.length === 0) return;
         const db = getCurrentDb();
-        if (!db) return [];
-
+        if (!db) return;
         try {
-            return await db.entities.toArray();
+            await db.entities.where('id').anyOf(entityIds).modify({ is_archived: true });
+            console.log(`[MemoryStore] Archived ${entityIds.length} entities`);
         } catch (e) {
-            console.error('[MemoryStore] Failed to get all entities:', e);
-            return [];
+            console.error('[MemoryStore] Failed to archive entities:', e);
         }
     },
 
-    saveEntity: async (entityData) => {
-        const db = getCurrentDb();
-        if (!db) throw new Error('[MemoryStore] No current chat');
-
-        const entity: EntityNode = {
-            ...entityData,
-            id: generateShortUUID('ent_'),
-            last_updated_at: Date.now(),
-            aliases: entityData.aliases || [],
-            profile: entityData.profile || {},
-        };
-
-        await db.entities.add(entity);
-        console.log(`[MemoryStore] Saved entity: ${entity.name}`);
-        return entity;
-    },
-
-    saveEntities: async (entitiesData) => {
-        const db = getCurrentDb();
-        if (!db) throw new Error('[MemoryStore] No current chat');
-        if (entitiesData.length === 0) return [];
-
-        const entities: EntityNode[] = entitiesData.map(data => ({
-            ...data,
-            id: generateShortUUID('ent_'),
-            last_updated_at: Date.now(),
-            aliases: data.aliases || [],
-            profile: data.profile || {},
-        }));
-
-        await db.entities.bulkAdd(entities);
-        console.log(`[MemoryStore] Bulk saved ${entities.length} entities`);
-        return entities;
-    },
-
-    updateEntity: async (entityId, updates) => {
-        if (!entityId) return;
+    deleteEntities: async (entityIds: string[]) => {
+        if (entityIds.length === 0) return;
         const db = getCurrentDb();
         if (!db) return;
 
         try {
-            const { id: _id, ...safeUpdates } = updates as any;
-
-            const existing = await db.entities.get(entityId);
-            if (!existing) {
-                console.warn(`[MemoryStore] Entity not found for update: ${entityId}`);
-                return;
-            }
-
-            const merged = {
-                ...existing,
-                ...safeUpdates,
-                last_updated_at: Date.now(),
-            };
-
-            await db.entities.put(merged);
-            console.log(`[MemoryStore] Put completed for entity: ${entityId}`);
+            await db.entities.bulkDelete(entityIds);
+            console.log(`[MemoryStore] Deleted ${entityIds.length} entities`);
         } catch (e) {
-            console.error('[MemoryStore] Failed to update entity:', e);
-            throw e;
-        }
-    },
-
-    updateEntities: async (updatesList) => {
-        if (updatesList.length === 0) return;
-        const db = getCurrentDb();
-        if (!db) return;
-
-        try {
-            await db.transaction('rw', db.entities, async () => {
-                const now = Date.now();
-                for (const { id, updates } of updatesList) {
-                    const { id: _id, ...safeUpdates } = updates as any;
-                    const existing = await db.entities.get(id);
-                    if (existing) {
-                        await db.entities.put({
-                            ...existing,
-                            ...safeUpdates,
-                            last_updated_at: now,
-                        });
-                    }
-                }
-            });
-            console.log(`[MemoryStore] Batch updated ${updatesList.length} entities`);
-        } catch (e) {
-            console.error('[MemoryStore] Failed to batch update entities:', e);
+            console.error('[MemoryStore] Failed to delete entities:', e);
             throw e;
         }
     },
@@ -131,20 +55,6 @@ export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, g
             console.log(`[MemoryStore] Deleted entity: ${entityId}`);
         } catch (e) {
             console.error('[MemoryStore] Failed to delete entity:', e);
-            throw e;
-        }
-    },
-
-    deleteEntities: async (entityIds: string[]) => {
-        if (entityIds.length === 0) return;
-        const db = getCurrentDb();
-        if (!db) return;
-
-        try {
-            await db.entities.bulkDelete(entityIds);
-            console.log(`[MemoryStore] Deleted ${entityIds.length} entities`);
-        } catch (e) {
-            console.error('[MemoryStore] Failed to delete entities:', e);
             throw e;
         }
     },
@@ -165,34 +75,15 @@ export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, g
         }
     },
 
-    archiveEntities: async (entityIds: string[]) => {
-        if (entityIds.length === 0) return;
+    getAllEntities: async () => {
         const db = getCurrentDb();
-        if (!db) return;
-        try {
-            await db.entities.where('id').anyOf(entityIds).modify({ is_archived: true });
-            console.log(`[MemoryStore] Archived ${entityIds.length} entities`);
-        } catch (e) {
-            console.error('[MemoryStore] Failed to archive entities:', e);
-        }
-    },
-
-    toggleEntityLock: async (entityId: string) => {
-        if (!entityId) return false;
-        const db = getCurrentDb();
-        if (!db) return false;
+        if (!db) return [];
 
         try {
-            const existing = await db.entities.get(entityId);
-            if (!existing) return false;
-
-            const newLockState = !existing.is_locked;
-            await db.entities.update(entityId, { is_locked: newLockState });
-            console.log(`[MemoryStore] Toggled entity lock: ${entityId} -> ${newLockState}`);
-            return newLockState;
+            return await db.entities.toArray();
         } catch (e) {
-            console.error('[MemoryStore] Failed to toggle entity lock:', e);
-            return false;
+            console.error('[MemoryStore] Failed to get all entities:', e);
+            return [];
         }
     },
 
@@ -278,6 +169,115 @@ export const createEntitySlice: StateCreator<any, [], [], EntityState> = (set, g
         } catch (e) {
             console.error('[MemoryStore] Failed to get entity states:', e);
             return '';
+        }
+    },
+
+    saveEntities: async (entitiesData) => {
+        const db = getCurrentDb();
+        if (!db) throw new Error('[MemoryStore] No current chat');
+        if (entitiesData.length === 0) return [];
+
+        const entities: EntityNode[] = entitiesData.map(data => ({
+            ...data,
+            id: generateShortUUID('ent_'),
+            last_updated_at: Date.now(),
+            aliases: data.aliases || [],
+            profile: data.profile || {},
+        }));
+
+        await db.entities.bulkAdd(entities);
+        console.log(`[MemoryStore] Bulk saved ${entities.length} entities`);
+        return entities;
+    },
+
+    saveEntity: async (entityData) => {
+        const db = getCurrentDb();
+        if (!db) throw new Error('[MemoryStore] No current chat');
+
+        const entity: EntityNode = {
+            ...entityData,
+            id: generateShortUUID('ent_'),
+            last_updated_at: Date.now(),
+            aliases: entityData.aliases || [],
+            profile: entityData.profile || {},
+        };
+
+        await db.entities.add(entity);
+        console.log(`[MemoryStore] Saved entity: ${entity.name}`);
+        return entity;
+    },
+
+    toggleEntityLock: async (entityId: string) => {
+        if (!entityId) return false;
+        const db = getCurrentDb();
+        if (!db) return false;
+
+        try {
+            const existing = await db.entities.get(entityId);
+            if (!existing) return false;
+
+            const newLockState = !existing.is_locked;
+            await db.entities.update(entityId, { is_locked: newLockState });
+            console.log(`[MemoryStore] Toggled entity lock: ${entityId} -> ${newLockState}`);
+            return newLockState;
+        } catch (e) {
+            console.error('[MemoryStore] Failed to toggle entity lock:', e);
+            return false;
+        }
+    },
+
+    updateEntities: async (updatesList) => {
+        if (updatesList.length === 0) return;
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            await db.transaction('rw', db.entities, async () => {
+                const now = Date.now();
+                for (const { id, updates } of updatesList) {
+                    const { id: _id, ...safeUpdates } = updates as any;
+                    const existing = await db.entities.get(id);
+                    if (existing) {
+                        await db.entities.put({
+                            ...existing,
+                            ...safeUpdates,
+                            last_updated_at: now,
+                        });
+                    }
+                }
+            });
+            console.log(`[MemoryStore] Batch updated ${updatesList.length} entities`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to batch update entities:', e);
+            throw e;
+        }
+    },
+
+    updateEntity: async (entityId, updates) => {
+        if (!entityId) return;
+        const db = getCurrentDb();
+        if (!db) return;
+
+        try {
+            const { id: _id, ...safeUpdates } = updates as any;
+
+            const existing = await db.entities.get(entityId);
+            if (!existing) {
+                console.warn(`[MemoryStore] Entity not found for update: ${entityId}`);
+                return;
+            }
+
+            const merged = {
+                ...existing,
+                ...safeUpdates,
+                last_updated_at: Date.now(),
+            };
+
+            await db.entities.put(merged);
+            console.log(`[MemoryStore] Put completed for entity: ${entityId}`);
+        } catch (e) {
+            console.error('[MemoryStore] Failed to update entity:', e);
+            throw e;
         }
     }
 });

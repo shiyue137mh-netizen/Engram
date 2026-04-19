@@ -9,7 +9,7 @@ interface ResponsiveState {
 }
 
 /**
- * useResponsive Hook
+ * UseResponsive Hook
  *
  * 统一管理响应式断点状态
  * 使用 window.matchMedia 监听媒体查询变化
@@ -17,8 +17,8 @@ interface ResponsiveState {
 export function useResponsive(): ResponsiveState {
     // 初始状态
     const [state, setState] = useState<ResponsiveState>({
-        isMobile: window.innerWidth < DESKTOP_BREAKPOINT,
         isDesktop: window.innerWidth >= DESKTOP_BREAKPOINT,
+        isMobile: window.innerWidth < DESKTOP_BREAKPOINT,
         windowWidth: window.innerWidth,
     });
 
@@ -29,8 +29,8 @@ export function useResponsive(): ResponsiveState {
             const mobile = width < DESKTOP_BREAKPOINT;
 
             setState({
-                isMobile: mobile,
                 isDesktop: !mobile,
+                isMobile: mobile,
                 windowWidth: width,
             });
         };

@@ -27,7 +27,7 @@ export const MobileFullscreenForm: React.FC<MobileFullscreenFormProps> = ({
         <div className="engram-app-root" style={{ display: 'contents' }}>
             <div
                 className="fixed inset-0 z-[99999] flex flex-col animate-in slide-in-from-right-4 duration-200 bg-background/95 backdrop-blur-3xl text-foreground"
-                style={{ width: '100vw', height: '100dvh' }}
+                style={{ height: '100dvh', width: '100vw' }}
             >
                 {/* 头部 */}
                 <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
@@ -50,7 +50,7 @@ export const MobileFullscreenForm: React.FC<MobileFullscreenFormProps> = ({
     );
 
     // 为了完全覆盖所有 SillyTavern UI（包括 header 和其他 fixed 元素），将全屏表单直接渲染到 document.body
-    if (!mounted) return null;
+    if (!mounted) {return null;}
     return ReactDOM.createPortal(content, document.body);
 };
 

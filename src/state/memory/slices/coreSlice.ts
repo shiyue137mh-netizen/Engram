@@ -1,8 +1,8 @@
 import { chatManager } from '@/data/ChatManager';
-import { deleteDatabase, getDbForChat, tryGetDbForChat, type ChatDatabase } from '@/data/db';
+import { type ChatDatabase, deleteDatabase, getDbForChat, tryGetDbForChat } from '@/data/db';
 import type { EventNode } from '@/data/types/graph';
 import { getCurrentChatId } from '@/integrations/tavern';
-import { StateCreator } from 'zustand';
+import type { StateCreator } from 'zustand';
 
 export interface CoreState {
     currentChatId: string | null;
@@ -28,7 +28,7 @@ export interface CoreState {
  */
 export function getCurrentDb(): ChatDatabase | null {
     const chatId = getCurrentChatId();
-    if (!chatId) return null;
+    if (!chatId) {return null;}
     return getDbForChat(chatId);
 }
 
@@ -37,60 +37,11 @@ export function getCurrentDb(): ChatDatabase | null {
  */
 export function tryGetCurrentDb(): ChatDatabase | null {
     const chatId = getCurrentChatId();
-    if (!chatId) return null;
+    if (!chatId) {return null;}
     return tryGetDbForChat(chatId);
 }
 
 export const createCoreSlice: StateCreator<any, [], [], CoreState> = (set, get) => ({
-    currentChatId: null,
-    lastSummarizedFloor: 0,
-    isProcessing: false,
-    recentEvents: [],
-    currentScope: null,
-
-    resolveScope: async (chatId, _characterName) => {
-        set({ currentChatId: chatId, currentScope: { id: 1 } });
-        const state = await chatManager.getState();
-        set({ lastSummarizedFloor: state.last_summarized_floor });
-        return { id: 1 };
-    },
-
-    initChat: async () => {
-        const chatId = getCurrentChatId();
-        if (!chatId) {
-            console.warn('[MemoryStore] No chat_id available');
-            return null;
-        }
-
-        if (chatId !== get().currentChatId) {
-            console.debug(`[MemoryStore] Switching to chat: ${chatId}`);
-            const state = await chatManager.getState();
-            set({
-                currentChatId: chatId,
-                currentScope: { id: 1 },
-                lastSummarizedFloor: state.last_summarized_floor,
-                recentEvents: []
-            });
-        }
-
-        return getDbForChat(chatId);
-    },
-
-    setLastSummarizedFloor: async (floor) => {
-        await chatManager.updateState({ last_summarized_floor: floor });
-        set({ lastSummarizedFloor: floor });
-    },
-
-    setProcessing: (isProcessing) => set({ isProcessing }),
-
-    reset: () => set({
-        currentChatId: null,
-        currentScope: null,
-        lastSummarizedFloor: 0,
-        isProcessing: false,
-        recentEvents: []
-    }),
-
     clearChatDatabase: async () => {
         let db = getCurrentDb();
         if (!db) {
@@ -118,7 +69,8 @@ export const createCoreSlice: StateCreator<any, [], [], CoreState> = (set, get) 
             throw e;
         }
     },
-
+    currentChatId: null,
+    currentScope: null,
     deleteChatDatabase: async () => {
         const chatId = get().currentChatId || getCurrentChatId();
         if (!chatId) {
@@ -133,5 +85,53 @@ export const createCoreSlice: StateCreator<any, [], [], CoreState> = (set, get) 
             console.error('[MemoryStore] Failed to delete database:', e);
             throw e;
         }
-    }
+    },
+    initChat: async () => {
+        const chatId = getCurrentChatId();
+        if (!chatId) {
+            console.warn('[MemoryStore] No chat_id available');
+            return null;
+        }
+
+        if (chatId !== get().currentChatId) {
+            console.debug(`[MemoryStore] Switching to chat: ${chatId}`);
+            const state = await chatManager.getState();
+            set({
+                currentChatId: chatId,
+                currentScope: { id: 1 },
+                lastSummarizedFloor: state.last_summarized_floor,
+                recentEvents: []
+            });
+        }
+
+        return getDbForChat(chatId);
+    },
+
+    isProcessing: false,
+
+    lastSummarizedFloor: 0,
+
+    recentEvents: [],
+
+    reset: () => set({
+        currentChatId: null,
+        currentScope: null,
+        lastSummarizedFloor: 0,
+        isProcessing: false,
+        recentEvents: []
+    }),
+
+    resolveScope: async (chatId, _characterName) => {
+        set({ currentChatId: chatId, currentScope: { id: 1 } });
+        const state = await chatManager.getState();
+        set({ lastSummarizedFloor: state.last_summarized_floor });
+        return { id: 1 };
+    },
+
+    setLastSummarizedFloor: async (floor) => {
+        await chatManager.updateState({ last_summarized_floor: floor });
+        set({ lastSummarizedFloor: floor });
+    },
+
+    setProcessing: (isProcessing) => set({ isProcessing })
 });

@@ -10,8 +10,9 @@
 import { notificationService } from '@/ui/services/NotificationService';
 import { BatchEngine } from './engine/BatchEngine';
 import { HistoryTask } from './tasks/HistoryTask';
-import { ImportConfig, ImportTextTask } from './tasks/ImportTextTask';
-import { BatchProgressCallback, BatchQueue, BatchTaskType } from './types';
+import type { ImportConfig} from './tasks/ImportTextTask';
+import { ImportTextTask } from './tasks/ImportTextTask';
+import type { BatchProgressCallback, BatchQueue, BatchTaskType } from './types';
 
 class BatchProcessor {
     private engine: BatchEngine;
@@ -36,17 +37,17 @@ class BatchProcessor {
 
             // 返回兼容旧 API 的格式给 UI
             return {
-                startFloor: task.startFloor,
-                endFloor: task.endFloor,
-                summaryTasks: previewTasks.find(t => t.type === 'summary')?.progress.total || 0,
-                entityTasks: previewTasks.find(t => t.type === 'entity')?.progress.total || 0,
-                trimTasks: previewTasks.find(t => t.type === 'trim')?.progress.total || 0,
-                embedTasks: previewTasks.find(t => t.type === 'embed')?.progress.total || 0,
                 archiveTasks: previewTasks.find(t => t.type === 'archive')?.progress.total || 0,
+                embedTasks: previewTasks.find(t => t.type === 'embed')?.progress.total || 0,
+                endFloor: task.endFloor,
+                entityTasks: previewTasks.find(t => t.type === 'entity')?.progress.total || 0,
+                startFloor: task.startFloor,
+                summaryTasks: previewTasks.find(t => t.type === 'summary')?.progress.total || 0,
+                trimTasks: previewTasks.find(t => t.type === 'trim')?.progress.total || 0,
             };
-        } catch (e: any) {
-            console.error('[BatchProcessor] 分析历史失败:', e);
-            return { error: e.message };
+        } catch (error: any) {
+            console.error('[BatchProcessor] 分析历史失败:', error);
+            return { error: error.message };
         }
     }
 

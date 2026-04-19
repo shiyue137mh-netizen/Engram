@@ -2,7 +2,7 @@
  * PresetCard - LLM 预设卡片（使用通用 ItemCard）
  */
 import React from 'react';
-import { Edit2, Copy, Trash2, Server, Cloud } from 'lucide-react';
+import { Cloud, Copy, Edit2, Server, Trash2 } from 'lucide-react';
 import { ItemCard } from '@/ui/components/display/ItemCard';
 import type { LLMPreset } from '@/config/types/llm';
 
@@ -34,13 +34,13 @@ export const PresetCard: React.FC<PresetCardProps> = ({
             title={preset.name}
             subtitle={modelName}
             meta={`T:${preset.parameters.temperature}`}
-            badges={preset.isDefault ? [{ text: 'DEFAULT', color: 'primary' }] : []}
+            badges={preset.isDefault ? [{ color: 'primary', text: 'DEFAULT' }] : []}
             selected={isSelected}
             onClick={onSelect}
             actions={[
                 { icon: <Edit2 size={12} />, onClick: () => onEdit(), title: '编辑' },
                 { icon: <Copy size={12} />, onClick: () => onCopy(), title: '复制' },
-                { icon: <Trash2 size={12} />, onClick: () => onDelete(), title: '删除', danger: true, hidden: preset.isDefault },
+                { danger: true, hidden: preset.isDefault, icon: <Trash2 size={12} />, onClick: () => onDelete(), title: '删除' },
             ]}
         />
     );

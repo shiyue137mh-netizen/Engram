@@ -207,11 +207,11 @@ export interface ScopeState {
  * 默认 ScopeState
  */
 export const DEFAULT_SCOPE_STATE: ScopeState = {
+    active_summary_order: 9000,
     chatId: '',
+    lastModified: 0,
+    last_compressed_at: 0,
+    last_extracted_floor: 0,
     last_summarized_floor: 0,
     token_usage_accumulated: 0,
-    last_compressed_at: 0,
-    active_summary_order: 9000,
-    last_extracted_floor: 0,
-    lastModified: 0,
 };

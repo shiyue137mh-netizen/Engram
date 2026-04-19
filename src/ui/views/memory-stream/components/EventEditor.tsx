@@ -51,17 +51,17 @@ const inputStyle: React.CSSProperties = {
     borderBottom: '1px solid var(--border)',
     borderRadius: 0,
     boxShadow: 'none',
+    color: 'var(--foreground, inherit)',
+    fontSize: '14px',
     outline: 'none',
     padding: '8px 0',
-    fontSize: '14px',
     width: '100%',
-    color: 'var(--foreground, inherit)',
 };
 
 const textareaStyle: React.CSSProperties = {
     ...inputStyle,
-    resize: 'vertical',
     minHeight: '80px',
+    resize: 'vertical',
 };
 
 // ==================== KV 烧录函数 ====================
@@ -70,7 +70,7 @@ const textareaStyle: React.CSSProperties = {
  * 根据 KV 字段自动生成 summary
  */
 function generateSummaryFromKV(kv: Partial<EventNode['structured_kv']> | null | undefined): string {
-    if (!kv) return '';
+    if (!kv) {return '';}
 
     const parts: string[] = [];
 
@@ -129,12 +129,10 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     const isMountedRef = useRef(true);
     const blurTimeoutRef = useRef<number | null>(null);
 
-    useEffect(() => {
-        return () => {
+    useEffect(() => () => {
             isMountedRef.current = false;
             if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
-        };
-    }, []);
+        }, []);
 
     // 同步事件数据到表单
     useEffect(() => {
@@ -148,8 +146,8 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             setRoleText(event.structured_kv?.role?.join(', ') || '');
             setLogicText(event.structured_kv?.logic?.join(', ') || '');
             setScore(event.significance_score);
-            setIsArchived(!!event.is_archived);
-            setIsLocked(!!event.is_locked);
+            setIsArchived(Boolean(event.is_archived));
+            setIsLocked(Boolean(event.is_locked));
             setIsDirty(false);
             setLastEventId(event.id);
         }
@@ -170,33 +168,31 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
         [onSave]
     );
 
-    useEffect(() => {
-        return () => syncToParentDebounced.cancel();
-    }, [syncToParentDebounced]);
+    useEffect(() => () => syncToParentDebounced.cancel(), [syncToParentDebounced]);
 
     const syncToParent = useCallback((overrides: FieldOverrides = {}, immediate = false) => {
-        if (!event) return;
+        if (!event) {return;}
 
         const fields = {
             eventType: overrides.eventType ?? eventType,
-            timeAnchor: overrides.timeAnchor ?? timeAnchor,
-            location: overrides.location ?? location,
-            roleText: overrides.roleText ?? roleText,
-            logicText: overrides.logicText ?? logicText,
-            score: overrides.score ?? score,
             isArchived: overrides.isArchived ?? isArchived,
             isLocked: overrides.isLocked ?? isLocked,
+            location: overrides.location ?? location,
+            logicText: overrides.logicText ?? logicText,
+            roleText: overrides.roleText ?? roleText,
+            score: overrides.score ?? score,
+            timeAnchor: overrides.timeAnchor ?? timeAnchor,
         };
 
         const splitTrim = (s: string) => s.split(',').map(v => v.trim()).filter(Boolean);
 
         const kv = {
-            event: fields.eventType,
-            time_anchor: fields.timeAnchor,
-            location: splitTrim(fields.location),
-            role: splitTrim(fields.roleText),
-            logic: splitTrim(fields.logicText),
             causality: event.structured_kv?.causality || '',
+            event: fields.eventType,
+            location: splitTrim(fields.location),
+            logic: splitTrim(fields.logicText),
+            role: splitTrim(fields.roleText),
+            time_anchor: fields.timeAnchor,
         };
 
         const autoSummary = generateSummaryFromKV(kv);
@@ -204,11 +200,11 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
         const finalSummary = overrides.summary ?? summary ?? autoSummary ?? event.summary;
 
         const updates = {
-            summary: finalSummary,
-            structured_kv: { ...event.structured_kv, ...kv },
-            significance_score: fields.score,
             is_archived: fields.isArchived,
             is_locked: fields.isLocked,
+            significance_score: fields.score,
+            structured_kv: { ...event.structured_kv, ...kv },
+            summary: finalSummary,
         };
 
         if (immediate) {
@@ -235,9 +231,9 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
         fieldName: keyof FieldOverrides
     ) => {
         isComposingRef.current = false;
-        if (!isMountedRef.current) return;
+        if (!isMountedRef.current) {return;}
 
-        const value = e.currentTarget.value;
+        const {value} = e.currentTarget;
         setter(value);
         setIsDirty(true);
         syncToParent({ [fieldName]: value });
@@ -246,13 +242,13 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
     const updateField = (setter: (v: string) => void, value: string, fieldName: keyof FieldOverrides) => {
         setter(value);
         setIsDirty(true);
-        if (!isComposingRef.current) syncToParent({ [fieldName]: value });
+        if (!isComposingRef.current) {syncToParent({ [fieldName]: value });}
     };
 
     const handleBlur = () => {
-        if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+        if (blurTimeoutRef.current) {clearTimeout(blurTimeoutRef.current);}
         blurTimeoutRef.current = window.setTimeout(() => {
-            if (isMountedRef.current && isDirty) syncToParent({}, true);
+            if (isMountedRef.current && isDirty) {syncToParent({}, true);}
         }, 50);
     };
 
@@ -293,10 +289,10 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                         onClick={() => {
                             const autoSummary = generateSummaryFromKV({
                                 event: eventType,
-                                time_anchor: timeAnchor,
                                 location: location.split(',').map(s => s.trim()).filter(Boolean),
-                                role: roleText.split(',').map(s => s.trim()).filter(Boolean),
                                 logic: logicText.split(',').map(s => s.trim()).filter(Boolean),
+                                role: roleText.split(',').map(s => s.trim()).filter(Boolean),
+                                time_anchor: timeAnchor,
                             });
                             setSummary(autoSummary);
                             setIsDirty(true);
@@ -392,7 +388,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             <div className="flex flex-col gap-2">
                 <div className="flex justify-between items-center">
                     <label className="text-xs text-meta">重要性分数</label>
-                    <span className={`text-xs font-mono ${score >= 0.8 ? 'text-emphasis' : score >= 0.5 ? 'text-value' : 'text-label'}`}>
+                    <span className={`text-xs font-mono ${score >= 0.8 ? 'text-emphasis' : (score >= 0.5 ? 'text-value' : 'text-label')}`}>
                         {score.toFixed(2)}
                     </span>
                 </div>
@@ -402,7 +398,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                         style={{ backgroundColor: 'var(--border)' }}
                     />
                     <div
-                        className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 ${score >= 0.8 ? 'bg-emphasis' : score >= 0.5 ? 'bg-value' : 'bg-label'
+                        className={`absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full shadow-sm pointer-events-none transition-transform duration-75 ease-out group-hover:scale-125 ${score >= 0.8 ? 'bg-emphasis' : (score >= 0.5 ? 'bg-value' : 'bg-label')
                             }`}
                         style={{ left: `${score * 100}%`, transform: `translate(-50%, -50%)` }}
                     />
@@ -413,7 +409,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                         step="0.05"
                         value={score}
                         onChange={(e) => {
-                            const val = parseFloat(e.target.value);
+                            const val = Number.parseFloat(e.target.value);
                             setScore(val);
                             setIsDirty(true);
                         }}
@@ -421,7 +417,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                         onTouchEnd={() => syncToParent({ score })}
                         onKeyUp={() => syncToParent({ score })}
                         className="absolute inset-x-0 w-full h-full opacity-0 cursor-pointer z-10 m-0"
-                        style={{ appearance: 'none', WebkitAppearance: 'none' }}
+                        style={{ WebkitAppearance: 'none', appearance: 'none' }}
                     />
                 </div>
             </div>
@@ -480,7 +476,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
 
             {/* 只读信息 */}
             <div className="space-y-1 text-xs text-meta">
-                <p>ID: <span className="font-mono">{event.id.substring(0, 8)}...</span></p>
+                <p>ID: <span className="font-mono">{event.id.slice(0, 8)}...</span></p>
                 <p>Level: <span className="text-value font-medium">{event.level}</span></p>
                 {event.source_range && (
                     <p>来源: {event.source_range.start_index}-{event.source_range.end_index}楼</p>

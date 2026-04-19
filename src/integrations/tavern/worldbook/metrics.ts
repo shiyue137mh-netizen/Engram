@@ -1,6 +1,6 @@
 import { Logger } from '@/core/logger';
 import { getEntries } from '@/integrations/tavern/worldbook/crud';
-import { WorldInfoEntry, WorldInfoTokenStats } from './types';
+import type { WorldInfoEntry, WorldInfoTokenStats } from './types';
 
 const MODULE = 'Worldbook';
 
@@ -9,8 +9,8 @@ const MODULE = 'Worldbook';
  */
 async function getTokenCountAsync(text: string): Promise<number> {
     try {
-        // @ts-ignore - SillyTavern 全局对象
-        const SillyTavern = window.SillyTavern;
+        // @ts-expect-error - SillyTavern 全局对象
+        const {SillyTavern} = window;
         if (SillyTavern?.getContext) {
             const context = SillyTavern.getContext() as any;
             if (context?.getTokenCountAsync) {
@@ -18,7 +18,7 @@ async function getTokenCountAsync(text: string): Promise<number> {
             }
         }
 
-        // fallback: 字符估算 (约 4 字符 = 1 token)
+        // Fallback: 字符估算 (约 4 字符 = 1 token)
         return Math.ceil(text.length / 4);
     } catch {
         Logger.warn(MODULE, '无法使用酒馆 Token 计数，使用估算');
@@ -63,9 +63,9 @@ export class WorldbookMetricsService {
         const totalTokens = entriesWithTokens.reduce((sum: number, e: { tokens: number }) => sum + e.tokens, 0);
 
         return {
-            totalTokens,
-            entryCount: entries.length,
             entries: entriesWithTokens,
+            entryCount: entries.length,
+            totalTokens,
         };
     }
 
@@ -74,8 +74,8 @@ export class WorldbookMetricsService {
      */
     static async isNativeTokenCountAvailable(): Promise<boolean> {
         try {
-            // @ts-ignore
-            const SillyTavern = window.SillyTavern;
+            // @ts-expect-error
+            const {SillyTavern} = window;
             if (SillyTavern?.getContext) {
                 const context = SillyTavern.getContext();
                 return typeof context?.getTokenCountAsync === 'function';

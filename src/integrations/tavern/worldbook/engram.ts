@@ -66,8 +66,8 @@ export class WorldbookEngramService {
             }
 
             return worldbookName;
-        } catch (e) {
-            Logger.error(MODULE, '获取/创建全局世界书失败', e);
+        } catch (error) {
+            Logger.error(MODULE, '获取/创建全局世界书失败', error);
             return null;
         }
     }
@@ -101,6 +101,6 @@ export class WorldbookEngramService {
             }
         }
 
-        return { global, chat, installed };
+        return { chat, global, installed };
     }
 }

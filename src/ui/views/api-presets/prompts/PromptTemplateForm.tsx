@@ -27,20 +27,20 @@ interface MacroDef {
 // 可用宏定义及说明
 const AVAILABLE_MACROS: MacroDef[] = [
     // Context
-    { name: '{{userInput}}', desc: '当前用户输入的内容', category: 'Context (上下文)' },
-    { name: '{{chatHistory}}', desc: '最近的对话历史（从总结配置读取数量）', category: 'Context (上下文)' },
-    { name: '{{context}}', desc: '角色卡原始设定 (Description/Persona...)', category: 'Context (上下文)' },
-    { name: '{{worldbookContext}}', desc: '当前激活的世界书条目内容', category: 'Context (上下文)' },
-    { name: '{{userPersona}}', desc: '用户角色设定 (Persona Description)', category: 'Context (上下文)' },
-    { name: '{{char}}', desc: '当前角色名称', category: 'Context (上下文)' },
-    { name: '{{user}}', desc: '用户名称', category: 'Context (上下文)' },
+    { category: 'Context (上下文)', desc: '当前用户输入的内容', name: '{{userInput}}' },
+    { category: 'Context (上下文)', desc: '最近的对话历史（从总结配置读取数量）', name: '{{chatHistory}}' },
+    { category: 'Context (上下文)', desc: '角色卡原始设定 (Description/Persona...)', name: '{{context}}' },
+    { category: 'Context (上下文)', desc: '当前激活的世界书条目内容', name: '{{worldbookContext}}' },
+    { category: 'Context (上下文)', desc: '用户角色设定 (Persona Description)', name: '{{userPersona}}' },
+    { category: 'Context (上下文)', desc: '当前角色名称', name: '{{char}}' },
+    { category: 'Context (上下文)', desc: '用户名称', name: '{{user}}' },
 
     // Text Generation
-    { name: '{{engramSummaries}}', desc: '所有已生成的事件摘要 (纯文本, 用于剧情回顾/精简)', category: 'Text Generation (文本生成)' },
-    { name: '{{engramArchivedSummaries}}', desc: '已归档的历史摘要 (绿灯事件)', category: 'Text Generation (文本生成)' },
+    { category: 'Text Generation (文本生成)', desc: '所有已生成的事件摘要 (纯文本, 用于剧情回顾/精简)', name: '{{engramSummaries}}' },
+    { category: 'Text Generation (文本生成)', desc: '已归档的历史摘要 (绿灯事件)', name: '{{engramArchivedSummaries}}' },
 
     // Data Layer
-    { name: '{{engramGraph}}', desc: '完整的图谱数据 JSON (用于实体提取/图谱操作)', category: 'Data Layer (数据层)' },
+    { category: 'Data Layer (数据层)', desc: '完整的图谱数据 JSON (用于实体提取/图谱操作)', name: '{{engramGraph}}' },
 ];
 
 const MacroItem = ({ macro }: { macro: MacroDef }) => {
@@ -77,8 +77,8 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
 }) => {
     // 构建模型来源选项
     const modelSourceOptions = [
-        { value: '', label: '跟随全局选中预设' + (defaultPresetId ? ` (${llmPresets.find(p => p.id === defaultPresetId)?.name || defaultPresetId})` : '') },
-        ...llmPresets.map(p => ({ value: p.id, label: p.name })),
+        { label: '跟随全局选中预设' + (defaultPresetId ? ` (${llmPresets.find(p => p.id === defaultPresetId)?.name || defaultPresetId})` : ''), value: '' },
+        ...llmPresets.map(p => ({ label: p.name, value: p.id })),
     ];
 
     // Token 计数
@@ -93,8 +93,8 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                 setSysTokens(t1);
                 const t2 = template.userPromptTemplate ? await WorldInfoService.countTokens(template.userPromptTemplate) : 0;
                 setUserTokens(t2);
-            } catch (e) {
-                // ignore
+            } catch {
+                // Ignore
             }
         }, 300); // 300ms 防抖
         return () => clearTimeout(timer);
@@ -107,7 +107,7 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
 
     // Group macros
     const groupedMacros = AVAILABLE_MACROS.reduce((acc, macro) => {
-        if (!acc[macro.category]) acc[macro.category] = [];
+        if (!acc[macro.category]) {acc[macro.category] = [];}
         acc[macro.category].push(macro);
         return acc;
     }, {} as Record<string, MacroDef[]>);
@@ -129,7 +129,7 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                     label="模板分类"
                     value={template.category}
                     onChange={(value) => updateTemplate({ category: value as PromptCategory })}
-                    options={PROMPT_CATEGORIES.map(c => ({ value: c.value, label: c.label }))}
+                    options={PROMPT_CATEGORIES.map(c => ({ label: c.label, value: c.value }))}
                     description={PROMPT_CATEGORIES.find(c => c.value === template.category)?.description}
                 />
 
@@ -147,9 +147,9 @@ export const PromptTemplateForm: React.FC<PromptTemplateFormProps> = ({
                         value={template.injectionMode || 'replace'}
                         onChange={(value) => updateTemplate({ injectionMode: value as 'replace' | 'append' | 'prepend' })}
                         options={[
-                            { value: 'replace', label: '覆盖 (Overwrite)' },
-                            { value: 'append', label: '追加 (Append)' },
-                            { value: 'prepend', label: '前置 (Prepend)' },
+                            { label: '覆盖 (Overwrite)', value: 'replace' },
+                            { label: '追加 (Append)', value: 'append' },
+                            { label: '前置 (Prepend)', value: 'prepend' },
                         ]}
                         description="预处理结果如何与用户输入组合"
                     />

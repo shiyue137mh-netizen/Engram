@@ -93,11 +93,11 @@ export const TextField: React.FC<TextFieldProps> = ({
         borderBottom: '1px solid var(--border)',
         borderRadius: 0,
         boxShadow: 'none',
+        color: 'var(--foreground, inherit)',
+        fontSize: '14px',
         outline: 'none',
         padding: '8px 0',
-        fontSize: '14px',
         width: '100%',
-        color: 'var(--foreground, inherit)',
     };
 
     return (
@@ -161,8 +161,7 @@ export const NumberField: React.FC<NumberFieldProps> = ({
     max,
     step = 1,
     suffix,
-}) => {
-    return (
+}) => (
         <div className={`flex flex-col gap-2 ${className}`}>
             <div className="flex justify-between items-center">
                 <label className="text-xs text-muted-foreground flex items-center gap-1">
@@ -187,7 +186,6 @@ export const NumberField: React.FC<NumberFieldProps> = ({
             {error && <p className="text-[10px] text-destructive">{error}</p>}
         </div>
     );
-};
 
 interface SelectOption {
     value: string;
@@ -220,20 +218,20 @@ export const SelectField: React.FC<SelectFieldProps> = ({
 }) => {
     // 内联样式强制覆盖
     const selectStyle: React.CSSProperties = {
+        WebkitAppearance: 'none' as const,
+        appearance: 'none' as const,
         background: 'transparent',
         backgroundColor: 'transparent',
         border: 'none',
         borderBottom: '1px solid var(--border)',
         borderRadius: 0,
         boxShadow: 'none',
+        color: 'var(--foreground, inherit)',
+        cursor: 'pointer',
+        fontSize: '14px',
         outline: 'none',
         padding: '8px 24px 8px 0',
-        fontSize: '14px',
         width: '100%',
-        cursor: 'pointer',
-        color: 'var(--foreground, inherit)',
-        appearance: 'none' as const,
-        WebkitAppearance: 'none' as const,
     };
 
     return (
@@ -285,8 +283,7 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
     onChange,
     disabled,
     compact,
-}) => {
-    return (
+}) => (
         <div className={`flex items-start justify-between gap-4 ${compact ? 'py-0' : 'py-1'} ${className} ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
             {label && (
                 <div className="flex-1 min-w-0">
@@ -309,7 +306,6 @@ export const SwitchField: React.FC<SwitchFieldProps> = ({
             />
         </div>
     );
-};
 
 /**
  * 可搜索下拉框 - 用于大量选项的模型选择
@@ -353,7 +349,7 @@ export const SearchableSelectField: React.FC<SearchableSelectFieldProps> = ({
 
     // 点击外部关闭（仅在 isOpen 时绑定，避免多实例事件泄漏）
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen) {return;}
 
         const handleClickOutside = (e: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -402,7 +398,7 @@ export const SearchableSelectField: React.FC<SearchableSelectFieldProps> = ({
             {/* 下拉面板 - 使用 glass-panel 实现正确的模糊效果 */}
             {isOpen && (
                 <div className="glass-panel absolute z-50 mt-1 w-full max-h-64 border border-border rounded-lg shadow-xl overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-1 duration-150"
-                    style={{ top: '100%', left: 0, right: 0 }}
+                    style={{ left: 0, right: 0, top: '100%' }}
                 >
                     {/* 搜索框 */}
                     <div className="p-2 border-b border-border flex items-center gap-2">

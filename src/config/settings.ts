@@ -28,7 +28,7 @@ export interface EngramSettings {
     glassSettings: {
         enabled: boolean; // 是否启用
         opacity: number; // 0-1
-        blur: number;    // px
+        blur: number;    // Px
     };
     syncConfig: {
         enabled: boolean;  // 总开关：是否启用同步功能
@@ -68,22 +68,22 @@ const defaultSettings: EngramSettings = Object.freeze({
         showConfirmation: true,
     },
     glassSettings: {
+        blur: 10,
         enabled: true,
         opacity: 0.3,
-        blur: 10,
     },
     syncConfig: {
         enabled: false, // 默认关闭（Beta功能）
         autoSync: true, // 启用后默认开启自动同步
     },
     statistics: {
-        firstUseAt: null,
         activeDays: [],
-        totalTokens: 0,
-        totalLlmCalls: 0,
-        totalEvents: 0,
+        firstUseAt: null,
         totalEntities: 0,
+        totalEvents: 0,
+        totalLlmCalls: 0,
         totalRagInjections: 0,
+        totalTokens: 0,
     },
 });
 
@@ -95,7 +95,7 @@ const defaultSettings: EngramSettings = Object.freeze({
  */
 export class SettingsManager {
     private static readonly EXTENSION_NAME = 'engram';
-    private static listeners: Set<() => void> = new Set();
+    private static listeners = new Set<() => void>();
 
     /**
      * 订阅设置变更事件
@@ -113,8 +113,8 @@ export class SettingsManager {
         this.listeners.forEach(l => {
             try {
                 l();
-            } catch (e) {
-                Logger.warn('SettingsManager', 'Listener Execution Error', e);
+            } catch (error) {
+                Logger.warn('SettingsManager', 'Listener Execution Error', error);
             }
         });
     }
@@ -123,7 +123,7 @@ export class SettingsManager {
      * 获取 SillyTavern context
      */
     private static getContext(): any {
-        // @ts-ignore
+        // @ts-expect-error
         return window.SillyTavern?.getContext?.();
     }
 
@@ -268,7 +268,7 @@ export class SettingsManager {
         const templates = apiSettings?.promptTemplates || [];
         // 尝试精确匹配 ID
         const byId = templates.find((t: PromptTemplate) => t.id === id);
-        if (byId) return byId;
+        if (byId) {return byId;}
 
         // Fallback: 尝试查找内置模板
         const builtIn = getBuiltInTemplateById(id);
@@ -334,7 +334,7 @@ export class SettingsManager {
 
         // 记录活跃天数 (基于本地时区的 YYYY-MM-DD)
         const today = new Date().toLocaleDateString('en-CA'); // 'YYYY-MM-DD'
-        if (!stats.activeDays) stats.activeDays = [];
+        if (!stats.activeDays) {stats.activeDays = [];}
         if (!stats.activeDays.includes(today)) {
             stats.activeDays.push(today);
             // 保持数组不过大，比如保留最近一年 365 天

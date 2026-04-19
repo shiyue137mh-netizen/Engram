@@ -33,10 +33,10 @@ export class MacroService {
      * 初始化并注册所有 Engram 宏
      */
     static async init(): Promise<void> {
-        if (this.isInitialized) return;
+        if (this.isInitialized) {return;}
 
         try {
-            // @ts-ignore - SillyTavern 全局对象
+            // @ts-expect-error - SillyTavern 全局对象
             const context = window.SillyTavern?.getContext?.();
 
             if (!context?.registerMacro && !context?.macros) {
@@ -51,65 +51,49 @@ export class MacroService {
             // {{engramSummaries}} - 从 IndexedDB 获取当前聊天的所有事件摘要
             MacroService.registerMacro(
                 'engramSummaries',
-                () => {
-                    // 宏替换是同步的，使用缓存值
-                    return MacroService.cachedSummaries;
-                },
+                () => MacroService.cachedSummaries,
                 'Engram: 当前聊天的所有事件摘要 (从 IndexedDB)'
             );
 
             // {{worldbookContext}} - 获取激活的世界书内容
             MacroService.registerMacro(
                 'worldbookContext',
-                () => {
-                    // 宏替换是同步的，使用缓存值
-                    return MacroService.cachedWorldbookContext;
-                },
+                () => MacroService.cachedWorldbookContext,
                 'Engram: 当前激活的世界书内容'
             );
 
             // {{userInput}} - 当前用户输入（预处理专用）
             MacroService.registerMacro(
                 'userInput',
-                () => {
-                    return MacroService.cachedUserInput;
-                },
+                () => MacroService.cachedUserInput,
                 'Engram: 当前用户输入（预处理专用）'
             );
 
             // {{chatHistory}} - 最近对话历史 (从配置读取 floorInterval - bufferSize)
             MacroService.registerMacro(
                 'chatHistory',
-                () => {
-                    return MacroService.getChatHistory();
-                },
+                () => MacroService.getChatHistory(),
                 'Engram: 最近对话历史 (从总结配置读取数量)'
             );
 
             // {{context}} - 角色卡设定（同酒馆 description）
             MacroService.registerMacro(
                 'context',
-                () => {
-                    return MacroService.cachedCharDescription;
-                },
+                () => MacroService.cachedCharDescription,
                 'Engram: 角色卡设定'
             );
 
             // V0.9: {{engramGraph}} - 事件和实体的结构化 JSON
             MacroService.registerMacro(
                 'engramGraph',
-                () => {
-                    return MacroService.cachedGraphData;
-                },
+                () => MacroService.cachedGraphData,
                 'Engram: 事件和实体的结构化 JSON (用于图谱构建)'
             );
 
             // V0.9.2: {{engramArchivedSummaries}} - 已归档的历史摘要 (绿灯事件)
             MacroService.registerMacro(
                 'engramArchivedSummaries',
-                () => {
-                    return MacroService.cachedArchivedSummaries;
-                },
+                () => MacroService.cachedArchivedSummaries,
                 'Engram: 已归档的历史摘要 (绿灯事件)'
             );
 
@@ -118,7 +102,7 @@ export class MacroService {
                 'userPersona',
                 () => {
                     // 实时优先：由于人设切换频繁，此处优先读取酒馆原生变量
-                    // @ts-ignore
+                    // @ts-expect-error
                     const liveDescription = window.power_user?.persona_description || window.SillyTavern?.getContext?.()?.powerUserSettings?.persona_description;
                     return typeof liveDescription === 'string' ? liveDescription : MacroService.cachedUserPersona;
                 },
@@ -128,27 +112,21 @@ export class MacroService {
             // V1.0.0: {{engramEntityStates}} - 实体状态
             MacroService.registerMacro(
                 'engramEntityStates',
-                () => {
-                    return MacroService.cachedEntityStates;
-                },
+                () => MacroService.cachedEntityStates,
                 'Engram: 实体状态 (角色/场景/物品)'
             );
 
             // Agentic RAG: {{engramIndex}} - 双层 XML 目录索引
             MacroService.registerMacro(
                 'engramIndex',
-                () => {
-                    return MacroService.cachedAgenticIndex;
-                },
+                () => MacroService.cachedAgenticIndex,
                 'Engram: Agentic RAG 双层目录索引 (极简 structured_kv)'
             );
 
             // Agentic RAG: {{engramActiveEvents}} - 纯蓝灯事件
             MacroService.registerMacro(
                 'engramActiveEvents',
-                () => {
-                    return MacroService.cachedPureActiveEvents;
-                },
+                () => MacroService.cachedPureActiveEvents,
                 'Engram: 纯蓝灯事件摘要 (不含绿灯召回)'
             );
 
@@ -162,23 +140,23 @@ export class MacroService {
 
 
             // 监听聊天切换事件，刷新缓存
-            // @ts-ignore
-            const eventSource = context.eventSource;
+            // @ts-expect-error
+            const {eventSource} = context;
             if (eventSource) {
                 eventSource.on('chat_id_changed', () => {
                     Logger.info('MacroService', '聊天切换，清理旧缓存');
                     this.clearCache();
-                    this.refreshCache().catch(e => Logger.warn('MacroService', '刷新缓存失败', e));
+                    this.refreshCache().catch(error => Logger.warn('MacroService', '刷新缓存失败', error));
                 });
 
                 // V1.0.1: 监听设置更新（通常包含人设描述变更）
                 eventSource.on('settings_updated', () => {
-                    this.refreshCache().catch(e => Logger.warn('MacroService', '设置更新后刷新缓存失败', e));
+                    this.refreshCache().catch(error => Logger.warn('MacroService', '设置更新后刷新缓存失败', error));
                 });
             }
 
-        } catch (e) {
-            Logger.error('MacroService', '初始化失败', e);
+        } catch (error) {
+            Logger.error('MacroService', '初始化失败', error);
         }
     }
 
@@ -211,7 +189,7 @@ export class MacroService {
     private static cachedArchivedSummaries: string = '';
     private static cachedUserPersona: string = '';
     // V0.9.2: 自定义宏缓存
-    private static cachedCustomMacros: Map<string, string> = new Map();
+    private static cachedCustomMacros = new Map<string, string>();
     // V1.0.0: 实体状态缓存
     private static cachedEntityStates: string = '';
     // Agentic RAG: 目录索引缓存
@@ -295,8 +273,8 @@ export class MacroService {
                     .filter(slot => slot.category === 'entity')
                     .map(slot => slot.id);
 
-            } catch (e) {
-                Logger.debug('MacroService', 'BrainRecallCache 获取失败，跳过', e);
+            } catch (error) {
+                Logger.debug('MacroService', 'BrainRecallCache 获取失败，跳过', error);
             }
 
             // 1. 刷新事件摘要（带召回 ID）
@@ -313,14 +291,14 @@ export class MacroService {
             this.cachedPureActiveEvents = await store.getPureActiveEvents();
 
             // 5. 刷新图谱数据 (可选，视性能而定)
-            // await this.refreshGraphCache();
+            // Await this.refreshGraphCache();
 
             Logger.debug('MacroService', 'Engram DB 缓存已刷新', {
-                summariesLength: this.cachedSummaries.length,
-                recalledCount: effectiveRecalledIds?.length ?? 0
+                recalledCount: effectiveRecalledIds?.length ?? 0,
+                summariesLength: this.cachedSummaries.length
             });
-        } catch (e) {
-            Logger.warn('MacroService', '刷新 Engram DB 缓存失败', e);
+        } catch (error) {
+            Logger.warn('MacroService', '刷新 Engram DB 缓存失败', error);
         }
     }
 
@@ -341,8 +319,8 @@ export class MacroService {
             Logger.debug('MacroService', '世界书上下文已刷新', {
                 worldbookLength: this.cachedWorldbookContext.length
             });
-        } catch (e) {
-            Logger.debug('MacroService', '获取世界书内容失败', e);
+        } catch (error) {
+            Logger.debug('MacroService', '获取世界书内容失败', error);
             this.cachedWorldbookContext = '';
         }
     }
@@ -360,19 +338,19 @@ export class MacroService {
             // 过滤掉 embedding 等系统字段
             const cleanEvents = events.map(e => ({
                 id: e.id,
-                summary: e.summary,
-                structured_kv: e.structured_kv,
-                significance_score: e.significance_score,
                 level: e.level,
+                significance_score: e.significance_score,
                 source_range: e.source_range,
+                structured_kv: e.structured_kv,
+                summary: e.summary,
             }));
 
             const cleanEntities = entities.map(e => ({
+                aliases: e.aliases || [],
+                description: e.description,
                 id: e.id,
                 name: e.name,
                 type: e.type,
-                aliases: e.aliases || [],
-                description: e.description,
             }));
 
             this.cachedGraphData = JSON.stringify({
@@ -381,11 +359,11 @@ export class MacroService {
             }, null, 2);
 
             Logger.debug('MacroService', '图谱缓存已刷新', {
-                eventCount: events.length,
                 entityCount: entities.length,
+                eventCount: events.length,
             });
-        } catch (e) {
-            Logger.warn('MacroService', '刷新图谱缓存失败', e);
+        } catch (error) {
+            Logger.warn('MacroService', '刷新图谱缓存失败', error);
             this.cachedGraphData = JSON.stringify({ events: [], existingEntities: [] });
         }
     }
@@ -410,8 +388,8 @@ export class MacroService {
                     .filter(slot => slot.category === 'entity')
                     .map(slot => slot.id);
                 this.cachedEntityStates = await store.getEntityStates(entityIds);
-            } catch (e) {
-                Logger.debug('MacroService', '刷新召回实体状态失败', e);
+            } catch (error) {
+                Logger.debug('MacroService', '刷新召回实体状态失败', error);
             }
 
             // 刷新世界书上下文 (支持 EJS)
@@ -419,8 +397,8 @@ export class MacroService {
                 const rawContext = await WorldInfoService.getActivatedWorldInfo();
                 const sanitized = await EjsProcessor.processEJSMacros([rawContext]);
                 this.cachedWorldbookContext = sanitized[0] || '';
-            } catch (e) {
-                Logger.debug('MacroService', '获取世界书内容失败', e);
+            } catch (error) {
+                Logger.debug('MacroService', '获取世界书内容失败', error);
                 this.cachedWorldbookContext = '';
             }
 
@@ -428,12 +406,12 @@ export class MacroService {
             this.refreshCharDescription();
 
             Logger.debug('MacroService', 'RAG 召回缓存已全面刷新', {
-                summariesLength: this.cachedSummaries.length,
                 entityStatesLength: this.cachedEntityStates.length,
                 recalledCount: recalledIds.length,
+                summariesLength: this.cachedSummaries.length,
             });
-        } catch (e) {
-            Logger.warn('MacroService', '刷新 RAG 召回缓存失败', e);
+        } catch (error) {
+            Logger.warn('MacroService', '刷新 RAG 召回缓存失败', error);
         }
     }
 
@@ -456,14 +434,14 @@ export class MacroService {
      */
     private static refreshCharDescription(): void {
         try {
-            // @ts-ignore
+            // @ts-expect-error
             const context = window.SillyTavern?.getContext?.();
             if (context?.characters && context.characterId >= 0) {
                 const char = context.characters[context.characterId];
                 this.cachedCharDescription = char?.description || '';
             }
-        } catch (e) {
-            Logger.debug('MacroService', '刷新角色描述失败', e);
+        } catch (error) {
+            Logger.debug('MacroService', '刷新角色描述失败', error);
         }
     }
 
@@ -485,8 +463,8 @@ export class MacroService {
             Logger.debug('MacroService', '归档摘要缓存已刷新', {
                 length: this.cachedArchivedSummaries.length
             });
-        } catch (e) {
-            Logger.warn('MacroService', '刷新归档摘要失败', e);
+        } catch (error) {
+            Logger.warn('MacroService', '刷新归档摘要失败', error);
             this.cachedArchivedSummaries = '';
         }
     }
@@ -497,14 +475,14 @@ export class MacroService {
      */
     private static refreshUserPersona(): void {
         try {
-            // @ts-ignore - 酒馆全局变量，优先通过 context 获取
+            // @ts-expect-error - 酒馆全局变量，优先通过 context 获取
             const powerUser = window.power_user || window.SillyTavern?.getContext?.()?.powerUserSettings;
             this.cachedUserPersona = powerUser?.persona_description || '';
             Logger.debug('MacroService', '用户设定缓存已刷新', {
                 length: this.cachedUserPersona.length
             });
-        } catch (e) {
-            Logger.debug('MacroService', '刷新用户设定失败', e);
+        } catch (error) {
+            Logger.debug('MacroService', '刷新用户设定失败', error);
             this.cachedUserPersona = '';
         }
     }
@@ -515,7 +493,7 @@ export class MacroService {
      */
     private static refreshCustomMacros(): void {
         try {
-            // @ts-ignore
+            // @ts-expect-error
             const context = window.SillyTavern?.getContext?.();
             if (!context?.registerMacro) {
                 Logger.debug('MacroService', '酒馆 registerMacro 不可用，跳过自定义宏注册');
@@ -531,7 +509,7 @@ export class MacroService {
 
             // 注册每个启用的自定义宏
             for (const macro of customMacros) {
-                if (!macro.enabled || !macro.name) continue;
+                if (!macro.enabled || !macro.name) {continue;}
 
                 // 缓存内容
                 this.cachedCustomMacros.set(macro.name, macro.content);
@@ -547,10 +525,10 @@ export class MacroService {
 
             Logger.debug('MacroService', '自定义宏已刷新', {
                 count: this.cachedCustomMacros.size,
-                names: Array.from(this.cachedCustomMacros.keys())
+                names: [...this.cachedCustomMacros.keys()]
             });
-        } catch (e) {
-            Logger.warn('MacroService', '刷新自定义宏失败', e);
+        } catch (error) {
+            Logger.warn('MacroService', '刷新自定义宏失败', error);
         }
     }
 
@@ -561,7 +539,7 @@ export class MacroService {
      * @param description 宏描述
      */
     private static registerMacro(name: string, handler: () => string, description: string) {
-        // @ts-ignore
+        // @ts-expect-error
         const context = window.SillyTavern?.getContext?.();
 
         // 兼容性修复: 强制使用旧版 registerMacro API

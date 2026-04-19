@@ -1,5 +1,5 @@
 /** @deprecated 请使用内置库 "世界书强制用推荐的全局设置" */
-type LorebookSettings = {
+interface LorebookSettings {
   selected_global_lorebooks: string[];
   scan_depth: number;
   context_percentage: number;
@@ -31,13 +31,13 @@ declare function deleteLorebook(lorebook: string): Promise<boolean>;
 declare function createLorebook(lorebook: string): Promise<boolean>;
 
 /** @deprecated 请使用 `getCharWorldbookNames` */
-type CharLorebooks = {
+interface CharLorebooks {
   primary: string | null;
   additional: string[];
 }
 
 /** @deprecated 请使用 `getCharWorldbookNames` */
-type GetCharLorebooksOption = {
+interface GetCharLorebooksOption {
   name?: string;
   type?: 'all' | 'primary' | 'additional';
 }

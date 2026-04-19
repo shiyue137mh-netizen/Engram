@@ -1,7 +1,7 @@
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { generateShortUUID, sleep } from '@/core/utils';
-import { JobContext } from './JobContext';
-import { IStep, StepResult } from './Step';
+import type { JobContext } from './JobContext';
+import type { IStep, StepResult } from './Step';
 
 export interface WorkflowDefinition {
     name: string;
@@ -29,7 +29,7 @@ export class WorkflowEngine {
         }
 
         let attempt = 1;
-        let delay = retryConfig.delay;
+        let {delay} = retryConfig;
 
         while (true) {
             try {
@@ -81,16 +81,16 @@ export class WorkflowEngine {
 
         // 1. 初始化完整 Context
         const context: JobContext = {
-            id: initialContext.id || generateShortUUID('wf_'),
-            trigger: initialContext.trigger || 'manual',
             config: initialContext.config || {},
+            id: initialContext.id || generateShortUUID('wf_'),
             input: initialContext.input || {},
-            signal: initialContext.signal,
             metadata: {
                 startTime,
                 stepsExecuted: [],
                 ...initialContext.metadata
-            }
+            },
+            signal: initialContext.signal,
+            trigger: initialContext.trigger || 'manual'
         };
 
         Logger.info(LogModule.RAG_INJECT, `开始执行工作流: ${workflow.name}`, {
@@ -155,8 +155,8 @@ export class WorkflowEngine {
                             }
 
                             Logger.debug(LogModule.RAG_INJECT, `跳转步骤: ${step.name} -> ${result.targetStep}`, {
-                                reason: result.reason,
-                                jumpCount: context.metadata.jumpCount
+                                jumpCount: context.metadata.jumpCount,
+                                reason: result.reason
                             });
                             i = targetIndex - 1; // 循环会自动 +1，所以这里 -1
                             continue;
@@ -179,14 +179,14 @@ export class WorkflowEngine {
             }
 
             Logger.debug(LogModule.RAG_INJECT, `工作流执行成功: ${workflow.name}`, {
-                jobId: context.id,
                 duration: Date.now() - startTime,
+                jobId: context.id,
                 steps: context.metadata.stepsExecuted.length
             });
 
-        } catch (e: any) {
+        } catch (error: any) {
             const isCancelled = context.signal && context.signal.cancelled;
-            context.metadata.error = e instanceof Error ? e : new Error(String(e));
+            context.metadata.error = error instanceof Error ? error : new Error(String(error));
             
             if (isCancelled) {
                 Logger.info(LogModule.RAG_INJECT, `工作流已由用户取消: ${workflow.name}`, {
@@ -202,7 +202,7 @@ export class WorkflowEngine {
             Logger.error(LogModule.RAG_INJECT, `工作流执行异常: ${workflow.name}`, {
                 jobId: context.id,
                 // P0 Fix: 优先记录正在执行的 step，避免误报上一个成功 step
-                step: context.metadata.currentStep || currentStepName || context.metadata.stepsExecuted[context.metadata.stepsExecuted.length - 1],
+                step: context.metadata.currentStep || currentStepName || context.metadata.stepsExecuted.at(-1),
                 error: context.metadata.error.message
             });
             // 根据需求，这里可以选择抛出异常或者仅返回带 error 的 context

@@ -1,9 +1,9 @@
-import { Logger, LogModule } from '@/core/logger';
+import { LogModule, Logger } from '@/core/logger';
 import { RecallLogService } from '@/core/logger/RecallLogger';
 import { WorldbookScannerService } from '@/integrations/tavern/worldbook/scanner';
-import { ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
-import { JobContext } from '../../core/JobContext';
-import { IStep } from '../../core/Step';
+import type { ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep } from '../../core/Step';
 
 export class RecordRecallLogStep implements IStep {
     name = 'RecordRecallLogStep';
@@ -29,14 +29,16 @@ export class RecordRecallLogStep implements IStep {
             // 这只是为了展示在日志里，不需要等待它注入，ST 会自己处理注入
             const worldInfoText = await WorldbookScannerService.getActivatedWorldInfo();
             worldbookEntriesCount = worldInfoText ? worldInfoText.split('\n\n').length : 0;
-        } catch (e) {
+        } catch {
             Logger.debug(LogModule.RAG_INJECT, '获取世界书条目统计失败');
         }
 
         RecallLogService.log({
-            query,
-            preprocessedQuery: unifiedQueries?.[0],
+            brainStats: context.data.brainStats,
             mode: mode as 'hybrid' | 'agentic',
+            preprocessedQuery: unifiedQueries?.[0],
+            query,
+            recalledEntities,
             results: candidates.map(c => ({
                 eventId: c.id,
                 summary: c.summary,
@@ -49,14 +51,12 @@ export class RecordRecallLogStep implements IStep {
                 isReranked: c.rerankScore != null,
                 sourceFloor: c.node?.source_range?.start_index,
             })),
-            recalledEntities,
             stats: {
-                totalCandidates: context.data.originalCandidateCount || candidates.length,
-                topKCount: candidates.length,
-                rerankCount: candidates.length,
                 latencyMs: (context.data.vectorRetrieveTime || 0) + (context.data.keywordRetrieveTime || 0) + (context.data.rerankTime || 0),
+                rerankCount: candidates.length,
+                topKCount: candidates.length,
+                totalCandidates: context.data.originalCandidateCount || candidates.length,
             },
-            brainStats: context.data.brainStats,
         });
 
         const totalTime = (context.data.vectorRetrieveTime || 0) + (context.data.keywordRetrieveTime || 0) + (context.data.rerankTime || 0);
@@ -64,12 +64,12 @@ export class RecordRecallLogStep implements IStep {
         Logger.info(LogModule.RAG_INJECT, '召回汇总报告', {
             entities: recalledEntities.length,
             events: nodes.length,
-            worldbook: worldbookEntriesCount,
-            totalTime: `${totalTime}ms`,
             isEmbedding: !!context.data.recallConfig?.useEmbedding,
             isRerank: !!context.data.recallConfig?.useRerank,
+            totalTime: `${totalTime}ms`,
+            worldbook: worldbookEntriesCount,
         });
 
-        context.output = { entries, nodes, candidates, recalledEntities };
+        context.output = { candidates, entries, nodes, recalledEntities };
     }
 }

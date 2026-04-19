@@ -8,7 +8,7 @@ interface SimpleModalProps {
     icon?: React.ReactNode;
     children: React.ReactNode;
     footer?: React.ReactNode;
-    maxWidth?: string; // e.g., 'max-w-md', 'max-w-2xl'
+    maxWidth?: string; // E.g., 'max-w-md', 'max-w-2xl'
 }
 
 /**
@@ -24,7 +24,7 @@ export const SimpleModal: React.FC<SimpleModalProps> = ({
     footer,
     maxWidth = 'max-w-md'
 }) => {
-    if (!isOpen) return null;
+    if (!isOpen) {return null;}
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">

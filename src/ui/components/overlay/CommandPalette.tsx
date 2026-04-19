@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { Search, CornerDownLeft, Command } from 'lucide-react';
-import { searchService, SearchResult } from '@/modules/search/SearchService';
+import { Command, CornerDownLeft, Search } from 'lucide-react';
+import type { SearchResult } from '@/modules/search/SearchService';
+import { searchService } from '@/modules/search/SearchService';
 // Register adapters (ensure they are registered once)
 import { CommandAdapter } from '@/modules/search/adapters/CommandAdapter';
 import { SettingAdapter } from '@/modules/search/adapters/SettingAdapter';
@@ -10,15 +11,15 @@ import { MemoryAdapter } from '@/modules/search/adapters/MemoryAdapter';
 import { PresetAdapter } from '@/modules/search/adapters/PresetAdapter';
 
 // Singleton registration (simple check)
-// @ts-ignore
-// @ts-ignore
+// @ts-expect-error
+// @ts-expect-error
 if (!window.__ENGRAM_SEARCH_INIT__) {
     searchService.registerAdapter(new CommandAdapter());
     searchService.registerAdapter(new SettingAdapter());
     searchService.registerAdapter(new LogAdapter());
     searchService.registerAdapter(new MemoryAdapter());
     searchService.registerAdapter(new PresetAdapter());
-    // @ts-ignore
+    // @ts-expect-error
     window.__ENGRAM_SEARCH_INIT__ = true;
 }
 
@@ -40,7 +41,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
             // If query matches nothing, maybe show default commands?
             // For now we just search based on query.
             // If query empty, show static commands (CommandAdapter handles this if implemented,
-            // but currently SearchServiceImpl checks if query.trim()).
+            // But currently SearchServiceImpl checks if query.trim()).
 
             if (!query.trim()) {
                 // Empty query: show default recommended commands
@@ -91,21 +92,25 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
         const totalItems = results.length + (query ? 1 : 0); // +1 for "Search Memory"
 
         switch (e.key) {
-            case 'ArrowDown':
+            case 'ArrowDown': {
                 e.preventDefault();
                 setSelectedIndex((prev) => (prev + 1) % totalItems);
                 break;
-            case 'ArrowUp':
+            }
+            case 'ArrowUp': {
                 e.preventDefault();
                 setSelectedIndex((prev) => (prev - 1 + totalItems) % totalItems);
                 break;
-            case 'Enter':
+            }
+            case 'Enter': {
                 e.preventDefault();
                 executeSelected();
                 break;
-            case 'Escape':
+            }
+            case 'Escape': {
                 setIsOpen(false);
                 break;
+            }
         }
     };
 
@@ -132,18 +137,18 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onNavigate }) =>
                     width: '100vw',
                     backgroundColor: 'rgba(0,0,0,0.4)', // Slightly more transparent to not feel too heavy
                     backdropFilter: 'var(--glass-backdrop-filter, blur(4px))',
-                    zIndex: 2147483647, // Max safe integer to ensure it's on top of SillyTavern UI
+                    zIndex: 2_147_483_647, // Max safe integer to ensure it's on top of SillyTavern UI
                 }}
                 onClick={(e) => {
-                    if (e.target === e.currentTarget) setIsOpen(false);
+                    if (e.target === e.currentTarget) {setIsOpen(false);}
                 }}
             >
                 <div
                     className="w-full max-w-xl border border-border rounded-xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 slide-in-from-top-4 duration-200"
                     style={{
+                        backdropFilter: 'var(--glass-backdrop-filter)',
                         backgroundColor: 'var(--popover)',
                         color: 'var(--popover-foreground)',
-                        backdropFilter: 'var(--glass-backdrop-filter)',
                         maxHeight: '70vh'
                     }}
                 >

@@ -79,7 +79,7 @@ function getEventSource(): {
 } | null {
     try {
 
-        const SillyTavern = window.SillyTavern;
+        const {SillyTavern} = window;
         if (SillyTavern?.getContext) {
             const context = SillyTavern.getContext();
             return context?.eventSource || null;
@@ -134,7 +134,7 @@ export class EventBus {
         if (eventSource) {
             eventSource.once(event, callback);
         } else {
-            // fallback: 自己实现 once
+            // Fallback: 自己实现 once
             const wrappedCallback: EventCallback = (...args) => {
                 this.off(event, wrappedCallback);
                 callback(...args);

@@ -38,7 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const handleNavClick = (tabId: string) => {
         onNavigate(tabId);
-        if (isMobile && onClose) onClose();
+        if (isMobile && onClose) {onClose();}
     };
 
     // 统一的底部区域组件（三行布局）
@@ -91,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     );
 
     // 移动端未打开时不渲染
-    if (isMobile && !isOpen) return null;
+    if (isMobile && !isOpen) {return null;}
 
     // PC 端侧边栏
     if (!isMobile) {
@@ -174,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                transition={{ damping: 25, stiffness: 200, type: 'spring' }}
                 id="mobile-menu-drawer"
                 className="relative w-64 max-w-[80vw] h-full bg-sidebar border-r border-border shadow-2xl flex flex-col p-6"
                 style={{ height: '100dvh' }}
@@ -197,7 +197,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         hidden: { opacity: 0 },
                         show: {
                             opacity: 1,
-                            transition: { staggerChildren: 0.05, delayChildren: 0.1 }
+                            transition: { delayChildren: 0.1, staggerChildren: 0.05 }
                         }
                     }}
                 >

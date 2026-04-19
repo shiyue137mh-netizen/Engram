@@ -23,7 +23,7 @@ export function getTavernHelper(): {
     rebindCharWorldbooks?: (mode: 'current', books: { primary?: string; additional: string[] }) => Promise<void>;
 } | null {
     try {
-        // @ts-ignore - TavernHelper 全局对象
+        // @ts-expect-error - TavernHelper 全局对象
         return window.TavernHelper || null;
     } catch {
         return null;

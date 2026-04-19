@@ -6,21 +6,21 @@ export type { EmbeddingConfig, RecallConfig, RerankConfig, VectorConfig } from '
 ;
 
 
-import { ContextSettings, LLMPreset, SamplingParameters } from './llm';
-import { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
-import { CustomMacro, PromptCategory, PromptTemplate, WorldbookConfig, WorldbookConfigProfile } from './prompt';
-import { BrainRecallConfig, EmbeddingConfig, RecallConfig, RerankConfig, VectorConfig } from './rag';
+import type { ContextSettings, LLMPreset, SamplingParameters } from './llm';
+import type { EntityExtractConfig, GlobalRegexConfig, TrimConfig } from './memory';
+import type { CustomMacro, PromptCategory, PromptTemplate, WorldbookConfig, WorldbookConfigProfile } from './prompt';
+import type { BrainRecallConfig, EmbeddingConfig, RecallConfig, RerankConfig, VectorConfig } from './rag';
 
 // Import prompts from original location (will be moved in Phase 7)
 // Removed: raw text imports replaced by YAML loader
 
 const DEFAULT_SAMPLING_PARAMETERS: SamplingParameters = {
+    frequencyPenalty: 0,
+    maxContext: 150000,
+    maxTokens: 60000,
+    presencePenalty: 0,
     temperature: 1.0,
     topP: 0.98,
-    maxTokens: 60000,
-    frequencyPenalty: 0,
-    presencePenalty: 0,
-    maxContext: 150000,
 };
 
 const DEFAULT_CONTEXT_SETTINGS: ContextSettings = {
@@ -32,12 +32,12 @@ const DEFAULT_VECTOR_CONFIG: VectorConfig = {
 };
 
 const DEFAULT_RERANK_CONFIG: RerankConfig = {
-    enabled: false,
-    url: '',
     apiKey: '',
+    enabled: false,
+    hybridAlpha: 0.5,
     model: '',
     topN: 5,
-    hybridAlpha: 0.5,
+    url: '',
 };
 
 export const DEFAULT_BRAIN_RECALL_CONFIG: BrainRecallConfig = {
@@ -46,7 +46,7 @@ export const DEFAULT_BRAIN_RECALL_CONFIG: BrainRecallConfig = {
     shortTermLimit: 35,      // 短期记忆：缓存上限 (35 约 3-4 轮累积)
 
     // P2 Defaults: 默认不改变旧行为（仅当存在实体候选时才建议在 UI 配置分配额）
-    // eventWorkingLimit/entityWorkingLimit 留空，由算法回退到 workingLimit
+    // EventWorkingLimit/entityWorkingLimit 留空，由算法回退到 workingLimit
 
     reinforceFactor: 0.2,    // 强化系数
     decayRate: 0.08,         // 衰减速率 (稍慢，保留更多)
@@ -66,31 +66,31 @@ export const DEFAULT_BRAIN_RECALL_CONFIG: BrainRecallConfig = {
 };
 
 export const DEFAULT_RECALL_CONFIG: RecallConfig = {
-    enabled: true,
-    useEmbedding: true,
-    useRerank: false,
-    usePreprocessing: false,
-    useAgenticRAG: false,
-    useKeywordRecall: true,
-    enableEntityKeyword: true,
-    enableEventKeyword: true,
-    keywordTopK: {
-        events: 50,
-        entities: 30,
-    },
+    brainRecall: DEFAULT_BRAIN_RECALL_CONFIG,
     embedding: {
         topK: 50,               // Embedding 初筛 50 条
         minScoreThreshold: 0.35, // 过滤阈值 (稍高，过滤不相关)
     },
+    enableEntityKeyword: true,
+    enableEventKeyword: true,
+    enabled: true,
+    keywordTopK: {
+        entities: 30,
+        events: 50,
+    },
+    useAgenticRAG: false,
+    useEmbedding: true,
+    useKeywordRecall: true,
+    usePreprocessing: false,
 
-    brainRecall: DEFAULT_BRAIN_RECALL_CONFIG,
+    useRerank: false,
 };
 
 export const DEFAULT_EMBEDDING_CONFIG: EmbeddingConfig = {
-    enabled: false,
-    trigger: 'with_trim',
     concurrency: 5,
+    enabled: false,
     keepRecentCount: 3,
+    trigger: 'with_trim',
 };
 
 export const DEFAULT_ENTITY_CONFIG: EntityExtractConfig = {
@@ -104,8 +104,8 @@ export const DEFAULT_ENTITY_CONFIG: EntityExtractConfig = {
 };
 
 const DEFAULT_REGEX_CONFIG: GlobalRegexConfig = {
-    enableNativeRegex: true,
     enableEngramRegex: true,
+    enableNativeRegex: true,
 };
 
 const DEFAULT_CUSTOM_MACROS: CustomMacro[] = [
@@ -119,20 +119,20 @@ const DEFAULT_CUSTOM_MACROS: CustomMacro[] = [
 ];
 
 const DEFAULT_WORLDBOOK_CONFIG: WorldbookConfig = {
-    enabled: true,
-    includeGlobal: true,
     disabledWorldbooks: ['engram'],
-    enableEJS: true, // V0.8 默认启用 EJS
+    enableEJS: true,
+    enabled: true,
+    includeGlobal: true, // V0.8 默认启用 EJS
 };
 
 export const DEFAULT_TRIM_CONFIG: TrimConfig = {
-    enabled: false,
-    trigger: 'token',
-    tokenLimit: 4096,
     countLimit: 5,
+    enabled: false,
     keepRecentCount: 3,
     preserveOriginal: false,
     previewEnabled: true,
+    tokenLimit: 4096,
+    trigger: 'token',
 };
 
 export interface EngramAPISettings {
@@ -173,13 +173,13 @@ export interface EngramAPISettings {
 export function createDefaultLLMPreset(name: string = '默认预设'): LLMPreset {
     const now = Date.now();
     return {
-        id: `preset_${now}`,
-        name,
-        source: 'tavern',
-        parameters: { ...DEFAULT_SAMPLING_PARAMETERS },
         context: { ...DEFAULT_CONTEXT_SETTINGS },
-        isDefault: true,
         createdAt: now,
+        id: `preset_${now}`,
+        isDefault: true,
+        name,
+        parameters: { ...DEFAULT_SAMPLING_PARAMETERS },
+        source: 'tavern',
         updatedAt: now,
     };
 }

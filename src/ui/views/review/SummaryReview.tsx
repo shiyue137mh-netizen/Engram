@@ -11,7 +11,7 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
     // Parse input data to list of events
     const parseEvents = (): any[] => {
         // 1. Try from parsed data object
-        if (Array.isArray(data)) return data;
+        if (Array.isArray(data)) {return data;}
         if (data && typeof data === 'object' && Array.isArray(data.events)) {
             return data.events;
         }
@@ -20,13 +20,13 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
         if (content) {
             try {
                 // Remove markdown code blocks if any
-                const cleanContent = content.replace(/```(json)?/g, '').trim();
+                const cleanContent = content.replaceAll(/```(json)?/g, '').trim();
                 const parsed = JSON.parse(cleanContent);
-                if (Array.isArray(parsed)) return parsed;
+                if (Array.isArray(parsed)) {return parsed;}
                 if (parsed && typeof parsed === 'object' && Array.isArray(parsed.events)) {
                     return parsed.events;
                 }
-            } catch (e) {
+            } catch {
                 // Ignore parse errors, fallback to text splitting
             }
 
@@ -60,7 +60,7 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
         const next = [...events];
         if (typeof next[index] !== 'object' || next[index] === null) {
             // If it was a string, convert to object first
-            next[index] = { summary: next[index], structured_kv: {} };
+            next[index] = { structured_kv: {}, summary: next[index] };
         }
 
         const evt = next[index];
@@ -106,7 +106,7 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
 
     const handleAddEvent = () => {
         const isObjectFormat = events.length > 0 && typeof events[0] === 'object';
-        const newItem = isObjectFormat ? { summary: '', meta: {}, significance_score: 0.5 } : '';
+        const newItem = isObjectFormat ? { meta: {}, significance_score: 0.5, summary: '' } : '';
         const next = [...events, newItem];
         setEvents(next);
         notifyChange(next);
@@ -114,15 +114,15 @@ export const SummaryReview: React.FC<SummaryReviewProps> = ({ content, data, onC
 
     // Render KV display (Editable Tags)
     const renderKV = (evt: any, idx: number) => {
-        if (typeof evt !== 'object' || !evt) return null;
+        if (typeof evt !== 'object' || !evt) {return null;}
         const kv = evt.structured_kv || evt.meta || {};
 
         const fields = [
-            { key: 'time_anchor', label: '时间', color: 'text-value border-value/20 bg-value/5' },
-            { key: 'location', label: '地点', color: 'text-value border-value/20 bg-value/5' },
-            { key: 'role', label: '人物', color: 'text-emphasis border-emphasis/20 bg-emphasis/5' },
-            { key: 'logic', label: '逻辑', color: 'text-primary border-primary/20 bg-primary/5' },
-            { key: 'causality', label: '因果', color: 'text-orange-400 border-orange-400/20 bg-orange-400/5' },
+            { color: 'text-value border-value/20 bg-value/5', key: 'time_anchor', label: '时间' },
+            { color: 'text-value border-value/20 bg-value/5', key: 'location', label: '地点' },
+            { color: 'text-emphasis border-emphasis/20 bg-emphasis/5', key: 'role', label: '人物' },
+            { color: 'text-primary border-primary/20 bg-primary/5', key: 'logic', label: '逻辑' },
+            { color: 'text-orange-400 border-orange-400/20 bg-orange-400/5', key: 'causality', label: '因果' },
         ];
 
         return (

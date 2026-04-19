@@ -1,11 +1,11 @@
-import { SearchAdapter, SearchResult } from '../SearchService';
+import type { SearchAdapter, SearchResult } from '../SearchService';
 import { SettingsManager } from '@/config/settings';
-import { FileText, Book } from 'lucide-react';
+import { Book, FileText } from 'lucide-react';
 
 export class PresetAdapter implements SearchAdapter {
     async search(query: string): Promise<SearchResult[]> {
         const lowerQuery = query.toLowerCase().trim();
-        if (!lowerQuery) return [];
+        if (!lowerQuery) {return [];}
 
         const results: SearchResult[] = [];
 
@@ -15,7 +15,7 @@ export class PresetAdapter implements SearchAdapter {
             if (t.name.toLowerCase().includes(lowerQuery)) {
                 results.push({
                     id: `template-${t.id}`,
-                    type: 'setting', // or 'template'
+                    type: 'setting', // Or 'template'
                     title: `模板: ${t.name}`,
                     description: `Prompt Template (${t.category})`,
                     icon: FileText,

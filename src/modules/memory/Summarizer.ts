@@ -86,9 +86,9 @@ class SummarizerService {
         if (!metadata) {
             return undefined;
         }
-        if (!metadata.extensions) metadata.extensions = {};
+        if (!metadata.extensions) {metadata.extensions = {};}
         // @ts-expect-error - 动态访问
-        if (!metadata.extensions[METADATA_KEY]) metadata.extensions[METADATA_KEY] = {};
+        if (!metadata.extensions[METADATA_KEY]) {metadata.extensions[METADATA_KEY] = {};}
         // @ts-expect-error - 动态访问
         return metadata.extensions[METADATA_KEY][key];
     }
@@ -98,11 +98,11 @@ class SummarizerService {
      */
     private saveToChatMetadata(key: string, value: unknown): void {
         const metadata = getChatMetadata();
-        if (!metadata) return;
+        if (!metadata) {return;}
 
-        if (!metadata.extensions) metadata.extensions = {};
+        if (!metadata.extensions) {metadata.extensions = {};}
         // @ts-expect-error - 动态访问
-        if (!metadata.extensions[METADATA_KEY]) metadata.extensions[METADATA_KEY] = {};
+        if (!metadata.extensions[METADATA_KEY]) {metadata.extensions[METADATA_KEY] = {};}
 
         // @ts-expect-error - 动态访问
         metadata.extensions[METADATA_KEY][key] = value;
@@ -118,7 +118,7 @@ class SummarizerService {
      */
     private async getLastSummarizedFloor(): Promise<number> {
         // 如果缓存有值且不是刚被清零，直接返回
-        if (this._lastSummarizedFloor > 0) return this._lastSummarizedFloor;
+        if (this._lastSummarizedFloor > 0) {return this._lastSummarizedFloor;}
 
         // 直接从 IndexedDB 读取，避免 memoryStore 缓存未初始化的问题
         try {
@@ -127,8 +127,8 @@ class SummarizerService {
             this._lastSummarizedFloor = state.last_summarized_floor;
             this.log('debug', '从 DB 读取 lastSummarizedFloor', { value: this._lastSummarizedFloor });
             return this._lastSummarizedFloor;
-        } catch (e) {
-            this.log('warn', '读取 lastSummarizedFloor 失败，使用默认值 0', e);
+        } catch (error) {
+            this.log('warn', '读取 lastSummarizedFloor 失败，使用默认值 0', error);
             return 0;
         }
     }
@@ -152,7 +152,7 @@ class SummarizerService {
      * 获取当前真实楼层数
      */
     private getCurrentFloor(): number {
-        // @ts-ignore
+        // @ts-expect-error
         const context = window.SillyTavern?.getContext?.();
         if (!context?.chat) {
             return 0;
@@ -165,7 +165,7 @@ class SummarizerService {
      * 获取当前聊天 ID
      */
     private getCurrentChatId(): string | null {
-        // @ts-ignore
+        // @ts-expect-error
         const context = window.SillyTavern?.getContext?.();
         return context?.chatId || null;
     }
@@ -254,9 +254,9 @@ class SummarizerService {
         });
 
         // 如果从未总结过（lastSummarized=0），不要自动跳过，保持为 0，等待用户触发
-        // if (lastSummarized === 0 && currentFloor > 0) {
-        //     this.log('info', '首次初始化，设置基准为当前楼层', { currentFloor });
-        //     await this.setLastSummarizedFloor(currentFloor);
+        // If (lastSummarized === 0 && currentFloor > 0) {
+        //     This.log('info', '首次初始化，设置基准为当前楼层', { currentFloor });
+        //     Await this.setLastSummarizedFloor(currentFloor);
         // }    }
     }
 
@@ -280,13 +280,13 @@ class SummarizerService {
 
         // V0.9.1: 检查实体提取触发
         // V0.9.14: EntityExtraction now has its own listener in EntityExtractor.ts. Removing coupled call.
-        // await this.checkEntityExtraction(currentFloor);
+        // Await this.checkEntityExtraction(currentFloor);
 
         // 检查是否达到 Summary 触发条件
         if (pendingFloors >= this.config.floorInterval) {
             this.log('info', '达到触发条件，准备总结', {
-                pendingFloors,
                 interval: this.config.floorInterval,
+                pendingFloors,
             });
             await this.triggerSummary();
         }
@@ -313,12 +313,12 @@ class SummarizerService {
                 this.log('debug', '实体提取范围', { range });
 
                 // 异步执行，不阻塞 Summary
-                entityBuilder.extractByRange(range, false).catch(e => {
-                    this.log('warn', '实体提取失败', { error: e });
+                entityBuilder.extractByRange(range, false).catch(error => {
+                    this.log('warn', '实体提取失败', { error: error });
                 });
             }
-        } catch (e) {
-            this.log('warn', '实体提取检查失败', { error: e });
+        } catch (error) {
+            this.log('warn', '实体提取检查失败', { error: error });
         }
     }
 
@@ -406,18 +406,18 @@ class SummarizerService {
                 endFloor = startFloor + processCount - 1;
             }
 
-            if (startFloor > endFloor) return null;
+            if (startFloor > endFloor) {return null;}
 
             const range: [number, number] = [startFloor, endFloor];
             this.log('info', '准备总结', {
-                range,
-                currentFloor,
-                lastSummarizedFloor: this._lastSummarizedFloor,
-                floorInterval: this.config.floorInterval,
-                bufferSize: this.config.bufferSize,
-                maxProcessableFloor: rangeOverride ? endFloor : currentFloor - (this.config.bufferSize || 0),
                 autoHide: this.config.autoHide,
+                bufferSize: this.config.bufferSize,
+                currentFloor,
+                floorInterval: this.config.floorInterval,
+                lastSummarizedFloor: this._lastSummarizedFloor,
                 manual,
+                maxProcessableFloor: rangeOverride ? endFloor : currentFloor - (this.config.bufferSize || 0),
+                range,
                 rangeOverride: rangeOverride ?? null,
             });
 
@@ -431,24 +431,24 @@ class SummarizerService {
             const previewEnabled = globalPreviewEnabled && (this.config.previewEnabled ?? true);
 
             const context = await WorkflowEngine.run(createSummaryWorkflow(), {
-                trigger: manual ? 'manual' : 'auto',
-                signal: cancelSignal,
                 config: {
-                    previewEnabled: previewEnabled,
                     autoHide: this.config.autoHide,
-                    templateId: this.config.promptTemplateId,
-                    logType: 'summarize'
+                    logType: 'summarize',
+                    previewEnabled: previewEnabled,
+                    templateId: this.config.promptTemplateId
                 },
                 input: {
                     range: range
-                }
+                },
+                signal: cancelSignal,
+                trigger: manual ? 'manual' : 'auto'
             });
 
             // 3. Construct Result (Backward Compatibility)
             const savedEvents = context.output; // From SaveEvent (Array of EventNodes)
 
             // If SaveEvent returns array of events, we construct a SummaryResult-like object
-            // or just return the list. Original method returned SummaryResult (single object).
+            // Or just return the list. Original method returned SummaryResult (single object).
             // But now we have multiple events potentially.
             // Let's verify `SummaryResult` type in `types.d.ts` or similar.
             // It seems SummaryResult expects `content` string.
@@ -479,30 +479,30 @@ class SummarizerService {
                 const trimAvailability = await eventTrimmer.canTrim();
 
                 this.log('debug', '自动精简触发检查', {
-                    enabled: trimConfig.enabled,
-                    triggerType: trimStatus.triggerType,
-                    currentValue: trimStatus.currentValue,
-                    threshold: trimStatus.threshold,
-                    pendingEntryCount: trimStatus.pendingEntryCount,
                     canTrim: trimAvailability.canTrim,
+                    currentValue: trimStatus.currentValue,
+                    enabled: trimConfig.enabled,
+                    pendingEntryCount: trimStatus.pendingEntryCount,
+                    threshold: trimStatus.threshold,
+                    triggerType: trimStatus.triggerType,
                 });
 
                 // 只有在精简已启用、达到阈值且存在足够待合并事件时才自动执行
                 if (trimConfig.enabled && trimStatus.triggered && trimAvailability.canTrim) {
                     this.log('info', '联动触发精简', {
-                        triggerType: trimStatus.triggerType,
                         currentValue: trimStatus.currentValue,
-                        threshold: trimStatus.threshold,
                         pendingEntryCount: trimStatus.pendingEntryCount,
+                        threshold: trimStatus.threshold,
+                        triggerType: trimStatus.triggerType,
                     });
                     // 使用 manual=false 表示自动触发
                     await eventTrimmer.trim(false);
                 } else {
                     this.log('debug', '跳过自动精简', {
-                        enabled: trimConfig.enabled,
-                        triggered: trimStatus.triggered,
                         canTrim: trimAvailability.canTrim,
+                        enabled: trimConfig.enabled,
                         pendingEntryCount: trimStatus.pendingEntryCount,
+                        triggered: trimStatus.triggered,
                     });
                 }
             } catch (trimError) {
@@ -512,8 +512,8 @@ class SummarizerService {
 
             return result;
 
-        } catch (e) {
-            const errorMsg = e instanceof Error ? e.message : String(e);
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
 
             if (errorMsg === 'UserCancelled') {
                 this.log('info', '总结已被用户取消');
@@ -540,12 +540,12 @@ class SummarizerService {
         const lastSummarized = this._lastSummarizedFloor;
 
         return {
-            running: this.isRunning,
             currentFloor,
-            lastSummarizedFloor: lastSummarized,
-            pendingFloors: Math.max(0, currentFloor - lastSummarized),
             historyCount: this.summaryHistory.length,
             isSummarizing: this.isSummarizing,
+            lastSummarizedFloor: lastSummarized,
+            pendingFloors: Math.max(0, currentFloor - lastSummarized),
+            running: this.isRunning,
         };
     }
 

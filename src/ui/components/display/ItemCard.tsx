@@ -53,12 +53,12 @@ interface ItemCardProps {
 
 // 标签颜色映射
 const BADGE_COLORS: Record<NonNullable<ItemBadge['color']>, string> = {
-    default: 'text-muted-foreground bg-muted/50',
-    primary: 'text-primary bg-primary/10',
     blue: 'text-blue-500 bg-blue-500/10',
-    purple: 'text-purple-500 bg-purple-500/10',
-    orange: 'text-orange-500 bg-orange-500/10',
+    default: 'text-muted-foreground bg-muted/50',
     emerald: 'text-emerald-500 bg-emerald-500/10',
+    orange: 'text-orange-500 bg-orange-500/10',
+    primary: 'text-primary bg-primary/10',
+    purple: 'text-purple-500 bg-purple-500/10',
 };
 
 export const ItemCard: React.FC<ItemCardProps> = ({
@@ -76,7 +76,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     compact = false,
 }) => {
     const visibleActions = actions.filter(a => !a.hidden);
-    const hasToggle = !!toggle;
+    const hasToggle = Boolean(toggle);
 
     return (
         <div
@@ -164,7 +164,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
             </div>
 
             {/* 右侧：选中指示器 */}
-            {selected && !visibleActions.length && (
+            {selected && visibleActions.length === 0 && (
                 <Check size={14} className="text-primary flex-shrink-0" />
             )}
 

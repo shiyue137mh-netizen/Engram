@@ -1,4 +1,4 @@
-import { type EngramSettings } from '@/config/settings';
+import type { EngramSettings } from '@/config/settings';
 import {
     Activity,
     BrainCircuit,
@@ -20,8 +20,8 @@ interface AchievementsPanelProps {
 export const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ stats }) => {
     // 处理大数字的美化显示
     const formatNumber = (num: number) => {
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        if (num >= 1_000_000) {return (num / 1000000).toFixed(1) + 'M';}
+        if (num >= 1000) {return (num / 1000).toFixed(1) + 'k';}
         return num.toString();
     };
 
@@ -141,17 +141,17 @@ export const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ stats }) =
                     ) : null}
 
                     {/* 2. Token 消耗徽章 (Resource) */}
-                    {stats.totalTokens >= 10000000 ? (
+                    {stats.totalTokens >= 10_000_000 ? (
                         <div className="text-[10px] flex items-center gap-1 text-purple-500 font-medium bg-purple-500/10 px-2 py-1 rounded-full border border-purple-500/20" title="消耗 1000 万 Token">
                             <Star size={12} fill="currentColor" />
                             千万 Token
                         </div>
-                    ) : stats.totalTokens >= 1000000 ? (
+                    ) : stats.totalTokens >= 1_000_000 ? (
                         <div className="text-[10px] flex items-center gap-1 text-purple-400 font-medium bg-purple-400/10 px-2 py-1 rounded-full border border-purple-400/20" title="消耗 100 万 Token">
                             <Star size={12} />
                             百万 Token
                         </div>
-                    ) : stats.totalTokens >= 100000 ? (
+                    ) : stats.totalTokens >= 100_000 ? (
                         <div className="text-[10px] flex items-center gap-1 text-purple-300 font-medium bg-purple-300/10 px-2 py-1 rounded-full border border-purple-300/20" title="消耗 10 万 Token">
                             <Star size={10} />
                             十万 Token
@@ -159,17 +159,17 @@ export const AchievementsPanel: React.FC<AchievementsPanelProps> = ({ stats }) =
                     ) : null}
 
                     {/* 3. 记忆与实体徽章 (Productivity) */}
-                    {stats.totalEvents >= 10000 ? (
+                    {stats.totalEvents >= 10_000 ? (
                         <div className="text-[10px] flex items-center gap-1 text-emerald-500 font-medium bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20" title="生成 10,000 条记忆">
                             <LibraryBig size={12} />
                             万卷藏书
                         </div>
-                    ) : stats.totalEvents >= 1000 ? (
+                    ) : (stats.totalEvents >= 1000 ? (
                         <div className="text-[10px] flex items-center gap-1 text-emerald-400 font-medium bg-emerald-400/10 px-2 py-1 rounded-full border border-emerald-400/20" title="生成 1,000 条记忆">
                             <LibraryBig size={12} />
                             千思之录
                         </div>
-                    ) : null}
+                    ) : null)}
 
                     {/* 4. 召回频次徽章 (RAG) */}
                     {stats.totalRagInjections >= 5000 ? (

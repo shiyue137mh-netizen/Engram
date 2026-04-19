@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { TextField, NumberField, SwitchField, FormSection, SelectField, SearchableSelectField } from '@/ui/components/form/FormComponents';
+import { FormSection, NumberField, SearchableSelectField, SelectField, SwitchField, TextField } from '@/ui/components/form/FormComponents';
 import type { RerankConfig } from '@/config/types/rag';
-import { RefreshCw, Loader2 } from 'lucide-react';
-import { ModelService, ModelInfo } from '@/integrations/llm/ModelDiscovery';
+import { Loader2, RefreshCw } from 'lucide-react';
+import type { ModelInfo } from '@/integrations/llm/ModelDiscovery';
+import { ModelService } from '@/integrations/llm/ModelDiscovery';
 
 interface RerankConfigFormProps {
     config: RerankConfig;
@@ -44,8 +45,8 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
         try {
             // 尝试从 OpenAI 兼容 API 获取
             const models = await ModelService.fetchOpenAIModels({
-                apiUrl: config.url,
-                apiKey: config.apiKey
+                apiKey: config.apiKey,
+                apiUrl: config.url
             });
 
             if (models.length > 0) {
@@ -54,7 +55,7 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                 // 如果 API 不返回模型，使用常用预设
                 setModelList(ModelService.getCommonRerankModels());
             }
-        } catch (error: any) {
+        } catch {
             // 失败时使用常用模型预设
             setModelList(ModelService.getCommonRerankModels());
         } finally {
@@ -102,11 +103,11 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                                     border: 'none',
                                     borderBottom: '1px solid var(--border)',
                                     borderRadius: 0,
-                                    padding: '8px 0',
-                                    fontSize: '14px',
-                                    width: '100%',
                                     color: 'var(--foreground)',
+                                    fontSize: '14px',
                                     outline: 'none',
+                                    padding: '8px 0',
+                                    width: '100%',
                                 }}
                                 className="placeholder:text-muted-foreground/40 focus:border-primary transition-colors"
                             />
@@ -135,7 +136,7 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                                             label="模型名称"
                                             value={config.model}
                                             onChange={(value) => updateConfig({ model: value })}
-                                            options={modelList.map(m => ({ value: m.id, label: m.name || m.id }))}
+                                            options={modelList.map(m => ({ label: m.name || m.id, value: m.id }))}
                                             placeholder="选择模型"
                                             emptyText="未找到可用模型"
                                         />
@@ -180,7 +181,7 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                             type="number"
                             value={config.retryConfig?.maxAttempts?.toString() ?? ''}
                             onChange={(value) => {
-                                const num = parseInt(value, 10);
+                                const num = Number.parseInt(value, 10);
                                 updateConfig({ retryConfig: { ...config.retryConfig, maxAttempts: isNaN(num) ? 3 : num, retryDelay: config.retryConfig?.retryDelay ?? 2000 } });
                             }}
                             placeholder="3"
@@ -192,7 +193,7 @@ export const RerankConfigForm: React.FC<RerankConfigFormProps> = ({
                             type="number"
                             value={config.retryConfig?.retryDelay?.toString() ?? ''}
                             onChange={(value) => {
-                                const num = parseInt(value, 10);
+                                const num = Number.parseInt(value, 10);
                                 updateConfig({ retryConfig: { ...config.retryConfig, maxAttempts: config.retryConfig?.maxAttempts ?? 3, retryDelay: isNaN(num) ? 2000 : num } });
                             }}
                             placeholder="2000"

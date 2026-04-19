@@ -7,25 +7,26 @@
  * - 极简主义布局
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Terminal,
-    Trash2,
-    Download,
-    Search,
-    ChevronDown,
     ArrowDownToLine,
-    Zap,
-    Target,
+    ChevronDown,
+    Download,
     Maximize2,
     Minimize2,
+    Search,
+    Target,
+    Terminal,
+    Trash2,
+    Zap,
 } from 'lucide-react';
 import { PageTitle } from "@/ui/components/display/PageTitle";
-import { Logger, LogEntry, LogLevel, LogLevelConfig, ALL_MODULES } from "@/core/logger";
+import type { LogEntry, LogLevel} from "@/core/logger";
+import { Logger, LogLevelConfig, ALL_MODULES } from "@/core/logger";
 import { LogEntryItem, LogGroup, groupLogsByModule } from './LogEntryItem';
 import { ModelLog } from './ModelLog';
 import { RecallLog } from './RecallLog';
-import { Tab } from "@/ui/components/layout/TabPills";
+import type { Tab } from "@/ui/components/layout/TabPills";
 import { LayoutTabs } from "@/ui/components/layout/LayoutTabs";
 import { Divider } from "@/ui/components/layout/Divider";
 
@@ -34,16 +35,16 @@ type TabType = 'runtime' | 'model' | 'recall';
 
 // Tab 配置
 const TABS: Tab[] = [
-    { id: 'runtime', label: '运行日志', icon: <Terminal size={14} /> },
-    { id: 'model', label: '模型日志', icon: <Zap size={14} /> },
-    { id: 'recall', label: '召回日志', icon: <Target size={14} /> },
+    { icon: <Terminal size={14} />, id: 'runtime', label: '运行日志' },
+    { icon: <Zap size={14} />, id: 'model', label: '模型日志' },
+    { icon: <Target size={14} />, id: 'recall', label: '召回日志' },
 ];
 
 // Tab 信息映射
 const TAB_INFO: Record<TabType, { title: string; subtitle: string }> = {
-    runtime: { title: '运行日志', subtitle: '查看系统运行时日志' },
-    model: { title: '模型日志', subtitle: '查看 LLM 调用记录' },
-    recall: { title: '召回日志', subtitle: '查看 RAG 召回记录' },
+    model: { subtitle: '查看 LLM 调用记录', title: '模型日志' },
+    recall: { subtitle: '查看 RAG 召回记录', title: '召回日志' },
+    runtime: { subtitle: '查看系统运行时日志', title: '运行日志' },
 };
 
 // V0.9.10: 模块列表自动生成（不再硬编码）
@@ -100,9 +101,7 @@ export const DevLog: React.FC<DevLogProps> = ({ initialTab }) => {
     }, [logs, levelFilter, moduleFilter, searchQuery]);
 
     // V0.9.12: 将日志按模块分组
-    const logGroups = useMemo(() => {
-        return groupLogsByModule(filteredLogs);
-    }, [filteredLogs]);
+    const logGroups = useMemo(() => groupLogsByModule(filteredLogs), [filteredLogs]);
 
     // 自动滚动
     useEffect(() => {

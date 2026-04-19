@@ -1,4 +1,4 @@
-import { WorkflowDefinition } from '../core/WorkflowEngine';
+import type { WorkflowDefinition } from '../core/WorkflowEngine';
 import {
     BuildPrompt,
     CleanRegex,
@@ -23,8 +23,8 @@ export const createEntityWorkflow = (): WorkflowDefinition => ({
         new SaveEntity({ dryRun: true }),
         // Add Review Step
         new UserReview({
-            title: '实体提取确认',
-            description: '请确认提取的实体列表 (JSON/YAML)。您可以直接编辑以修正错误。'
+            description: '请确认提取的实体列表 (JSON/YAML)。您可以直接编辑以修正错误。',
+            title: '实体提取确认'
         }),
         // V1.2.7: 实际保存步骤 - 使用用户可能修改后的数据
         new SaveEntity({ dryRun: false })

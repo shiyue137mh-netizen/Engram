@@ -52,7 +52,7 @@ declare class RawCharacter {
    * 获取正则脚本
    * @returns 正则脚本数组
    */
-  getRegexScripts(): Array<{
+  getRegexScripts(): {
     id: string;
     scriptName: string;
     findRegex: string;
@@ -66,7 +66,7 @@ declare class RawCharacter {
     substituteRegex: number | boolean;
     minDepth: number;
     maxDepth: number;
-  }>;
+  }[];
 
   /**
    * 获取角色书
@@ -74,7 +74,7 @@ declare class RawCharacter {
    */
   getCharacterBook(): {
     name: string;
-    entries: Array<{
+    entries: {
       keys: string[];
       secondary_keys?: string[];
       comment: string;
@@ -86,7 +86,7 @@ declare class RawCharacter {
       position: string;
       extensions: any;
       id: number;
-    }>;
+    }[];
   } | null;
 
   /**

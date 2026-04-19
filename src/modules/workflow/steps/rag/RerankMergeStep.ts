@@ -1,11 +1,11 @@
 import { SettingsManager } from '@/config/settings';
 import { DEFAULT_RECALL_CONFIG } from '@/config/types/defaults';
 import type { RecallConfig } from '@/config/types/rag';
-import { Logger, LogModule } from '@/core/logger';
-import { mergeResults, scoreAndSort, type ScoredEvent } from '@/modules/rag/retrieval/HybridScorer';
+import { LogModule, Logger } from '@/core/logger';
+import { type ScoredEvent, mergeResults, scoreAndSort } from '@/modules/rag/retrieval/HybridScorer';
 import { rerankService } from '@/modules/rag/retrieval/Reranker';
-import { JobContext } from '../../core/JobContext';
-import { IStep, RetryConfig } from '../../core/Step';
+import type { JobContext } from '../../core/JobContext';
+import type { IStep, RetryConfig } from '../../core/Step';
 
 export class RerankMergeStep implements IStep {
     name = 'RerankMergeStep';
@@ -16,9 +16,9 @@ export class RerankMergeStep implements IStep {
         const customConfig = rerankConfig?.retryConfig;
         
         return {
-            maxAttempts: customConfig?.maxAttempts ?? 3,
-            delay: customConfig?.retryDelay ?? 2000,
             backoff: 'exponential',
+            delay: customConfig?.retryDelay ?? 2000,
+            maxAttempts: customConfig?.maxAttempts ?? 3,
             retryIf: (error: any) => {
                 const msg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
                 return msg.includes('429') ||
@@ -56,7 +56,7 @@ export class RerankMergeStep implements IStep {
             }
         }
 
-        const candidates = Array.from(candidateMap.values());
+        const candidates = [...candidateMap.values()];
         const activeConfig = config || SettingsManager.get('apiSettings')?.recallConfig || DEFAULT_RECALL_CONFIG;
 
         if (candidates.length === 0) {
@@ -102,17 +102,17 @@ export class RerankMergeStep implements IStep {
                 );
                 
                 context.data.candidates = finalCandidates;
-            } catch (e: any) {
-                Logger.warn(LogModule.RAG_RETRIEVE, 'Rerank 失败，准备重试或回退', { error: e.message });
-                throw e; // 抛出异常交给 WorkflowEngine 重试，若穷尽则忽略失败继续使用初始 fallback
+            } catch (error: any) {
+                Logger.warn(LogModule.RAG_RETRIEVE, 'Rerank 失败，准备重试或回退', { error: error.message });
+                throw error; // 抛出异常交给 WorkflowEngine 重试，若穷尽则忽略失败继续使用初始 fallback
             }
         }
 
         context.data.rerankTime = rerankTime;
 
         Logger.debug(LogModule.RAG_INJECT, `Rerank/Merge 完成，最终事件候选: ${finalCandidates.length} 个`, {
-            vector: vectorCandidates.length,
-            keyword: keywordCandidates.length
+            keyword: keywordCandidates.length,
+            vector: vectorCandidates.length
         });
     }
 }

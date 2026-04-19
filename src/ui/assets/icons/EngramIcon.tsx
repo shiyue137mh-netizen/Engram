@@ -9,8 +9,7 @@ interface EngramIconProps {
     size?: number;
 }
 
-export const EngramIcon: React.FC<EngramIconProps> = ({ className = '', size = 24 }) => {
-    return (
+export const EngramIcon: React.FC<EngramIconProps> = ({ className = '', size = 24 }) => (
         <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 96 400 400"
@@ -94,7 +93,6 @@ export const EngramIcon: React.FC<EngramIconProps> = ({ className = '', size = 2
             />
         </svg>
     );
-};
 
 
 /**

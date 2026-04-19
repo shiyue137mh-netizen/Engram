@@ -1,4 +1,4 @@
-import { WorkflowDefinition } from '../core/WorkflowEngine';
+import type { WorkflowDefinition } from '../core/WorkflowEngine';
 import {
     BuildPrompt,
     CleanRegex,
@@ -25,8 +25,8 @@ export const createPreprocessWorkflow = (): WorkflowDefinition => ({
         new ExtractTags(['output', 'query', 'recall_decision']),
         // 3. User Review (Preview/Revision)
         new UserReview({
-            title: '预处理结果预览',
-            description: '请确认即将注入到用户输入的内容。您可以直接在此修改，确认后将替换原文。'
+            description: '请确认即将注入到用户输入的内容。您可以直接在此修改，确认后将替换原文。',
+            title: '预处理结果预览'
         })
     ]
 });
