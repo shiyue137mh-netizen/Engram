@@ -55,7 +55,7 @@ export class CharacterDeleteService {
      */
     private static async onCharacterDeleted(data: { id: number; character: any }) {
         const settings = SettingsManager.getSettings().linkedDeletion;
-        if (!settings?.enabled || !settings?.deleteWorldbook) return;
+        if (!settings?.enabled) return;
 
         Logger.debug(LogModule.DATA_CLEANUP, '检测到角色删除', data);
 
@@ -67,7 +67,126 @@ export class CharacterDeleteService {
             return;
         }
 
-        await this.deleteEngramWorldbooks(characterName, '角色', settings.showConfirmation);
+        // 1. 扫描关联的聊天数据 (IndexedDB & Sync)
+        let matchedChatIds: string[] = [];
+        if (settings.deleteIndexedDB) {
+            try {
+                const { listAllChatIds } = await import('@/data/db');
+                const allIds = await listAllChatIds();
+                
+                // 逃逸正则字符，匹配前缀
+                const escapedName = characterName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const nameRegex = new RegExp(`^${escapedName}(\\s|-|_|$)`, 'i');
+                
+                matchedChatIds = allIds.filter(id => nameRegex.test(id));
+                
+                if (matchedChatIds.length > 0) {
+                    Logger.info(LogModule.DATA_CLEANUP, `发现 ${matchedChatIds.length} 个关联聊天数据`, matchedChatIds);
+                }
+            } catch (e) {
+                Logger.error(LogModule.DATA_CLEANUP, '扫描关联聊天数据失败', e);
+            }
+        }
+
+        // 2. 扫描世界书
+        const booksToDelete = await this.findEngramWorldbooks(characterName);
+
+        // 3. 汇总确认
+        if (settings.showConfirmation && (booksToDelete.length > 0 || matchedChatIds.length > 0)) {
+            const confirmHtml = `
+                <div style="font-size: 0.9em;">
+                    <h3>🧹 Engram 联动深度清理</h3>
+                    <p>检测到角色 <b>${characterName}</b> 已被删除。</p>
+                    
+                    ${booksToDelete.length > 0 ? `
+                        <p>发现以下关联的 <b>记忆库 (Worldbook)</b>：</p>
+                        <ul style="max-height: 80px; overflow-y: auto; background: var(--black50a); padding: 5px; border-radius: 4px; list-style: none; margin: 5px 0;">
+                            ${booksToDelete.map(name => `<li style="padding: 2px 0; color: var(--yellow);">• ${name}</li>`).join('')}
+                        </ul>
+                    ` : ''}
+
+                    ${matchedChatIds.length > 0 ? `
+                        <p>发现 <b>${matchedChatIds.length}</b> 个关联的 <b>聊天记录数据库</b>：</p>
+                        <ul style="max-height: 80px; overflow-y: auto; background: var(--black50a); padding: 5px; border-radius: 4px; list-style: none; margin: 5px 0;">
+                            ${matchedChatIds.slice(0, 5).map(id => `<li style="padding: 2px 0;">• ${id}</li>`).join('')}
+                            ${matchedChatIds.length > 5 ? `<li style="opacity: 0.5;">... 以及其他 ${matchedChatIds.length - 5} 个聊天</li>` : ''}
+                        </ul>
+                        <p style="color: var(--red); font-weight: bold;">⚠️ 这将同时物理删除云端同步文件 (如果存在)！</p>
+                    ` : ''}
+
+                    <p>确定要一并彻底清理这些数据吗？</p>
+                </div>
+            `;
+
+            const confirmed = await callPopup(confirmHtml, 'confirm');
+            if (!confirmed) {
+                Logger.info(LogModule.DATA_CLEANUP, '用户取消深度清理');
+                return;
+            }
+        }
+
+        // 4. 执行清理
+        // 清理世界书
+        if (settings.deleteWorldbook) {
+            await this.executeDeleteWorldbooks(characterName, booksToDelete);
+        }
+
+        // 清理聊天数据
+        if (settings.deleteIndexedDB && matchedChatIds.length > 0) {
+            const { deleteDatabase } = await import('@/data/db');
+            const { syncService } = await import('@/data/sync/SyncService');
+
+            for (const chatId of matchedChatIds) {
+                try {
+                    // 删除本地
+                    await deleteDatabase(chatId);
+                    // 删除云端
+                    await syncService.purge(chatId);
+                } catch (e) {
+                    Logger.error(LogModule.DATA_CLEANUP, `清理聊天数据失败: ${chatId}`, e);
+                }
+            }
+            notificationService.success(`已清理 ${matchedChatIds.length} 个关联聊天数据`, 'Engram');
+        }
+    }
+
+    /**
+     * 查找 Engram 世界书
+     */
+    private static async findEngramWorldbooks(characterName: string): Promise<string[]> {
+        const candidates = new Set<string>();
+        candidates.add(`[Engram] ${characterName}`);
+        candidates.add(`Engram_${characterName}`);
+
+        const allWorldbooks = await WorldInfoService.getWorldbookNames();
+        const allWorldbooksSet = new Set(allWorldbooks);
+
+        return Array.from(candidates).filter(name => {
+            if (!allWorldbooksSet.has(name)) return false;
+            return name.toLowerCase().includes('engram');
+        });
+    }
+
+    /**
+     * 执行世界书删除 (内部逻辑提取)
+     */
+    private static async executeDeleteWorldbooks(characterName: string, booksToDelete: string[]) {
+        if (booksToDelete.length === 0) return;
+
+        let deletedCount = 0;
+        for (const wbName of booksToDelete) {
+            try {
+                if (await WorldInfoService.deleteWorldbook(wbName)) {
+                    deletedCount++;
+                }
+            } catch (e) {
+                Logger.error(LogModule.DATA_CLEANUP, `删除世界书 ${wbName} 失败`, e);
+            }
+        }
+
+        if (deletedCount > 0) {
+            notificationService.success(`已清理 ${deletedCount} 个关联记忆库`, 'Engram');
+        }
     }
 
     /**

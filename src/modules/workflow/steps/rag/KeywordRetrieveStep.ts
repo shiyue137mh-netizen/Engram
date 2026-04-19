@@ -20,10 +20,31 @@ export class KeywordRetrieveStep implements IStep {
         const textInput = context.input?.text as string; // 适配 Preprocessor 的输入格式
         const unifiedQueries = context.input?.unifiedQueries as string[] | undefined;
 
-        // 优先顺序: unifiedQueries > scanQuery (已增强) > query (意图词) > text (原生原文)
-        const textToScan = (unifiedQueries && unifiedQueries.length > 0)
-            ? unifiedQueries.join('\n')
-            : (scanQuery || query || textInput);
+        // V1.4.15: 综合扫描方案 - 始终包含基础上下文，叠加 LLM 查询词
+        const scanParts: string[] = [];
+
+        // 1. 基础历史背景 (优先使用已增强的 scanQuery，否则从 chatHistory 截取最后 5 条)
+        if (scanQuery) {
+            scanParts.push(scanQuery);
+        } else if (context.input?.chatHistory) {
+            const history = context.input.chatHistory as string;
+            // 简单的回退处理：取最近的 5 段话
+            const lines = history.split('\n\n');
+            const recent = lines.slice(-5).join('\n\n');
+            if (recent) scanParts.push(recent);
+        }
+
+        // 2. 当前意图与原文
+        if (query) scanParts.push(query);
+        if (textInput && textInput !== query) scanParts.push(textInput);
+
+        // 3. LLM 建议的专家词 (增益)
+        if (unifiedQueries && unifiedQueries.length > 0) {
+            scanParts.push(...unifiedQueries);
+        }
+
+        // 去重合并
+        const textToScan = Array.from(new Set(scanParts.filter(Boolean))).join('\n\n');
 
         if (!textToScan) {
             Logger.debug(LogModule.RAG_INJECT, '没有提供扫描上下文，跳过关键词检索');

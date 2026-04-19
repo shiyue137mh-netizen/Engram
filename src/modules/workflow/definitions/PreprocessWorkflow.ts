@@ -12,11 +12,11 @@ import {
 export const createPreprocessWorkflow = (): WorkflowDefinition => ({
     name: 'PreprocessWorkflow',
     steps: [
-        // 1. 前置关键词扫描 (V1.4.1 NEW)
+        // 1. Unified context fetching
+        new FetchContext(),
+        // 2. 前置关键词扫描 (V1.4.1 NEW)
         // 这里的扫描结果会存入 context.data.keywordEntityIds，供随后的 BuildPrompt 使用
         new KeywordRetrieveStep(),
-        // 2. Unified context fetching
-        new FetchContext(),
         new BuildPrompt({ category: 'preprocessing' }),
         new LlmRequest(),
         // 1. Remove <think> blocks

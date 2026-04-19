@@ -5,6 +5,7 @@
  */
 
 import { Logger } from '@/core/logger';
+import { getRequestHeaders } from '@/integrations/tavern';
 
 const MODULE = 'ModelService';
 
@@ -73,9 +74,7 @@ export class ModelService {
             // 我们利用 OpenAI 源的 reverse_proxy 逻辑通过后端转发
             const proxyResponse = await fetch('/api/backends/chat-completions/status', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: getRequestHeaders(),
                 body: JSON.stringify({
                     chat_completion_source: 'openai',
                     reverse_proxy: apiUrl,

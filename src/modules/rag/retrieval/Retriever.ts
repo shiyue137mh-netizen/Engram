@@ -264,7 +264,7 @@ class Retriever {
      */
     async agenticSearch(
         recalls: AgenticRecall[],
-        options?: { mode?: string; isManualTest?: boolean }
+        options?: { mode?: string; isManualTest?: boolean; scanQuery?: string }
     ): Promise<RetrievalResult> {
         const startTime = Date.now();
         const chatId = getCurrentChatId();
@@ -331,6 +331,47 @@ class Retriever {
             Logger.debug(LogModule.RAG_RETRIEVE, 'Agentic Search: 手动测试模式跳过类脑处理逻辑');
         }
 
+        // 4. 并行执行关键词扫描 (实体召回保底)
+        // Agentic 模式虽然跳过了事件的语义匹配，但不能丢掉实体的关键词扫描
+        let recalledEntities: any[] = [];
+        if (recallConfig.useKeywordRecall) {
+            try {
+                const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
+                const { KeywordRetrieveStep } = await import('@/modules/workflow/steps/rag/KeywordRetrieveStep');
+                
+                // 确保有扫描背景
+                const scanQuery = options?.scanQuery || this.getRecentContext(5) || "";
+                
+                const keywordContext = await WorkflowEngine.run({
+                    name: 'AgenticKeywordScan',
+                    steps: [new KeywordRetrieveStep()]
+                }, {
+                    input: {
+                        scanQuery: scanQuery,
+                        // 为 KeywordRetrieveStep 提供额外的意图信息（如有）
+                        unifiedQueries: recalls.map(r => r.reason).filter(Boolean) as string[]
+                    }
+                });
+
+                if (keywordContext.data?.keywordEntityIds) {
+                    recalledEntities = keywordContext.data.keywordEntityIds;
+                    
+                    // 将实体也送入 BrainRecallCache 注册
+                    if (brainConfig.enabled && !options?.isManualTest) {
+                        const entityCandidates: RecallCandidate[] = recalledEntities.map(re => ({
+                            id: re.id,
+                            label: 'entity',
+                            embeddingScore: re.score,
+                            rerankScore: re.score
+                        }));
+                        brainRecallCache.process(entityCandidates);
+                    }
+                }
+            } catch (kErr) {
+                Logger.warn(LogModule.RAG_RETRIEVE, 'Agentic 模式下的关键词扫描失败', kErr);
+            }
+        }
+
         const totalTime = Date.now() - startTime;
 
         // 4. 记录召回日志 (如果是手动测试确认，则跳过日志记录)
@@ -374,7 +415,13 @@ class Retriever {
             resultCount: finalNodes.length,
         });
 
-        return { entries, nodes: finalNodes, candidates };
+        return { 
+            entries, 
+            nodes: finalNodes, 
+            candidates, 
+            recalledEntities, 
+            totalTime 
+        };
     }
 
 

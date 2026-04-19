@@ -6,6 +6,7 @@
  * V0.9.12: 修复更新API路径问题，参考 JS-Slash-Runner 实现
  */
 
+import { getRequestHeaders } from '@/integrations/tavern';
 import { UpdateService } from '@/core/updater/Updater';
 import { notificationService } from '@/ui/services/NotificationService';
 import { CheckCircle, Download, Loader2, RefreshCw, X } from 'lucide-react';
@@ -70,37 +71,12 @@ async function getExtensionInfo(): Promise<{ name: string; type: 'global' | 'loc
 }
 
 /**
- * 获取酒馆请求头（用于认证）
- * 从 SillyTavern 上下文或全局变量获取
- */
-function getTavernRequestHeaders(): Record<string, string> {
-    try {
-        // @ts-ignore - 酒馆全局函数
-        if (typeof window.getRequestHeaders === 'function') {
-            return (window as any).getRequestHeaders();
-        }
-        // 备用方案：从 SillyTavern context 获取
-        // @ts-ignore
-        const context = window.SillyTavern?.getContext?.();
-        if (context?.getRequestHeaders) {
-            return context.getRequestHeaders();
-        }
-    } catch (e) {
-        console.warn('[Engram] 无法获取酒馆请求头', e);
-    }
-    // 返回最小必要头
-    return {
-        'Content-Type': 'application/json',
-    };
-}
-
-/**
  * 调用酒馆扩展更新 API
  * V0.9.12: 动态判断扩展类型，正确设置 global 参数
  */
 async function updateEngramExtension(): Promise<{ success: boolean; message: string; isUpToDate?: boolean }> {
     try {
-        const headers = getTavernRequestHeaders();
+        const headers = getRequestHeaders();
 
         // 动态获取扩展信息
         const extInit = await getExtensionInfo();
@@ -112,8 +88,7 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
             extensionName = parts[parts.length - 1];
         }
 
-        const isGlobal = extInit?.type === 'global' || extInit?.type === 'system'; // System usually treated as global for pathing? Or maybe just rely on default.
-        // 其实 system extension 一般不可更新，但这里做个保险
+        const isGlobal = extInit?.type === 'global' || extInit?.type === 'system'; 
 
         console.debug('[Engram] 准备更新扩展:', extensionName, '| global:', isGlobal);
 
@@ -408,5 +383,3 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
         </div>
     );
 };
-
-
