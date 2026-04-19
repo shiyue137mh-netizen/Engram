@@ -33,6 +33,7 @@ export interface JobContext {
         system: string;
         user: string;
         templateId?: string;
+        presetId?: string;
     };
 
     /** LLM 原始响应 */

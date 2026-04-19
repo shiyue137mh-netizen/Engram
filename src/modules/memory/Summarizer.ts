@@ -428,7 +428,7 @@ class SummarizerService {
             await WorldBookSlotService.init();
 
             const globalPreviewEnabled = SettingsManager.get('globalPreviewEnabled') ?? true;
-            const previewEnabled = manual || (globalPreviewEnabled && this.config.previewEnabled);
+            const previewEnabled = globalPreviewEnabled && (this.config.previewEnabled ?? true);
 
             const context = await WorkflowEngine.run(createSummaryWorkflow(), {
                 trigger: manual ? 'manual' : 'auto',

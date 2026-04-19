@@ -219,7 +219,7 @@ export class EntityBuilder {
 
             // V1.4.7: 使用全局预览开关和实体独立预览开关
             const globalPreviewEnabled = SettingsManager.get('globalPreviewEnabled') ?? true;
-            const previewEnabled = manual || (globalPreviewEnabled && (this.config.previewEnabled ?? true));
+            const previewEnabled = globalPreviewEnabled && (this.config.previewEnabled ?? true);
 
             // 获取聊天历史 (如果是单条楼层，则宏系统会自动处理)
             const chatHistory = MacroService.getChatHistory(range || [floor, floor]);

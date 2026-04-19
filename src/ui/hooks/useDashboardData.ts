@@ -12,6 +12,7 @@ import { Logger, LogModule } from '@/core/logger';
 import { getSTContext, MacroService, getCurrentChatId } from '@/integrations/tavern';
 import { summarizerService } from '@/modules/memory';
 import { brainRecallCache } from '@/modules/rag/retrieval/BrainRecallCache';
+import { useConfigStore } from '@/state/configStore';
 import { useMemoryStore } from '@/state/memoryStore';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -293,42 +294,40 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                     enabled: nextVal,
                 });
                 summarizerService.updateConfig({ enabled: nextVal });
+                useConfigStore.getState().updateConfig('summarizerConfig', { ...currentSummarizerConfig, enabled: nextVal });
                 break;
             }
             case 'entity': {
-                const entityConfig = currentApiSettings.entityExtractConfig ?? defaults.entityExtractConfig;
-                nextVal = !(entityConfig?.enabled ?? false);
+                const entityConfig = currentApiSettings.entityExtractConfig || defaults.entityExtractConfig!;
+                nextVal = !entityConfig.enabled;
+                const newConfig = { ...entityConfig, enabled: nextVal };
                 SettingsManager.set('apiSettings', {
                     ...currentApiSettings,
-                    entityExtractConfig: {
-                        ...(entityConfig || {}),
-                        enabled: nextVal,
-                    },
+                    entityExtractConfig: newConfig,
                 } as any);
+                useConfigStore.getState().updateConfig('entityExtractConfig', newConfig);
                 break;
             }
             case 'embedding': {
-                const embeddingConfig = currentApiSettings.embeddingConfig ?? defaults.embeddingConfig;
-                nextVal = !(embeddingConfig?.enabled ?? false);
+                const embeddingConfig = currentApiSettings.embeddingConfig || defaults.embeddingConfig!;
+                nextVal = !embeddingConfig.enabled;
+                const newConfig = { ...embeddingConfig, enabled: nextVal };
                 SettingsManager.set('apiSettings', {
                     ...currentApiSettings,
-                    embeddingConfig: {
-                        ...(embeddingConfig || {}),
-                        enabled: nextVal,
-                    },
+                    embeddingConfig: newConfig,
                 } as any);
+                useConfigStore.getState().updateConfig('embeddingConfig', newConfig);
                 break;
             }
             case 'recall': {
-                const recallConfig = currentApiSettings.recallConfig ?? defaults.recallConfig;
-                nextVal = !(recallConfig?.enabled !== false);
+                const recallConfig = currentApiSettings.recallConfig || defaults.recallConfig!;
+                nextVal = !recallConfig.enabled;
+                const newConfig = { ...recallConfig, enabled: nextVal };
                 SettingsManager.set('apiSettings', {
                     ...currentApiSettings,
-                    recallConfig: {
-                        ...(recallConfig || {}),
-                        enabled: nextVal,
-                    },
+                    recallConfig: newConfig,
                 } as any);
+                useConfigStore.getState().updateConfig('recallConfig', newConfig);
                 break;
             }
             case 'preprocessing': {
@@ -350,6 +349,16 @@ export function useDashboardData(refreshInterval = 2000): DashboardData & {
                         usePreprocessing: nextVal,
                     }
                 } as any);
+                useConfigStore.getState().updateMultipleConfigs({
+                    preprocessingConfig: {
+                        ...currentPreprocessingConfig,
+                        enabled: nextVal,
+                    } as any,
+                    recallConfig: {
+                        ...(latestApi.recallConfig || {}),
+                        usePreprocessing: nextVal,
+                    } as any
+                });
                 break;
             }
             default:
