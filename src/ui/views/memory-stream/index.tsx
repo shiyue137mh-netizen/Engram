@@ -131,6 +131,8 @@ export const MemoryStream: React.FC<MemoryStreamProps> = ({ initialTab }) => {
                         hasChanges={ms.hasChanges}
                         pendingCount={ms.pendingChanges.size + ms.pendingEntityChanges.size}
                         checkedCount={ms.checkedIds.size}
+                        allCheckedArchived={ms.allCheckedArchived}
+                        allCheckedLocked={ms.allCheckedLocked}
                         isLoading={ms.isLoading}
                         isReembedding={ms.isReembedding}
                         sortOrder={ms.sortOrder}
@@ -139,6 +141,9 @@ export const MemoryStream: React.FC<MemoryStreamProps> = ({ initialTab }) => {
                         onSave={ms.handleBatchSave}
                         onRefresh={() => { ms.loadEvents(); ms.loadEntities(); }}
                         onBatchDelete={ms.handleBatchDelete}
+                        onToggleCheckedArchive={ms.handleToggleCheckedArchive}
+                        onToggleCheckedLock={ms.handleToggleCheckedLock}
+                        onTrimChecked={ms.handleTrimChecked}
                         onImportClick={ms.handleOpenImportModal}
                         onReembed={ms.handleReembedAll}
                         onSortToggle={() => ms.setSortOrder(ms.sortOrder === 'asc' ? 'desc' : 'asc')}

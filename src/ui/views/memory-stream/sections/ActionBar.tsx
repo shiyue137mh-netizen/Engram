@@ -1,5 +1,5 @@
 import { MacroService } from '@/integrations/tavern';
-import { ArrowDownUp, Database, FileText, Filter, Plus, RefreshCw, Save, Sparkles, Trash2 } from 'lucide-react';
+import { Archive, ArrowDownUp, Database, FileText, Filter, Lock, Plus, RefreshCw, Save, Scissors, Sparkles, Trash2 } from 'lucide-react';
 import React from 'react';
 import type { SortOrder, ViewTab } from '../hooks/useMemoryStream';
 
@@ -9,6 +9,8 @@ interface ActionBarProps {
     hasChanges: boolean;
     pendingCount: number;
     checkedCount: number;
+    allCheckedArchived: boolean;
+    allCheckedLocked: boolean;
     isLoading: boolean;
     isReembedding: boolean;
     sortOrder: SortOrder;
@@ -19,6 +21,9 @@ interface ActionBarProps {
     onSave: () => void;
     onRefresh: () => void;
     onBatchDelete: () => void;
+    onToggleCheckedArchive: () => void;
+    onToggleCheckedLock: () => void;
+    onTrimChecked: () => void;
     onImportClick: () => void;
     onReembed: () => void;
     onSortToggle: () => void;
@@ -35,6 +40,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
     hasChanges,
     pendingCount,
     checkedCount,
+    allCheckedArchived,
+    allCheckedLocked,
     isLoading,
     isReembedding,
     sortOrder,
@@ -43,6 +50,9 @@ export const ActionBar: React.FC<ActionBarProps> = ({
     onSave,
     onRefresh,
     onBatchDelete,
+    onToggleCheckedArchive,
+    onToggleCheckedLock,
+    onTrimChecked,
     onImportClick,
     onReembed,
     onSortToggle,
@@ -89,6 +99,39 @@ export const ActionBar: React.FC<ActionBarProps> = ({
                 >
                     <Trash2 size={12} />
                     {!isMobile && `删除 (${checkedCount})`}
+                </button>
+            )}
+
+            {checkedCount > 0 && (
+                <button
+                    onClick={onToggleCheckedArchive}
+                    className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
+                    title={allCheckedArchived ? '激活选中项' : '归档选中项'}
+                >
+                    <Archive size={12} />
+                    {!isMobile && (allCheckedArchived ? `激活 (${checkedCount})` : `归档 (${checkedCount})`)}
+                </button>
+            )}
+
+            {checkedCount > 0 && (
+                <button
+                    onClick={onToggleCheckedLock}
+                    className="flex items-center gap-1 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
+                    title={allCheckedLocked ? '解锁选中项' : '锁定选中项'}
+                >
+                    <Lock size={12} />
+                    {!isMobile && (allCheckedLocked ? `解锁 (${checkedCount})` : `锁定 (${checkedCount})`)}
+                </button>
+            )}
+
+            {viewTab === 'list' && checkedCount >= 2 && (
+                <button
+                    onClick={onTrimChecked}
+                    className="flex items-center gap-1 px-2 py-1.5 text-xs text-amber-600 hover:bg-amber-500/10 rounded-md transition-colors"
+                    title="Use selected events for trim-compress"
+                >
+                    <Scissors size={12} />
+                    {!isMobile && `精简 (${checkedCount})`}
                 </button>
             )}
 

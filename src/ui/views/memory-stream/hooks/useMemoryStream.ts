@@ -156,6 +156,32 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
         return entity;
     }, [entities, selectedId, pendingEntityChanges]);
 
+    const checkedEvents = useMemo(
+        () => events.filter(e => checkedIds.has(e.id)),
+        [events, checkedIds]
+    );
+
+    const checkedEntities = useMemo(
+        () => entities.filter(e => checkedIds.has(e.id)),
+        [entities, checkedIds]
+    );
+
+    const allCheckedArchived = useMemo(() => {
+        if (checkedIds.size === 0) {return false;}
+        if (viewTab === 'list') {
+            return checkedEvents.length > 0 && checkedEvents.every(e => e.is_archived);
+        }
+        return checkedEntities.length > 0 && checkedEntities.every(e => e.is_archived);
+    }, [checkedEntities, checkedEvents, checkedIds.size, viewTab]);
+
+    const allCheckedLocked = useMemo(() => {
+        if (checkedIds.size === 0) {return false;}
+        if (viewTab === 'list') {
+            return checkedEvents.length > 0 && checkedEvents.every(e => Boolean(e.is_locked));
+        }
+        return checkedEntities.length > 0 && checkedEntities.every(e => Boolean(e.is_locked));
+    }, [checkedEntities, checkedEvents, checkedIds.size, viewTab]);
+
 
     // ==========================================
     // 交互回调
@@ -348,6 +374,62 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
         }
     }, [checkedIds, viewTab, store.deleteEntities, store.deleteEvents]);
 
+    const handleToggleCheckedArchive = useCallback(async () => {
+        if (checkedIds.size === 0) {return;}
+
+        const targetArchived = !allCheckedArchived;
+        const ids = [...checkedIds];
+
+        try {
+            if (viewTab === 'entities') {
+                await store.updateEntities(ids.map(id => ({ id, updates: { is_archived: targetArchived } })));
+                setEntities(prev => prev.map(e => ids.includes(e.id) ? { ...e, is_archived: targetArchived } : e));
+                if (targetArchived) {
+                    ids.forEach(id => brainRecallCache.forget(id));
+                }
+            } else {
+                await store.updateEvents(ids.map(id => ({ id, updates: { is_archived: targetArchived } })));
+                setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, is_archived: targetArchived } : e));
+            }
+
+            const { MacroService } = await import('@/integrations/tavern/prompt/macros');
+            await MacroService.refreshEngramCache();
+
+            notificationService.success(
+                targetArchived ? `已归档 ${ids.length} 项` : `已激活 ${ids.length} 项`,
+                'MemoryStream'
+            );
+        } catch (error: any) {
+            console.error('[MemoryStream] Toggle checked archive failed:', error);
+            notificationService.error('批量归档/激活失败: ' + (error.message || 'Unknown error'), 'MemoryStream');
+        }
+    }, [allCheckedArchived, checkedIds, store.updateEntities, store.updateEvents, viewTab]);
+
+    const handleToggleCheckedLock = useCallback(async () => {
+        if (checkedIds.size === 0) {return;}
+
+        const targetLocked = !allCheckedLocked;
+        const ids = [...checkedIds];
+
+        try {
+            if (viewTab === 'entities') {
+                await store.updateEntities(ids.map(id => ({ id, updates: { is_locked: targetLocked } })));
+                setEntities(prev => prev.map(e => ids.includes(e.id) ? { ...e, is_locked: targetLocked } : e));
+            } else {
+                await store.updateEvents(ids.map(id => ({ id, updates: { is_locked: targetLocked } })));
+                setEvents(prev => prev.map(e => ids.includes(e.id) ? { ...e, is_locked: targetLocked } : e));
+            }
+
+            notificationService.success(
+                targetLocked ? `已锁定 ${ids.length} 项` : `已解锁 ${ids.length} 项`,
+                'MemoryStream'
+            );
+        } catch (error: any) {
+            console.error('[MemoryStream] Toggle checked lock failed:', error);
+            notificationService.error('批量锁定/解锁失败: ' + (error.message || 'Unknown error'), 'MemoryStream');
+        }
+    }, [allCheckedLocked, checkedIds, store.updateEntities, store.updateEvents, viewTab]);
+
     const handleReembedAll = useCallback(async () => {
         const apiSettings = SettingsManager.get('apiSettings');
         const vectorConfig = apiSettings?.vectorConfig;
@@ -380,6 +462,28 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
             setIsReembedding(false);
         }
     }, [loadEvents]);
+
+    const handleTrimChecked = useCallback(async () => {
+        if (checkedIds.size < 2) {
+            notificationService.warning('Please select at least 2 events to trim.', 'MemoryStream');
+            return;
+        }
+
+        if (!confirm(`Trim-compress ${checkedIds.size} selected events?`)) {return;}
+
+        try {
+            const { eventTrimmer } = await import('@/modules/memory/EventTrimmer');
+            const result = await eventTrimmer.trimSelected([...checkedIds]);
+            if (!result) {return;}
+
+            setCheckedIds(new Set());
+            await loadEvents();
+            notificationService.success(`Trim completed. Merged ${result.sourceEventIds.length} events.`, 'MemoryStream');
+        } catch (error: any) {
+            console.error('[MemoryStream] Trim selected failed:', error);
+            notificationService.error('Selected trim failed: ' + (error.message || 'Unknown error'), 'MemoryStream');
+        }
+    }, [checkedIds, loadEvents]);
 
     // ==========================================
     // 手动创建事件 / 实体 (V1.4.6: 直接写入 DB)
@@ -489,7 +593,7 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
 
         // Derived State
         filteredEvents, filteredEntities, groupedEvents, groupStartIndices, groupedEntities,
-        selectedEvent, selectedEntity,
+        selectedEvent, selectedEntity, allCheckedArchived, allCheckedLocked,
 
         // Setters
         setSearchQuery, setSortOrder, setShowActiveOnly,
@@ -506,6 +610,8 @@ export function useMemoryStream(initialTab: ViewTab = 'list') {
         handleToggleEventLock,
         handleToggleEventArchive,
         handleBatchSave, handleDelete, handleBatchDelete,
+        handleToggleCheckedArchive, handleToggleCheckedLock,
+        handleTrimChecked,
         handleReembedAll, handleOpenImportModal, handleImportExecute,
         handleCreateEvent, handleCreateEntity,
         loadEvents, loadEntities,

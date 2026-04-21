@@ -151,6 +151,56 @@ class EventTrimmer {
     /**
      * 获取配置
      */
+    async trimSelected(eventIds: string[]): Promise<TrimResult | null> {
+        if (!Array.isArray(eventIds) || eventIds.length < 2) {
+            notificationService.warning('Please select at least 2 events to trim.', 'Engram');
+            return null;
+        }
+
+        if (this.isTrimming) {
+            Logger.warn(LogModule.MEMORY_TRIM, 'Trim is already running, skip selected trim');
+            return null;
+        }
+
+        this.isTrimming = true;
+
+        try {
+            const { WorkflowEngine } = await import('@/modules/workflow/core/WorkflowEngine');
+            const { createTrimmerWorkflow } = await import('@/modules/workflow/definitions/TrimmerWorkflow');
+
+            const config = this.getEffectiveConfig();
+            const context = await WorkflowEngine.run(createTrimmerWorkflow(), {
+                config: {
+                    keepRecentCount: config.keepRecentCount,
+                    previewEnabled: (SettingsManager.get('globalPreviewEnabled') ?? true) && (config.previewEnabled ?? true),
+                    templateId: 'builtin_trim',
+                    logType: 'trimming'
+                },
+                input: {
+                    selectedEventIds: [...new Set(eventIds)]
+                },
+                trigger: 'manual'
+            });
+
+            if (context.data?.skipTrimming) {
+                return null;
+            }
+
+            return context.output as TrimResult;
+        } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            if (errorMsg === 'UserCancelled') {
+                Logger.info(LogModule.MEMORY_TRIM, 'Selected trim was cancelled by user');
+                return null;
+            }
+            Logger.error(LogModule.MEMORY_TRIM, 'Selected trim workflow failed', { error: errorMsg });
+            notificationService.error(`Selected trim failed: ${errorMsg}`, 'Engram Error');
+            return null;
+        } finally {
+            this.isTrimming = false;
+        }
+    }
+
     getConfig(): TrimConfig {
         return this.getEffectiveConfig();
     }
