@@ -12,7 +12,7 @@ import { useResponsive } from '@/ui/hooks/useResponsive';
 import yaml from 'js-yaml'; // 需要确认项目是否已安装 js-yaml，如果没有则需要简单实现或引入
 import { debounce } from 'lodash'; // Phase 3 Performance Add: 引入防抖
 import { AlertTriangle, ArrowLeft, RefreshCw, Trash2 } from 'lucide-react';
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 /**
  * 根据实体类型获取对应的文字颜色类名
@@ -73,13 +73,14 @@ const inputStyle: React.CSSProperties = {
     width: '100%',
 };
 
-export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
+export const EntityEditor = ({
     entity,
     isFullScreen = false,
     onSave,
     onDelete,
     onClose,
-}, ref) => {
+    ref,
+}: EntityEditorProps & { ref?: React.Ref<EntityEditorHandle> }) => {
     const { isMobile } = useResponsive();
     // Local State
     const [name, setName] = useState('');
@@ -284,7 +285,7 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
             <Divider spacing="lg" />
 
             {/* Profile JSON Editor */}
-            <div className="flex flex-col gap-2 flex-1 min-h-[200px]">
+            <div className="flex flex-col gap-2 flex-1 min-h-50">
                 <div className="flex justify-between items-center">
                     <label className="text-xs text-meta font-medium uppercase tracking-wider">
                         元数据 Profile (JSON)
@@ -393,6 +394,6 @@ export const EntityEditor = forwardRef<EntityEditorHandle, EntityEditorProps>(({
             </div>
         </div>
     );
-});
+};
 
 EntityEditor.displayName = 'EntityEditor';

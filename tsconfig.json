@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
-        "target": "ES2022",
+        "target": "ESNext",
         "lib": [
-            "ES2022",
+            "ESNext",
             "DOM",
             "DOM.Iterable"
         ],
@@ -31,7 +31,9 @@
     "include": [
         "src/**/*",
         "src/@types/**/*.d.ts",
-        "manifest.json"
+        "manifest.json",
+        "vite.config.ts",
+        "vitest.config.ts"
     ],
     "exclude": [
         "node_modules",

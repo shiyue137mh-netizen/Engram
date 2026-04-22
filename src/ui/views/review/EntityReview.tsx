@@ -44,7 +44,6 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
     const updatePreview = (entity: EntityNode) => {
         try {
             const entityObj = { profile: entity.profile };
-            // @ts-expect-error
             const yamlContent = jsYaml.dump(entityObj, {
                 indent: 2,
                 lineWidth: -1,
@@ -123,7 +122,7 @@ export const EntityReview: React.FC<EntityReviewProps> = ({ data, onChange }) =>
 
             {/* Editing Modal/Overlay */}
             {editingEntity && (
-                <div className="fixed inset-0 z-[12000] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
+                <div className="fixed inset-0 z-12000 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
                     <div className="w-full max-w-6xl mx-auto bg-popover border border-border rounded-lg shadow-2xl p-6 flex flex-col gap-4 animate-in zoom-in-95 h-[90dvh] overflow-hidden">
                         <div className="flex items-center justify-between border-b pb-2 mb-2 shrink-0">
                             <h3 className="text-lg font-bold">编辑实体</h3>
@@ -325,7 +324,7 @@ const EntityCard: React.FC<{
                         {entity._diff.map((op, i) => (
                             <div key={i} className="flex gap-2 break-all items-baseline">
                                 {/* Path */}
-                                <span className="font-medium text-foreground/80 shrink-0 min-w-[30px]">{op.path}</span>
+                                <span className="font-medium text-foreground/80 shrink-0 min-w-7.5">{op.path}</span>
 
                                 <div className="flex flex-wrap gap-1.5 items-center">
                                     {/* Old Value (Red) - for replace/remove */}
@@ -349,7 +348,7 @@ const EntityCard: React.FC<{
                         ))}
                     </div>
                 ) : (
-                    <div className="text-xs text-muted-foreground line-clamp-3 leading-relaxed break-words">
+                    <div className="text-xs text-muted-foreground line-clamp-3 leading-relaxed wrap-break-word">
                         {entity.description}
                     </div>
                 )}

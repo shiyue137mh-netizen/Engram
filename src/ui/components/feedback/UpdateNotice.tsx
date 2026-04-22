@@ -82,7 +82,7 @@ async function updateEngramExtension(): Promise<{ success: boolean; message: str
         let extensionName = extInit?.name || EXTENSION_ID;
         if (extensionName) {
             const parts = extensionName.split(/[/\\]/);
-            extensionName = parts.at(-1);
+            extensionName = parts.at(-1) || extensionName;
         }
 
         const isGlobal = extInit?.type === 'global' || extInit?.type === 'system'; 
@@ -218,7 +218,7 @@ export const UpdateNotice: React.FC<UpdateNoticeProps> = ({ isOpen, onClose }) =
     if (!isOpen) {return null;}
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
             {/* Backdrop */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"

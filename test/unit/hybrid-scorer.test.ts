@@ -40,36 +40,37 @@ describe('HybridScorer', () => {
             expect(result[2].id).toBe('low');
         });
 
-        it('alpha=0 应仅使用 Embedding 分数', () => {
+        it('alpha 参数目前被忽略，应执行简单的分数累加', () => {
             const candidates = [
-                makeScoredEvent('emb_high', 0.9, 0.1), // Embedding 高，Rerank 低
-                makeScoredEvent('rer_high', 0.1, 0.9), // Embedding 低，Rerank 高
+                makeScoredEvent('emb_high', 0.9, 0.1), // Sum 1.0
+                makeScoredEvent('rer_high', 0.1, 0.9), // Sum 1.0
             ];
 
-            const result = scoreAndSort(candidates, 0); // 纯 Embedding
+            const result = scoreAndSort(candidates, 0.5);
 
-            expect(result[0].id).toBe('emb_high');
-            expect(result[0].hybridScore).toBeCloseTo(0.9);
+            // 验证分数是相加的 (0.9 + 0.1 = 1.0)
+            expect(result[0].hybridScore).toBeCloseTo(1.0);
         });
 
-        it('alpha=1 应仅使用 Rerank 分数', () => {
+        it('应正确处理多路分数的累加贡献', () => {
             const candidates = [
-                makeScoredEvent('emb_high', 0.9, 0.1),
-                makeScoredEvent('rer_high', 0.1, 0.9),
+                makeScoredEvent('both', 0.8, 0.7), // Sum 1.5
+                makeScoredEvent('one', 0.9, undefined), // Sum 0.9
             ];
 
-            const result = scoreAndSort(candidates, 1); // 纯 Rerank
+            const result = scoreAndSort(candidates, 0.5);
 
-            expect(result[0].id).toBe('rer_high');
-            expect(result[0].hybridScore).toBeCloseTo(0.9);
+            expect(result[0].id).toBe('both');
+            expect(result[0].hybridScore).toBeCloseTo(1.5);
+            expect(result[1].hybridScore).toBeCloseTo(0.9);
         });
 
-        it('alpha=0.5 应等权重混合', () => {
+        it('应支持 Embedding 和 Rerank 分数的累加', () => {
             const event = makeScoredEvent('test', 0.8, 0.4);
             const result = scoreAndSort([event], 0.5);
 
-            // (1-0.5)*0.8 + 0.5*0.4 = 0.4 + 0.2 = 0.6
-            expect(result[0].hybridScore).toBeCloseTo(0.6);
+            // 0.8 + 0.4 = 1.2
+            expect(result[0].hybridScore).toBeCloseTo(1.2);
         });
 
         it('只有 Embedding 分数时应正确处理', () => {
@@ -118,9 +119,9 @@ describe('HybridScorer', () => {
             const result = mergeResults(embeddingMap, rerankResults, candidates, 0.6);
 
             // alpha=0.6 → Rerank 占主导
-            // evt_3: 0.4*0.4 + 0.6*0.9 = 0.16 + 0.54 = 0.70
-            // evt_1: 0.4*0.8 + 0.6*0.7 = 0.32 + 0.42 = 0.74
-            // evt_2: 0.4*0.6 + 0.6*0.3 = 0.24 + 0.18 = 0.42
+            // evt_1: 0.8 + 0.7 = 1.5
+            // evt_3: 0.4 + 0.9 = 1.3
+            // evt_2: 0.6 + 0.3 = 0.9
             expect(result[0].id).toBe('evt_1');
             expect(result[1].id).toBe('evt_3');
             expect(result[2].id).toBe('evt_2');

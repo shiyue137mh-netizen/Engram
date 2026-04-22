@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import mdx from '@mdx-js/rollup';
 import remarkGfm from 'remark-gfm';
 import path from 'path';
@@ -38,27 +39,18 @@ export default defineConfig(({ mode }) => ({
         outDir: 'dist',
         emptyDirOnBuild: true,
 
-        lib: {
-            entry: path.resolve(__dirname, 'src/index.tsx'),
-            name: 'Engram',
-            fileName: () => 'index.js',
-            formats: ['es'],
-        },
-
         rollupOptions: {
-            // 摇树优化
-            treeshake: {
-                moduleSideEffects: false,
-                propertyReadSideEffects: false,
-            },
-            // 不外部化任何依赖，全部打包
+            // 模式转型：移除 build.lib 后的新入口定义依赖于 index.html
+            // 这里我们配置输出，确保尽管是 App 模式，最终产物名仍为 index.js
             output: {
                 inlineDynamicImports: true,
+                entryFileNames: 'index.js',
+                chunkFileNames: '[name].js',
                 assetFileNames: (assetInfo) => {
                     if (assetInfo.name?.endsWith('.css')) {
                         return 'style.css';
                     }
-                    return assetInfo.name || 'assets/[name][extname]';
+                    return 'assets/[name][extname]';
                 },
             },
         },

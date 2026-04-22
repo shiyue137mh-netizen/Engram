@@ -103,7 +103,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
     }, []);
 
     return (
-        <div className={`flex absolute inset-0 w-full h-full bg-background text-foreground overflow-hidden font-sans selection:bg-primary/30 selection:text-primary ${!enableAnimations ? 'engram-no-animations' : ''}`} id="engram-layout-root">
+        <div className={`flex absolute inset-0 w-full h-full bg-background/40 backdrop-blur-md text-foreground overflow-hidden font-sans selection:bg-primary/30 selection:text-primary ${!enableAnimations ? 'engram-no-animations' : ''}`} id="engram-layout-root">
             <GlobalStyles />
 
             {/* Curtain Animation Controller - V6 Lifecycle Guard & Color Bridge */}
@@ -160,7 +160,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
 
                     {/* Right Content Area (Header + Main) */}
                     <div className="flex flex-1 flex-col overflow-hidden">
-                        <div className="flex flex-col flex-shrink-0 border-b border-border bg-sidebar/95 backdrop-blur z-50 transition-all duration-300">
+                        <div className="flex flex-col shrink-0 border-b border-border bg-sidebar/80 backdrop-blur-xl z-50 transition-all duration-300">
                             <Header
                                 onToggleSidebar={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                                 isMobile={false}
@@ -169,11 +169,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
                             />
 
                             {/* Header Extension Slot (Portal Target) */}
-                            <div id="engram-header-extension" className="z-40 flex-shrink-0 bg-transparent transition-all empty:hidden" />
+                            <div id="engram-header-extension" className="z-40 shrink-0 bg-transparent transition-all empty:hidden" />
                         </div>
 
                         {/* Main Content Area - Page Transition on Tab Change */}
-                        <main className="flex-1 flex flex-col relative w-full overflow-hidden bg-background">
+                        <main className="flex-1 flex flex-col relative w-full overflow-hidden bg-background/80 backdrop-blur-xl">
                             {enableAnimations ? (
                                 <AnimatePresence mode="popLayout" initial={false}>
                                     <motion.div

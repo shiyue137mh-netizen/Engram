@@ -130,7 +130,7 @@ export class EmbeddingClient {
         } catch (error: any) {
             // 再次捕获以确保 URL 信息暴露
             if (!error.message.includes('at http')) {
-                throw new Error(`Request to ${endpoint} failed: ${error.message}`);
+                throw new Error(`Request to ${endpoint} failed: ${error.message}`, { cause: error });
             }
             throw error;
         }

@@ -50,7 +50,7 @@ const DeploymentDiagnostics: React.FC<{ url: string }> = ({ url }) => {
                 <div key={i} className={`p-2 rounded border text-[10px] flex gap-2 ${
                     alert.type === 'error' ? 'bg-destructive/10 border-destructive/20 text-destructive' : 'bg-warning/10 border-warning/20 text-warning'
                 }`}>
-                    <div className="mt-0.5 flex-shrink-0">{alert.icon}</div>
+                    <div className="mt-0.5 shrink-0">{alert.icon}</div>
                     <div className="flex-1">
                         <div className="font-bold underline mb-0.5">{alert.title}</div>
                         <div className="opacity-90 leading-tight">{alert.content}</div>
@@ -92,9 +92,9 @@ const DEFAULT_MODELS: Record<VectorSource, string> = {
 };
 
 // 需要 API URL 的源
-const NEEDS_API_URL: VectorSource[] = new Set(['custom', 'ollama', 'vllm']);
+const NEEDS_API_URL = new Set<VectorSource>(['custom', 'ollama', 'vllm']);
 // 需要 API Key 的源
-const NEEDS_API_KEY: VectorSource[] = ['custom', 'openai', 'cohere', 'jina', 'voyage'];
+const NEEDS_API_KEY = ['custom', 'openai', 'cohere', 'jina', 'voyage'] as VectorSource[];
 
 export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
     config,
@@ -262,7 +262,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                         {modelList.length > 0 ? (
                             <div className="flex-1 relative">
                                 <SearchableSelectField
-                                    className="!mb-0"
+                                    className="mb-0!"
                                     label="模型名称"
                                     value={config.model || ''}
                                     onChange={(value) => updateConfig({ model: value })}
@@ -273,7 +273,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                             </div>
                         ) : (
                             <TextField
-                                className="flex-1 !mb-0"
+                                className="flex-1 mb-0!"
                                 label="模型名称"
                                 value={config.model || ''}
                                 onChange={(value) => updateConfig({ model: value })}
@@ -284,7 +284,7 @@ export const VectorConfigForm: React.FC<VectorConfigFormProps> = ({
                         {(needsUrl || needsKey) && (
                             <button
                                 type="button"
-                                className="h-[42px] w-[42px] min-w-[42px] flex items-center justify-center border-none rounded-md bg-muted text-muted-foreground cursor-pointer transition-all hover:bg-accent hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="h-10.5 w-10.5 min-w-10.5 flex items-center justify-center border-none rounded-md bg-muted text-muted-foreground cursor-pointer transition-all hover:bg-accent hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={fetchModelList}
                                 disabled={isLoadingModels}
                                 title="获取模型列表"

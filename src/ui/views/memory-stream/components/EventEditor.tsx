@@ -11,7 +11,7 @@ import { Divider } from '@/ui/components/layout/Divider';
 import { useResponsive } from '@/ui/hooks/useResponsive';
 import { debounce } from 'lodash';
 import { Archive, ArrowLeft, Lock, LockOpen, Trash2 } from 'lucide-react';
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 
 // ==================== 类型定义 ====================
 
@@ -104,13 +104,14 @@ function generateSummaryFromKV(kv: Partial<EventNode['structured_kv']> | null | 
 
 // ==================== 组件 ====================
 
-export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
+export const EventEditor = ({
     event,
     isFullScreen = false,
     onSave,
     onDelete,
     onClose,
-}, ref) => {
+    ref,
+}: EventEditorProps & { ref?: React.Ref<EventEditorHandle> }) => {
     const { isMobile } = useResponsive();
     // 编辑状态
     const [summary, setSummary] = useState('');
@@ -394,7 +395,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                 </div>
                 <div className="relative h-4 flex items-center group cursor-pointer">
                     <div
-                        className="absolute inset-x-0 h-[1px]"
+                        className="absolute inset-x-0 h-px"
                         style={{ backgroundColor: 'var(--border)' }}
                     />
                     <div
@@ -443,7 +444,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                             syncToParent({ isLocked: val });
                         }}
                     />
-                    <div className="w-9 h-5 bg-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emphasis transition-colors"></div>
+                    <div className="w-9 h-5 bg-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emphasis transition-colors"></div>
                 </label>
             </div>
 
@@ -468,7 +469,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
                             syncToParent({ isArchived: val });
                         }}
                     />
-                    <div className="w-9 h-5 bg-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary transition-colors"></div>
+                    <div className="w-9 h-5 bg-border rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary transition-colors"></div>
                 </label>
             </div>
 
@@ -613,7 +614,7 @@ export const EventEditor = forwardRef<EventEditorHandle, EventEditorProps>(({
             </div>
         </div>
     );
-});
+};
 
 EventEditor.displayName = 'EventEditor';
 
