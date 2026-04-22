@@ -1,4 +1,5 @@
-@import "tailwindcss";
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
 @import './variables.css';
 @import './animations.css';
 
@@ -63,37 +64,62 @@
 }
 
 /* ==========================================================================
-   Scoped Application Root
+   Base Layer & Scoped Reset
    ========================================================================== */
 
-.engram-app-root {
-    @apply text-foreground border-border;
-    line-height: normal;
+@layer base {
+    .engram-app-root {
+        @apply text-foreground border-border;
+        line-height: normal;
+    }
+
+    /* 使用 :where(*) 确保权重为最低，且由于在 base 层，会被 utilities 覆盖 */
+    .engram-app-root :where(*) {
+        box-sizing: border-box;
+        border-color: var(--border, currentColor);
+        margin: 0;
+        padding: 0;
+    }
+
+    .engram-app-root :where(*)::before,
+    .engram-app-root :where(*)::after {
+        box-sizing: border-box;
+        border-color: var(--border, currentColor);
+    }
+
+    /* 局部基础元素重置 */
+    :where(.engram-app-root) button {
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+        color: inherit;
+        font-family: inherit;
+    }
+
+    :where(.engram-app-root) input,
+    :where(.engram-app-root) textarea,
+    :where(.engram-app-root) select {
+        background-color: transparent;
+        color: inherit;
+        border: none;
+        outline: none;
+    }
+
+    :where(.engram-app-root) img,
+    :where(.engram-app-root) svg {
+        display: block;
+        vertical-align: middle;
+    }
+
+    :where(.engram-app-root) a {
+        color: inherit;
+        text-decoration: inherit;
+    }
 }
 
-.engram-app-root *,
-.engram-app-root ::before,
-.engram-app-root ::after {
-    box-sizing: border-box;
-    border-color: var(--border);
-}
-
-:where(.engram-app-root) button {
-    background-color: transparent;
-    border: none;
-    cursor: pointer;
-    color: inherit;
-    font-family: inherit;
-}
-
-:where(.engram-app-root) input,
-:where(.engram-app-root) textarea,
-:where(.engram-app-root) select {
-    background-color: transparent;
-    color: inherit;
-    border: none;
-    outline: none;
-}
+/* ==========================================================================
+   Components & Layout
+   ========================================================================== */
 
 #engram-panel-root {
     position: fixed;
@@ -120,20 +146,16 @@
     }
 }
 
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: var(--background); }
-::-webkit-scrollbar-thumb { 
+/* Scoped Scrollbars */
+.engram-app-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+.engram-app-root ::-webkit-scrollbar-track { background: var(--background); }
+.engram-app-root ::-webkit-scrollbar-thumb { 
     background: var(--muted);
     border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
-
-/* ==========================================================================
-   Glass Framework (Simplified)
-   ========================================================================== */
+.engram-app-root ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 
 #engram-layout-root {
-    /* 核心透传：允许背景滤镜观察到底层内容 */
     background-color: var(--background);
 }
 

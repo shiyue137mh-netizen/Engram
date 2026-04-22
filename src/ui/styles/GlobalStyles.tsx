@@ -51,7 +51,7 @@ export const GlobalStyles = () => {
       --font-mono: 'JetBrains Mono', monospace;
     }
 
-    body {
+    .engram-app-root {
       font-family: var(--font-sans);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
@@ -62,18 +62,18 @@ export const GlobalStyles = () => {
     }
 
     /* Custom Scrollbar for dark theme - Minimalist */
-    ::-webkit-scrollbar {
+    .engram-app-root ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
-    ::-webkit-scrollbar-track {
+    .engram-app-root ::-webkit-scrollbar-track {
       background: transparent;
     }
-    ::-webkit-scrollbar-thumb {
+    .engram-app-root ::-webkit-scrollbar-thumb {
       background: rgba(63, 63, 70, 0.4); /* zinc-700 with opacity */
       border-radius: 3px;
     }
-    ::-webkit-scrollbar-thumb:hover {
+    .engram-app-root ::-webkit-scrollbar-thumb:hover {
       background: rgba(82, 82, 91, 0.6); /* zinc-600 with opacity */
     }
 

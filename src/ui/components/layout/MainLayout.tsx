@@ -103,7 +103,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children, activeTab, set
     }, []);
 
     return (
-        <div className={`flex absolute inset-0 w-full h-full bg-background/40 backdrop-blur-md text-foreground overflow-hidden font-sans selection:bg-primary/30 selection:text-primary ${!enableAnimations ? 'engram-no-animations' : ''}`} id="engram-layout-root">
+        <div className={`engram-app-root flex absolute inset-0 w-full h-full bg-background/40 backdrop-blur-md text-foreground overflow-hidden font-sans selection:bg-primary/30 selection:text-primary ${!enableAnimations ? 'engram-no-animations' : ''}`} id="engram-layout-root">
             <GlobalStyles />
 
             {/* Curtain Animation Controller - V6 Lifecycle Guard & Color Bridge */}
