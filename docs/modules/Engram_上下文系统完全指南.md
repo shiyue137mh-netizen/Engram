@@ -178,7 +178,7 @@ Engram 摒弃了不稳定的事件模拟方式，转而采用了与 `数据库` 
         *   安全调用全局酒馆扩展 API，现已通过 `src/integrations/llm/Adapter.ts` 及其它 Adapter 解耦封装，例如利用解耦包装过的 `TavernHelper.formatAsTavernRegexedString`(content, 'ai_output', { isPrompt: true })`。
         *   这会完整触发用户在酒馆扩展面板中配置的所有 Regex 规则，且应用顺序与原生酒馆完全一致。为防止系统崩溃，Engram 在内部设计了容错适配层，确保即便当前版本缺少 `TavernHelper` 或对应方法，依然能够将降级的原始字符串抛回。
     2.  **第二层: 内部处理 (Internal Layer)**
-        *   调用 Engram 内部的 `RegexProcessor` (`src/modules/workflow/processors/RegexProcessor`)。
+        *   调用 Engram 内部的 `RegexProcessor` (`src/modules/workflow/steps/processing/RegexProcessor`)。
         *   执行特定的格式标准化任务（如移除 `<think>`标签、统一换行符），确保发往 API 的数据格式整洁。
 
 **优势**:
